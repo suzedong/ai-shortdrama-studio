@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>短剧 Agent 平台 · 架构与模块关系图</title>
+<!--
+  B 类可视化文档（AI-SDG v1.4 三层文档模型）
+  ⚠ 本文件仅为可视化呈现，不是事实源；一切以 A 类 .md 文档为准。
+  事实来源见页底「事实来源索引」。无构建、无外部依赖（Google Fonts 除外），仅含展示脚本。
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0D14; --panel:#12151F; --panel2:#171C2B; --line:#252B3D;
+  --ink:#E9EBF3; --muted:#8B93A9; --faint:#5B6378;
+  --amber:#F2B544; --violet:#8B7CF6; --green:#46C98C; --red:#F0625D; --cyan:#58C7D8;
+  --serif:"Noto Serif SC",Georgia,"Songti SC",serif;
+  --mono:"JetBrains Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.75;
+  background-image:radial-gradient(rgba(139,124,246,.05) 1px,transparent 1px);background-size:26px 26px;}
+::selection{background:rgba(242,181,68,.3)}
+
+.shell{display:flex;max-width:1240px;margin:0 auto;gap:36px;padding:0 28px}
+nav.rail{position:sticky;top:0;align-self:flex-start;width:150px;height:100vh;flex:none;
+  display:flex;flex-direction:column;justify-content:center;gap:4px;padding:24px 0;z-index:30}
+nav.rail a{color:var(--muted);text-decoration:none;font-size:13px;padding:7px 12px;border-left:2px solid var(--line);
+  transition:.25s;letter-spacing:.5px}
+nav.rail a .n{font-family:var(--mono);font-size:10px;color:#565e75;margin-right:8px}
+nav.rail a:hover{color:var(--ink)}
+nav.rail a.on{color:var(--amber);border-left-color:var(--amber);background:linear-gradient(90deg,rgba(242,181,68,.08),transparent)}
+main{flex:1;min-width:0;padding-bottom:120px}
+
+header.hero{padding:96px 0 40px;position:relative}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:4px;color:var(--amber);margin-bottom:18px}
+.kicker::before{content:"●";margin-right:10px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+h1{font-family:var(--serif);font-weight:900;font-size:clamp(32px,5vw,50px);line-height:1.25;letter-spacing:1px}
+h1 em{font-style:normal;color:var(--amber)}
+.lede{margin-top:20px;color:var(--muted);font-size:16px;max-width:680px}
+.lede b{color:var(--ink);font-weight:600}
+.verline{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:11px;padding:4px 12px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
+.chip b{color:var(--violet)}
+
+.truth-banner{margin-top:34px;border:1px solid rgba(242,181,68,.35);background:rgba(242,181,68,.06);
+  border-radius:12px;padding:14px 18px;font-size:13px;color:#D8D2BE;display:flex;gap:12px;align-items:flex-start}
+.truth-banner .tb-ic{color:var(--amber);font-family:var(--mono);font-size:12px;flex:none;letter-spacing:1px}
+.truth-banner b{color:var(--amber)}
+.truth-banner a{color:var(--cyan);text-decoration:none;border-bottom:1px dotted var(--cyan)}
+
+section{padding:70px 0 8px;scroll-margin-top:30px}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}
+.sec-no{font-family:var(--mono);font-size:13px;color:var(--amber)}
+h2{font-family:var(--serif);font-size:28px;font-weight:900;letter-spacing:1px}
+.sec-sub{color:var(--muted);font-size:14px;margin-bottom:34px;max-width:700px}
+h3{font-size:15px;font-weight:700;margin:40px 0 14px;display:flex;align-items:center;gap:9px}
+h3::before{content:"";width:8px;height:8px;background:var(--amber);transform:rotate(45deg);flex:none}
+p{margin:10px 0;color:#C7CCDA}
+p.mut{color:var(--muted)}
+b,strong{color:var(--ink);font-weight:600}
+code{font-family:var(--mono);font-size:12px;background:#1d2233;border:1px solid var(--line);
+  padding:1px 6px;border-radius:5px;color:var(--amber)}
+
+.rv{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
+.rv.in{opacity:1;transform:none}
+
+/* ── big four-layer diagram ── */
+.diagram{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px 24px 24px;overflow-x:auto}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:22px;font-family:var(--mono)}
+.legend i{display:inline-block;width:22px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+.layer{border:1px solid var(--line);border-radius:12px;padding:16px 14px 14px;margin:14px 0;position:relative}
+.layer .ltag{position:absolute;top:-10px;left:14px;font-family:var(--mono);font-size:10px;letter-spacing:1.5px;
+  background:var(--panel);padding:0 8px;color:var(--muted)}
+.layer .ldesc{font-size:11.5px;color:var(--faint);margin:0 0 10px}
+.l-renderer{border-color:rgba(139,124,246,.45);background:rgba(139,124,246,.05)}
+.l-main{border-color:rgba(242,181,68,.4);background:rgba(242,181,68,.045)}
+.l-child{border-color:rgba(70,201,140,.4);background:rgba(70,201,140,.045)}
+.l-ext{border-style:dashed;background:transparent}
+.flowrow{display:flex;gap:10px;flex-wrap:wrap}
+.node{flex:1;min-width:128px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;
+  padding:10px 12px;transition:.25s;cursor:default;position:relative}
+.node .nt{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.node .nd{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.55}
+.node:hover{border-color:var(--amber);box-shadow:0 0 0 3px rgba(242,181,68,.08)}
+.node.future{border-style:dashed;opacity:.72}
+.node.future .nt::after{content:" · 待接入";font-family:var(--mono);font-size:9px;color:var(--amber);font-weight:400}
+.node.old{border-color:rgba(240,98,93,.42)}
+.node.old .nt::after{content:" · 将退役";font-family:var(--mono);font-size:9px;color:var(--red);font-weight:400}
+.node .path{font-family:var(--mono);font-size:9px;color:var(--faint);display:block;margin-top:5px;letter-spacing:.3px}
+.conn{text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:2px;margin:3px 0}
+.conn .proto{color:var(--cyan)}
+.conn .secure{color:var(--green)}
+.conn .danger{color:var(--red)}
+
+/* trust boundary callout */
+.boundaries{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.bcard{border:1px solid var(--line);border-radius:11px;padding:14px 16px;background:var(--panel2)}
+.bcard h4{font-size:13px;margin-bottom:5px;display:flex;gap:7px;align-items:center}
+.bcard h4 .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.bcard p{font-size:11.5px;margin:0;color:var(--muted)}
+.b-ok h4{color:var(--green)} .b-ok .dot{background:var(--green)}
+.b-warn h4{color:var(--amber)} .b-warn .dot{background:var(--amber)}
+.b-info h4{color:var(--cyan)} .b-info .dot{background:var(--cyan)}
+
+/* ── module matrix ── */
+.mtab{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--panel);
+  border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.mtab th,.mtab td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+.mtab th{background:var(--panel2);font-size:11px;letter-spacing:1px;color:var(--muted);font-family:var(--mono);font-weight:500}
+.mtab tr:last-child td{border-bottom:none}
+.mtab td .mp{font-family:var(--mono);font-size:10.5px;color:var(--cyan);display:block;margin-top:2px}
+.mtab td b{font-size:12.5px}
+.mtab td.desc{color:var(--muted);font-size:12px}
+.badge{font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:5px;white-space:nowrap;letter-spacing:.5px}
+.b-live{background:rgba(70,201,140,.13);color:var(--green);border:1px solid rgba(70,201,140,.3)}
+.b-part{background:rgba(242,181,68,.13);color:var(--amber);border:1px solid rgba(242,181,68,.3)}
+.b-old{background:rgba(240,98,93,.12);color:var(--red);border:1px solid rgba(240,98,93,.3)}
+.b-plan{background:rgba(139,124,246,.13);color:var(--violet);border:1px solid rgba(139,124,246,.3)}
+
+/* ── data & channels ── */
+.chgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.chcol{border:1px solid var(--line);border-radius:13px;padding:18px;background:var(--panel)}
+.chcol h4{font-size:14px;margin-bottom:12px;display:flex;align-items:center;gap:9px}
+.chcol h4 .p{font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:5px}
+.chcol ul{list-style:none;font-size:12px}
+.chcol li{padding:7px 0;border-bottom:1px dashed var(--line);display:flex;justify-content:space-between;gap:10px;
+  font-family:var(--mono);color:#C0C6D8}
+.chcol li:last-child{border:none}
+.chcol li .ch-name{color:var(--amber)}
+.chcol li .ch-cnt{color:var(--muted);font-size:11px}
+.chcol.new{border-color:rgba(70,201,140,.32)}
+.chcol.new h4 .p{background:rgba(70,201,140,.15);color:var(--green)}
+.chcol.oldc{border-color:rgba(240,98,93,.3)}
+.chcol.oldc h4 .p{background:rgba(240,98,93,.15);color:var(--red)}
+
+/* lineage strip */
+.dltree{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:18px 20px;
+  font-family:var(--mono);font-size:12px;line-height:2;color:#B9C0D4;overflow-x:auto;white-space:pre}
+.dltree .dir{color:var(--violet)}.dltree .cmt{color:#5a6278}.dltree .key{color:var(--amber)}
+.keyflow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px;font-size:12.5px}
+.keyflow .kbox{font-family:var(--mono);font-size:11px;border:1px solid var(--line);background:var(--panel2);
+  padding:3px 9px;border-radius:6px;color:var(--amber)}
+.keyflow .ar{color:var(--muted)}
+
+/* ── agents & tools ── */
+.crew{position:relative}
+.crew .director{background:linear-gradient(135deg,rgba(242,181,68,.14),rgba(242,181,68,.03));
+  border:1px solid rgba(242,181,68,.4);border-radius:13px;padding:16px 18px;text-align:center;margin-bottom:6px}
+.crew .director .role{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--amber)}
+.crew .director .rn{font-family:var(--serif);font-size:19px;font-weight:900;margin-top:2px}
+.crew .director .rd{font-size:12px;color:var(--muted)}
+.bus{font-family:var(--mono);font-size:10px;text-align:center;color:var(--muted);letter-spacing:3px;margin:12px 0}
+.bus::before,.bus::after{content:"────";color:var(--line);margin:0 10px}
+.agentgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.acard{border:1px solid var(--line);border-radius:11px;padding:13px 15px;background:var(--panel)}
+.acard h4{font-size:13px;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.acard h4 .ai{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-size:12px;flex:none;
+  background:rgba(139,124,246,.14);border:1px solid rgba(139,124,246,.3)}
+.acard p{font-size:11.5px;color:var(--muted);margin:0}
+.acard .tag{font-family:var(--mono);font-size:9px;color:var(--faint);margin-top:6px;display:block}
+
+.toolgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.tcard{border:1px solid var(--line);border-radius:11px;padding:14px 16px;background:var(--panel)}
+.tcard h4{font-size:13px;margin-bottom:5px}
+.tcard h4 code{font-size:11px}
+.tcard p{font-size:11.5px;color:var(--muted);margin:0}
+.tcard .state{float:right;font-family:var(--mono);font-size:9px;margin-top:2px}
+
+/* engine boundary */
+.engine{border:1px solid rgba(88,199,216,.35);border-radius:14px;padding:20px;background:rgba(88,199,216,.04)}
+.engine .ehead{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.engine .ehead h4{font-size:14.5px;color:var(--cyan)}
+.engine .ehead .etag{font-family:var(--mono);font-size:10px;color:var(--cyan);border:1px solid rgba(88,199,216,.4);
+  padding:3px 10px;border-radius:6px}
+.erow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ecard{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+.ecard .model{font-family:var(--mono);font-size:12px;color:var(--amber)}
+.ecard .use{font-size:11px;color:var(--muted);margin-top:3px}
+.efoot{font-size:11.5px;color:var(--muted);margin-top:14px}
+.efoot b{color:var(--cyan)}
+
+/* source index */
+details.source-index{margin-top:70px;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
+details.source-index summary{cursor:pointer;padding:16px 20px;font-size:13.5px;font-weight:700;list-style:none;
+  display:flex;align-items:center;gap:10px}
+details.source-index summary::-webkit-details-marker{display:none}
+details.source-index summary::before{content:"▸";color:var(--amber);font-family:var(--mono);transition:.2s}
+details.source-index[open] summary::before{transform:rotate(90deg)}
+.si-body{padding:4px 20px 20px;border-top:1px solid var(--line)}
+.si-body > p{font-size:12.5px;color:var(--muted);margin:14px 0 10px}
+.src-grid{display:grid;gap:8px}
+.src-row{display:grid;grid-template-columns:52px 1fr;gap:12px;border:1px solid var(--line);border-radius:9px;
+  padding:11px 14px;background:var(--panel2)}
+.src-row .si-base{font-family:var(--mono);font-size:10px;color:var(--green);padding-top:2px}
+.src-row .si-ti{font-size:13px;font-weight:700}
+.src-row .si-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.src-row code{font-size:10.5px}
+.foot-note{text-align:center;color:var(--faint);font-size:11px;margin-top:40px;font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<nav class="rail">
+  <a href="#top"><span class="n">00</span>总览</a>
+  <a href="#layers"><span class="n">01</span>四层架构</a>
+  <a href="#modules"><span class="n">02</span>模块清单</a>
+  <a href="#channels"><span class="n">03</span>通道单轨</a>
+  <a href="#data"><span class="n">04</span>数据血缘</a>
+  <a href="#agents"><span class="n">05</span>Agent 与工具</a>
+  <a href="#engine"><span class="n">06</span>引擎边界</a>
+</nav>
+
+<main>
+<header class="hero" id="top">
+  <div class="kicker">ARCHITECTURE · MODULE MAP</div>
+  <h1>架构与<em>模块关系图</em></h1>
+  <p class="lede">一张图看清平台<b>四层运行边界、模块归属、runtime 单轨与数据血缘</b>：渲染层 → 主进程 → opencode 子进程 → 外部世界，媒体全部收敛于局域网 ComfyUI。</p>
+  <div class="verline">
+    <span class="chip">设计基准 <b>设计 v1.9</b>（2026-10-08）</span>
+    <span class="chip">模块 / 通道口径 <b>磁盘实况</b>（2026-10-09 核对 · 197 passed · 1 skipped）</span>
+    <span class="chip">技术栈 <b>Electron 33 · React 18 · TS 5.6 · Vite</b></span>
+    <span class="chip">Agent 运行时 <b>opencode 1.18 + MCP</b></span>
+    <span class="chip">画像 <b>P2</b>（多模块 · 长期演进）</span>
+  </div>
+  <div class="truth-banner">
+    <span class="tb-ic">⚠ FACT</span>
+    <span>本页是 <b>B 类可视化文档</b>，仅用于快速理解，<b>不是事实源</b>。所有架构、模块、通道的权威定义以 A 类文档为准；如与 A 类冲突，一律以 A 类为准并修正本页。事实来源见 <a href="#sources">页底索引</a>。</span>
+  </div>
+</header>
+
+<!-- ══════ 01 四层架构 ══════ -->
+<section id="layers">
+  <div class="sec-head rv"><span class="sec-no">01</span><h2>四层运行架构</h2></div>
+  <p class="sec-sub rv">信任从左到右逐级收窄：renderer 不直连任何外部服务与 ComfyUI；媒体调用一律收敛于主进程 / MCP 引擎工具。<b>下图模块为 2026-10-09 磁盘实况</b>（feature-019/020/022 新壳形态，仍属 D-005 前代码，对照设计 v1.9 的反向补录尚未正式认定）。</p>
+
+  <div class="diagram rv">
+    <div class="legend">
+      <span><i style="border-color:var(--violet)"></i>渲染层（不可信 UI）</span>
+      <span><i style="border-color:var(--amber)"></i>主进程（信任边界）</span>
+      <span><i style="border-color:var(--green)"></i>opencode 子进程（loopback）</span>
+      <span><i style="border-color:var(--line)"></i>外部世界</span>
+    </div>
+
+    <!-- RENDERER -->
+    <div class="layer l-renderer">
+      <span class="ltag">① RENDERER · 渲染进程</span>
+      <p class="ldesc">React 单页应用，只通过 contextBridge 暴露的白名单 API 与主进程通信。</p>
+      <div class="flowrow">
+        <div class="node"><div class="nt">StudioApp 编排</div><div class="nd">三栏工作台 · 画布 / 对话 / 门卡</div><span class="path">src/studio/StudioApp.tsx</span></div>
+        <div class="node"><div class="nt">ChatComposer</div><div class="nd">对话流 · 发送 / 中断</div><span class="path">src/studio/ChatComposer.tsx</span></div>
+        <div class="node"><div class="nt">CanvasBoard / Viewer</div><div class="nd">数据驱动画布 · 只读产物</div><span class="path">src/studio/CanvasBoard.tsx</span></div>
+        <div class="node"><div class="nt">ProjectNav / GateCard</div><div class="nd">项目导航 · 门裁决卡</div><span class="path">src/studio/ProjectNav.tsx</span></div>
+        <div class="node"><div class="nt">lib 纯函数</div><div class="nd">chat-runtime 事件归约</div><span class="path">src/lib/chat-runtime.ts</span></div>
+      </div>
+    </div>
+
+    <div class="conn">▲ contextBridge 白名单 · <span class="secure">ipcRenderer.invoke（受控 API）</span> · 无 Node 集成</div>
+
+    <!-- MAIN -->
+    <div class="layer l-main">
+      <span class="ltag">② MAIN · 主进程（信任边界）</span>
+      <p class="ldesc">唯一持有文件系统、子进程与网络能力的层；25 个 IPC 处理器 + 运行时管理 + 11 个纯 MCP 工具。</p>
+      <div class="flowrow">
+        <div class="node"><div class="nt">main IPC 路由</div><div class="nd">窗口 · 项目 · runtime 等 25 通道</div><span class="path">electron/main.ts</span></div>
+        <div class="node"><div class="nt">RuntimeManager</div><div class="nd">子进程生命周期 · 注入鉴权</div><span class="path">electron/runtime/manager.ts</span></div>
+        <div class="node"><div class="nt">provider / client</div><div class="nd">opencode 供给与事件客户端</div><span class="path">electron/runtime/</span></div>
+        <div class="node"><div class="nt">projection</div><div class="nd">事件 → UI DTO 投影</div><span class="path">electron/runtime/projection.ts</span></div>
+        <div class="node"><div class="nt">MCP HTTP 服务</div><div class="nd">/mcp · Bearer · 仅 loopback</div><span class="path">electron/mcp/server.ts</span></div>
+        <div class="node"><div class="nt">纯工具 11 个</div><div class="nd">file/canvas/gate/asset/comfyui</div><span class="path">electron/mcp/tools.ts</span></div>
+      </div>
+      <div class="flowrow" style="margin-top:10px">
+        <div class="node"><div class="nt">canvas / gate / asset</div><div class="nd">画布存储 · 门桥 · 资产索引</div><span class="path">electron/canvas · gate · asset/</span></div>
+        <div class="node"><div class="nt">fs 沙箱套件</div><div class="nd">读 / 写队列 / 归档 / 边界校验</div><span class="path">electron/fs/</span></div>
+        <div class="node"><div class="nt">comfy client / settings</div><div class="nd">多实例配置 · 队列 / 状态</div><span class="path">electron/comfy/</span></div>
+      </div>
+    </div>
+
+    <div class="conn">▲ 派生 <span class="proto">opencode serve 子进程</span> · 仅绑 <span class="secure">127.0.0.1</span> · 注入 MCP URL/TOKEN</div>
+
+    <!-- OPENCODE CHILD -->
+    <div class="layer l-child">
+      <span class="ltag">③ OPENCODE · 子进程（本地 loopback）</span>
+      <p class="ldesc">开源同源 Agent 运行时；Agent 经 MCP 调用主进程暴露的纯工具，不直接写文件。</p>
+      <div class="flowrow">
+        <div class="node"><div class="nt">Director 等 5 Agent</div><div class="nd">showrunner / writer / media-director 等</div><span class="path">resources/opencode/agents/*.md</span></div>
+        <div class="node old"><div class="nt">MCP client</div><div class="nd">Agent 定义仍写 shortdrama_* 放行名，与现存 11 工具名（file.read 等）不符 · 待反补认定</div><span class="path">OPENCODE_MCP_URL/TOKEN</span></div>
+        <div class="node future"><div class="nt">多 Agent 分工</div><div class="nd">设计 §4 六角色终态</div><span class="path">设计 §4（终态）</span></div>
+      </div>
+    </div>
+
+    <div class="conn">▲ 文本侧出公网 <span class="proto">火山方舟（OpenAI 兼容）</span> ｜ 媒体侧 ▶ <span class="secure">局域网 ComfyUI</span></div>
+
+    <!-- EXTERNAL -->
+    <div class="layer l-ext">
+      <span class="ltag">④ EXTERNAL · 外部世界</span>
+      <p class="ldesc">平台出公网仅余文本；媒体生成零公网、无云端 Key、无按次云费用。</p>
+      <div class="flowrow">
+        <div class="node"><div class="nt">火山方舟</div><div class="nd">文本大模型（唯一公网）</div><span class="path">ark.cn-beijing.volces.com</span></div>
+        <div class="node"><div class="nt">ComfyUI 多实例</div><div class="nd">本地 / 局域网 · 地址可配</div><span class="path">qwen-image · H3 · Music3</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="boundaries">
+    <div class="bcard b-ok">
+      <h4><span class="dot"></span>loopback 硬边界</h4>
+      <p>opencode serve 与 MCP 服务只绑 127.0.0.1；MCP Token 每次启动随机生成（24B），不落盘。</p>
+    </div>
+    <div class="bcard b-ok">
+      <h4><span class="dot"></span>绞杀者收口（磁盘实况）</h4>
+      <p>旧 ark 直连对话 IPC（8 个 agent:*）已删除；对话统一走 runtime 单轨。现存代码中 ark.ts 已无引用方，是否保留待反向补录时按设计 v1.9 认定。</p>
+    </div>
+    <div class="bcard b-info">
+      <h4><span class="dot"></span>renderer 零直连</h4>
+      <p>渲染层不直连 ComfyUI、不直连方舟；所有媒体调用收敛于 MCP / 主进程引擎工具。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ 02 模块清单 ══════ -->
+<section id="modules">
+  <div class="sec-head rv"><span class="sec-no">02</span><h2>模块清单与落地状态</h2></div>
+  <p class="sec-sub rv">模块按进程归属分组。<b>以下为 2026-10-09 磁盘实况</b>（feature-019/020/022 新壳形态，D-005 前代码，对照设计 v1.9 的反向补录认定尚未完成）；另区分：终态规划。</p>
+
+  <table class="mtab rv">
+    <thead><tr><th>模块</th><th>职责</th><th>状态</th></tr></thead>
+    <tbody>
+      <tr><td><b>StudioApp 工作台</b><span class="mp">src/studio/StudioApp.tsx</span></td><td class="desc">三栏布局：ProjectNav / CanvasBoard(+StudioViewer) / ChatComposer(+GateCardView)</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
+      <tr><td><b>ChatComposer</b><span class="mp">src/studio/ChatComposer.tsx</span></td><td class="desc">对话输入、发送（runtime:prompt）、中断</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
+      <tr><td><b>CanvasBoard / StudioViewer</b><span class="mp">src/studio/CanvasBoard.tsx · StudioViewer.tsx</span></td><td class="desc">数据驱动多步画布；经 file:read 的只读产物查看器</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
+      <tr><td><b>GateCardView / ProjectNav</b><span class="mp">src/studio/GateCardView.tsx · ProjectNav.tsx</span></td><td class="desc">门裁决卡（渲染自 CanvasGate）；项目导航</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
+      <tr><td><b>chat-runtime</b><span class="mp">src/lib/chat-runtime.ts</span></td><td class="desc">StreamingTurn / ToolView、事件归约、消息转换</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
+      <tr><td><b>IPC 路由</b><span class="mp">electron/main.ts</span></td><td class="desc">25 个处理器：项目 / runtime / canvas / gate / asset / file / comfy 设置</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
+      <tr><td><b>RuntimeManager</b><span class="mp">electron/runtime/manager.ts</span></td><td class="desc">opencode 子进程启停、端口探活、环境注入</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
+      <tr><td><b>provider / client / projection</b><span class="mp">electron/runtime/</span></td><td class="desc">供给探测、事件流客户端、事件 → UI DTO 投影</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
+      <tr><td><b>MCP HTTP 服务</b><span class="mp">electron/mcp/server.ts</span></td><td class="desc">Streamable HTTP，/mcp，Bearer，仅 loopback（server: shortdrama-tools）</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
+      <tr><td><b>纯工具层</b><span class="mp">electron/mcp/tools.ts</span></td><td class="desc">11 个纯工具：file.read/list/write · canvas.get/update · gate.request · asset.register/list · comfyui.instances/queue/status</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
+      <tr><td><b>fs / project 套件</b><span class="mp">electron/fs/ · electron/project/</span></td><td class="desc">沙箱边界、写队列、归档；项目库与当前项目</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
+      <tr><td><b>canvas / gate / asset / comfy</b><span class="mp">electron/canvas · gate · asset · comfy/</span></td><td class="desc">画布存储与边、门桥、资产索引、ComfyUI 客户端与多实例设置</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
+      <tr><td><b>Agent 定义 5 个</b><span class="mp">resources/opencode/agents/</span></td><td class="desc">director / showrunner / writer / media-director / comfyui-operator（放行名仍写 shortdrama_*，与现存工具名不符）</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
+      <tr><td><b>多 Agent 六角色</b><span class="mp">设计 §4</span></td><td class="desc">编剧 / 美术 / 镜头 / 声音 / 引擎 / 剪辑</td><td><span class="badge b-plan">终态规划</span></td></tr>
+      <tr><td><b>ComfyUI 引擎工具</b><span class="mp">设计 §5 / §8</span></td><td class="desc">媒体生成统一引擎（图像 / 视频 / 音乐，权重工作流推理）</td><td><span class="badge b-plan">终态规划</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ══════ 03 通道单轨 ══════ -->
+<section id="channels">
+  <div class="sec-head rv"><span class="sec-no">03</span><h2>IPC / MCP 通道（2026-10-09 磁盘实况）</h2></div>
+  <p class="sec-sub rv">对话统一走 runtime 单轨；旧 8 个 ark 直连对话 IPC 已快照后删除。<b>以下为 main.ts 现存 25 个 invoke 处理器（均经 preload 白名单暴露），反向补录认定尚未完成。</b></p>
+
+  <div class="chgrid rv">
+    <div class="chcol new">
+      <h4>项目 / 应用 <span class="p">4 通道</span></h4>
+      <ul>
+        <li><span class="ch-name">project:list / create / open</span><span class="ch-cnt">项目库 3 通道</span></li>
+        <li><span class="ch-name">app:config-status</span><span class="ch-cnt">方舟配置状态</span></li>
+      </ul>
+      <h4 style="margin-top:14px">runtime <span class="p">12 通道</span></h4>
+      <ul>
+        <li><span class="ch-name">runtime:start / stop / status</span><span class="ch-cnt">生命周期</span></li>
+        <li><span class="ch-name">runtime:session:create / list</span><span class="ch-cnt">会话管理</span></li>
+        <li><span class="ch-name">runtime:session:abort / delete</span><span class="ch-cnt">中断 / 删除</span></li>
+        <li><span class="ch-name">runtime:prompt · prompt:async</span><span class="ch-cnt">发送（流式 / 异步）</span></li>
+        <li><span class="ch-name">runtime:event:subscribe / un-</span><span class="ch-cnt">事件推送</span></li>
+        <li><span class="ch-name">runtime:agent:list</span><span class="ch-cnt">Agent 目录</span></li>
+      </ul>
+    </div>
+    <div class="chcol new">
+      <h4>画布 / 门 / 资产 / 文件 <span class="p">6 通道</span></h4>
+      <ul>
+        <li><span class="ch-name">canvas:get / subscribe / un-</span><span class="ch-cnt">画布读取与推送</span></li>
+        <li><span class="ch-name">gate:decide</span><span class="ch-cnt">门裁决</span></li>
+        <li><span class="ch-name">asset:list</span><span class="ch-cnt">资产枚举</span></li>
+        <li><span class="ch-name">file:read</span><span class="ch-cnt">产物只读</span></li>
+      </ul>
+      <h4 style="margin-top:14px">ComfyUI 设置 + MCP 端点 <span class="p">3 + HTTP</span></h4>
+      <ul>
+        <li><span class="ch-name">settings:comfy:list / upsert / remove</span><span class="ch-cnt">多实例配置</span></li>
+        <li><span>MCP /mcp（POST/GET/DELETE）</span><span class="ch-cnt">JSON-RPC · SSE · Bearer · loopback</span></li>
+      </ul>
+    </div>
+  </div>
+  <p class="mut rv" style="margin-top:16px">MCP 侧现存 <b>11 个纯工具</b>（<code>file.read</code> / <code>canvas.get</code> / <code>gate.request</code> / <code>asset.register</code> / <code>comfyui.instances</code> 等），由 <code>electron/mcp/tools.ts</code> 注册；注意 resources/opencode/agents/*.md 中的放行名仍写 <code>shortdrama_*</code>，与实际工具名不一致，待反向补录时一并认定。</p>
+</section>
+
+<!-- ══════ 04 数据血缘 ══════ -->
+<section id="data">
+  <div class="sec-head rv"><span class="sec-no">04</span><h2>会话目录与数据血缘</h2></div>
+  <p class="sec-sub rv">纯 JSON / Markdown 文件持久化，无数据库。<b>下列目录树为 2026-10-09 磁盘实况</b>（feature-017/022 形态；工作区位于「文稿/ai-shortdrama-studio/」）；三阶段血缘在设计 §7.1 定义，反向补录后将按 v1.9 模型重建。</p>
+
+  <div class="dltree rv"><span class="cmt"># 磁盘实况：项目工作区（2026-10-09 核对）</span>
+<span class="dir">~/Documents/ai-shortdrama-studio/</span>
+├── <span class="dir">project-{时间戳}-{随机}/</span>   <span class="cmt"># 每个短剧项目一个目录</span>
+│   ├── <span class="key">manifest.json</span>      <span class="cmt"># 项目骨架：status / nodes（旧 10 节点状态机）/ 各门字段</span>
+│   ├── <span class="key">.session.json</span>      <span class="cmt"># 标题 / 创建 / 最近打开时间</span>
+│   ├── <span class="key">canvas.json</span>        <span class="cmt"># 画布真相：nodes（step/kind/ref.path）/ edges / pendingGate</span>
+│   └── <span class="dir">资产/</span>
+│       └── <span class="key">asset-index.json</span> <span class="cmt"># 资产登记索引</span>
+└── <span class="cmt"># userData/session-state.json：当前打开项目指针（主进程侧）</span>
+<span class="cmt"># 产物文件：由 MCP file.write 落盘（旧版自动归档至同级「版本/」），StudioViewer 经 file:read 只读打开</span></div>
+
+  <h3 class="rv">血缘主链（设计 v1.9 口径，随反补落地）</h3>
+  <div class="keyflow rv">
+    <span class="kbox">CharacterProfile.id</span><span class="ar">→</span>
+    <span class="kbox">分场出场人物</span><span class="ar">→</span>
+    <span class="kbox">分镜角色</span><span class="ar">→</span>
+    <span class="kbox">镜头 · 资产生成</span>
+  </div>
+  <div class="keyflow rv" style="margin-top:8px">
+    <span class="kbox">Scene.sceneNo</span><span class="ar">→</span>
+    <span class="kbox">分镜（按场）</span><span class="ar">→</span>
+    <span class="kbox">镜头组</span><span class="ar">→</span>
+    <span class="kbox">后期 · 发布</span>
+  </div>
+</section>
+
+<!-- ══════ 05 Agent 与工具 ══════ -->
+<section id="agents">
+  <div class="sec-head rv"><span class="sec-no">05</span><h2>Agent 编排与 MCP 工具</h2></div>
+  <p class="sec-sub rv">终态为「1 主控 + 6 专职」多 Agent，经消息总线协作、共享黑板、失败隔离，Agent 无删除权。<b>磁盘实况已安装 5 个 Agent 定义（director / showrunner / writer / media-director / comfyui-operator），其放行名口径与现存工具不符，待反向补录重建。</b></p>
+
+  <div class="crew rv">
+    <div class="director">
+      <div class="role">PRIMARY · 主控导演</div>
+      <div class="rn">Director Agent（+ showrunner）</div>
+      <div class="rd">理解意图 · 规划步骤 · 强制经 MCP 工具产出；定义中放行名仍写 shortdrama_*，待反补修正</div>
+    </div>
+    <div class="bus">消息总线 · 共享黑板</div>
+    <div class="agentgrid">
+      <div class="acard"><h4><span class="ai">编</span>编剧 <span class="badge b-plan" style="margin-left:auto">规划</span></h4><p>故事 / 大纲 / 分场 / 对白</p><span class="tag">[自研新增]</span></div>
+      <div class="acard"><h4><span class="ai">美</span>美术 <span class="badge b-plan" style="margin-left:auto">规划</span></h4><p>人物与场景视觉资产</p><span class="tag">[Design 改编]</span></div>
+      <div class="acard"><h4><span class="ai">镜</span>镜头 <span class="badge b-plan" style="margin-left:auto">规划</span></h4><p>分镜与镜头语言</p><span class="tag">[Design 改编]</span></div>
+      <div class="acard"><h4><span class="ai">声</span>声音 <span class="badge b-plan" style="margin-left:auto">规划</span></h4><p>音乐 / 音效 / 语音（待定）</p><span class="tag">[Design 改编]</span></div>
+      <div class="acard"><h4><span class="ai">擎</span>引擎 <span class="badge b-plan" style="margin-left:auto">规划</span></h4><p>调度局域网 ComfyUI</p><span class="tag">[自研新增]</span></div>
+      <div class="acard"><h4><span class="ai">剪</span>剪辑 <span class="badge b-plan" style="margin-left:auto">规划</span></h4><p>后期合成与发布</p><span class="tag">[Design 改编]</span></div>
+    </div>
+  </div>
+
+  <h3 class="rv">磁盘实况 · 11 个纯 MCP 工具（electron/mcp/tools.ts）</h3>
+  <div class="toolgrid rv">
+    <div class="tcard"><span class="state badge b-old">file</span><h4><code>file.read</code></h4><p>沙箱内文件只读</p></div>
+    <div class="tcard"><span class="state badge b-old">file</span><h4><code>file.list</code></h4><p>目录枚举</p></div>
+    <div class="tcard"><span class="state badge b-old">file</span><h4><code>file.write</code></h4><p>写入（写队列 · 旧版自动归档）</p></div>
+    <div class="tcard"><span class="state badge b-old">canvas</span><h4><code>canvas.get</code></h4><p>读取画布</p></div>
+    <div class="tcard"><span class="state badge b-old">canvas</span><h4><code>canvas.update</code></h4><p>节点 / 边 / pendingGate 更新</p></div>
+    <div class="tcard"><span class="state badge b-old">gate</span><h4><code>gate.request</code></h4><p>发起门请求</p></div>
+    <div class="tcard"><span class="state badge b-old">asset</span><h4><code>asset.register</code></h4><p>登记资产入索引</p></div>
+    <div class="tcard"><span class="state badge b-old">asset</span><h4><code>asset.list</code></h4><p>资产枚举</p></div>
+    <div class="tcard"><span class="state badge b-old">comfyui</span><h4><code>comfyui.instances</code></h4><p>实例清单</p></div>
+    <div class="tcard"><span class="state badge b-old">comfyui</span><h4><code>comfyui.queue</code></h4><p>提交工作流</p></div>
+    <div class="tcard"><span class="state badge b-old">comfyui</span><h4><code>comfyui.status</code></h4><p>任务 / 实例状态</p></div>
+  </div>
+</section>
+
+<!-- ══════ 06 引擎边界 ══════ -->
+<section id="engine">
+  <div class="sec-head rv"><span class="sec-no">06</span><h2>媒体引擎硬边界</h2></div>
+  <p class="sec-sub rv">ComfyUI 是统一媒体引擎：图像 / 视频 / 音乐全部以权重 / 工作流在本地或局域网推理。</p>
+
+  <div class="engine rv">
+    <div class="ehead">
+      <h4>本地 / 局域网 ComfyUI（多实例 · 地址可配）</h4>
+      <span class="etag">媒体生成零公网 · 无云端 Key · 无按次费用</span>
+    </div>
+    <div class="erow">
+      <div class="ecard"><div class="model">qwen-image</div><div class="use">图像通道唯一模型（人物 / 场景 / 关键帧）</div></div>
+      <div class="ecard"><div class="model">MiniMax H3</div><div class="use">视频通道唯一模型（图生视频 / 镜头）</div></div>
+      <div class="ecard"><div class="model">MiniMax Music3</div><div class="use">音乐通道唯一模型（配乐）</div></div>
+    </div>
+    <p class="efoot">红线：Agent <b>不得自行切换</b>其他图像 / 视频 / 音乐模型；语音通道待定。renderer 不直连 ComfyUI，媒体调用一律经 <b>MCP / 主进程引擎工具</b>（B0 / B5 / B8 / B9）。</p>
+  </div>
+</section>
+
+<!-- ══════ 事实来源索引 ══════ -->
+<details class="source-index rv" id="sources" open>
+  <summary>事实来源索引 · B 类不是事实源</summary>
+  <div class="si-body">
+    <p>本页全部内容均渲染自以下 A 类事实源文档。阅读与实现请以 A 类为准；发现冲突按 L1 修正本页。</p>
+    <div class="src-grid">
+      <div class="src-row">
+        <span class="si-base">A · 架构</span>
+        <div><div class="si-ti">短剧Agent平台设计.md（v1.9）</div><div class="si-sub">§2.6 新立项模型 · §4 多 Agent 架构 · §5 MCP 工具层 · §7/§7.1 目录与实体 · §8/§8.3 引擎通道与系统级外部数据源 · §11 路线 · §13 版本记录</div></div>
+      </div>
+      <div class="src-row">
+        <span class="si-base">A · 归档</span>
+        <div><div class="si-ti">docs/archive/features-pre-rebuild/ + archive/README.md</div><div class="si-sub">旧 22 个 feature 包（含旧 feature-001~010 任务清单与 F-010 契约）已整体作废归档；其勾选与 AC 状态随包冻结，仅作历史核对</div></div>
+      </div>
+      <div class="src-row">
+        <span class="si-base">A · 决策</span>
+        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005）</div><div class="si-sub">立项模型重建 + 旧 22 包作废归档 + 谱系定位系统级外部数据源；runtime/MCP 通道与旧契约须在反向补录时按 v1.9 重新认定</div></div>
+      </div>
+      <div class="src-row">
+        <span class="si-base">A · 治理</span>
+        <div><div class="si-ti">AGENTS.md（v1.5）+ docs/governance/AI-SDG-AI工具执行指令.md</div><div class="si-sub">§2.1 三层文档模型与项目画像 P2；K1–K10 卡口；L1/L2/L3 裁决</div></div>
+      </div>
+      <div class="src-row">
+        <span class="si-base">A · 新包</span>
+        <div><div class="si-ti">docs/features/（当前为空）</div><div class="si-sub">新任务包从 feature-001 按反向补录六步法重建</div></div>
+      </div>
+      <div class="src-row">
+        <span class="si-base">代码核对</span>
+        <div><div class="si-ti">磁盘实况（只读核对 · 2026-10-09）</div><div class="si-sub"><code>electron/main.ts</code>（25 IPC）· <code>electron/mcp/tools.ts</code>（11 纯工具）· <code>electron/runtime/ · fs/ · comfy/ · canvas/ · gate/ · asset/</code> · <code>src/studio/</code> · <code>src/lib/chat-runtime.ts</code></div></div>
+      </div>
+    </div>
+  </div>
+</details>
+
+<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准（设计 v1.9 / 决策台账 D-005）· 2026-10-08 渲染 · 2026-10-09 按磁盘实况修订</div>
+</main>
+</div>
+
+<script>
+/* 仅展示脚本：滚动导航高亮 + 区块渐入，无业务逻辑 */
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.rail a'));
+  var map = {};
+  links.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
+  var sections = links.map(function(a){ return document.getElementById(a.getAttribute('href').slice(1)); });
+
+  var rv = document.querySelectorAll('.rv');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold:.12});
+  rv.forEach(function(el){ io.observe(el); });
+
+  function onScroll(){
+    var pos = window.scrollY + window.innerHeight * 0.3;
+    var current = sections[0] ? sections[0].id : null;
+    sections.forEach(function(s){ if(s && s.offsetTop <= pos) current = s.id; });
+    links.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href').slice(1) === current); });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+</body>
+</html>

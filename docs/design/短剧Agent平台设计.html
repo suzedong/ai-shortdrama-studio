@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>短剧 Agent 平台设计（人读版）</title>
+<style>
+  :root{--bg:#F6F7FB;--card:#fff;--ink:#1E2233;--muted:#6B7188;--violet:#6C5CE7;--violet-soft:#EFEDFE;--line:#E7E9F2;--gold:#E8A93C;--red:#D9534F;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.75;font-size:15px;}
+  .wrap{max-width:1080px;margin:0 auto;padding:30px 24px 56px;}
+  header{background:linear-gradient(120deg,#1E2233 0%,#3D3670 55%,#6C5CE7 120%);border-radius:18px;padding:26px 30px;color:#fff;position:relative;overflow:hidden;}
+  header::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px);background-size:22px 22px;opacity:.5;}
+  .kicker{font-size:12px;letter-spacing:3px;opacity:.85;position:relative;}
+  h1{font-size:27px;font-weight:800;margin:6px 0 4px;position:relative;letter-spacing:.5px;}
+  .sub{font-size:13.5px;opacity:.92;position:relative;}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 10px;border-radius:999px;background:rgba(255,255,255,.16);margin-left:8px;vertical-align:middle;}
+  h2{font-size:19px;font-weight:800;color:#2B2750;margin:32px 0 12px;padding-bottom:7px;border-bottom:2px solid var(--line);}
+  h3{font-size:16px;font-weight:700;margin:20px 0 8px;color:#34305C;}
+  p{margin:9px 0;}
+  ul,ol{margin:8px 0 8px 22px;} li{margin:4px 0;}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px;background:#fff;border-radius:10px;overflow:hidden;}
+  th{background:var(--violet-soft);color:#3A3470;text-align:left;padding:9px 11px;border:1px solid var(--line);font-weight:700;}
+  td{padding:8px 11px;border:1px solid var(--line);vertical-align:top;}
+  code{background:#F0EEFC;border-radius:5px;padding:1px 6px;font-size:12.5px;font-family:Menlo,Consolas,monospace;color:#4A3FB8;}
+  pre{background:#1E2233;color:#DDE2F5;border-radius:10px;padding:16px 18px;overflow-x:auto;font-size:12.5px;line-height:1.65;margin:12px 0;}
+  .note{background:var(--violet-soft);border-left:4px solid var(--violet);padding:11px 15px;border-radius:0 8px 8px 0;margin:14px 0;font-size:13.5px;}
+  .foot{margin-top:40px;font-size:12px;color:var(--muted);text-align:center;border-top:1px solid var(--line);padding-top:16px;}
+  b,strong{color:#262247;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">AI SHORT DRAMA · AGENT PLATFORM</div>
+  <h1>短剧 Agent 平台设计<span class="tag">v1.9 · 2026-10-08</span></h1>
+  <div class="sub">模仿 MiniMax Design、为 AI 短剧从零设计的 Agent 驱动内容生产平台 · 一块画布 = 一条生产线，一个指令 = 一支团队</div>
+</header>
+
+<h2>0. 定位</h2>
+<p><b>产品本质</b>："理解 → 拆解 → 并行执行 → 审核 → 交付"的短剧生产 Agent 平台。用户只表达创作目标，<b>主控 Agent 像导演一样把任务拆给虚拟摄制组</b>——编剧、美术、镜头、声音、引擎各有专职 Agent，在同一块画布上并行作业，自动产出剧本、定妆、分镜、镜头、配音、剪辑，直到成片。</p>
+<p><b>目标场景</b>：个人创作者 / 小工作室的竖屏短剧、单元剧、系列化 IP，尤其短、快、强情绪、模板化的恋爱 / 校园 / 情绪向内容；以及批量生产方。</p>
+<p><b>与旧体系的关系：完全脱离</b>。</p>
+<table>
+<tr><th>旧体系</th><th>本平台</th></tr>
+<tr><td>proj.py 状态机 + 子进程包装</td><td>多 Agent 消息总线 + 专职 Agent 协作</td></tr>
+<tr><td>规范 md 为流程事实源</td><td>平台内置生产工作流 + Skill 体系，规范不再以外部 md 存在</td></tr>
+<tr><td>命令行 check/advance/record</td><td>画布内确认门卡片 + Harness 自动校验</td></tr>
+<tr><td>项目状态.json / 验收规则.json 等旧格式</td><td>全新数据模型（见第 7 节）</td></tr>
+<tr><td>本地脚本 + 人工拼工具</td><td>本地优先 + 本地/局域网 ComfyUI 统一媒体引擎（qwen-image 图像 / H3 视频 / Music3 音乐，全部权重推理，媒体零公网），一键闭环（v1.7 修订）</td></tr>
+</table>
+<p style="font-size:12.5px;color:var(--muted)">旧《AI短剧工作台系统设计》v1.1 曾作历史参考，该文档已于 2026-10-09 删除，不再指导开发。</p>
+
+<h3 id="sec-0-1">0.1 开发原则与边界条件（v1.3，2026-10-04 用户拍板）</h3>
+<p><b>原则一 · 项目必要性</b>：本项目源于 MiniMax Design 的两处明确缺口——① 无法调用本地 / 局域网 ComfyUI；② 不具备旧工作体系的完整生产闭环。除填补缺口所必需的功能外，不做无依据的功能扩张。</p>
+<p><b>原则二 · 局域网 ComfyUI 硬边界</b>：引擎层必须支持调用本地及局域网内的 ComfyUI 实例（地址可配置、支持多实例），不可被"云端托管 / 仅本机托管"方案替代；任何使局域网能力失效的设计视为破坏边界。</p>
+<p><b>原则三 · 八步闭环完整性</b>：平台必须完整支持旧工作体系的 8 步业务闭环，缺一不可：</p>
+<table>
+<tr><th>#</th><th>阶段</th><th>说明</th></tr>
+<tr><td>0</td><td>立项</td><td>选题诊断（含六要素口径草案）/ 故事前提（故事背景档案）/ 立项定案卡</td></tr>
+<tr><td>1</td><td>故事</td><td>大纲 / 人物小传</td></tr>
+<tr><td>2</td><td>剧本分场</td><td>分场表</td></tr>
+<tr><td>3</td><td>资产</td><td>角色 / 场景 / 道具资产（资产中心）</td></tr>
+<tr><td>4</td><td>分镜</td><td>分镜表（镜号 / 景别 / 运镜 / 资产引用）</td></tr>
+<tr><td>5</td><td>镜头</td><td>逐镜生成与收片</td></tr>
+<tr><td>6</td><td>后期</td><td>剪辑 / 字幕 / 合流 / 混音</td></tr>
+<tr><td>7</td><td>发布</td><td>成片 / 切片 / 渠道交付</td></tr>
+</table>
+<p><b>现状（2026-10-08，D-005 后）</b>：旧 22 个 feature 任务包已整体作废归档（见 docs/archive/），现存代码与新设计存在偏差，后续按《AI-SDG AI 工具执行指令》§7 存量功能反向补录六步法对照本设计重新建包。八步是<b>业务验收基线</b>，不允许合并或裁剪（内部实现可复用同一组件，但用户可感知的阶段产物必须齐备）。</p>
+<p><b>原则四 · 继承 + 扩展</b>：<b>继承（形态对齐）</b>——Design 已具备功能的交互形态、流程结构、数据表现直接对齐，底层用同源开源组件（opencode 运行时、MCP 协议、Skill 格式）自行构建；Design 闭源，"复用"不含其专有代码。<b>扩展（缺口自研）</b>——Design 缺失功能（局域网 ComfyUI、资产/镜头/后期/发布等）针对性自研，并以 [Design 原有] / [改编] / [自研新增] 标签逐条标明归属。</p>
+<p><b>原则五 · 生成通道红线</b>：平台生成通道固定，不做多模型矩阵——<b>图像仅 qwen-image；视频仅 MiniMax H3；音乐仅 MiniMax Music3</b>。Agent 不得自行切换其他图像 / 视频 / 音乐模型；Design 云端多模型矩阵（海螺 / 可灵 / Veo3 / Wan / seedream / Midjourney 等）不沿用。语音通道待定。<b>执行路径（v1.7 终局，D-010）</b>：图像 / 视频 / 音乐三类媒体<b>全部经本地/局域网 ComfyUI 权重/工作流推理（B0/B5/B8/B9，纯局域网、媒体生成零公网、无媒体云端 Key、无按次费用）</b>——ComfyUI 是统一媒体引擎；平台出公网仅余文本火山方舟；renderer 不直连 ComfyUI。</p>
+
+<div class="note"><b>功能溯源图例</b>：本文每个功能点标注来源。<b>[Design 原有]</b> = MiniMax Design 已有功能，直接沿用；<b>[改编]</b> = Design 有此能力但为短剧场景改造；<b>[自研新增]</b> = 短剧专属，Design 无。对照源：《docs/research/MiniMax Design功能与架构参考.md》。</div>
+
+<h2>1. 设计原则</h2>
+<table>
+<tr><th>#</th><th>原则</th><th>内容</th><th>来源</th></tr>
+<tr><td>1</td><td>Agent 一等公民</td><td>用户只与主控 Agent 对话；界面是 Agent 的工作台，不是用户的工具箱</td><td>[Design 原有]</td></tr>
+<tr><td>2</td><td>画布即真相</td><td>全部产物与过程在画布可见，节点自动连线，数据流即视觉</td><td>[Design 原有]</td></tr>
+<tr><td>3</td><td>人是导演</td><td>人只在关键节点做方向决策，不做参数搬运与文件拼接</td><td>[改编]</td></tr>
+<tr><td>4</td><td>专职 Agent 并行</td><td>编剧 / 美术 / 镜头 / 声音 / 引擎各司其职，无依赖任务并行</td><td>[改编]</td></tr>
+<tr><td>5</td><td>经验可复用</td><td>跑通过程沉淀为 Skill，可分享、可一键复用</td><td>[Design 原有]</td></tr>
+<tr><td>6</td><td>本地优先</td><td>素材与项目默认本地；云端按任务调用；密钥不出本机</td><td>[Design 原有]</td></tr>
+<tr><td>7</td><td>质量内建</td><td>Harness 后台多轮机器校验，不通过进不了确认门</td><td>[Design 原有]</td></tr>
+<tr><td>8</td><td>画布克制</td><td>自动布局 + 视觉整理，不做无约束自由编排</td><td>[改编]</td></tr>
+</table>
+
+<h2>2. 五步生产工作流</h2>
+<pre>① 灵感输入 AGENT MODE   一句话 / 策划案 → 创意简报 + 任务地图
+② 画布编排 CANVAS FLOW  剧本·定妆·分镜·镜头·声音·剪辑 全在一块画布
+③ 方法复用 SKILL READY  专属 Skill / 广场工作流 / 专业插件
+④ 本地衔接 LOCAL BRIDGE 资产中心 / 本地文件 / 专业工具
+⑤ 审核交付 REVIEW LOOP  方向确认门 / Harness 多轮校验 / 成片交付</pre>
+<ul>
+<li><b>[改编] 灵感输入</b>：自然语言目标或策划文档；主控产出创意简报（题材/人设/集数/时长/画幅/风格）与任务地图（DAG）。简报结构沿用 Design，字段短剧定制。</li>
+<li><b>[改编] 画布编排</b>：编剧出剧本分场，美术出角色/场景资产，镜头逐镜生成，声音出配音配乐，剪辑合流，节点自动连线。</li>
+<li><b>[Design 原有] 方法复用</b>：调用广场 Skill（强情绪三连镜、日漫定妆流等），挂载插件（3D 导演台、批量水印）。</li>
+<li><b>[Design 原有] 本地衔接</b>：资产中心统一管理本地素材，产物自动本地化，支持专业工具导入导出。</li>
+<li><b>[改编] 审核交付</b>：关键节点主动发起方向确认；Harness 多轮校验；交付成片与切片。确认门触发点按短剧阶段设定。</li>
+</ul>
+
+<h3>2.6 立项阶段（STAGE 0）详解 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[自研新增]</span></h3>
+<div class="note">本节经《2002 相识》立项流程对话推演（<b>2026-10-08</b>）重写，取代旧版「4 节点（创意输入→选题诊断→立项单→故事背景档案）+ 4 确认门（0-a~0-d）」模型；旧模型与真实生产实践不符，已随 <b>D-005</b> 作废。</div>
+
+<p><b>立项阶段目标</b>：进入 STAGE 1（故事）前，通过对话收敛三件事——<b>口径</b>（六要素：做什么、在哪发、多长、什么形态）、<b>故事前提</b>（时间 / 地点 / 人物 / 核心事件 / 边界）、<b>视觉风格</b>（1 个主风格 + 可选 1 个辅助气氛）。立项不是填一张多 tab 表单，而是一段持续收敛的对话；界面只做两件事：随时呈现已捕获的内容、在就绪时给出一键定案。</p>
+
+<p><b>总体模型：1 个入口动作 + 2 个节点 + 1 道定案门</b></p>
+<pre>[一句话创意]  →  ① 选题诊断         →  ② 故事前提       →  🚪 立项定案门
+  入口动作        （含六要素口径草案）    （背景档案·对话收敛）   就绪即发定案卡
+   ↘ 反问关键分叉（商业短剧 / 个人纪念）                         一键 / 口头拍板
+   ↘「已捕获口径」区从第一句话起持续可见、随时可改</pre>
+<p>一句话创意只是<b>入口动作</b>，不占节点；节点之间不是严格的单向门——用户随时可以回到任何已捕获内容上修改，Agent 在对话中同步更新。</p>
+
+<h4>2.6.1 入口：一句话创意与反问机制</h4>
+<p>用户说出一句话创意（如「我想做一个我和我老婆认识的故事，发生在 2002 年」）后：</p>
+<ul>
+<li><b>Agent 先反问关键分叉</b>，不直接开干。第一问是项目性质：<b>商业短剧</b>（要上平台，讲打法、合规）还是<b>个人纪念</b>（不以投放为目的）？这一问决定选题诊断与六要素草案的方向。</li>
+<li><b>未回答前，能记录的先记录</b>。从创意中可直接提取的事实（时间=2002、核心事件=相识、人物关系=夫妻）立即写入「已捕获口径」区，不等用户回答反问。</li>
+<li>用户回答后（如「商业短剧」），Agent 带着补充口径进入节点①。</li>
+</ul>
+<div class="note"><b>「已捕获口径」区</b>：立项界面的常驻区域（对话区旁 / 画布侧栏），从第一句话起持续累积；每条口径标注来源（用户原话 / Agent 推断待确认），用户随时可直接修改或在对话中纠正。它是两个节点与定案卡的共同数据源，不是某个节点的专属产物。</div>
+
+<h4>2.6.2 节点①：选题诊断（含六要素口径草案）</h4>
+<p>主控 Agent 基于已捕获口径检索同赛道公开数据，产出<b>选题诊断卡</b>；商业短剧与个人纪念走不同详略：</p>
+<table>
+<tr><th>区块</th><th>内容</th><th>个人纪念口径</th></tr>
+<tr><td>同赛道对标案例</td><td>案例名 / 平台 / 成绩 / 打法 / 启示</td><td>弱化为风格参考</td></tr>
+<tr><td>用户洞察</td><td>赛道用户迁移方向</td><td>—</td></tr>
+<tr><td>爆点 / 钩子模式库</td><td>先婚后爱 / 明撩暗撩 / 日常治愈 / 双向救赎 + 钩子工程</td><td>不强制</td></tr>
+<tr><td>合规风险</td><td>备案分级、AI 融像 / 融声授权、平台审核</td><td>仅提示私人影像使用边界</td></tr>
+<tr><td>结论</td><td>可做 / 不可做 / 需调整 + 打法与集数区间</td><td>直接判「可做」</td></tr>
+</table>
+<p>诊断产出的同时，Agent 给出<b>六要素口径草案</b>（全部预填、全部可改，不再设独立的多 tab 立项单审批）：</p>
+<table>
+<tr><th>要素</th><th>说明</th><th>2002 相识案例（纪念倾向）</th></tr>
+<tr><td>题材赛道</td><td>如「都市爱情（女频）」</td><td>青春 / 爱情·年代纪念</td></tr>
+<tr><td>目标平台</td><td>抖音 / 小红书 / 红果，含定位（投流 / 种草 / 切片）</td><td>待定（纪念用途）</td></tr>
+<tr><td>单集时长</td><td>建议主力时长</td><td>待定</td></tr>
+<tr><td>集数</td><td>以内容定或设区间</td><td>待定</td></tr>
+<tr><td>风格基调</td><td>故事氛围基调</td><td>千禧清新怀旧·温馨</td></tr>
+<tr><td>画幅</td><td>按平台规则派生，必填</td><td>待定</td></tr>
+</table>
+<p>用户的处理方式是「看诊断 + 看草案，有倾向就让 AI 再调，具体要改什么直接说」——可以只改六要素，也可以只追故事前提，顺序自由。</p>
+
+<h4>2.6.3 节点②：故事前提（故事背景档案的形成方式）</h4>
+<p>故事前提不是 STAGE 1 的完整故事，也<b>不是让用户填模板</b>，而是进入故事创作前的准备性事实：<b>时间、地点、人物基本信息、核心事件、本季边界</b>。它以对话收敛的方式形成，沉淀为「故事背景档案」——人提供（或确认）的原始事实，是后续编剧的不可篡改依据。</p>
+<p>Agent 的两种工作方式：</p>
+<ul>
+<li><b>信息相对全</b>：Agent 先编一个「假的」前提版本（合理虚构的人物身份、相遇场景），用来引出真人真事；用户照着纠正即可，不必从零组织语言。</li>
+<li><b>信息不全</b>：Agent 先问几个关键事实（主角是谁、多大、在哪、怎么遇上的），再动笔。</li>
+</ul>
+<p><b>故事前提最低门槛（暂定，开发中发现不够再议）</b>：</p>
+<table>
+<tr><th>#</th><th>项</th><th>最低要求</th></tr>
+<tr><td>1</td><td>人物</td><td>主角身份 / 年龄（双方）</td></tr>
+<tr><td>2</td><td>时间</td><td>故事发生时间（如 2002 年）</td></tr>
+<tr><td>3</td><td>地点</td><td>故事发生城市 / 环境</td></tr>
+<tr><td>4</td><td>核心事件</td><td>相遇方式一句话</td></tr>
+<tr><td>5</td><td>边界</td><td>本季讲到哪（如第一季只讲相识）</td></tr>
+</table>
+<p style="font-size:12.5px;color:var(--muted)">《安妮的夏天》实测事实即此形态：林夏 19 岁学金融不住校、陈默 22 岁父母离婚随父、单位距林家 2–3 公里、第一季 = 相识（01–11 集）。</p>
+
+<h4>2.6.4 视觉风格选型：主风格 + 辅助气氛</h4>
+<p>视觉风格必须从系统级外部数据库《AI短剧制作视觉风格谱系》中选取（见 §8.3），<b>Agent 不得凭印象自创画风</b>——谱系条目是经过 qwen-image + MiniMax H3 出图论证的视觉解决方案。Agent 先按题材匹配一个，人可以改，立项后也可以改；风格影响提示词生成，改风格触发全链路提示词重出。</p>
+<p>选型模型是三条正交的轴：</p>
+<table>
+<tr><th>轴</th><th>取值</th><th>语义</th></tr>
+<tr><td><b>使用角色轴</b></td><td>主风格 ×1</td><td>全片唯一，= 家族 + 具体风格；任何时刻仅 1 个，后期可换但不能并存</td></tr>
+<tr><td></td><td>辅助风格 0–1 个</td><td>按剧情需要挂的「<b>气氛</b>」（如都市剧挂悬疑气氛）；不挂亦可</td></tr>
+<tr><td><b>验证状态轴</b>（谱系内标记）</td><td>「主」</td><td>被真实项目（安妮的夏天）验证跑通的条目（11 项）</td></tr>
+<tr><td></td><td>「备」</td><td>已登记但未经项目验证的主风格候选（7 项）；主风格候选含全部主 + 备条目，选「备」风险自担（可能出不来效果）</td></tr>
+<tr><td><b>形态轴</b></td><td>A 写实影像 / B 青春治愈 / C 卡通 / D 类型氛围 等家族</td><td>仅用于谱系归类与检索</td></tr>
+</table>
+<div class="note"><b>辅助风格候选域封闭</b>：只能从 <b>B 青春治愈系（1 项：清新生活流）</b> 与 <b>D 类型氛围系（5 项：冷调悬疑 / 赛博科幻 / 神话国风为「主」，奇幻童话 / 暗黑哥特为「备」）</b> 中选取。辅助挂的是跨形态的气氛，不改变主风格的画风归属。</div>
+<p style="font-size:12.5px;color:var(--muted)">注意：谱系只管<b>画风</b>。年代（2002）、地域等事实作为<b>内容</b>进入提示词，不作为选择画风 ID 的依据（如「2002 年」不必然推出「年代胶片」画风）。项目数据中的风格引用记录为「<b>风格 ID + 谱系版本</b>」（如 <code>A7 @ v1.46</code>）；当前谱系版本 v1.46（2026-10-08，措辞修订；上一版 v1.45 / 2026-10-01）。</p>
+
+<h4>2.6.5 定案门：就绪判定与立项定案卡</h4>
+<p>立项只有<b>一道</b>门，是就绪条件的客观判定，不搞逐产物审批。</p>
+<p><b>就绪条件（全部满足）</b>：</p>
+<ul>
+<li>六要素均有取值（「待定」视为有值，但在定案卡上显式标注，由用户确认接受）；</li>
+<li>故事前提达到最低门槛（5 项）；</li>
+<li>已选定 1 个主风格。</li>
+</ul>
+<p>满足后 Agent 主动发出<b>立项定案卡</b>：</p>
+<pre>┌─ 主控 Agent · 立项定案卡 ────────────────────────────┐
+│ 六要素：青春爱情·纪念向 / 平台待定 / 时长待定 /        │
+│        集数待定 / 千禧清新怀旧 / 画幅待定              │
+│ 故事前提：2002 · 某城 · 男女主身份年龄 · 相遇方式      │
+│ 主风格：A7 ××× @ v1.46（备：未经项目验证）             │
+│ 辅助风格：D 冷调悬疑气氛（可选）                       │
+│                                                       │
+│ [立项完成，进入故事]   [再改改]                        │
+└───────────────────────────────────────────────────────┘</pre>
+<ul>
+<li><b>一键拍板</b>：点「立项完成，进入故事」→ 立项完成，进入 STAGE 1。</li>
+<li><b>口头拍板等价</b>：用户在对话里说「行，开始讲故事吧」等同拍板；系统记录<b>用户原话</b>与定案卡（立项单）版本号，效果与按钮完全一致。</li>
+<li>未就绪时 Agent 不发定案卡，而是明确指出缺什么（如「还差故事边界：这季讲到哪？」）。</li>
+</ul>
+
+<h4>2.6.6 立项后的变更：反补机制</h4>
+<p>立项完成不是口径冻结。立项后修改六要素或更换主风格，走<b>变更 + 下游同步</b>：</p>
+<ul>
+<li>用户随时提出（对话或直接改）；Agent 生成变更提案：改了什么、影响哪些下游产物（换主风格 → 全链路提示词重出；改画幅 → 资产规格重算）。</li>
+<li>生产阶段实测发现的口径问题（如定妆竖版全身画不全腿脚）同样反补回立项数据。</li>
+<li>用户确认后立项单版本 +1，变更记录永久保留；受影响下游节点沿连线标红，提示重新校验或重生成。</li>
+</ul>
+
+<h4>2.6.7 画布布局与界面对应</h4>
+<p>立项画布是一条<b>线性收敛链</b>（非 DAG），两个节点：</p>
+<pre>[① 选题诊断] ───→ [② 故事前提] ───→ 🚪 定案卡
+ 含六要素口径草案     对话收敛·背景档案</pre>
+<ul>
+<li>创意输入框与「已捕获口径」区为常驻元素，不画成节点。</li>
+<li><b>选题诊断卡</b>：对标 / 洞察 / 钩子 / 合规 / 结论可折叠，内嵌六要素草案（字段直接可改，不再设独立 tab 审批页）。</li>
+<li><b>故事前提卡</b>：对话驱动的结构化呈现（非空白富文本模板）；AI 先编的「假版本」与人确认的事实分色显示，事实带「不可篡改」水印。</li>
+<li>视觉风格选型嵌在对话流与定案卡中：谱系条目可点选查阅，选中项显示风格 ID、主 / 备验证状态、谱系版本。</li>
+<li>Agent 主动行为：创意后立即反问 + 记录；诊断就绪自动出草案；前提卡住时主动追问缺口；就绪条件满足自动发定案卡。</li>
+</ul>
+<div class="note"><b>设计原则</b>：立项阶段用户只做<b>回答 / 纠正</b>和<b>拍板</b>，不做检索、不做字段搬运、不做格式整理。</div>
+
+<p><b>与文档其他部分的对应</b>：</p>
+<ul>
+<li><b>数据模型</b>：<code>project.manifest.json</code> 存六要素终值 + 风格引用（风格 ID + 谱系版本）；<code>立项/选题诊断.json</code>、<code>立项/故事背景档案.md</code>（人确认的原始事实）、<code>立项/立项单.vN.json</code>（定案卡快照，含拍板方式与用户原话）。</li>
+<li><b>外部数据源</b>：视觉风格谱系的路径注册与版本跟踪见 §8.3，与 ComfyUI 接入同级管理。</li>
+<li><b>Skill 沉淀</b>：一次完整立项可沉淀为「赛道立项模板」Skill（口径取值 + 风格选型 + 对标案例）。</li>
+<li><b>Harness 校验</b>：定案前校验就绪条件；校验风格锚词在提示词 Base 中一致出现、画幅口径在资产目录结构中落实、合规红线已标记。</li>
+</ul>
+
+<h2>3. 界面设计</h2>
+<h3>3.1 三栏 + 顶栏 + 底条 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[Design 原有]</span></h3>
+<table>
+<tr><th>区域</th><th>内容</th><th>来源</th></tr>
+<tr><td>顶栏</td><td>项目切换 · Skill 标识 · 模型选择器（自动匹配可手动）· 协作/导出 · 账号积分</td><td>[Design 原有]</td></tr>
+<tr><td>左侧栏（约 260px）</td><td>项目（项目库/任务地图）· Skill（广场/我的/模板）· 资产（角色/场景/道具/音色）· 插件</td><td>[改编]</td></tr>
+<tr><td>中间画布</td><td>点阵背景上的节点与自动连线（阶段节点+产物卡）；缩放/平移/小地图；对齐吸附</td><td>[Design 原有]</td></tr>
+<tr><td>右侧栏（约 380px）</td><td>Agent 对话流 · 工具调用轨迹 · 确认门卡片 · 多 Agent 在岗状态</td><td>[改编]</td></tr>
+<tr><td>底部状态条</td><td>引擎连通性 · 批处理队列（已提交/完成/失败+镜号）· Harness 摘要</td><td>[自研新增]</td></tr>
+</table>
+<div class="note"><b>视觉语言 [Design 原有]</b>：浅色近白背景 + 点阵纹理；紫色主强调（按钮/选中框/关键连线）；黑色胶囊主按钮；圆角 10–14px 卡片；克制阴影；标题字重对比鲜明。</div>
+
+<h3>3.2 画布语义</h3>
+<ul>
+<li><b>[Design 原有] 节点类型</b>：文本 / 表格 / 图片 / 视频 / 音频 / 控制件 / 插件卡。</li>
+<li><b>[Design 原有] 连线 = 单向 DAG</b>：剧本 → 角色场景资产 → 分镜表 → 逐镜任务 → 镜头 → 声音轨 → 时间线 → 成片。</li>
+<li><b>[Design 原有] 自动布局</b>：按任务地图自动落位连线；可拖动做视觉整理；对齐参考线 + 吸附。</li>
+<li><b>[改编] 节点状态</b>：完成 / 进行中（动态描边）/ 等待 / 失败（红点名）/ 待确认（紫色脉冲）；受影响沿连线标色。</li>
+<li><b>[改编] 节点信息</b>：版本、来源 Agent、模型档位、seed、缩略图、校验明细；点击节点定位右侧对话。</li>
+<li><b>[Design 原有] 产物操作</b>：预览、替换、重生成、沉淀为 Skill、导出。</li>
+</ul>
+
+<h3>3.3 确认门（人是导演） <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[改编]</span></h3>
+<ul>
+<li>关键节点（简报/定妆/分镜/整集镜头/成片）Agent <b>暂停下游</b>发起确认门卡片。</li>
+<li>卡片含方案摘要 + Harness 结果 + 预期结果；操作：<b>确认 / 否决（保留+修改+为什么+期望）/ 改部分</b>。否决公式取自 Design 协作规范。</li>
+<li>确认门是唯一人工阻塞点，无隐藏自动放行。</li>
+</ul>
+
+<h3>3.4 对话区 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[Design 原有]</span></h3>
+<ul>
+<li>主控 Agent 对话；简报、地图、确认门、失败点名均为结构化卡片。</li>
+<li>工具轨迹逐步展开（哪个 Agent / 哪个工具 / 参数结果）。</li>
+<li><code>/</code> 唤起 Skill，<code>@</code> 指向资产节点；对话随项目本地持久化。</li>
+</ul>
+
+<h2 id="sec-4">4. 多 Agent 架构</h2>
+<h3>4.1 角色分工 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[改编]</span></h3>
+<p style="font-size:12.5px;color:var(--muted)">Design 实测角色为 router / planner / executor / media-agent / comfyui-agent；本平台按短剧摄制组重划分。</p>
+<table>
+<tr><th>Agent</th><th>类比</th><th>职责</th><th>来源</th></tr>
+<tr><td>主控 Agent</td><td>导演/制片</td><td>意图理解、创意简报、任务地图、派发合流、确认门状态机、模型选配</td><td>[改编]</td></tr>
+<tr><td>编剧 Agent</td><td>编剧</td><td>大纲、小传、分场、台词、分镜文字稿、风格节奏</td><td>[自研新增]</td></tr>
+<tr><td>美术 Agent</td><td>美术指导</td><td>概念/定妆、场景、道具、关键帧、风格包、一致性配方</td><td>[改编]</td></tr>
+<tr><td>镜头 Agent</td><td>摄影/特效</td><td>参数组装、参考图编排、镜头提交、运镜控制</td><td>[改编]</td></tr>
+<tr><td>声音 Agent</td><td>声音设计</td><td>配音任务、配乐、音效、混音、音频续写/隔离</td><td>[改编]</td></tr>
+<tr><td>引擎 Agent</td><td>片场/工程</td><td>引擎调度、工作流装载、队列轮询、落盘、断点续跑</td><td>[改编]</td></tr>
+<tr><td>剪辑 Agent</td><td>剪辑</td><td>粗剪、字幕、转场、合流、混音、切片、封面</td><td>[改编]</td></tr>
+</table>
+<h3>4.2 协作模型 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[自研新增]</span></h3>
+<ul>
+<li><b>主控 → 专职</b>：任务地图派发到收件箱，完成后回报产物状态。</li>
+<li><b>并行</b>：无依赖任务并行（定妆与场景并行、多镜批量）；有依赖经数据节点合流。</li>
+<li><b>消息总线</b>：Agent 不互调，统一经总线交换任务/产物/事件，全留痕可重放。</li>
+<li><b>共享黑板</b>：设定、资产版本、采用决定全员可见；变更事件触发下游自检。</li>
+<li><b>失败隔离</b>：单镜失败不拖垮整批，失败事件进确认门由人决策。</li>
+</ul>
+<h3>4.3 内部循环 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[改编]</span></h3>
+<p>每个专职 Agent：<code>接收任务 → 检索上下文 → 规划 → 调 MCP 工具 → 自校验 → 回报/进确认门</code>。无删除权，产物写新版本；不可逆动作必须经确认门。</p>
+
+<h2 id="sec-5">5. MCP 工具层 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[改编]</span></h2>
+<p>平台内置 MCP 网关（仅本机），工具以 schema 声明、统一鉴权审计：</p>
+<table>
+<tr><th>工具族</th><th>代表工具</th><th>说明</th><th>来源</th></tr>
+<tr><td>画布</td><td>canvas.read/write/connect/layout</td><td>节点连线读写与自动布局</td><td>[改编]</td></tr>
+<tr><td>项目</td><td>project.manifest/events/timeline</td><td>元信息、事件流、任务地图</td><td>[自研新增]</td></tr>
+<tr><td>文本资产</td><td>file.read/write/version</td><td>剧本文本落盘与版本</td><td>[改编]</td></tr>
+<tr><td>媒体生成</td><td>image/video/music submit</td><td><b>三类媒体全部经本地/局域网 ComfyUI（v1.7 终局，D-010）</b>：image.submit → <b>qwen-image 权重</b>（B0）；video.submit → <b>H3 工作流</b>（B5/B8）；music.submit → <b>Music3 权重</b>（B9）；提交/轮询/收片，纯局域网、媒体零公网，renderer 不直连</td><td>[改编]（模型按原则五锁定，执行统一 ComfyUI 权重推理）</td></tr>
+<tr><td>引擎</td><td>engine.list/workflows/queue/history</td><td>ComfyUI 探活、<b>媒体工作流</b>模板装载（复用 Dufs <b>B0/B5/B8/B9</b> JSON）；qwen-image 图像节点、H3 视频节点、Music3 音频节点</td><td>[改编]（v1.7 图像/视频/音乐统一媒体引擎）</td></tr>
+<tr><td>资产</td><td>asset.query/select/import/export</td><td>检索、选定、导入导出</td><td>[改编]</td></tr>
+<tr><td>剪辑</td><td>edit.cut/subtitle/concat/mix/slice</td><td>MediaKit/FFmpeg 程序化剪辑</td><td>[改编]</td></tr>
+<tr><td>质检</td><td>harness.rules/verify/report</td><td>规则、校验、结构化报告</td><td>[Design 原有]</td></tr>
+<tr><td>Skill</td><td>skill.list/run/save/publish</td><td>检索、执行、沉淀、投稿</td><td>[Design 原有]</td></tr>
+</table>
+<p><b>安全</b>：参数白名单；路径限定项目目录内，禁越界；敏感工具强制确认令牌。 [自研新增]</p>
+
+<h2>6. Skill 与插件</h2>
+<ul>
+<li><b>[Design 原有] 四种沉淀</b>：描述需求生成 / 过程一键存 Skill / 改后另存 / 上传资料归纳。</li>
+<li><b>[改编] Skill 内容</b>：触发条件、任务地图模板、提示词、模型档位、质量规则、参考资产。</li>
+<li><b>[Design 原有] 广场 + 模板中心</b>：投稿审核上架，官方精选与个人分区；成片/资产/工作流模板。</li>
+<li><b>[Design 原有] 插件</b>：3D 导演台、智能剪辑台、批量水印、多宫格分镜、多角度、重打光。</li>
+</ul>
+
+<h2 id="sec-7">7. 数据模型（全新） <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[自研新增]</span></h2>
+<pre>项目名/
+├─ project.manifest.json   # 元信息/集数/画幅/风格/采用决定/确认门状态
+├─ 剧本/                   # 大纲·小传·分场·台词（md + json）
+├─ 资产/ 角色/ 场景/ 道具/ 音色/ + asset.index.json
+├─ 分镜/ shotlist.json     # 镜号/景别/角色/动作/台词/时长/参考
+├─ 镜头/ &lt;镜号&gt;/           # 多档位多版本 mp4 + 参数 json
+├─ 声音/                   # 配音 wav、配乐、音效
+├─ 时间线/ timeline.json   # 采用版本、切点、字幕、混音
+├─ 成片/                   # 成片、封面、切片
+└─ events.log              # Agent 消息与决策事件（可重放）</pre>
+<ul>
+<li><b>角色卡</b>：{id,名,图,一致性配方{seed,参考图,提示词},音色id,版本}</li>
+<li><b>镜头产物</b>：{镜号,档位,版本,mp4,参数{模型,seed,prompt,参考},批次,质检}</li>
+<li><b>时间线</b>：{集,顺序,镜号,采用版本,入点,出点,字幕,音量,过渡}</li>
+<li><b>事件</b>：{时间,agent,类型,载荷,关联节点}——可溯源、可重放。</li>
+</ul>
+
+<h3>7.1 现存代码数据血缘（待反向补录重建） <span class="note" style="display:inline;font-size:11px;padding:1px 7px">2026-10-03 初建 · 2026-10-08 随 D-005 重新定性</span></h3>
+<div class="note">上方目录为<b>终态目标</b>。以下是旧任务包时期落地的代码现状：STAGE 0/1/2 的纯文件持久化（旧 8 确认门 0-a/0-b/0-c、1-a/1-b、2-a/2-b/2-c），无数据库。<b>注意</b>：STAGE 0 的门模型已被 §2.6 新模型（2 节点 + 1 定案门）取代，本节中立项部分的目录与字段仅为代码现状记录，不代表目标设计；后续按反向补录六步法重建。字段契约以 <code>shared/types.ts</code> 为准。</div>
+<pre>project-*/                      ~/Documents/ai-shortdrama-studio/
+├─ manifest.json           阶段指针 {status, createdAt, ...}；读-改-写保留既有字段
+├─ brief.json              旧立项单（STAGE 0 定稿；新模型下由 manifest + 立项单.vN.json 取代）
+├─ 故事背景档案.md          背景档案（旧 0-c 锁定；新模型见 §2.6.3）
+├─ chat.messages.json      唯一事实源：全量消息流，replay 重建 phase/节点/门/redo
+├─ .session.json
+├─ 剧本/
+│  ├─ 故事大纲.json/.md     1-a 定稿
+│  ├─ 人物小传.json/.md     1-b 定稿（角色 id 诞生地）
+│  ├─ 分场.json/.md         2-a 定稿（sceneNo 场号主键诞生地）
+│  └─ 台词.json/.md         2-b 定稿
+└─ 分镜/
+   └─ shotlist.json/.md     2-c 定稿（新建顶层产物目录）</pre>
+
+<div role="img" aria-label="三阶段数据血缘：STAGE 0 立项 → STAGE 1 故事创作 → STAGE 2 剧本分镜；CharacterProfile.id 与 Scene.sceneNo 两条主键贯穿" style="width:100%;max-width:880px;margin:14px auto 6px;padding:10px 8px;border:1px solid var(--line);border-radius:12px;background:#fff;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 620" style="display:block;width:100%;height:auto;" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif">
+  <defs>
+    <marker id="arrGray" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#9AA0B4"/>
+    </marker>
+    <marker id="arrGreen" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#22C55E"/>
+    </marker>
+    <marker id="arrCyan" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#14B8A6"/>
+    </marker>
+  </defs>
+
+  <text x="70" y="38" font-size="19" font-weight="800" fill="#1E2233">三阶段数据血缘 · 两条主键贯穿</text>
+  <text x="70" y="63" font-size="12.5" fill="#6B7188">纵向为定稿流转，绿/青虚线为跨产物引用：角色 id 与场号 sceneNo</text>
+
+  <rect x="70" y="84" width="840" height="110" rx="14" fill="#FCFCFE" stroke="#D8DBE6" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <rect x="70" y="220" width="840" height="120" rx="14" fill="#FCFCFE" stroke="#D8DBE6" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <rect x="70" y="378" width="840" height="168" rx="14" fill="#FCFCFE" stroke="#D8DBE6" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <rect x="92" y="70" width="152" height="26" rx="13" fill="#EFEDFE" stroke="#D9D4F9"/>
+  <text x="104" y="87" font-size="12" fill="#4A3FB8">STAGE 0 · 立项</text>
+  <rect x="92" y="206" width="172" height="26" rx="13" fill="#EFEDFE" stroke="#D9D4F9"/>
+  <text x="104" y="223" font-size="12" fill="#4A3FB8">STAGE 1 · 故事创作</text>
+  <rect x="92" y="364" width="172" height="26" rx="13" fill="#EFEDFE" stroke="#D9D4F9"/>
+  <text x="104" y="381" font-size="12" fill="#4A3FB8">STAGE 2 · 剧本分镜</text>
+
+  <path d="M630,174 V240" fill="none" stroke="#9AA0B4" stroke-width="2.2" marker-end="url(#arrGray)"/>
+  <rect x="640" y="186" width="132" height="18" fill="#F6F7FB"/>
+  <text x="648" y="199" font-size="11.5" fill="#6B7188">立项·档案事实输入</text>
+
+  <path d="M230,279 H60 V459 H88" fill="none" stroke="#9AA0B4" stroke-width="2.2" marker-end="url(#arrGray)"/>
+  <rect x="68" y="344" width="122" height="24" rx="12" fill="#fff" stroke="#E7E9F2"/>
+  <text x="129" y="360" font-size="11.5" text-anchor="middle" fill="#6B7188">大纲＋小传 →</text>
+
+  <path d="M630,318 V372" fill="none" stroke="#22C55E" stroke-width="2" stroke-dasharray="6 5"/>
+  <path d="M300,372 H780" fill="none" stroke="#22C55E" stroke-width="2" stroke-dasharray="6 5"/>
+  <path d="M300,372 V413" fill="none" stroke="#22C55E" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrGreen)"/>
+  <path d="M490,372 V413" fill="none" stroke="#22C55E" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrGreen)"/>
+  <path d="M780,372 V413" fill="none" stroke="#22C55E" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrGreen)"/>
+  <rect x="650" y="346" width="170" height="24" rx="12" fill="#34D399"/>
+  <text x="735" y="362" font-size="11.5" text-anchor="middle" fill="#064E3B">CharacterProfile.id</text>
+  <text x="300" y="405" font-size="12" text-anchor="middle" fill="#6B7188">characterIds[]</text>
+  <text x="490" y="405" font-size="12" text-anchor="middle" fill="#6B7188">speakerId</text>
+  <text x="780" y="405" font-size="12" text-anchor="middle" fill="#6B7188">characterIds[]</text>
+
+  <path d="M250,503 V520 H770" fill="none" stroke="#14B8A6" stroke-width="2" stroke-dasharray="6 5"/>
+  <path d="M250,520 V505" fill="none" stroke="#14B8A6" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrCyan)"/>
+  <path d="M490,520 V505" fill="none" stroke="#14B8A6" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrCyan)"/>
+  <path d="M770,520 V505" fill="none" stroke="#14B8A6" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrCyan)"/>
+  <rect x="92" y="508" width="152" height="24" rx="12" fill="#CCFBF1" stroke="#14B8A6"/>
+  <text x="168" y="524" font-size="11.5" text-anchor="middle" fill="#0F766E">Scene.sceneNo 场号键</text>
+
+  <rect x="230" y="108" width="240" height="66" rx="10" fill="#1E2233"/>
+  <text x="250" y="137" font-size="14" font-weight="700" fill="#fff">立项单</text>
+  <text x="250" y="160" font-size="11.5" fill="#AAB2CC">brief.json · 六要素/视觉</text>
+  <rect x="510" y="108" width="240" height="66" rx="10" fill="#1E2233"/>
+  <text x="530" y="137" font-size="14" font-weight="700" fill="#fff">故事背景档案</text>
+  <text x="530" y="160" font-size="11.5" fill="#AAB2CC">故事背景档案.md</text>
+
+  <rect x="230" y="246" width="240" height="66" rx="10" fill="#1E2233"/>
+  <text x="250" y="275" font-size="14" font-weight="700" fill="#fff">故事大纲</text>
+  <text x="250" y="298" font-size="11.5" fill="#AAB2CC">剧本/故事大纲.json</text>
+  <rect x="510" y="240" width="240" height="78" rx="10" fill="#065F46" stroke="#34D399" stroke-width="1.5"/>
+  <rect x="636" y="248" width="92" height="22" rx="11" fill="#34D399"/>
+  <text x="682" y="263" font-size="11" text-anchor="middle" fill="#064E3B">id 诞生地</text>
+  <text x="530" y="269" font-size="14" font-weight="700" fill="#fff">人物小传</text>
+  <text x="530" y="297" font-size="11.5" fill="#A7F3D0">剧本/人物小传.json</text>
+
+  <rect x="90" y="415" width="240" height="88" rx="10" fill="#1E2233"/>
+  <text x="110" y="443" font-size="14" font-weight="700" fill="#fff">分场</text>
+  <text x="110" y="466" font-size="11.5" fill="#AAB2CC">剧本/分场.json</text>
+  <text x="110" y="489" font-size="12" fill="#5EEAD4">sceneNo 主键</text>
+
+  <rect x="370" y="415" width="240" height="88" rx="10" fill="#1E2233"/>
+  <text x="390" y="443" font-size="14" font-weight="700" fill="#fff">台词</text>
+  <text x="390" y="466" font-size="11.5" fill="#AAB2CC">剧本/台词.json</text>
+  <text x="390" y="489" font-size="12" fill="#AAB2CC">按 sceneNo 归场</text>
+
+  <rect x="650" y="415" width="240" height="88" rx="10" fill="#1E2233"/>
+  <text x="670" y="443" font-size="14" font-weight="700" fill="#fff">分镜表</text>
+  <text x="670" y="466" font-size="11.5" fill="#AAB2CC">分镜/shotlist.json</text>
+  <text x="670" y="489" font-size="12" fill="#AAB2CC">按 sceneNo 归属</text>
+
+  <line x1="90" y1="588" x2="128" y2="588" stroke="#9AA0B4" stroke-width="2.5"/>
+  <text x="136" y="592" font-size="12" fill="#6B7188">定稿流转（确认门后落盘）</text>
+  <line x1="360" y1="588" x2="398" y2="588" stroke="#22C55E" stroke-width="2.5" stroke-dasharray="6 5"/>
+  <text x="406" y="592" font-size="12" fill="#6B7188">角色 id 引用</text>
+  <line x1="540" y1="588" x2="578" y2="588" stroke="#14B8A6" stroke-width="2.5" stroke-dasharray="6 5"/>
+  <text x="586" y="592" font-size="12" fill="#6B7188">场号 sceneNo 引用</text>
+</svg>
+</div>
+<ul>
+<li><b>角色主键</b>：<code>CharacterProfile.id</code>（如 c-heroine）在人物小传诞生，被分场 <code>characterIds[]</code>、台词 <code>speakerId</code>（功能性无小传角色用 '' + speakerName 兜底）、分镜 <code>characterIds[]</code> 引用。</li>
+<li><b>场号主键</b>：<code>Scene.sceneNo</code>（1..N）在分场诞生，台词 <code>DialogueScene.sceneNo</code> 归场、分镜 <code>Shot.sceneNo</code> 归属；空镜 <code>dialogue=null</code>、<code>refs=[]</code> 为美术资产引用预留位。</li>
+<li><b>状态机</b>（manifest.status，每次定稿推进一格）：<code>initiating → story-outline → story-profiles → script-scenes → script-dialogue → script-storyboard → storyboard-done</code></li>
+<li><b>约束</b>：下游 Agent 只读已定稿上游文件，缺上游 reject <code>STORY_CTX_MISSING</code>；产物 JSON 源 + MD 镜像双写。</li>
+</ul>
+
+<h4>版本归档区（代码现状，2026-10-04 初建）</h4>
+<ul>
+<li><b>目录约定</b>：任何产物文件被覆盖前，旧文件自动移入同目录 <code>版本/&lt;basename&gt;.&lt;YYYYMMDD-HHmmss&gt;&lt;ext&gt;</code>；同秒冲突追加 <code>.N</code> 序号。<code>manifest.json</code> 永不归档。</li>
+<li><b>副本语义</b>：归档失败（rename/mkdir 异常）向上抛错阻断本次写入——宁可写入失败也不做无备份覆盖。</li>
+<li><b>触发点</b>：<code>saveToCurrent</code>（brief.json）、<code>saveStory</code>（剧本/*.json/.md 双写）、<code>saveScript</code>（剧本/分镜 .json/.md 双写）、<code>saveArchive</code>（故事背景档案.md）。</li>
+<li><b>消费方式</b>：replay/hydrate 时读取 <code>chat.messages.json</code> 中 unlock 消息，对 source 为 idea/background 的 unlock 从消息流取 <code>newIdea</code>/档案全文，从 <code>版本/</code> 目录反查对应历史版本文件作为 diff 参照；UI 历史角标点击展示同目录版本快照。</li>
+</ul>
+
+<h4>视觉风格谱系快照（代码现状；外部数据源定位见 §8.3）</h4>
+<ul>
+<li><b>来源</b>：见 §8.3 注册的《AI短剧制作视觉风格谱系》（代码快照对应 v1.45；谱系当前 v1.46）。</li>
+<li><b>同步责任（现状实现）</b>：<code>electron/style-catalog.ts</code> 在谱系升级后人工比对，把谱系条目固化到代码；<code>CATALOG_VERSION</code> 同步更新，作为 UI 徽标与 diff 触发器。新模型下目标形态是路径注册 + 版本跟踪的外部数据库（§8.3），而非固化到代码，此实现待重建。</li>
+<li><b>运行时</b>：<code>assertInCatalog</code> 校验 AI 返回的 form/mainStyle 必须在目录内，否则 reject <code>STYLE_NOT_IN_CATALOG</code>；<code>buildVisualStylePrompt</code> 的 system 段从目录注入完整谱系供模型选型。重建后还须区分主/辅角色：辅助风格仅允许 B/D 候选域（§2.6.4）。</li>
+</ul>
+
+<h4>术语对齐（代码现状，2026-10-04 初建）</h4>
+<ul>
+<li>「立项五要素」统一更名为「<b>立项六要素</b>」（题材/平台/集数/单集时长/风格基调/画幅），画幅由 <code>deriveFiveElements</code> 按平台规则派生；<code>FiveElements.aspectRatio</code> 为必填字段，旧数据回退竖屏。</li>
+</ul>
+
+<h2 id="sec-8">8. 引擎与生成通道</h2>
+<table>
+<tr><th>通道</th><th>内容</th><th>来源</th></tr>
+<tr><td>媒体云端通道</td><td><b>无（v1.7 终局，D-010）</b>：图像/视频/音乐媒体生成<b>零公网</b>——qwen-image、H3、Music3 全部本地/局域网权重经 ComfyUI，无媒体云端 Key、无按次费用；出公网仅余文本火山方舟；云端多模型矩阵继续废弃</td><td>决策收窄（原 feature-008 D-005 / D-010）</td></tr>
+<tr><td>统一媒体引擎（本地/局域网）</td><td><b>ComfyUI 承担全部媒体生成（v1.7 终局，D-010）</b>：① 图像 <b>qwen-image 权重</b>（B0）；② 视频 <b>MiniMax H3</b> 工作流（B5/B8）；③ 音乐 <b>MiniMax Music3 权重</b>（B9）。工作流装载/队列/收片/WS 进度；地址可配置、局域网多实例池；复用 Dufs B0/B5/B8/B9 工作流 JSON</td><td>[改编]（模型锁定 qwen-image/H3/Music3）</td></tr>
+<tr><td>批处理</td><td>逐镜入队、多实例并发、版本预分配、失败隔离、断点续跑</td><td>[改编]</td></tr>
+<tr><td>T2A（一期）</td><td><b>人机通道</b>：可复制任务文本 → 豆包生成 → 网页上传对位；二期语音 OpenAPI</td><td>[自研新增]</td></tr>
+<tr><td>剪辑</td><td>MediaKit/FFmpeg 程序化剪辑；引擎不剪辑</td><td>[改编]</td></tr>
+<tr><td>一致性 QC</td><td>角色一致性图/视频校验，加速硬件优先、CPU 兜底</td><td>[自研新增]</td></tr>
+</table>
+
+<h3>8.3 系统级外部数据源：视觉风格谱系 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[自研新增]</span></h3>
+<p>视觉风格谱系与 ComfyUI 接入同级，是平台注册的<b>系统级外部数据库</b>，不是仓库内文档，也不是 Agent 可即兴生成的知识。</p>
+<table>
+<tr><th>项</th><th>约定</th></tr>
+<tr><td>注册路径</td><td><code>~/Documents/Dufs/AI短剧工作流/AI短剧制作视觉风格谱系.html</code>（路径可配置，类似 ComfyUI 实例地址）</td></tr>
+<tr><td>数据形态</td><td>人读 HTML：家族 / 风格 ID / 主·备验证状态 / 锚点词 / 质感配方 / 预览墙；配套《AI短剧制作流程规范.html》J.3 为选型规则权威版</td></tr>
+<tr><td>版本跟踪</td><td>谱系自带版本号（当前 <b>v1.46，2026-10-08</b>；上一版 v1.45 / 2026-10-01）；平台记录注册版本，谱系升级后提示差异，由人决定是否采纳</td></tr>
+<tr><td>查阅 / 维护</td><td>可在平台内查阅条目与预览图；维护在源文件处进行（加条目、主备状态变更），平台只消费不私改</td></tr>
+<tr><td>项目引用</td><td>每个项目记录「<b>风格 ID + 谱系版本</b>」（如 <code>A7 @ v1.46</code>）；主风格 1 个、辅助 0–1 个（候选域见 §2.6.4）</td></tr>
+<tr><td>使用边界</td><td>谱系只管画风；风格影响提示词生成，改风格 → 全链路提示词重出。年代 / 地域等事实进入提示词内容，不决定画风 ID</td></tr>
+</table>
+<div class="note">现存代码中谱系被人工固化进 <code>electron/style-catalog.ts</code>（§7.1），是外部数据源机制建成前的过渡实现，后续重建为本节的注册 / 版本机制。</div>
+
+<h2>9. Harness 质量层 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[Design 原有]</span></h2>
+<ul>
+<li><b>[改编] 知识库</b>：编剧规律、镜头语言、渠道规格、字幕规范，随 Skill 扩展。</li>
+<li><b>[改编] 多轮校验</b>：结构 / 内容 / 规格 / 一致性校验，失败点名附修改建议。</li>
+<li><b>[Design 原有] 确认门联动</b>：全过才可确认；否决反馈结构化回流 Agent。</li>
+<li><b>[改编] 质量视角</b>：目标 / 前三秒 / 钩子 / 信息准确 / 视觉统一 / 字幕 / 节奏 / 规格。（改编自 Design 商业内容检查 8 条）</li>
+</ul>
+
+<h2>10. 部署形态</h2>
+<ul>
+<li><b>[Design 原有] 桌面应用</b>（macOS / Windows），安装即用，不依赖 docker。</li>
+<li><b>[Design 原有] 内部架构</b>：本地 MCP 网关（仅 127.0.0.1）+ Agent 运行时 + 引擎适配器 + 画布前端。</li>
+<li><b>[改编] 数据</b>：默认本地，支持文件服务跨机；引擎地址可配置局域网实例。</li>
+<li><b>[自研新增] 密钥</b>：存 .env / 密钥链，首启引导。</li>
+</ul>
+
+<h2>11. 落地路线 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[自研新增]</span></h2>
+<p><b>一期 MVP（单集闭环）</b>：骨架+MCP 网关 → 画布节点连线 → 编剧/美术/镜头 Agent（3 条核心工作流）→ 确认门+Harness → <b>生成通道适配层（v1.7 终局）：ComfyUI 统一媒体引擎——qwen-image 图像权重（B0）＋H3 视频（B5/B8）＋Music3 音乐权重（B9），统一装载/队列/WS 进度/收片、多实例批处理；三类媒体纯局域网</b> → T2A 人机通道 → 剪辑产出第一集成片。</p>
+<p><b>二期</b>：语音 OpenAPI 与声音复刻、任务级画布展开、资产完整沉淀、更多工作流插件、多项目。</p>
+<p><b>三期</b>：Skill 广场社区、模板中心、批量跨集生产、多用户协作、渠道分发。</p>
+
+<h2>12. 风险与边界 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[自研新增]</span></h2>
+<ul>
+<li>云端依赖（v1.7）：仅文本（火山方舟）出公网；图像/视频/音乐全部局域网推理，无媒体上云费用与限流。</li>
+<li>本地引擎不可达需显式提示与降级；首启检测 qwen-image/H3/Music3 三类权重与 GPU/显存（音乐可 CPU 兜底）；Music3 的 ComfyUI 音频节点选型走媒体 Feature 卡口（K2/K9）。</li>
+<li>T2A 人工节点需"待配/已配"清单防漏镜。</li>
+<li>Agent 规划出错靠确认门、事件留痕、可重放兜底；不持有不可逆权限。</li>
+<li>画布坚持自动布局与"看+确认"，不做自由编排。</li>
+</ul>
+
+<h2>13. 版本记录</h2>
+<ul>
+<li>本文件版本：<b>v1.0（2026-10-02）；v1.1（2026-10-03）</b>：媒体生成收窄——画面（B0/B5/B8）与配乐（B9）统一走 ComfyUI、复用 Dufs B* 模板，废弃云端矩阵直连；配音维持 T2A。变更史记入《版本记录.md》。</li>
+<li><b>v1.2（2026-10-03）</b>：§7.1 新增一期已落地三阶段数据血缘（feature-002~004 实现真相）——实际会话目录、CharacterProfile.id / Scene.sceneNo 两条主键引用链、manifest.status 状态机；§7 终态目标目录不变。</li>
+<li><b>v1.3（2026-10-04）</b>：§0.1 新增开发原则与边界条件四条（项目必要性 / 局域网 ComfyUI 硬边界 / 八步闭环完整性 / 继承+扩展）；决策记录见 feature-008 变更记录。</li>
+<li><b>v1.4（2026-10-04）</b>：§0.1 新增原则五 · 生成通道红线——图像仅 qwen-image、视频仅 MiniMax H3、音乐仅 MiniMax Music3；决策记录见 feature-008 D-005。</li>
+<li><b>v1.5（2026-10-04，Reverse Sync，feature-008 D-007）</b>：裁决原则五与 v1.1 收窄决策的冲突——<b>图像（B0）= qwen-image 云端、音乐（B9）= Music3 云端，不再经 ComfyUI；视频（B5/B8）= MiniMax H3 经本地/局域网 ComfyUI 不变</b>；ComfyUI 收敛为纯 H3 视频引擎。同步修订 §5 工具表、§8 通道表、§11 一期路线。⛔ 部分反转 v1.1 中 B0/B9 走 ComfyUI 的表述。</li>
+<li><b>v1.6（2026-10-04，同日修订，feature-008 D-009）</b>：执行路径二次裁决——图像 qwen-image 改为<b>本地/局域网权重经 ComfyUI 推理（纯局域网、不出公网、无按次费用）</b>，⛔ 反转 v1.5 中「图像走云端」部分（模型红线「仅 qwen-image」不变）。终局：<b>ComfyUI = 统一视觉引擎（qwen-image 图像 B0 ＋ H3 视频 B5/B8）；Music3 云端为媒体唯一出网通道（B9）</b>。§0.1 原则五补执行路径，§5/§8/§11/§12 同步，AGENTS.md 同源。</li>
+<li><b>v1.7（2026-10-04，同日三次修订，feature-008 D-010）</b>：音乐执行路径三次裁决——Music3 改为<b>本地/局域网权重经 ComfyUI 推理</b>，⛔ 反转 v1.6 中「音乐云端 / 唯一出网通道 / B9 不在引擎」（模型红线「仅 Music3」不变）。终局：<b>qwen-image/H3/Music3 三类媒体全部经本地/局域网 ComfyUI 权重与工作流（B0/B5/B8/B9），媒体零公网；ComfyUI = 统一媒体引擎；出公网仅余文本火山方舟</b>。§0/§0.1/§5/§8/§11/§12 同步，AGENTS.md 同源；D-007→D-009→D-010 轨迹保留。</li>
+<li><b>v1.8（2026-10-05，一致性修复）</b>：<b>裁决反向同步</b>——§2.6 立项单由"五要素"统一为"<b>立项六要素</b>"（补画幅，落实 feature-005 §术语对齐裁决，消除 md 内部矛盾），同步更新立项单卡 tab、Agent 干预时机、数据模型对应与用户路径（确认门表"0-b 五要素拍板"为《安妮的夏天》历史事实，保留）；§7.1 补入 feature-005 三个小节（版本归档区 / 视觉风格谱系快照 / 术语对齐）；§0 补旧体系对比表；原型底部状态条过期口径"云端模型矩阵"改为"火山方舟（文本）"；§7.1 血缘图由位图 PNG 改为内联矢量 SVG（同目录另存同名 svg 供 md 引用），图内"五要素"同步改"六要素"，删除原 PNG。</li>
+<li><b>v1.9（2026-10-08，立项模型重建，决策见 D-005）</b>：经《2002 相识》立项流程对话推演，§2.6 整体重写——旧「4 节点 + 4 确认门（0-a~0-d）+ 多 tab 立项单」模型⛔ 作废，改为「<b>1 入口动作 + 2 节点（选题诊断含六要素口径草案 / 故事前提）+ 1 道定案门（就绪客观判定，定案卡一键或口头拍板）</b>」；新增反问机制、「已捕获口径」常驻区、故事前提最低门槛、立项后变更走反补。视觉风格选型明确「<b>主风格唯一（候选含主·备全部条目）+ 辅助 0–1 个（候选域封闭 = B 青春治愈 1 项 + D 类型氛围 5 项，挂气氛）</b>」；新增 §8.3 将视觉风格谱系定位为系统级外部数据源（路径注册 / 版本跟踪 / 引用风格 ID + 谱系版本）。§0.1 八步表立项行、§7.1（重新定性为现存代码待反向补录）同步更新。旧 22 个 feature 任务包整体归档至 docs/archive/features-pre-rebuild/，新包从 feature-001 重建。</li>
+<li>镜像纪律：md 改动同步 docs/design/ 同名 html；原型（docs/design/短剧Agent平台-原型.html）同步迭代。</li>
+</ul>
+
+<div class="foot">短剧 Agent 平台设计 · v1.9 · 2026-10-08 · 人读镜像（源为同名 md）</div>
+
+</div>
+</body>
+</html>

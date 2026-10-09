@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>短剧 Agent 平台 · 高保真原型</title>
+<style>
+:root{
+  --bg:#EDEEF3;--win:#FBFBFE;--ink:#1E2233;--muted:#7A8099;--line:#E8EAF2;
+  --violet:#6C5CE7;--violet-d:#5849D8;--violet-soft:#EFEDFE;
+  --green:#2BB673;--amber:#E8A93C;--red:#E05A52;--gold:#F4C95D;
+  --shadow:0 18px 50px rgba(40,42,80,.18);--radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{background:radial-gradient(1200px 700px at 70% -10%,#D9DBF2 0,#EDEEF3 55%);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden;padding:18px;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+
+/* ── Window ─────────────────────────────── */
+.window{height:100%;background:var(--win);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.8);}
+.titlebar{height:44px;flex:0 0 44px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 16px;gap:14px;}
+.dots{display:flex;gap:7px;}.dots i{width:11px;height:11px;border-radius:50%;display:block;}
+.dots i:nth-child(1){background:#FF5F57;}.dots i:nth-child(2){background:#FEBC2E;}.dots i:nth-child(3){background:#28C840;}
+.title{font-size:13px;font-weight:600;color:#3A3F57;display:flex;align-items:center;gap:8px;}
+.title .logo{width:18px;height:18px;border-radius:5px;background:var(--violet);display:inline-grid;place-items:center;color:#fff;font-size:10px;font-weight:800;}
+.titlebar .spacer{flex:1;}
+.model-chip{display:flex;align-items:center;gap:7px;background:var(--violet-soft);color:var(--violet-d);font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid #DED9FB;}
+.model-chip .auto{background:var(--violet);color:#fff;font-size:10px;padding:1px 6px;border-radius:999px;}
+.tb-btn{font-size:12.5px;color:#555B74;padding:6px 10px;border-radius:8px;}
+.tb-btn:hover{background:#F1F2F8;}
+.avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#B8AFFF,#6C5CE7);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;}
+
+/* ── Main columns ───────────────────────── */
+.main{flex:1;display:flex;min-height:0;}
+
+/* icon rail */
+.rail{width:60px;flex:0 0 60px;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:6px;}
+.rail button{width:44px;height:44px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#9AA0B5;font-size:9.5px;font-weight:600;transition:.2s;}
+.rail button svg{width:19px;height:19px;}
+.rail button:hover{background:#F4F3FE;color:var(--violet);}
+.rail button.active{background:var(--violet);color:#fff;box-shadow:0 6px 14px rgba(108,92,231,.35);}
+.rail .grow{flex:1;}
+.rail .mini-dot{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#FFD39B,#F0A04B);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;}
+
+/* left panel */
+.left{width:232px;flex:0 0 232px;background:#FCFCFE;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;}
+.lp-head{padding:14px 14px 8px;}
+.lp-head h3{font-size:14px;font-weight:800;}
+.lp-search{margin-top:9px;background:#F3F4F9;border-radius:8px;display:flex;align-items:center;gap:7px;padding:6px 9px;}
+.lp-search input{border:none;background:none;outline:none;font-size:12px;width:100%;color:var(--ink);}
+.lp-search svg{width:13px;height:13px;color:#A0A6BC;flex:0 0 auto;}
+.lp-body{flex:1;overflow-y:auto;padding:6px 12px 14px;}
+.lp-body::-webkit-scrollbar{width:5px;}.lp-body::-webkit-scrollbar-thumb{background:#DDE0EA;border-radius:99px;}
+.lp-foot{padding:10px 14px 14px;border-top:1px solid var(--line);}
+.lp-new{width:100%;background:#1E2233;color:#fff;font-size:12.5px;font-weight:600;padding:9px;border-radius:10px;transition:.2s;}
+.lp-new:hover{background:#000;transform:translateY(-1px);}
+
+.lp-panel{display:none;animation:fade .25s ease;}
+.lp-panel.active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:none;}}
+
+/* project items */
+.proj-item{display:flex;gap:9px;align-items:center;padding:9px;border-radius:10px;cursor:pointer;border:1px solid transparent;transition:.15s;margin-bottom:3px;}
+.proj-item:hover{background:#F5F6FB;}
+.proj-item.active{background:var(--violet-soft);border-color:#DED9FB;}
+.proj-thumb{width:34px;height:34px;border-radius:8px;flex:0 0 34px;background:linear-gradient(135deg,#B8AFFF,#6C5CE7);display:grid;place-items:center;color:#fff;font-size:10px;font-weight:700;}
+.proj-item .nm{font-size:12.5px;font-weight:700;line-height:1.3;}
+.proj-item .meta{font-size:10.5px;color:#9AA0B5;}
+.proj-item .st{margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--green);}
+.proj-item .st.gold{background:var(--amber);}.proj-item .st.gray{background:#C9CCDA;}
+
+/* skill cards */
+.skill-cat{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap;}
+.skill-cat button{font-size:10.5px;padding:3px 9px;border-radius:999px;background:#F2F3F9;color:#7C8298;font-weight:600;}
+.skill-cat button.active{background:var(--violet);color:#fff;}
+.skill-card{border:1px solid var(--line);border-radius:11px;padding:10px;margin-bottom:8px;background:#fff;transition:.2s;}
+.skill-card:hover{border-color:#C9C1F5;box-shadow:0 6px 16px rgba(108,92,231,.1);transform:translateY(-1px);}
+.skill-card .row{display:flex;align-items:center;gap:7px;}
+.skill-ico{width:26px;height:26px;border-radius:8px;background:var(--violet-soft);display:grid;place-items:center;color:var(--violet);flex:0 0 26px;}
+.skill-ico svg{width:14px;height:14px;}
+.skill-card .t{font-size:12px;font-weight:700;}
+.skill-card .d{font-size:10.5px;color:#9AA0B5;margin-top:2px;line-height:1.45;}
+.skill-card .run{margin-top:8px;font-size:11px;color:var(--violet-d);font-weight:600;display:flex;align-items:center;gap:4px;}
+
+/* assets */
+.asset-sub{display:flex;gap:4px;margin-bottom:10px;}
+.asset-sub button{flex:1;font-size:10.5px;padding:5px 0;border-radius:8px;background:#F2F3F9;color:#7C8298;font-weight:600;}
+.asset-sub button.active{background:var(--violet);color:#fff;}
+.asset-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.asset-cell{position:relative;border-radius:9px;overflow:hidden;aspect-ratio:1;background:#EEF0F6;cursor:pointer;}
+.asset-cell img{width:100%;height:100%;object-fit:cover;display:block;}
+.asset-cell .cap{position:absolute;left:0;right:0;bottom:0;padding:11px 6px 5px;font-size:9.5px;color:#fff;font-weight:700;background:linear-gradient(transparent,rgba(0,0,0,.65));}
+.asset-cell.picked{outline:2px solid var(--violet);outline-offset:-2px;}
+.asset-cell .tick{position:absolute;top:5px;right:5px;width:15px;height:15px;border-radius:50%;background:var(--violet);display:none;place-items:center;}
+.asset-cell.picked .tick{display:grid;}
+.asset-cell .tick svg{width:9px;height:9px;color:#fff;}
+.voice-row{display:flex;align-items:center;gap:8px;padding:8px;border-radius:9px;background:#fff;border:1px solid var(--line);margin-bottom:6px;}
+.voice-row .play{width:24px;height:24px;border-radius:50%;background:var(--violet-soft);display:grid;place-items:center;color:var(--violet);flex:0 0 24px;}
+.voice-row .play svg{width:11px;height:11px;}
+.voice-row .nm{font-size:11.5px;font-weight:700;}
+.voice-row svg.wave{flex:1;height:20px;}
+
+/* plugins */
+.plugin-row{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:11px;margin-bottom:8px;background:#fff;}
+.plugin-row .pi{width:30px;height:30px;border-radius:9px;background:var(--violet-soft);display:grid;place-items:center;color:var(--violet);flex:0 0 30px;}
+.plugin-row .pi svg{width:16px;height:16px;}
+.plugin-row .t{font-size:12px;font-weight:700;}
+.plugin-row .d{font-size:10px;color:#9AA0B5;}
+.switch{margin-left:auto;width:32px;height:18px;border-radius:999px;background:#D7DAE6;position:relative;transition:.2s;flex:0 0 32px;}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.switch.on{background:var(--violet);}.switch.on::after{left:16px;}
+
+/* ── Canvas ─────────────────────────────── */
+.center{flex:1;position:relative;min-width:0;overflow:hidden;
+  background-color:#FAFAFE;
+  background-image:radial-gradient(#D9DCEA 1px,transparent 1px);background-size:22px 22px;}
+.world{position:absolute;top:0;left:0;width:1140px;height:420px;transform-origin:0 0;}
+.edges{position:absolute;inset:0;pointer-events:none;}
+.edges path{fill:none;stroke-width:1.8;}
+.edges .e{stroke:#C7CBDD;}
+.edges .active{stroke:var(--violet);stroke-dasharray:6 5;animation:dash 1s linear infinite;}
+@keyframes dash{to{stroke-dashoffset:-11;}}
+.edges .done{stroke:#A8DFC6;}
+
+.node{position:absolute;background:#fff;border:1px solid var(--line);border-radius:11px;overflow:hidden;cursor:pointer;
+  transition:box-shadow .2s,border-color .2s,transform .15s;animation:pop .5s cubic-bezier(.2,.9,.3,1.2) backwards;}
+@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.96);}to{opacity:1;transform:none;}}
+.node:hover{box-shadow:0 10px 24px rgba(45,48,90,.12);border-color:#CBCEE0;}
+.node.selected{border:2px solid var(--violet);box-shadow:0 12px 28px rgba(108,92,231,.22);}
+.node.selected::before{content:"";position:absolute;inset:-7px;border:1.5px dashed rgba(108,92,231,.45);border-radius:14px;pointer-events:none;animation:dash 8s linear infinite;z-index:2;}
+.node .nh{display:flex;align-items:center;gap:5px;padding:7px 9px;border-bottom:1px solid #F0F1F7;font-size:10.5px;font-weight:700;color:#4A4F68;}
+.node .nh .ic{width:15px;height:15px;border-radius:4px;background:var(--violet-soft);display:grid;place-items:center;color:var(--violet);}
+.node .nh .ic svg{width:9px;height:9px;}
+.node .nh .v{margin-left:auto;color:#A6ABC0;font-weight:600;}
+.node .nb{padding:9px;}
+.status-dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px;}
+.status-dot.g{background:var(--green);}.status-dot.a{background:var(--amber);}.status-dot.gy{background:#C9CCDA;}
+
+.n-brief .nb{font-size:10px;line-height:1.55;color:#5A607A;}
+.brief-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px;}
+.brief-tags span{font-size:9px;background:var(--violet-soft);color:var(--violet-d);padding:2px 7px;border-radius:999px;font-weight:600;}
+
+.script-lines{display:flex;flex-direction:column;gap:5px;}
+.script-lines div{height:5px;border-radius:99px;background:#ECEEF5;}
+.script-lines div:nth-child(1){width:92%;}.script-lines div:nth-child(2){width:78%;}.script-lines div:nth-child(3){width:88%;}
+.script-lines div:nth-child(4){width:60%;}.script-lines div:nth-child(5){width:84%;}
+.scene-rows{margin-top:8px;font-size:9.5px;color:#8A90A6;line-height:1.7;}
+
+.n-char img{width:100%;height:120px;object-fit:cover;display:block;}
+.char-foot{padding:7px 9px;font-size:10px;}
+.char-foot .nm{font-weight:700;}
+.char-foot .recipe{color:#9AA0B5;font-size:9px;margin-top:2px;}
+
+.n-scene img{width:100%;height:74px;object-fit:cover;display:block;}
+.scene-foot{padding:6px 9px;font-size:9.5px;font-weight:700;}
+
+.shot-card{position:absolute;left:628px;width:204px;background:#fff;border:1px solid var(--line);border-radius:11px;overflow:hidden;cursor:pointer;transition:.2s;animation:pop .5s backwards;}
+.shot-card:hover{box-shadow:0 10px 22px rgba(45,48,90,.12);}
+.shot-card.selected{border:2px solid var(--violet);}
+.shot-top{display:flex;align-items:center;gap:6px;padding:6px 9px;}
+.shot-no{font-size:10px;font-weight:800;color:#3A3F57;}
+.shot-tag{font-size:8.5px;padding:1px 6px;border-radius:999px;font-weight:700;white-space:nowrap;}
+.shot-tag.d{background:#E7F8F0;color:#1E9E66;}.shot-tag.t{background:#FFF4DE;color:#C0841D;}
+.shot-top .right{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:9.5px;color:#9AA0B5;}
+.spinner{width:13px;height:13px;border-radius:50%;border:2px solid #E4E6F0;border-top-color:var(--violet);animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.check-ico{width:14px;height:14px;border-radius:50%;background:var(--green);display:grid;place-items:center;}
+.check-ico svg{width:8px;height:8px;color:#fff;}
+.shot-mid{margin:0 9px;height:34px;border-radius:7px;background:linear-gradient(90deg,#2A2E48,#4A4F78);position:relative;overflow:hidden;}
+.shot-mid svg{position:absolute;inset:0;width:100%;height:100%;}
+.shot-mid.waiting svg{opacity:.45;filter:grayscale(.4);}
+.shot-mid.waiting::before{content:"待生成";position:absolute;inset:0;display:grid;place-items:center;font-size:8.5px;color:#fff;font-weight:700;z-index:2;text-shadow:0 1px 3px rgba(0,0,0,.4);}
+svg.art{width:100%;height:100%;display:block;}
+.shot-mid::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.18) 45%,transparent 60%);}
+.shot-play{position:absolute;inset:0;margin:auto;width:16px;height:16px;background:rgba(255,255,255,.9);border-radius:50%;display:grid;place-items:center;z-index:2;}
+.shot-play svg{width:7px;height:7px;color:#333;margin-left:1px;}
+.shot-bar{display:flex;align-items:center;gap:6px;padding:7px 9px;}
+.shot-bar .track{flex:1;height:3px;border-radius:99px;background:#ECEEF5;position:relative;}
+.shot-bar .track i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--green);}
+.shot-bar .tc{font-size:8.5px;color:#A6ABC0;}
+
+.tl-row{display:flex;align-items:flex-end;gap:3px;height:40px;padding:4px 9px 0;}
+.tl-row i{flex:1;background:#E0E3F0;border-radius:2px 2px 0 0;display:block;}
+.tl-row i.on{background:var(--violet);}
+.tl-foot{padding:8px 9px;font-size:9.5px;color:#8A90A6;display:flex;justify-content:space-between;}
+
+.n-final img{width:100%;height:128px;object-fit:cover;display:block;}
+.final-foot{padding:8px 9px;}
+.final-foot .t{font-size:10.5px;font-weight:800;}
+.final-foot .m{font-size:9px;color:#9AA0B5;margin-top:2px;}
+.final-actions{display:flex;gap:6px;margin-top:8px;}
+.final-actions button{flex:1;font-size:9.5px;padding:5px;border-radius:7px;font-weight:600;}
+.final-actions .exp{background:#1E2233;color:#fff;}.final-actions .slc{background:#F1F2F8;color:#555B74;}
+
+/* zoom + minimap */
+.zoom-ctl{position:absolute;left:14px;bottom:14px;background:#fff;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;z-index:5;box-shadow:0 4px 12px rgba(40,42,80,.08);}
+.zoom-ctl button{width:28px;height:28px;font-size:14px;color:#6A708A;}
+.zoom-ctl .pct{font-size:10.5px;color:#8A90A6;width:40px;text-align:center;border-left:1px solid var(--line);border-right:1px solid var(--line);height:28px;line-height:28px;}
+.minimap{position:absolute;right:14px;bottom:14px;width:128px;height:80px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 12px rgba(40,42,80,.08);padding:8px;z-index:5;}
+.minimap .mm{position:relative;width:100%;height:100%;background:#F3F4F9;border-radius:5px;}
+.minimap .mm i{position:absolute;border-radius:1.5px;background:#C6BFF5;}
+.minimap .view{position:absolute;border:1.5px solid var(--violet);border-radius:3px;background:rgba(108,92,231,.08);}
+
+/* ── Right chat ─────────────────────────── */
+.right{width:366px;flex:0 0 366px;background:#fff;border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;}
+.chat-head{padding:12px 16px;border-bottom:1px solid var(--line);}
+.chat-head .row{display:flex;align-items:center;gap:9px;}
+.chat-head .t{font-size:13.5px;font-weight:800;}
+.chat-head .s{font-size:10.5px;color:#9AA0B5;margin-top:1px;}
+.chat-head .agents{margin-left:auto;display:flex;}
+.chat-head .agents i{width:22px;height:22px;border-radius:50%;border:2px solid #fff;margin-left:-6px;display:grid;place-items:center;color:#fff;font-size:8.5px;font-weight:700;}
+.chat-head .agents i:nth-child(1){background:#6C5CE7;}.chat-head .agents i:nth-child(2){background:#2BB673;}
+.chat-head .agents i:nth-child(3){background:#E8A93C;}.chat-head .agents i:nth-child(4){background:#E05A52;}
+.chat-head .agents i:nth-child(5){background:#5B8DEF;}
+
+.chat-body{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px;}
+.chat-body::-webkit-scrollbar{width:5px;}.chat-body::-webkit-scrollbar-thumb{background:#DDE0EA;border-radius:99px;}
+.msg{display:flex;gap:9px;animation:fade .35s ease;}
+.msg .ma{width:28px;height:28px;border-radius:9px;flex:0 0 28px;display:grid;place-items:center;color:#fff;font-size:10px;font-weight:800;}
+.msg.agent .ma{background:linear-gradient(135deg,#B8AFFF,#6C5CE7);}
+.msg.user{flex-direction:row-reverse;}
+.msg.user .ma{background:linear-gradient(135deg,#8FA8E8,#5B7FD8);}
+.msg .bubble{background:#F4F5FA;border-radius:4px 12px 12px 12px;padding:9px 12px;font-size:12px;line-height:1.6;max-width:280px;}
+.msg.user .bubble{background:var(--violet);color:#fff;border-radius:12px 4px 12px 12px;}
+
+.brief-card{margin-top:8px;border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+.brief-card .kv{display:flex;font-size:10.5px;}
+.brief-card .kv:nth-child(odd){background:#FAFAFE;}
+.brief-card .k{width:52px;flex:0 0 52px;color:#9AA0B5;padding:5px 9px;}
+.brief-card .v{padding:5px 9px;font-weight:600;}
+
+.trace{margin-top:8px;border:1px solid var(--line);border-radius:9px;overflow:hidden;font-size:10.5px;}
+.trace-head{display:flex;align-items:center;gap:7px;padding:7px 10px;background:#FAFAFE;}
+.trace-head .tag-a{font-size:8.5px;font-weight:700;padding:1px 6px;border-radius:999px;background:var(--violet-soft);color:var(--violet-d);}
+.trace-head .tool{font-weight:700;}
+.trace-head .ok{margin-left:auto;color:var(--green);font-size:9.5px;display:flex;align-items:center;gap:3px;}
+.trace-body{padding:7px 10px;color:#7A8098;font-size:10px;border-top:1px solid #F2F3F8;font-family:Menlo,monospace;line-height:1.6;}
+.trace-prog{height:4px;background:#EEF0F6;border-radius:99px;margin:7px 10px 9px;overflow:hidden;}
+.trace-prog i{display:block;height:100%;width:66%;background:linear-gradient(90deg,#8FA8F5,#6C5CE7);border-radius:99px;transition:width 1s ease;}
+
+/* gate card */
+.gate{margin-top:8px;border:1.5px solid #D9D3FB;border-radius:11px;overflow:hidden;background:linear-gradient(180deg,#FBFAFF,#fff);}
+.gate-head{display:flex;align-items:center;gap:7px;padding:9px 11px;border-bottom:1px solid #EFEBFD;}
+.gate-head .gico{width:20px;height:20px;border-radius:6px;background:var(--violet);display:grid;place-items:center;}
+.gate-head .gico svg{width:11px;height:11px;color:#fff;}
+.gate-head .gt{font-size:11.5px;font-weight:800;}
+.gate-head .gs{margin-left:auto;font-size:9px;color:#9AA0B5;}
+.gate-list{padding:9px 11px;display:flex;flex-direction:column;gap:6px;}
+.gate-line{display:flex;align-items:center;gap:7px;font-size:10.5px;}
+.gate-line .gi{width:15px;height:15px;border-radius:50%;display:grid;place-items:center;flex:0 0 15px;}
+.gate-line .gi svg{width:8px;height:8px;color:#fff;}
+.gate-line .gi.pass{background:var(--green);}.gate-line .gi.warn{background:var(--amber);}
+.gate-line .gl{font-weight:600;}.gate-line .gr{margin-left:auto;color:#9AA0B5;font-size:9.5px;}
+.gate-note{margin:0 11px 9px;font-size:9.5px;color:#A6ABC0;background:#F7F8FC;border-radius:7px;padding:6px 9px;display:none;}
+.gate-note.show{display:block;}
+.gate-actions{display:flex;gap:7px;padding:0 11px 11px;}
+.gate-actions button{flex:1;font-size:11px;font-weight:700;padding:8px;border-radius:8px;transition:.2s;}
+.gate-actions .confirm{background:var(--violet);color:#fff;}
+.gate-actions .confirm:hover{background:var(--violet-d);}
+.gate-actions .veto{background:#F1F2F8;color:#6A708A;}
+.gate.done{border-color:#BFE6D2;background:linear-gradient(180deg,#F4FCF8,#fff);}
+.gate-success{display:none;padding:14px 11px;text-align:center;}
+.gate.done .gate-head,.gate.done .gate-list,.gate.done .gate-actions{display:none;}
+.gate.done .gate-success{display:block;animation:fade .4s ease;}
+.gate-success .big{width:38px;height:38px;border-radius:50%;background:var(--green);display:grid;place-items:center;margin:0 auto 8px;animation:pop .5s cubic-bezier(.2,.9,.3,1.4);}
+.gate-success .big svg{width:19px;height:19px;color:#fff;}
+.gate-success .t{font-size:12.5px;font-weight:800;}.gate-success .d{font-size:10px;color:#9AA0B5;margin-top:3px;}
+
+.chat-input{padding:10px 14px 14px;border-top:1px solid var(--line);}
+.ci-box{background:#F4F5FA;border-radius:12px;padding:9px 11px;}
+.ci-box textarea{width:100%;border:none;background:none;outline:none;resize:none;font-size:12px;height:34px;font-family:inherit;color:var(--ink);}
+.ci-row{display:flex;align-items:center;gap:6px;margin-top:4px;}
+.ci-row button{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;color:#9AA0B5;}
+.ci-row button:hover{background:#E8EAF3;color:var(--violet);}
+.ci-row svg{width:14px;height:14px;}
+.ci-row .mchip{font-size:9.5px;color:var(--violet-d);background:var(--violet-soft);padding:3px 8px;border-radius:999px;font-weight:600;display:flex;gap:4px;align-items:center;}
+.ci-row .send{margin-left:auto;width:28px;height:28px;background:var(--violet);border-radius:8px;display:grid;place-items:center;}
+.ci-row .send svg{width:13px;height:13px;color:#fff;}
+
+/* ── Bottom status ──────────────────────── */
+.statusbar{height:38px;flex:0 0 38px;background:#fff;border-top:1px solid var(--line);display:flex;align-items:center;padding:0 14px;gap:16px;font-size:10.5px;color:#7A8098;}
+.sb-group{display:flex;align-items:center;gap:7px;}
+.sb-engine{display:flex;align-items:center;gap:5px;background:#F6F7FB;border:1px solid var(--line);border-radius:7px;padding:3px 8px;font-weight:600;}
+.sb-engine .d{width:6px;height:6px;border-radius:50%;background:var(--green);}
+.sb-engine.off .d{background:var(--red);}
+.sb-sep{width:1px;height:18px;background:var(--line);}
+.sb-queue{display:flex;align-items:center;gap:8px;}
+.sb-queue .track{width:130px;height:5px;border-radius:99px;background:#ECEEF5;overflow:hidden;}
+.sb-queue .track i{display:block;height:100%;width:66%;background:linear-gradient(90deg,#8FA8F5,#6C5CE7);border-radius:99px;transition:width 1.2s ease;}
+.sb-queue b{color:#4A4F68;}
+.sb-right{margin-left:auto;display:flex;gap:14px;align-items:center;}
+.pill-pass{color:var(--green);font-weight:700;display:flex;gap:4px;align-items:center;}
+
+/* ═══════════════════════════════════════════════════════════════
+   「可借鉴」补充展示层（追加，不改动上方原原型任何内容）
+   前缀 rx-（reference）避免与原样式冲突
+   ═══════════════════════════════════════════════════════════════ */
+.rx-fab{position:fixed;right:26px;bottom:26px;z-index:60;background:var(--violet);color:#fff;
+  font-size:12.5px;font-weight:700;padding:11px 18px;border-radius:999px;
+  box-shadow:0 14px 32px rgba(108,92,231,.45);display:flex;align-items:center;gap:8px;transition:.2s;}
+.rx-fab:hover{background:var(--violet-d);transform:translateY(-2px);}
+.rx-fab svg{width:15px;height:15px;}
+body.rx-on .rx-fab{display:none;}
+
+.rx-layer{position:fixed;inset:18px;z-index:55;background:radial-gradient(1200px 700px at 70% -10%,#D9DBF2 0,#EDEEF3 55%);
+  border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.8);
+  display:none;flex-direction:column;overflow:hidden;}
+body.rx-on .rx-layer{display:flex;}
+
+.rx-top{flex:0 0 auto;background:#fff;border-bottom:1px solid var(--line);padding:13px 20px;
+  display:flex;align-items:center;gap:14px;}
+.rx-back{font-size:12px;font-weight:700;color:#555B74;background:#F1F2F8;border-radius:9px;padding:8px 14px;transition:.2s;}
+.rx-back:hover{background:#E4E6F0;}
+.rx-top h2{font-size:15px;font-weight:800;display:flex;align-items:center;gap:9px;}
+.rx-top h2 .logo{width:20px;height:20px;border-radius:6px;background:var(--violet);display:grid;place-items:center;color:#fff;font-size:11px;font-weight:800;}
+.rx-top .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.rx-legend{margin-left:auto;display:flex;gap:8px;font-size:10px;font-weight:700;}
+.rx-legend .lg{border-radius:999px;padding:4px 11px;display:flex;align-items:center;gap:5px;}
+.rx-legend .lg.d{background:#EAF1FE;color:#3E6FD0;border:1px solid #D3E0FA;}
+.rx-legend .lg.n{background:#FDEEEF;color:#C8443C;border:1px solid #F8D5D7;}
+.rx-legend .lg .dot{width:6px;height:6px;border-radius:50%;}
+.rx-legend .lg.d .dot{background:#3E6FD0;}
+.rx-legend .lg.n .dot{background:#C8443C;}
+
+.rx-scroll{flex:1;overflow-y:auto;padding:22px;}
+.rx-scroll::-webkit-scrollbar{width:7px;}
+.rx-scroll::-webkit-scrollbar-thumb{background:#CFD3E4;border-radius:99px;}
+.rx-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1180px;margin:0 auto;}
+.rx-card{background:#fff;border:1px solid var(--line);border-radius:13px;overflow:hidden;
+  animation:rxrise .45s cubic-bezier(.2,.9,.3,1.1) backwards;}
+@keyframes rxrise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+.rx-card.wide{grid-column:1 / -1;}
+.rx-card-h{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
+.rx-card-h .ci{width:30px;height:30px;border-radius:9px;background:var(--violet-soft);display:grid;place-items:center;color:var(--violet);flex:0 0 30px;}
+.rx-card-h .ci svg{width:16px;height:16px;}
+.rx-card-h .ct{font-size:13px;font-weight:800;}
+.rx-card-h .cd{font-size:10.5px;color:var(--muted);margin-top:2px;}
+.rx-card-b{padding:16px;}
+
+.rx-badge{font-size:9px;font-weight:800;padding:2.5px 8px;border-radius:999px;white-space:nowrap;}
+.rx-badge.d{background:#EAF1FE;color:#3E6FD0;border:1px solid #D3E0FA;}
+.rx-badge.n{background:#FDEEEF;color:#C8443C;border:1px solid #F8D5D7;}
+.rx-src{margin-left:auto;font-size:9.5px;color:#A6ABC0;display:flex;align-items:center;gap:5px;}
+
+/* ── ① 表格节点 ── */
+.rx-twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.rx-nf{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#fff;}
+.rx-nf.sel{border:2px solid var(--violet);box-shadow:0 10px 26px rgba(108,92,231,.18);}
+.rx-nf-h{display:flex;align-items:center;gap:6px;padding:8px 11px;border-bottom:1px solid #F0F1F7;font-size:10.5px;font-weight:700;color:#4A4F68;background:#FCFCFE;}
+.rx-nf-h .ic{width:15px;height:15px;border-radius:4px;background:var(--violet-soft);display:grid;place-items:center;color:var(--violet);}
+.rx-nf-h .ic svg{width:9px;height:9px;}
+.rx-nf-h .v{margin-left:auto;color:#A6ABC0;font-weight:600;font-size:9.5px;}
+.rx-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.rx-tbl th{background:#F7F8FC;color:#8A90A6;font-weight:700;text-align:left;padding:6px 9px;font-size:9px;border-bottom:1px solid var(--line);}
+.rx-tbl td{padding:6px 9px;border-bottom:1px solid #F2F3F8;color:#4A4F68;line-height:1.4;}
+.rx-tbl tr:last-child td{border-bottom:none;}
+.rx-tbl tr:hover td{background:#FAFAFF;}
+.rx-tbl .no{font-weight:800;color:var(--violet-d);white-space:nowrap;}
+.rx-tbl .hot{color:var(--red);font-weight:700;}
+.rx-minitag{font-size:8.5px;font-weight:700;padding:1px 6px;border-radius:999px;white-space:nowrap;}
+.rx-minitag.i{background:#EAF1FE;color:#3E6FD0;}
+.rx-minitag.e{background:#E7F8F0;color:#1E9E66;}
+.rx-minitag.a{background:#FFF4DE;color:#C0841D;}
+.rx-tbl-note{margin-top:12px;font-size:10.5px;color:#8A90A6;display:flex;align-items:center;gap:7px;background:#F7F8FC;border-radius:8px;padding:8px 11px;}
+.rx-tbl-note b{color:var(--violet-d);}
+
+/* ── ② 节点五态着色 ── */
+.rx-states{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;}
+.rx-state{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#fff;position:relative;}
+.rx-state .rh{display:flex;align-items:center;gap:5px;padding:7px 9px;border-bottom:1px solid #F0F1F7;font-size:9.5px;font-weight:700;}
+.rx-state .rh .sd{width:7px;height:7px;border-radius:50%;flex:0 0 7px;}
+.rx-state .rb{height:30px;margin:9px;border-radius:7px;background:#EEF0F6;}
+.rx-state .cap{padding:0 9px 9px;font-size:9px;font-weight:700;color:#555B74;}
+.rx-state .cap small{display:block;color:#A6ABC0;font-weight:600;margin-top:1px;}
+.rx-state.s-done .sd{background:var(--green);}
+.rx-state.s-done{border-top:2.5px solid var(--green);}
+.rx-state.s-run .sd{background:var(--violet);}
+.rx-state.s-run .rb{background:linear-gradient(90deg,#E8E5FD 0%,#D9D3FB 60%,#EEF0F6 60%);}
+.rx-state.s-run{border-top:2.5px solid var(--violet);}
+.rx-state.s-wait .sd{background:#C9CCDA;}
+.rx-state.s-wait{border-top:2.5px solid #C9CCDA;}
+.rx-state.s-fail .sd{background:var(--red);}
+.rx-state.s-fail{border-top:2.5px solid var(--red);}
+.rx-state.s-gate .sd{background:var(--amber);box-shadow:0 0 0 0 rgba(232,169,60,.5);animation:rxpulse 1.6s infinite;}
+.rx-state.s-gate{border-top:2.5px solid var(--amber);}
+@keyframes rxpulse{0%{box-shadow:0 0 0 0 rgba(232,169,60,.5);}70%{box-shadow:0 0 0 7px rgba(232,169,60,0);}100%{box-shadow:0 0 0 0 rgba(232,169,60,0);}}
+
+/* ── ③ 对齐参考线 + 吸附 ── */
+.rx-guide-demo{position:relative;height:250px;border-radius:11px;background-color:#F7F8FC;
+  background-image:radial-gradient(#D9DCEA 1px,transparent 1px);background-size:20px 20px;overflow:hidden;border:1px solid var(--line);}
+.rx-gnode{position:absolute;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:10px;font-weight:700;color:#4A4F68;box-shadow:0 6px 16px rgba(45,48,90,.08);}
+.rx-gnode small{display:block;font-weight:600;color:#A6ABC0;margin-top:3px;font-size:8.5px;}
+.rx-vguide{position:absolute;top:0;bottom:0;width:1.5px;background:#FF6B6B;z-index:3;}
+.rx-vguide::before{content:"";position:absolute;top:0;bottom:0;left:-2.5px;width:6px;background:rgba(255,107,107,.18);}
+.rx-hguide{position:absolute;left:0;right:0;height:1.5px;background:#FF6B6B;z-index:3;}
+.rx-hguide::before{content:"";position:absolute;left:0;right:0;top:-2.5px;height:6px;background:rgba(255,107,107,.18);}
+.rx-snaptip{position:absolute;top:10px;right:12px;z-index:4;background:#fff;border:1px solid #FFC9C9;color:#D64545;font-size:9px;font-weight:700;padding:4px 9px;border-radius:7px;box-shadow:0 4px 10px rgba(0,0,0,.08);}
+.rx-guide-note{margin-top:12px;font-size:10.5px;color:#8A90A6;line-height:1.6;}
+.rx-guide-note b{color:var(--violet-d);}
+
+/* ── ④ 音频/音乐节点（多轨道） ── */
+.rx-audio{border:1px solid var(--line);border-radius:11px;overflow:hidden;}
+.rx-audio-h{display:flex;align-items:center;gap:7px;padding:9px 12px;background:#FCFCFE;border-bottom:1px solid var(--line);font-size:11px;font-weight:800;color:#4A4F68;}
+.rx-audio-h .ic{width:16px;height:16px;border-radius:4px;background:var(--violet-soft);display:grid;place-items:center;color:var(--violet);}
+.rx-audio-h .ic svg{width:9px;height:9px;}
+.rx-audio-h .v{margin-left:auto;color:#A6ABC0;font-weight:600;font-size:9.5px;}
+.rx-transport{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid #F2F3F8;background:#fff;}
+.rx-tplay{width:28px;height:28px;border-radius:50%;background:var(--violet);display:grid;place-items:center;flex:0 0 28px;}
+.rx-tplay svg{width:11px;height:11px;color:#fff;margin-left:1px;}
+.rx-scrub{flex:1;height:4px;border-radius:99px;background:#ECEEF5;position:relative;}
+.rx-scrub i{position:absolute;left:0;top:0;bottom:0;width:38%;background:var(--violet);border-radius:99px;}
+.rx-scrub::after{content:"";position:absolute;left:38%;top:50%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:50%;background:#fff;border:2px solid var(--violet);}
+.rx-time{font-size:9.5px;color:#8A90A6;font-weight:700;font-family:Menlo,monospace;flex:0 0 auto;}
+.rx-tracks{padding:6px 0;background:#FAFBFD;}
+.rx-track{display:flex;align-items:center;gap:10px;padding:7px 12px;}
+.rx-track + .rx-track{border-top:1px solid #F2F3F8;}
+.rx-track .tl{flex:0 0 96px;font-size:10px;font-weight:700;color:#4A4F68;}
+.rx-track .tl small{display:block;font-weight:600;color:#A6ABC0;font-size:8.5px;margin-top:1px;}
+.rx-track .tvis{flex:0 0 22px;height:22px;border-radius:6px;background:#F1F2F8;display:grid;place-items:center;color:#9AA0B5;}
+.rx-track .tvis svg{width:11px;height:11px;}
+.rx-wave{flex:1;height:30px;display:flex;align-items:center;gap:1.6px;overflow:hidden;}
+.rx-wave i{flex:1;border-radius:1px;display:block;min-width:1.5px;}
+.rx-master{display:flex;align-items:center;gap:10px;padding:9px 12px;background:#F4F5FA;border-top:1px solid var(--line);font-size:10px;font-weight:800;color:#4A4F68;}
+.rx-master .ln{flex:0 0 96px;}
+.rx-master .mbar{flex:1;height:6px;border-radius:99px;background:linear-gradient(90deg,var(--green) 0 72%,var(--amber) 72% 88%,#ECEEF5 88%);}
+
+/* ── ⑤ DAG 任务地图卡片 ── */
+.rx-dagmsg{display:flex;gap:10px;}
+.rx-dagmsg .ma{width:28px;height:28px;border-radius:9px;flex:0 0 28px;background:linear-gradient(135deg,#B8AFFF,#6C5CE7);display:grid;place-items:center;color:#fff;font-size:10px;font-weight:800;}
+.rx-dagbubble{flex:1;background:#F4F5FA;border-radius:4px 12px 12px 12px;padding:11px 13px;font-size:11.5px;line-height:1.6;}
+.rx-dag{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden;}
+.rx-dag-flow{display:flex;align-items:stretch;gap:0;padding:12px 10px;overflow-x:auto;}
+.rx-dn{flex:1;min-width:74px;border:1px solid var(--line);border-radius:9px;padding:8px 7px;text-align:center;position:relative;background:#fff;}
+.rx-dn .di{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;margin:0 auto 5px;}
+.rx-dn .di svg{width:11px;height:11px;}
+.rx-dn .dl{font-size:9.5px;font-weight:700;color:#3A3F57;line-height:1.3;}
+.rx-dn .ds{font-size:8px;margin-top:2px;font-weight:700;}
+.rx-darrow{align-self:center;flex:0 0 16px;height:2px;background:#C7CBDD;position:relative;margin:0 1px;}
+.rx-darrow::after{content:"";position:absolute;right:-1px;top:50%;transform:translateY(-50%);border-left:5px solid #C7CBDD;border-top:3.5px solid transparent;border-bottom:3.5px solid transparent;}
+.rx-dn.ok .di{background:#E7F8F0;color:#1E9E66;}
+.rx-dn.ok .ds{color:var(--green);}
+.rx-dn.ok{border-color:#C5ECD9;background:#FBFFFD;}
+.rx-dn.run .di{background:var(--violet-soft);color:var(--violet);}
+.rx-dn.run .ds{color:var(--violet-d);}
+.rx-dn.fail .di{background:#FDEEEF;color:#C8443C;}
+.rx-dn.fail .ds{color:var(--red);}
+.rx-dn.fail{border-color:#F5C9CB;background:#FFFCFC;}
+.rx-dn.wait .di{background:#F1F2F8;color:#9AA0B5;}
+.rx-dn.wait .ds{color:#A6ABC0;}
+.rx-failbox{margin:0 12px 12px;border:1px solid #F5C9CB;background:#FFF7F7;border-radius:9px;padding:10px 12px;}
+.rx-failbox .ft{font-size:10.5px;font-weight:800;color:#C8443C;display:flex;align-items:center;gap:6px;}
+.rx-failbox ul{margin:7px 0 0 2px;list-style:none;display:flex;flex-direction:column;gap:5px;}
+.rx-failbox li{font-size:10px;color:#7A5A5A;display:flex;align-items:center;gap:7px;line-height:1.4;}
+.rx-failbox li b{color:#4A4F68;font-weight:700;}
+.rx-failbox li .err{margin-left:auto;color:var(--red);font-family:Menlo,monospace;font-size:9px;}
+.rx-failact{display:flex;gap:7px;margin-top:10px;}
+.rx-failact button{font-size:10px;font-weight:700;padding:6px 12px;border-radius:7px;}
+.rx-failact .retry{background:var(--violet);color:#fff;}
+.rx-failact .log{background:#fff;border:1px solid var(--line);color:#6A708A;}
+.rx-dag-detail{margin:0 12px 12px;border:1px dashed var(--line);border-radius:9px;overflow:hidden;}
+.rx-dag-detail>summary{font-size:10px;font-weight:700;color:#8A90A6;padding:8px 11px;cursor:pointer;list-style:none;user-select:none;display:flex;align-items:center;gap:6px;}
+.rx-dag-detail>summary::-webkit-details-marker{display:none;}
+.rx-dag-detail .det{padding:2px 11px 10px;font-family:Menlo,monospace;font-size:9px;color:#7A8098;line-height:1.8;}
+
+/* ── ⑥ / Skill 与 @ 资产引用交互态 ── */
+.rx-comp-demo{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.rx-comp{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#fff;}
+.rx-comp-h{padding:9px 12px;font-size:10.5px;font-weight:800;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px;background:#FCFCFE;}
+.rx-comp-h .k{font-family:Menlo,monospace;color:var(--violet-d);background:var(--violet-soft);border-radius:6px;padding:1px 7px;font-size:10px;}
+.rx-comp-b{padding:11px;}
+.rx-fakeinput{background:#F4F5FA;border-radius:9px;padding:9px 11px;font-size:11px;line-height:1.6;min-height:46px;}
+.rx-fakeinput .tk{display:inline-flex;align-items:center;gap:4px;background:var(--violet);color:#fff;border-radius:6px;padding:2px 7px;font-weight:700;margin:0 2px;}
+.rx-fakeinput .tk svg{width:10px;height:10px;}
+.rx-fakeinput .tk.at{background:#2BB673;}
+.rx-fakeinput .caret{display:inline-block;width:1.5px;height:12px;background:var(--violet);vertical-align:-1px;animation:rxblink 1s steps(1) infinite;margin-left:1px;}
+@keyframes rxblink{50%{opacity:0;}}
+.rx-menu{margin-top:10px;border:1px solid var(--line);border-radius:9px;overflow:hidden;box-shadow:0 8px 20px rgba(45,48,90,.1);}
+.rx-menu-h{font-size:9px;font-weight:700;color:#A6ABC0;padding:6px 11px;background:#F7F8FC;display:flex;justify-content:space-between;}
+.rx-menu-i{display:flex;align-items:center;gap:9px;padding:8px 11px;font-size:10.5px;cursor:pointer;}
+.rx-menu-i + .rx-menu-i{border-top:1px solid #F2F3F8;}
+.rx-menu-i.hl{background:var(--violet-soft);}
+.rx-menu-i .mi{width:24px;height:24px;border-radius:7px;background:var(--violet-soft);display:grid;place-items:center;color:var(--violet);flex:0 0 24px;}
+.rx-menu-i .mi svg{width:12px;height:12px;}
+.rx-menu-i .mt{font-weight:700;font-size:10.5px;}
+.rx-menu-i .md{font-size:9px;color:#A6ABC0;margin-top:1px;}
+.rx-menu-i .shortcut{margin-left:auto;font-family:Menlo,monospace;font-size:9px;color:#A6ABC0;background:#F4F5FA;border-radius:5px;padding:2px 6px;}
+</style>
+</head>
+<body>
+
+<!-- ═══════ SVG 插画库（角色/场景/封面，平台自有美术） ═══════ -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="p-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E7F1FF"/><stop offset="1" stop-color="#FFF5E8"/></linearGradient>
+    <linearGradient id="p-hair" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#574F8E"/><stop offset="1" stop-color="#3A3463"/></linearGradient>
+    <linearGradient id="m-hair" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4A4A5E"/><stop offset="1" stop-color="#33333F"/></linearGradient>
+    <linearGradient id="t-hair" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A56A3F"/><stop offset="1" stop-color="#7E4E2E"/></linearGradient>
+    <linearGradient id="s-hair" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6B5140"/><stop offset="1" stop-color="#4E3A2D"/></linearGradient>
+    <linearGradient id="sky-day" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C4E1FF"/><stop offset="1" stop-color="#FFF3D6"/></linearGradient>
+    <linearGradient id="sky-dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2C2C5A"/><stop offset=".55" stop-color="#8A5C86"/><stop offset="1" stop-color="#EF9067"/></linearGradient>
+    <linearGradient id="sea-dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5A5590"/><stop offset="1" stop-color="#242446"/></linearGradient>
+    <linearGradient id="empty-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#BCD9FB"/><stop offset="1" stop-color="#EAF6FF"/></linearGradient>
+  </defs>
+
+  <!-- ── 安妮（女主）定妆 ── -->
+  <symbol id="portrait-anni" viewBox="0 0 200 200">
+    <rect width="200" height="200" fill="url(#p-bg)"/>
+    <circle cx="160" cy="40" r="16" fill="#FFE7A6" opacity=".8"/>
+    <path d="M0 200v-44q40-30 100-30t100 30v44z" fill="#FFFFFF"/>
+    <path d="M86 132l14 14 14-14v20h-28z" fill="#E8EDF7"/>
+    <rect x="91" y="118" width="18" height="26" rx="7" fill="#F2C8B4"/>
+    <path d="M56 82q0-52 44-54 44 2 44 54 0 76-20 86h-48q-20-10-20-86z" fill="url(#p-hair)"/>
+    <ellipse cx="100" cy="88" rx="37" ry="40" fill="#FFE4D4"/>
+    <circle cx="64" cy="94" r="6" fill="#F2C8B4"/><circle cx="136" cy="94" r="6" fill="#F2C8B4"/>
+    <path d="M62 74q4-30 38-31 34 1 38 31-12-14-23-12l-4 14-11-13-11 13-4-14q-11-2-23 12z" fill="url(#p-hair)"/>
+    <path d="M64 96q-6 34 4 52-12-6-12-34z" fill="#463E75"/><path d="M136 96q6 34-4 52 12-6 12-34z" fill="#463E75"/>
+    <path d="M72 86q10-6 20 0" stroke="#4A4374" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <path d="M108 86q10-6 20 0" stroke="#4A4374" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <ellipse cx="82" cy="96" rx="8" ry="10.5" fill="#fff"/><ellipse cx="118" cy="96" rx="8" ry="10.5" fill="#fff"/>
+    <ellipse cx="82" cy="98" rx="6" ry="8" fill="#6E5FA6"/><ellipse cx="118" cy="98" rx="6" ry="8" fill="#6E5FA6"/>
+    <circle cx="82" cy="99" r="3.2" fill="#342E5C"/><circle cx="118" cy="99" r="3.2" fill="#342E5C"/>
+    <circle cx="80" cy="95" r="1.8" fill="#fff"/><circle cx="116" cy="95" r="1.8" fill="#fff"/>
+    <path d="M74 88q8-4 15 0" stroke="#342E5C" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <path d="M111 88q7-4 15 0" stroke="#342E5C" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <path d="M99 106v5" stroke="#E2A992" stroke-width="2" stroke-linecap="round"/>
+    <path d="M93 118q7 6 14 0" stroke="#DD8275" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <circle cx="72" cy="110" r="6" fill="#F6A9A2" opacity=".45"/><circle cx="128" cy="110" r="6" fill="#F6A9A2" opacity=".45"/>
+    <path d="M78 52q14-8 30-6" stroke="#7E74B8" stroke-width="3" fill="none" stroke-linecap="round" opacity=".5"/>
+  </symbol>
+
+  <!-- ── 林屿（男主） ── -->
+  <symbol id="portrait-linyu" viewBox="0 0 200 200">
+    <rect width="200" height="200" fill="url(#p-bg)"/>
+    <path d="M0 200v-44q40-30 100-30t100 30v44z" fill="#FFFFFF"/>
+    <path d="M86 132l14 12 14-12v22h-28z" fill="#DDE6F2"/>
+    <rect x="91" y="118" width="18" height="26" rx="7" fill="#EFC3A9"/>
+    <path d="M58 84q0-50 42-52 42 2 42 52 0 50-8 62h-68q-8-12-8-62z" fill="url(#m-hair)"/>
+    <ellipse cx="100" cy="90" rx="36" ry="39" fill="#FFE0CC"/>
+    <path d="M61 72q6-28 39-28 33 0 39 28-10-8-26-8h-26q-16 0-26 8z" fill="url(#m-hair)"/>
+    <path d="M78 64q10-4 22-2M102 62q12-2 21 2" stroke="#55556A" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <path d="M72 86q10-5 19 0" stroke="#33333F" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <path d="M109 86q9-5 19 0" stroke="#33333F" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="82" cy="96" rx="7.5" ry="9.5" fill="#fff"/><ellipse cx="118" cy="96" rx="7.5" ry="9.5" fill="#fff"/>
+    <ellipse cx="82" cy="98" rx="5.5" ry="7.5" fill="#5B6E94"/><ellipse cx="118" cy="98" rx="5.5" ry="7.5" fill="#5B6E94"/>
+    <circle cx="82" cy="99" r="3" fill="#2C2C44"/><circle cx="118" cy="99" r="3" fill="#2C2C44"/>
+    <circle cx="80" cy="95" r="1.6" fill="#fff"/><circle cx="116" cy="95" r="1.6" fill="#fff"/>
+    <path d="M96 116q4 4 8 0" stroke="#C8796B" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  </symbol>
+
+  <!-- ── 小棠（闺蜜） ── -->
+  <symbol id="portrait-xiaotang" viewBox="0 0 200 200">
+    <rect width="200" height="200" fill="url(#p-bg)"/>
+    <path d="M0 200v-44q40-30 100-30t100 30v44z" fill="#FFF6F0"/>
+    <rect x="91" y="118" width="18" height="26" rx="7" fill="#F5CCB6"/>
+    <ellipse cx="48" cy="96" rx="16" ry="30" fill="url(#t-hair)"/><ellipse cx="152" cy="96" rx="16" ry="30" fill="url(#t-hair)"/>
+    <path d="M58 82q0-52 42-54 42 2 42 54 0 72-16 84H74q-16-12-16-84z" fill="url(#t-hair)"/>
+    <ellipse cx="100" cy="88" rx="36" ry="40" fill="#FFE6D6"/>
+    <path d="M63 72q5-29 37-30 32 1 37 30-11-13-22-11l-5 13-10-11-10 11-5-13q-11-2-22 11z" fill="url(#t-hair)"/>
+    <ellipse cx="82" cy="96" rx="8.5" ry="11" fill="#fff"/><ellipse cx="118" cy="96" rx="8.5" ry="11" fill="#fff"/>
+    <ellipse cx="82" cy="98" rx="6" ry="8.5" fill="#8F6238"/><ellipse cx="118" cy="98" rx="6" ry="8.5" fill="#8F6238"/>
+    <circle cx="82" cy="99" r="3.2" fill="#5C3B1E"/><circle cx="118" cy="99" r="3.2" fill="#5C3B1E"/>
+    <circle cx="80" cy="95" r="1.8" fill="#fff"/><circle cx="116" cy="95" r="1.8" fill="#fff"/>
+    <path d="M88 118q12 10 24 0q-12 5-24 0z" fill="#D87060"/>
+    <circle cx="71" cy="110" r="6" fill="#F6A9A2" opacity=".5"/><circle cx="129" cy="110" r="6" fill="#F6A9A2" opacity=".5"/>
+  </symbol>
+
+  <!-- ── 苏敏（母亲） ── -->
+  <symbol id="portrait-sumin" viewBox="0 0 200 200">
+    <rect width="200" height="200" fill="url(#p-bg)"/>
+    <path d="M0 200v-44q40-30 100-30t100 30v44z" fill="#EAC8A8"/>
+    <rect x="91" y="118" width="18" height="26" rx="7" fill="#EFC3A9"/>
+    <path d="M56 84q0-50 44-52 44 2 44 52 0 64-14 74-8 10-30 10t-30-10q-14-10-14-74z" fill="url(#s-hair)"/>
+    <ellipse cx="100" cy="90" rx="36" ry="39" fill="#FADBC6"/>
+    <path d="M62 74q5-29 38-30 33 1 38 30-12-12-24-10l-5 12-9-10-9 10-5-12q-12-2-24 10z" fill="url(#s-hair)"/>
+    <path d="M63 100q-5 30 5 48-12-8-10-34zM137 100q5 30-5 48 12-8 10-34z" fill="#574133"/>
+    <path d="M72 88q10-4 19 0" stroke="#4E3A2D" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M109 88q9-4 19 0" stroke="#4E3A2D" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <ellipse cx="82" cy="98" rx="7" ry="9" fill="#fff"/><ellipse cx="118" cy="98" rx="7" ry="9" fill="#fff"/>
+    <ellipse cx="82" cy="100" rx="5" ry="7" fill="#7A6650"/><ellipse cx="118" cy="100" rx="5" ry="7" fill="#7A6650"/>
+    <circle cx="82" cy="101" r="2.8" fill="#3D2E22"/><circle cx="118" cy="101" r="2.8" fill="#3D2E22"/>
+    <path d="M90 119q10 5 20 0" stroke="#BE7A66" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  </symbol>
+
+  <!-- ── 场景：宿舍外景 · 蝉鸣午后 ── -->
+  <symbol id="scene-dorm" viewBox="0 0 260 190">
+    <rect width="260" height="190" fill="url(#sky-day)"/>
+    <g fill="#fff" opacity=".9"><ellipse cx="48" cy="38" rx="22" ry="10"/><ellipse cx="66" cy="34" rx="16" ry="9"/><ellipse cx="220" cy="70" rx="18" ry="8"/></g>
+    <circle cx="198" cy="42" r="17" fill="#FFE6A0"/>
+    <g stroke="#F5C86E" stroke-width="2" stroke-linecap="round"><path d="M198 14v8M198 62v8M170 42h8M218 42h8M179 23l6 6M211 55l6 6M217 23l-6 6M185 55l-6 6"/></g>
+    <rect x="70" y="72" width="120" height="92" fill="#F1EADF"/>
+    <path d="M62 72h136l-10-14H72z" fill="#D8CCB6"/>
+    <g><rect x="84" y="88" width="26" height="26" rx="2" fill="#B8D6EC"/><path d="M97 88v26M84 101h26" stroke="#8FB4D2" stroke-width="1.5"/>
+    <rect x="120" y="88" width="26" height="26" rx="2" fill="#B8D6EC"/><path d="M133 88v26M120 101h26" stroke="#8FB4D2" stroke-width="1.5"/>
+    <rect x="156" y="88" width="24" height="26" rx="2" fill="#C6DEEE"/><path d="M168 88v26M156 101h24" stroke="#8FB4D2" stroke-width="1.5"/>
+    <rect x="84" y="126" width="26" height="38" fill="#C7B7A0"/><rect x="120" y="126" width="26" height="24" rx="2" fill="#B8D6EC"/>
+    <rect x="156" y="126" width="24" height="38" fill="#B4A48B"/></g>
+    <rect x="18" y="150" width="224" height="40" fill="#C9E4AC"/>
+    <path d="M112 190l-14-40h24z" fill="#E8E2D0"/>
+    <g><rect x="30" y="128" width="8" height="26" fill="#8A6A48"/><circle cx="34" cy="124" r="18" fill="#76A95E"/><circle cx="22" cy="132" r="12" fill="#86BA6C"/><circle cx="48" cy="134" r="11" fill="#86BA6C"/>
+    <rect x="224" y="134" width="6" height="20" fill="#8A6A48"/><circle cx="227" cy="130" r="13" fill="#76A95E"/></g>
+    <path d="M8 92q4-4 8 0M22 88q4-4 8 0" stroke="#5A6A80" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  </symbol>
+
+  <!-- ── 空镜：天空（T2V） ── -->
+  <symbol id="empty-sky" viewBox="0 0 200 70">
+    <rect width="200" height="70" fill="url(#empty-g)"/>
+    <circle cx="160" cy="18" r="9" fill="#FFE9A8"/>
+    <g fill="#fff" opacity=".92"><ellipse cx="40" cy="22" rx="18" ry="8"/><ellipse cx="56" cy="18" rx="12" ry="7"/><ellipse cx="110" cy="40" rx="15" ry="7"/></g>
+    <path d="M0 70q25-12 50 0t50 0 50 0 50 0v0" fill="#C5E2AC"/>
+  </symbol>
+
+  <!-- ── 成片封面：海边黄昏 · 少女剪影 ── -->
+  <symbol id="cover-final" viewBox="0 0 150 200">
+    <rect width="150" height="200" fill="url(#sky-dusk)"/>
+    <circle cx="112" cy="46" r="14" fill="#FFD9A0" opacity=".9"/>
+    <g fill="#fff"><circle cx="26" cy="30" r="1.3"/><circle cx="52" cy="18" r="1"/><circle cx="84" cy="34" r="1.2"/><circle cx="40" cy="52" r=".9"/><circle cx="96" cy="16" r="1"/></g>
+    <path d="M0 118h150v82H0z" fill="url(#sea-dusk)"/>
+    <path d="M0 118h150" stroke="#F0906B" stroke-width="2" opacity=".8"/>
+    <g stroke="#F0A070" stroke-width="1.1" opacity=".6"><path d="M20 132h30M96 132h34M10 146h24M60 148h34M30 164h40M100 166h26"/></g>
+    <path d="M0 146q75-16 150 0v54H0z" fill="#2E2D55"/>
+    <g fill="#1C1C38">
+      <circle cx="86" cy="104" r="7"/>
+      <path d="M80 112q6-4 12 0l4 30h-7l-3-20-3 20h-7z"/>
+      <path d="M82 142h8l2 14h-12z"/>
+      <path d="M80 113q-8-10-2-18 2 8 8 10z"/>
+    </g>
+    <g stroke="#2C2C4A" stroke-width="1.6" stroke-linecap="round"><path d="M30 96l6-2M34 102l6 2"/></g>
+  </symbol>
+</svg>
+<div class="window">
+
+  <!-- Title bar -->
+  <div class="titlebar">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <div class="title"><span class="logo">剧</span>短剧 Agent · 安妮的夏天 · 第一集</div>
+    <div class="spacer"></div>
+    <button class="model-chip"><span class="auto">自动</span>MiniMax H3 · 768P–2K</button>
+    <button class="tb-btn">使用指南</button>
+    <button class="tb-btn">导出</button>
+    <div class="avatar">SZ</div>
+  </div>
+
+  <div class="main">
+
+    <!-- Icon rail -->
+    <div class="rail">
+      <button class="active" data-tab="projects">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>项目</button>
+      <button data-tab="skills">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5z"/></svg>Skill</button>
+      <button data-tab="assets">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>资产</button>
+      <button data-tab="plugins">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 7V4a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v3H7a1 1 0 0 0-1 1v3H3a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h3v3a1 1 0 0 0 1 1h3v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3h3a1 1 0 0 0 1-1v-3h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-3V8a1 1 0 0 0-1-1z"/></svg>插件</button>
+      <div class="grow"></div>
+      <div class="mini-dot">AI</div>
+    </div>
+
+    <!-- Left panel -->
+    <div class="left">
+      <div class="lp-head">
+        <h3 id="lpTitle">项目库</h3>
+        <div class="lp-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="搜索项目 / Skill / 资产">
+        </div>
+      </div>
+      <div class="lp-body">
+
+        <!-- Projects -->
+        <div class="lp-panel active" id="pan-projects">
+          <div class="proj-item active">
+            <div class="proj-thumb">安</div>
+            <div><div class="nm">安妮的夏天</div><div class="meta">校园恋爱 · 第 1 集 · 2 分钟前</div></div>
+            <div class="st"></div>
+          </div>
+          <div class="proj-item">
+            <div class="proj-thumb" style="background:linear-gradient(135deg,#9FD8C4,#3E9E86)">旧</div>
+            <div><div class="nm">旧港往事</div><div class="meta">年代情感 · 第 3 集 · 昨天</div></div>
+            <div class="st gold"></div>
+          </div>
+          <div class="proj-item">
+            <div class="proj-thumb" style="background:linear-gradient(135deg,#FFC6A0,#E8744F)">未</div>
+            <div><div class="nm">未命名项目 2</div><div class="meta">暂无内容 · 3 天前</div></div>
+            <div class="st gray"></div>
+          </div>
+        </div>
+
+        <!-- Skills -->
+        <div class="lp-panel" id="pan-skills">
+          <div class="skill-cat">
+            <button class="active">全部</button><button>短剧</button><button>情绪</button><button>校园</button>
+          </div>
+          <div class="skill-card">
+            <div class="row">
+              <div class="skill-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+              <div><div class="t">日漫定妆流</div><div class="d">角色概念 → 定妆，一致性配方自动生成</div></div>
+            </div>
+            <button class="run">在对话中试用 →</button>
+          </div>
+          <div class="skill-card">
+            <div class="row">
+              <div class="skill-ico" style="background:#FFF0E6;color:#E8744F"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/></svg></div>
+              <div><div class="t">强情绪三连镜</div><div class="d">特写递进 + 光影升级，情绪爆发模板</div></div>
+            </div>
+            <button class="run">在对话中试用 →</button>
+          </div>
+          <div class="skill-card">
+            <div class="row">
+              <div class="skill-ico" style="background:#E6F7F0;color:#1E9E66"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg></div>
+              <div><div class="t">校园恋爱开场</div><div class="d">前三秒钩子 + 女主出场的标准开场</div></div>
+            </div>
+            <button class="run">在对话中试用 →</button>
+          </div>
+          <div class="skill-card">
+            <div class="row">
+              <div class="skill-ico" style="background:#EAF1FE;color:#4A7DD8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg></div>
+              <div><div class="t">批量出镜</div><div class="d">分镜表 → 多实例池逐镜批量生成</div></div>
+            </div>
+            <button class="run">在对话中试用 →</button>
+          </div>
+        </div>
+
+        <!-- Assets -->
+        <div class="lp-panel" id="pan-assets">
+          <div class="asset-sub">
+            <button class="active">角色</button><button>场景</button><button>道具</button><button>音色</button>
+          </div>
+          <div class="asset-grid">
+            <div class="asset-cell picked">
+              <svg class="art" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice"><use href="#portrait-anni"/></svg>
+              <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+              <div class="cap">安妮 · 女主</div>
+            </div>
+            <div class="asset-cell">
+              <svg class="art" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice"><use href="#portrait-linyu"/></svg>
+              <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+              <div class="cap">林屿 · 男主</div>
+            </div>
+            <div class="asset-cell">
+              <svg class="art" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice"><use href="#portrait-xiaotang"/></svg>
+              <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+              <div class="cap">小棠 · 闺蜜</div>
+            </div>
+            <div class="asset-cell">
+              <svg class="art" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice"><use href="#portrait-sumin"/></svg>
+              <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+              <div class="cap">苏敏 · 母亲</div>
+            </div>
+          </div>
+          <div style="height:10px"></div>
+          <div class="voice-row">
+            <div class="play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+            <div class="nm">音色 · 安妮</div>
+            <svg class="wave" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0 10 Q5 2 10 10 T20 10 T30 10 T40 10 T50 10 T60 10 T70 10 T80 10 T90 10 T100 10 V10" fill="none" stroke="#6C5CE7" stroke-width="1.2"/></svg>
+          </div>
+        </div>
+
+        <!-- Plugins -->
+        <div class="lp-panel" id="pan-plugins">
+          <div class="plugin-row">
+            <div class="pi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 7l10 5 10-5z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/></svg></div>
+            <div><div class="t">3D 导演台</div><div class="d">自然语言摆位、机位与姿态</div></div>
+            <div class="switch on"></div>
+          </div>
+          <div class="plugin-row">
+            <div class="pi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M11 5v14M15 5v14"/></svg></div>
+            <div><div class="t">智能剪辑台</div><div class="d">语义化字幕、转场与拼接</div></div>
+            <div class="switch on"></div>
+          </div>
+          <div class="plugin-row">
+            <div class="pi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18"/></svg></div>
+            <div><div class="t">批量水印 / Logo</div><div class="d">成片批量版权信息</div></div>
+            <div class="switch"></div>
+          </div>
+          <div class="plugin-row">
+            <div class="pi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="9"/><circle cx="12" cy="12" r="3"/></svg></div>
+            <div><div class="t">多角度机位</div><div class="d">同一主体多视角批量出片</div></div>
+            <div class="switch"></div>
+          </div>
+        </div>
+
+      </div>
+      <div class="lp-foot">
+        <button class="lp-new">＋ 新建项目</button>
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <div class="center" id="center">
+      <div class="world" id="world">
+        <svg class="edges" viewBox="0 0 1140 420" preserveAspectRatio="none">
+          <defs>
+            <marker id="arr" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7z" fill="#C7CBDD"/></marker>
+            <marker id="arrV" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7z" fill="#6C5CE7"/></marker>
+          </defs>
+          <!-- brief -> script -->
+          <path class="e done" d="M166 88 C 186 88 186 100 206 100" marker-end="url(#arr)"/>
+          <!-- script -> char -->
+          <path class="active" d="M374 110 C 397 110 397 112 420 112" marker-end="url(#arrV)"/>
+          <!-- script -> storyboard -->
+          <path class="e done" d="M290 170 L290 210"/>
+          <!-- storyboard -> shots -->
+          <path class="active" d="M374 258 C 490 258 510 260 628 260" marker-end="url(#arrV)"/>
+          <!-- char -> scene -->
+          <path class="e done" d="M499 212 L499 242"/>
+          <!-- char -> shot1 -->
+          <path class="e done" d="M578 120 C 600 70 605 60 628 60"/>
+          <!-- scene -> shot3 -->
+          <path class="e done" d="M578 300 C 600 290 608 285 628 282"/>
+          <!-- shots -> edit -->
+          <path class="active" d="M832 160 C 857 150 857 118 882 118" marker-end="url(#arrV)"/>
+          <!-- edit -> final -->
+          <path class="e" d="M957 180 L957 220"/>
+        </svg>
+
+        <!-- Brief -->
+        <div class="node n-brief" data-n="brief" style="left:20px;top:36px;width:146px;height:104px;animation-delay:.05s">
+          <div class="nh"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>创意简报<span class="v">v3</span></div>
+          <div class="nb">校园恋爱短剧，大一新生安妮在海边小城的夏天。
+            <div class="brief-tags"><span>校园</span><span>恋爱</span><span>夏日</span><span>9:16</span></div>
+          </div>
+        </div>
+
+        <!-- Script -->
+        <div class="node" data-n="script" style="left:206px;top:30px;width:168px;height:140px;animation-delay:.12s">
+          <div class="nh"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M8 4h11v16H8zM5 4h3v16H5z"/></svg></span>剧本 · 第一集<span class="v">v6</span></div>
+          <div class="nb">
+            <div class="script-lines"><div></div><div></div><div></div><div></div><div></div></div>
+            <div class="scene-rows">分场 5 · 台词 42 句<br>节拍：钩子 → 相遇 → 心动</div>
+          </div>
+        </div>
+
+        <!-- Storyboard -->
+        <div class="node" data-n="storyboard" style="left:206px;top:210px;width:168px;height:96px;animation-delay:.18s">
+          <div class="nh"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></span>分镜表<span class="v">v8</span></div>
+          <div class="nb" style="font-size:10px;color:#5A607A;line-height:1.7">18 镜 · 总时长 92″<br>含对白 12 镜 · 空镜 6 镜</div>
+        </div>
+
+        <!-- Character -->
+        <div class="node n-char selected" data-n="char" style="left:420px;top:16px;width:158px;height:206px;animation-delay:.24s">
+          <div class="nh"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span>角色定妆<span class="v">v4</span></div>
+          <svg class="art" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice" style="height:128px"><use href="#portrait-anni"/></svg>
+          <div class="char-foot"><div class="nm">安妮 · 女主</div><div class="recipe">seed 88213 · 配方已锁定</div></div>
+        </div>
+
+        <!-- Scene -->
+        <div class="node n-scene" data-n="scene" style="left:420px;top:246px;width:158px;height:118px;animation-delay:.3s">
+          <div class="nh"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m3 20 7-12 5 7 3-4 3 9z"/></svg></span>场景概念<span class="v">v2</span></div>
+          <svg class="art" viewBox="0 0 260 190" preserveAspectRatio="xMidYMid slice" style="height:80px"><use href="#scene-dorm"/></svg>
+          <div class="scene-foot">宿舍外景 · 蝉鸣午后</div>
+        </div>
+
+        <!-- Shot cards -->
+        <div class="shot-card" data-n="shot1" style="top:14px;height:102px;animation-delay:.36s">
+          <div class="shot-top">
+            <span class="shot-no">V001</span><span class="shot-tag d">D 正片</span>
+            <span class="right"><span class="check-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></span>5.2″</span>
+          </div>
+          <div class="shot-mid">
+            <svg viewBox="0 0 260 190" preserveAspectRatio="xMidYMid slice"><use href="#scene-dorm"/></svg>
+            <span class="shot-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+          </div>
+          <div class="shot-bar"><span class="track"><i style="width:100%"></i></span><span class="tc">Dv8</span></div>
+        </div>
+
+        <div class="shot-card" id="shotCard2" data-n="shot2" style="top:126px;height:102px;animation-delay:.42s">
+          <div class="shot-top">
+            <span class="shot-no">V002</span><span class="shot-tag d">D 正片</span>
+            <span class="right"><span class="spinner" id="shotSpinner"></span>生成中</span>
+          </div>
+          <div class="shot-mid">
+            <svg viewBox="55 55 90 90" preserveAspectRatio="xMidYMid slice"><use href="#portrait-anni"/></svg>
+            <span class="shot-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+          </div>
+          <div class="shot-bar"><span class="track"><i id="shot2bar" style="width:55%"></i></span><span class="tc">Dv6</span></div>
+        </div>
+
+        <div class="shot-card" data-n="shot3" style="top:238px;height:102px;animation-delay:.48s">
+          <div class="shot-top">
+            <span class="shot-no">V003</span><span class="shot-tag t">T 试档</span>
+            <span class="right"><span class="status-dot gy" style="width:8px;height:8px"></span>等待</span>
+          </div>
+          <div class="shot-mid waiting">
+            <svg viewBox="0 0 200 70" preserveAspectRatio="xMidYMid slice"><use href="#empty-sky"/></svg>
+          </div>
+          <div class="shot-bar"><span class="track"></span><span class="tc">—</span></div>
+        </div>
+
+        <!-- Edit -->
+        <div class="node" data-n="edit" style="left:882px;top:50px;width:150px;height:130px;animation-delay:.54s">
+          <div class="nh"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 18V9M10 18V5M16 18v-7M22 18H2"/></svg></span>粗剪时间线<span class="v">v1</span></div>
+          <div class="tl-row">
+            <i style="height:60%"></i><i class="on" style="height:92%"></i><i style="height:70%"></i><i class="on" style="height:100%"></i>
+            <i style="height:55%"></i><i class="on" style="height:80%"></i><i style="height:65%"></i><i style="height:90%"></i>
+            <i class="on" style="height:72%"></i><i style="height:58%"></i><i class="on" style="height:85%"></i><i style="height:62%"></i>
+          </div>
+          <div class="tl-foot"><span>12 镜已入轨</span><span>61″</span></div>
+        </div>
+
+        <!-- Final -->
+        <div class="node n-final" data-n="final" style="left:882px;top:220px;width:150px;height:190px;animation-delay:.6s">
+          <div class="nh"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m12 2 3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></span>成片交付<span class="v">—</span></div>
+          <svg class="art" viewBox="0 0 150 200" preserveAspectRatio="xMidYMid slice" style="height:132px"><use href="#cover-final"/></svg>
+          <div class="final-foot">
+            <div class="t">安妮的夏天 · E01</div>
+            <div class="m">9:16 · 92″ · 待确认</div>
+            <div class="final-actions"><button class="exp">导出</button><button class="slc">切片</button></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- zoom -->
+      <div class="zoom-ctl">
+        <button id="zoomOut">−</button><span class="pct" id="zoomPct">100%</span><button id="zoomIn">＋</button>
+      </div>
+      <!-- minimap -->
+      <div class="minimap">
+        <div class="mm">
+          <i style="left:2%;top:9%;width:12%;height:24%"></i>
+          <i style="left:18%;top:7%;width:14%;height:33%"></i>
+          <i style="left:18%;top:50%;width:14%;height:22%"></i>
+          <i style="left:36%;top:4%;width:13%;height:48%"></i>
+          <i style="left:36%;top:58%;width:13%;height:27%"></i>
+          <i style="left:54%;top:3%;width:17%;height:72%"></i>
+          <i style="left:76%;top:12%;width:12%;height:30%"></i>
+          <i style="left:76%;top:52%;width:12%;height:44%"></i>
+          <div class="view" id="mmView" style="left:0;top:0;width:55%;height:100%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right chat -->
+    <div class="right">
+      <div class="chat-head">
+        <div class="row">
+          <div>
+            <div class="t">主控 Agent</div>
+            <div class="s">导演 · 任务调度与确认门</div>
+          </div>
+          <div class="agents">
+            <i title="主控">主</i><i title="编剧">编</i><i title="美术">美</i><i title="镜头">镜</i><i title="声音">声</i>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-body" id="chatBody">
+        <div class="msg user">
+          <div class="ma">SZ</div>
+          <div class="bubble">做一部校园恋爱短剧，女主大一新生，故事发生在夏天的海边小城，每集 90 秒左右，先做第一集。</div>
+        </div>
+
+        <div class="msg agent">
+          <div class="ma">主</div>
+          <div class="bubble">已理解你的创作目标，先给出创意简报，确认后我就拆任务开工。
+            <div class="brief-card">
+              <div class="kv"><span class="k">类型</span><span class="v">校园 / 恋爱 / 夏日</span></div>
+              <div class="kv"><span class="k">集数</span><span class="v">第一季 8 集（先做 E01）</span></div>
+              <div class="kv"><span class="k">时长</span><span class="v">每集约 90 秒</span></div>
+              <div class="kv"><span class="k">画幅</span><span class="v">9:16 竖屏 · 768P–2K</span></div>
+              <div class="kv"><span class="k">风格</span><span class="v">日系动画 · 清新柔光</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="msg agent">
+          <div class="ma">美</div>
+          <div class="bubble">
+            <div class="trace">
+              <div class="trace-head">
+                <span class="tag-a">美术 Agent</span><span class="tool">image.submit</span>
+                <span class="ok">● 完成</span>
+              </div>
+              <div class="trace-body">角色定妆 · 安妮（女主）<br>seed 88213 · 一致性配方已锁定 · v4</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="msg agent">
+          <div class="ma">引</div>
+          <div class="bubble">镜头批量任务已入队，3 个引擎实例并行。
+            <div class="trace">
+              <div class="trace-head">
+                <span class="tag-a" style="background:#EAF1FE;color:#3E6FD0">引擎 Agent</span><span class="tool">batch.run · B5</span>
+                <span class="ok" id="queueText">● 12/18</span>
+              </div>
+              <div class="trace-prog"><i id="queueBar"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="msg agent">
+          <div class="ma">主</div>
+          <div class="bubble">整集镜头已全部生成，请过目确认。确认后剪辑 Agent 接管合流。
+            <div class="gate" id="gate">
+              <div class="gate-head">
+                <span class="gico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+                <span class="gt">整集镜头确认</span><span class="gs">STAGE · 镜头</span>
+              </div>
+              <div class="gate-list">
+                <div class="gate-line"><span class="gi pass"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="gl">角色一致性</span><span class="gr">18/18 通过</span></div>
+                <div class="gate-line"><span class="gi pass"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="gl">画幅与规格</span><span class="gr">9:16 · 档位合规</span></div>
+                <div class="gate-line"><span class="gi warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 8v5M12 16.5v.01"/><circle cx="12" cy="12" r="9"/></svg></span><span class="gl">V006 口型轻微偏差</span><span class="gr">建议人工复核</span></div>
+              </div>
+              <div class="gate-note" id="gateNote">请描述：保留什么 · 修改什么 · 为什么 · 期望结果。反馈将回流给镜头 Agent。</div>
+              <div class="gate-actions">
+                <button class="veto" id="vetoBtn">否决 / 重做</button>
+                <button class="confirm" id="confirmBtn">确认放行</button>
+              </div>
+              <div class="gate-success">
+                <div class="big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+                <div class="t">已确认 · 剪辑 Agent 已接管</div>
+                <div class="d">粗剪 → 字幕 → 混音 → 切片，完成后通知你</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input">
+        <div class="ci-box">
+          <textarea placeholder="描述创作目标，或 / 唤起 Skill…"></textarea>
+          <div class="ci-row">
+            <button title="Skill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m12 3 2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5z"/></svg></button>
+            <button title="资产"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg></button>
+            <span class="mchip"><span style="width:5px;height:5px;border-radius:50%;background:#6C5CE7"></span>H3 自动选配</span>
+            <button class="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom status bar -->
+  <div class="statusbar">
+    <div class="sb-group">
+      <div class="sb-engine"><span class="d"></span>火山方舟（文本）</div>
+      <div class="sb-engine"><span class="d"></span>10.203.3.52:8000</div>
+      <div class="sb-engine"><span class="d"></span>:8001</div>
+      <div class="sb-engine"><span class="d"></span>:8002</div>
+    </div>
+    <div class="sb-sep"></div>
+    <div class="sb-queue">
+      <span>镜头批量</span>
+      <div class="track"><i id="sbBar"></i></div>
+      <b id="sbText">12 / 18</b>
+    </div>
+    <div class="sb-right">
+      <span class="pill-pass">✓ Harness 校验 30 项</span>
+      <span>2 分钟前自动保存</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════ 浮动入口：打开「可借鉴」补充展示层 ═══════ -->
+<button class="rx-fab" id="rxFab">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/></svg>
+  可借鉴补充
+</button>
+
+<!-- ═══════ 「可借鉴」补充展示层（原原型完整保留在下方窗口中） ═══════ -->
+<div class="rx-layer" id="rxLayer">
+  <div class="rx-top">
+    <button class="rx-back" id="rxBack">← 返回原原型</button>
+    <h2><span class="logo">鉴</span>可借鉴元素补充
+      <div><div class="sub">原原型完整保留，以下为外部调研后建议补入的 6 项界面元素</div></div>
+    </h2>
+    <div class="rx-legend">
+      <span class="lg d"><span class="dot"></span>[改编] 借鉴 Design / 开源同源形态</span>
+      <span class="lg n"><span class="dot"></span>[自研新增] 无外部对应，按设计文档自研</span>
+    </div>
+  </div>
+
+  <div class="rx-scroll">
+    <div class="rx-grid">
+
+      <!-- ① 表格节点 -->
+      <div class="rx-card wide" style="animation-delay:.03s">
+        <div class="rx-card-h">
+          <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></span>
+          <div><div class="ct">① 表格节点 · 分场表 / 分镜表</div><div class="cd">结构化表格直接作为画布节点存在，行可编辑、可选中、状态可着色</div></div>
+          <span class="rx-badge d">改编</span>
+          <span class="rx-src">参考：MiniMax Design 表格节点 · Storyflow</span>
+        </div>
+        <div class="rx-card-b">
+          <div class="rx-twocol">
+            <div class="rx-nf">
+              <div class="rx-nf-h"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M8 4h11v16H8zM5 4h3v16H5z"/></svg></span>分场表 · 第一集<span class="v">v6</span></div>
+              <table class="rx-tbl">
+                <tr><th>场</th><th>场景</th><th>节拍</th><th>页</th></tr>
+                <tr><td class="no">S1</td><td>宿舍外景 · 日</td><td><span class="rx-minitag a">钩子</span></td><td>1/8</td></tr>
+                <tr><td class="no">S2</td><td>林荫道 · 日</td><td><span class="rx-minitag i">相遇</span></td><td>1/8</td></tr>
+                <tr><td class="no">S3</td><td>图书馆 · 日</td><td><span class="rx-minitag i">心动</span></td><td>2/8</td></tr>
+                <tr><td class="no">S4</td><td>海边堤岸 · 黄昏</td><td><span class="rx-minitag e">升华</span></td><td>3/8</td></tr>
+              </table>
+            </div>
+            <div class="rx-nf sel">
+              <div class="rx-nf-h"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></span>分镜表 · V004–V007<span class="v">v8</span></div>
+              <table class="rx-tbl">
+                <tr><th>镜</th><th>内容</th><th>景别</th><th>时长</th></tr>
+                <tr><td class="no">V004</td><td>安妮回头，发梢扬起</td><td>近景</td><td>3.1″</td></tr>
+                <tr><td class="no">V005</td><td>林屿递书，手指相触</td><td>特写</td><td>2.4″</td></tr>
+                <tr><td class="no">V006</td><td class="hot">安妮怔住（口型偏差）</td><td>特写</td><td>4.0″</td></tr>
+                <tr><td class="no">V007</td><td>两人对视，蝉鸣光影</td><td>中景</td><td>5.2″</td></tr>
+              </table>
+            </div>
+          </div>
+          <div class="rx-tbl-note">业务价值：<b>Step 2 剧本分场</b> 与 <b>Step 4 分镜</b> 的产物天然是表格；表格节点让「改一行 → 下游镜头联动标红」可直接在画布完成，无需弹窗。</div>
+        </div>
+      </div>
+
+      <!-- ② 节点五态着色 -->
+      <div class="rx-card" style="animation-delay:.08s">
+        <div class="rx-card-h">
+          <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v.01M12 12v4"/></svg></span>
+          <div><div class="ct">② 节点五态着色</div><div class="cd">统一状态语言，失败态一眼定位</div></div>
+          <span class="rx-badge d">改编</span>
+        </div>
+        <div class="rx-card-b">
+          <div class="rx-states">
+            <div class="rx-state s-done"><div class="rh"><span class="sd"></span>V001</div><div class="rb"></div><div class="cap">已完成<small>green</small></div></div>
+            <div class="rx-state s-run"><div class="rh"><span class="sd"></span>V002</div><div class="rb"></div><div class="cap">进行中<small>violet</small></div></div>
+            <div class="rx-state s-wait"><div class="rh"><span class="sd"></span>V003</div><div class="rb"></div><div class="cap">等待<small>gray</small></div></div>
+            <div class="rx-state s-fail"><div class="rh"><span class="sd"></span>V006</div><div class="rb"></div><div class="cap">失败<small>red</small></div></div>
+            <div class="rx-state s-gate"><div class="rh"><span class="sd"></span>门 0-c</div><div class="rb"></div><div class="cap">待确认<small>amber 脉冲</small></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ③ 对齐参考线 + 吸附 -->
+      <div class="rx-card" style="animation-delay:.13s">
+        <div class="rx-card-h">
+          <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v18M3 12h18M5 5l3 3M19 5l-3 3"/></svg></span>
+          <div><div class="ct">③ 对齐参考线 + 自动吸附</div><div class="cd">拖拽时出现参考线，自动对齐与等距吸附</div></div>
+          <span class="rx-badge d">改编</span>
+        </div>
+        <div class="rx-card-b">
+          <div class="rx-guide-demo">
+            <div class="rx-gnode" style="left:40px;top:40px">分场表<small>x=40</small></div>
+            <div class="rx-gnode" style="left:40px;top:128px">分镜表<small>x=40 · 已吸附</small></div>
+            <div class="rx-gnode" style="left:300px;top:128px">角色定妆<small>y=128 · 中线对齐</small></div>
+            <div class="rx-vguide" style="left:52px"></div>
+            <div class="rx-hguide" style="top:148px"></div>
+            <div class="rx-snaptip">● 已吸附：左对齐 + 垂直等距 16px</div>
+          </div>
+          <div class="rx-guide-note">Design 原有能力。对八步画布的价值：节点随项目增多（<b>一集 30+ 节点</b>），无吸附时手动排版成本高；参考线让 DAG 保持可读。</div>
+        </div>
+      </div>
+
+      <!-- ④ 音频/音乐节点 -->
+      <div class="rx-card wide" style="animation-delay:.18s">
+        <div class="rx-card-h">
+          <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+          <div><div class="ct">④ 音频节点 · 配音 / 配乐 / 音效多轨道</div><div class="cd">Step 6 后期混音的画布形态：波形 + 走带 + 总线电平</div></div>
+          <span class="rx-badge d">改编</span>
+          <span class="rx-src">参考：Design 音频概念 · CanvasTimeline / Remotion</span>
+        </div>
+        <div class="rx-card-b">
+          <div class="rx-audio">
+            <div class="rx-audio-h"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>混音 · 第一集 E01<span class="v">Music3 · v2</span></div>
+            <div class="rx-transport">
+              <span class="rx-tplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+              <div class="rx-scrub"><i></i></div>
+              <span class="rx-time">00:34.8 / 01:32.0</span>
+            </div>
+            <div class="rx-tracks">
+              <div class="rx-track">
+                <span class="tl">配音 · 安妮<small>语音通道 · 待 定</small></span>
+                <span class="tvis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></span>
+                <span class="rx-wave" data-wave="#6C5CE7" data-hot="12,13,38,39"></span>
+              </div>
+              <div class="rx-track">
+                <span class="tl">配音 · 林屿<small>语音通道 · 待 定</small></span>
+                <span class="tvis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></span>
+                <span class="rx-wave" data-wave="#5B8DEF" data-hot="20,21,52"></span>
+              </div>
+              <div class="rx-track">
+                <span class="tl">配乐 · 主题<small>Music3 · 局域网推理</small></span>
+                <span class="tvis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+                <span class="rx-wave" data-wave="#2BB673" data-hot=""></span>
+              </div>
+              <div class="rx-track">
+                <span class="tl">音效 · 环境<small>蝉鸣 / 海浪 · ComfyUI</small></span>
+                <span class="tvis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg></span>
+                <span class="rx-wave" data-wave="#E8A93C" data-hot="60"></span>
+              </div>
+            </div>
+            <div class="rx-master"><span class="ln">总线输出</span><div class="mbar"></div><span style="font-size:9px;color:#8A90A6;font-family:Menlo,monospace">-6.2 dB</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ⑤ DAG 任务地图卡片 -->
+      <div class="rx-card wide" style="animation-delay:.23s">
+        <div class="rx-card-h">
+          <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7.5v3a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-3M12 12.5v3"/></svg></span>
+          <div><div class="ct">⑤ 对话区 DAG 任务地图卡片</div><div class="cd">Agent 的执行计划以节点卡呈现，失败节点直接点名 + 一键重试</div></div>
+          <span class="rx-badge d">改编</span>
+          <span class="rx-src">参考：Design 任务地图 · LangGraph NodeCard</span>
+        </div>
+        <div class="rx-card-b">
+          <div class="rx-dagmsg">
+            <div class="ma">主</div>
+            <div class="rx-dagbubble">本批 18 镜任务地图：2 个节点失败，已暂停下游，可点名重试或查看日志。
+              <div class="rx-dag">
+                <div class="rx-dag-flow">
+                  <div class="rx-dn ok"><span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div class="dl">分镜解析</div><div class="ds">18/18</div></div>
+                  <div class="rx-darrow"></div>
+                  <div class="rx-dn ok"><span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div class="dl">配方挂载</div><div class="ds">完成</div></div>
+                  <div class="rx-darrow"></div>
+                  <div class="rx-dn fail"><span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 8v5M12 16.5v.01"/><circle cx="12" cy="12" r="9"/></svg></span><div class="dl">V006 渲染</div><div class="ds">失败</div></div>
+                  <div class="rx-darrow"></div>
+                  <div class="rx-dn run"><span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg></span><div class="dl">V007 渲染</div><div class="ds">进行中</div></div>
+                  <div class="rx-darrow"></div>
+                  <div class="rx-dn wait"><span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16v.01"/></svg></span><div class="dl">入轨合流</div><div class="ds">等待</div></div>
+                </div>
+                <div class="rx-failbox">
+                  <div class="ft">● 2 个节点失败，已自动挂起下游</div>
+                  <ul>
+                    <li><b>V006 渲染</b> ComfyUI 实例 :8001 显存不足<span class="err">CUDA OOM</span></li>
+                    <li><b>V011 渲染</b> 工作流节点未返回，超时 120s<span class="err">TIMEOUT</span></li>
+                  </ul>
+                  <div class="rx-failact">
+                    <button class="retry">重试失败节点（改派 :8002）</button>
+                    <button class="log">查看执行日志</button>
+                  </div>
+                </div>
+                <details class="rx-dag-detail">
+                  <summary>▸ 展开执行轨迹（工具调用 / 耗时 / 引擎分配）</summary>
+                  <div class="det">
+                    14:02:11  batch.run B5 · 18 tasks → 3 instances<br>
+                    14:02:12  V006 → :8001 · wf_video_h3.json<br>
+                    14:03:40  V006 ✗ CUDA OOM after 88s<br>
+                    14:03:41  gate.auto-suspend downstream: [V012–V018]
+                  </div>
+                </details>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ⑥ / Skill 与 @ 资产引用 -->
+      <div class="rx-card wide" style="animation-delay:.28s">
+        <div class="rx-card-h">
+          <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m12 3 2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5z"/></svg></span>
+          <div><div class="ct">⑥ 输入栏交互态 · / 唤起 Skill、@ 引用资产</div><div class="cd">单字符触发结构化菜单，已选项以胶囊内联在输入框</div></div>
+          <span class="rx-badge d">改编</span>
+          <span class="rx-src">参考：MiniMax Design 输入栏</span>
+        </div>
+        <div class="rx-card-b">
+          <div class="rx-comp-demo">
+            <div class="rx-comp">
+              <div class="rx-comp-h"><span class="k">/</span> Skill 菜单</div>
+              <div class="rx-comp-b">
+                <div class="rx-fakeinput">重拍 V006，用<span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>强情绪三连镜</span><span class="caret"></span></div>
+                <div class="rx-menu">
+                  <div class="rx-menu-h"><span>SKILL（匹配 3）</span><span>↑↓ 选择 · ↵ 确认</span></div>
+                  <div class="rx-menu-i"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span><div><div class="mt">日漫定妆流</div><div class="md">概念 → 定妆一致性</div></div><span class="shortcut">/rm</span></div>
+                  <div class="rx-menu-i hl"><span class="mi" style="background:#FFF0E6;color:#E8744F"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></span><div><div class="mt">强情绪三连镜</div><div class="md">特写递进 · 情绪爆发</div></div><span class="shortcut">/qx</span></div>
+                  <div class="rx-menu-i"><span class="mi" style="background:#E6F7F0;color:#1E9E66"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg></span><div><div class="mt">校园恋爱开场</div><div class="md">前三秒钩子模板</div></div><span class="shortcut">/kc</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="rx-comp">
+              <div class="rx-comp-h"><span class="k">@</span> 资产引用</div>
+              <div class="rx-comp-b">
+                <div class="rx-fakeinput">同机位补一镜，主体<span class="tk at"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>安妮 · v4</span>，场景<span class="tk at"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m3 20 7-12 5 7 3-4 3 9z"/></svg>宿舍外景</span><span class="caret"></span></div>
+                <div class="rx-menu">
+                  <div class="rx-menu-h"><span>资产（匹配 4）· 绑定配方与版本</span><span>↵ 插入</span></div>
+                  <div class="rx-menu-i hl"><span class="mi" style="background:#E7F8F0;color:#1E9E66"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span><div><div class="mt">安妮 · 女主</div><div class="md">seed 88213 · 配方锁定 · v4</div></div><span class="shortcut">@anni</span></div>
+                  <div class="rx-menu-i"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span><div><div class="mt">林屿 · 男主</div><div class="md">seed 77104 · v3</div></div><span class="shortcut">@linyu</span></div>
+                  <div class="rx-menu-i"><span class="mi" style="background:#FFF4DE;color:#C0841D"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 20 7-12 5 7 3-4 3 9z"/></svg></span><div><div class="mt">宿舍外景 · 日</div><div class="md">场景概念 · v2</div></div><span class="shortcut">@dorm</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Left rail switching ──
+const titles={projects:'项目库',skills:'Skill 广场',assets:'资产中心',plugins:'专业插件'};
+document.querySelectorAll('.rail button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.rail button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const tab=b.dataset.tab;
+    document.querySelectorAll('.lp-panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('pan-'+tab).classList.add('active');
+    document.getElementById('lpTitle').textContent=titles[tab];
+  });
+});
+
+// ── Canvas node select ──
+let zoom=1;
+function bindSelect(el){
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.node,.shot-card').forEach(n=>n.classList.remove('selected'));
+    el.classList.add('selected');
+  });
+}
+document.querySelectorAll('.node').forEach(bindSelect);
+document.querySelectorAll('.shot-card').forEach(bindSelect);
+
+// ── Zoom ──
+const world=document.getElementById('world');
+function applyZoom(){
+  world.style.transform='scale('+zoom+')';
+  document.getElementById('zoomPct').textContent=Math.round(zoom*100)+'%';
+  const v=document.getElementById('mmView');
+  v.style.width=Math.min(100,55/zoom)+'%';
+}
+document.getElementById('zoomIn').onclick=()=>{zoom=Math.min(1.4,zoom+.1);applyZoom();};
+document.getElementById('zoomOut').onclick=()=>{zoom=Math.max(.5,zoom-.1);applyZoom();};
+
+// ── Fit to view on load ──
+function fitToView(){
+  const c=document.getElementById('center');
+  const sx=c.clientWidth/1140, sy=(c.clientHeight-20)/420;
+  zoom=Math.min(sx,sy);
+  applyZoom();
+}
+fitToView();
+window.addEventListener('resize',fitToView);
+
+// ── Plugins switches ──
+document.querySelectorAll('.switch').forEach(s=>s.addEventListener('click',()=>s.classList.toggle('on')));
+
+// ── Asset pick ──
+document.querySelectorAll('.asset-cell').forEach(c=>c.addEventListener('click',()=>c.classList.toggle('picked')));
+
+// ── Confirm gate ──
+document.getElementById('vetoBtn').addEventListener('click',()=>{
+  document.getElementById('gateNote').classList.toggle('show');
+});
+document.getElementById('confirmBtn').addEventListener('click',()=>{
+  const gate=document.getElementById('gate');
+  gate.classList.add('done');
+  // downstream effects
+  setTimeout(()=>{
+    document.getElementById('shotSpinner').outerHTML='<span class="check-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></span>';
+    const el=document.querySelector('#shotCard2 .shot-top .right');el.lastChild.textContent=' 完成';
+    document.getElementById('shot2bar').style.width='100%';
+    document.getElementById('queueBar').style.width='100%';
+    document.getElementById('queueText').textContent='● 18/18';
+    document.getElementById('sbBar').style.width='100%';
+    document.getElementById('sbText').textContent='18 / 18';
+    const cb=document.getElementById('chatBody');cb.scrollTop=cb.scrollHeight;
+  },450);
+});
+
+// ══════════ 「可借鉴」补充展示层交互 ══════════
+// 开关（不动原原型任何状态）
+document.getElementById('rxFab').addEventListener('click',()=>document.body.classList.add('rx-on'));
+document.getElementById('rxBack').addEventListener('click',()=>document.body.classList.remove('rx-on'));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.body.classList.remove('rx-on');});
+
+// 动态生成音频波形（确定性伪随机，保证每次打开形态一致）
+document.querySelectorAll('.rx-wave').forEach(w=>{
+  const color=w.dataset.wave||'#6C5CE7';
+  const hot=new Set((w.dataset.hot||'').split(',').filter(Boolean).map(Number));
+  const N=96;let html='';
+  for(let i=0;i<N;i++){
+    const t=i/N;
+    // 包络：中段稍强，两端略弱
+    const env=.55+.45*Math.sin(t*Math.PI);
+    const r1=Math.abs(Math.sin(i*12.9898)*43758.5453%1);
+    const r2=Math.abs(Math.sin(i*78.233)*12543.123%1);
+    const h=Math.max(8,(r1*.55+r2*.45)*env*100);
+    const c=hot.has(i)?'#E05A52':color;
+    html+='<i style="height:'+h.toFixed(1)+'%;background:'+c+'"></i>';
+  }
+  w.innerHTML=html;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>短剧 Agent 平台 · 进度看板与路线图</title>
+<!--
+  B 类可视化文档（AI-SDG v1.4 三层文档模型）
+  ⚠ 本文件仅为可视化呈现，不是事实源；进度与规划以 A 类 .md 文档为准。
+  事实来源见页底「事实来源索引」。无构建、无外部依赖（Google Fonts 除外），仅含展示脚本。
+  数据快照日期：2026-10-09（当日复核 test:run / typecheck，与 2026-10-08 首测结果一致）。
+  D-005：旧 22 个 feature 包已整体作废归档，本看板内 F-001~F-010 均为旧包历史，新包从 feature-001 重建。
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0D14; --panel:#12151F; --panel2:#171C2B; --line:#252B3D;
+  --ink:#E9EBF3; --muted:#8B93A9; --faint:#5B6378;
+  --amber:#F2B544; --violet:#8B7CF6; --green:#46C98C; --red:#F0625D; --cyan:#58C7D8;
+  --serif:"Noto Serif SC",Georgia,"Songti SC",serif;
+  --mono:"JetBrains Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.75;
+  background-image:radial-gradient(rgba(139,124,246,.05) 1px,transparent 1px);background-size:26px 26px;}
+::selection{background:rgba(242,181,68,.3)}
+
+.shell{display:flex;max-width:1240px;margin:0 auto;gap:36px;padding:0 28px}
+nav.rail{position:sticky;top:0;align-self:flex-start;width:150px;height:100vh;flex:none;
+  display:flex;flex-direction:column;justify-content:center;gap:4px;padding:24px 0;z-index:30}
+nav.rail a{color:var(--muted);text-decoration:none;font-size:13px;padding:7px 12px;border-left:2px solid var(--line);
+  transition:.25s;letter-spacing:.5px}
+nav.rail a .n{font-family:var(--mono);font-size:10px;color:#565e75;margin-right:8px}
+nav.rail a:hover{color:var(--ink)}
+nav.rail a.on{color:var(--amber);border-left-color:var(--amber);background:linear-gradient(90deg,rgba(242,181,68,.08),transparent)}
+main{flex:1;min-width:0;padding-bottom:120px}
+
+header.hero{padding:96px 0 40px}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:4px;color:var(--amber);margin-bottom:18px}
+.kicker::before{content:"●";margin-right:10px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+h1{font-family:var(--serif);font-weight:900;font-size:clamp(32px,5vw,50px);line-height:1.25;letter-spacing:1px}
+h1 em{font-style:normal;color:var(--amber)}
+.lede{margin-top:20px;color:var(--muted);font-size:16px;max-width:680px}
+.lede b{color:var(--ink);font-weight:600}
+.verline{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:11px;padding:4px 12px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
+.chip b{color:var(--violet)}
+.snapshot{margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--faint)}
+
+.truth-banner{margin-top:30px;border:1px solid rgba(242,181,68,.35);background:rgba(242,181,68,.06);
+  border-radius:12px;padding:14px 18px;font-size:13px;color:#D8D2BE;display:flex;gap:12px;align-items:flex-start}
+.truth-banner .tb-ic{color:var(--amber);font-family:var(--mono);font-size:12px;flex:none}
+.truth-banner b{color:var(--amber)}
+.truth-banner a{color:var(--cyan);text-decoration:none;border-bottom:1px dotted var(--cyan)}
+
+section{padding:70px 0 8px;scroll-margin-top:30px}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}
+.sec-no{font-family:var(--mono);font-size:13px;color:var(--amber)}
+h2{font-family:var(--serif);font-size:28px;font-weight:900;letter-spacing:1px}
+.sec-sub{color:var(--muted);font-size:14px;margin-bottom:32px;max-width:700px}
+h3{font-size:15px;font-weight:700;margin:40px 0 14px;display:flex;align-items:center;gap:9px}
+h3::before{content:"";width:8px;height:8px;background:var(--amber);transform:rotate(45deg);flex:none}
+p{margin:10px 0;color:#C7CCDA}
+p.mut{color:var(--muted)}
+b,strong{color:var(--ink);font-weight:600}
+code{font-family:var(--mono);font-size:12px;background:#1d2233;border:1px solid var(--line);
+  padding:1px 6px;border-radius:5px;color:var(--amber)}
+
+.rv{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
+.rv.in{opacity:1;transform:none}
+
+/* stat strip */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:34px}
+.stat{background:linear-gradient(180deg,var(--panel),var(--panel2));padding:22px 20px}
+.stat .num{font-family:var(--mono);font-size:30px;font-weight:700;line-height:1.1}
+.stat .num small{font-size:14px;color:var(--muted)}
+.stat .lbl{font-size:12px;color:var(--muted);margin-top:6px}
+.stat:nth-child(1) .num{color:var(--green)} .stat:nth-child(2) .num{color:var(--red)}
+.stat:nth-child(3) .num{color:var(--amber)} .stat:nth-child(4) .num{color:var(--violet)}
+
+/* feature kanban */
+.kanban{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.fcard{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px 18px;
+  display:flex;flex-direction:column;gap:8px;transition:border-color .25s,transform .25s}
+.fcard:hover{border-color:#39405a;transform:translateY(-2px)}
+.fcard .ftop{display:flex;align-items:center;gap:10px}
+.fcard .fid{font-family:var(--mono);font-size:11px;color:var(--faint);flex:none}
+.fcard h4{font-size:14px;flex:1}
+.fcard .fdesc{font-size:12px;color:var(--muted);margin:0;line-height:1.6}
+.fcard .fmeta{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:2px}
+
+.status{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:6px;letter-spacing:.5px;white-space:nowrap}
+.st-done{background:rgba(70,201,140,.13);color:var(--green);border:1px solid rgba(70,201,140,.32)}
+.st-part{background:rgba(242,181,68,.13);color:var(--amber);border:1px solid rgba(242,181,68,.32)}
+.st-warn{background:rgba(240,98,93,.12);color:var(--red);border:1px solid rgba(240,98,93,.32)}
+.st-arch{background:rgba(240,98,93,.12);color:var(--red);border:1px solid rgba(240,98,93,.32)}
+.fcard.done{border-left:3px solid rgba(70,201,140,.5)}
+.fcard.part{border-left:3px solid rgba(242,181,68,.55)}
+.fcard.arch{border-left:3px solid rgba(240,98,93,.5);opacity:.62}
+.fcard.arch .pb-green,.fcard.arch .pb-amber{background:rgba(240,98,93,.55)}
+
+/* progress bar */
+.pbar{height:6px;background:var(--panel2);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+.pbar > i{display:block;height:100%;border-radius:99px}
+.pb-green{background:linear-gradient(90deg,#2fa66f,var(--green))}
+.pb-amber{background:linear-gradient(90deg,#c98f2c,var(--amber))}
+
+/* 8 steps */
+.steps{display:grid;grid-template-columns:repeat(8,1fr);gap:0;position:relative;margin-top:10px}
+.step{text-align:center;position:relative;padding:0 4px}
+.step .dot{width:42px;height:42px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;
+  font-family:var(--mono);font-weight:700;font-size:15px;border:2px solid;position:relative;z-index:2;background:var(--bg)}
+.step .sn{font-size:12px;font-weight:700}
+.step .sd{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4}
+.step.done .dot{border-color:var(--green);color:var(--green);background:rgba(70,201,140,.1)}
+.step.legacy .dot{border-color:rgba(240,98,93,.55);color:var(--red);background:rgba(240,98,93,.08)}
+.step.todo .dot{border-color:var(--line);color:#555d74}
+.step.next .dot{border-color:var(--amber);color:var(--amber);background:rgba(242,181,68,.1);animation:glow 2s infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(242,181,68,.35)}50%{box-shadow:0 0 0 9px rgba(242,181,68,0)}}
+.steps::before{content:"";position:absolute;top:21px;left:calc(100%/16);right:calc(100%/16);height:2px;background:var(--line);z-index:1}
+.step .bar{position:absolute;top:21px;left:50%;width:50%;height:2px;z-index:1}
+.step.done .bar{background:var(--green)}
+.step.legacy .bar{background:rgba(240,98,93,.4)}
+
+/* alerts */
+.alerts{display:grid;gap:11px}
+.alert{border:1px solid var(--line);border-radius:12px;padding:14px 17px;background:var(--panel);
+  display:grid;grid-template-columns:86px 1fr;gap:14px;align-items:start}
+.alert .alvl{font-family:var(--mono);font-size:10px;padding:4px 0;border-radius:6px;text-align:center;letter-spacing:.5px}
+.al-err{background:rgba(240,98,93,.13);color:var(--red);border:1px solid rgba(240,98,93,.3)}
+.al-warn{background:rgba(242,181,68,.12);color:var(--amber);border:1px solid rgba(242,181,68,.3)}
+.al-ok{background:rgba(70,201,140,.12);color:var(--green);border:1px solid rgba(70,201,140,.3)}
+.alert h4{font-size:13.5px;margin-bottom:3px}
+.alert p{font-size:12px;color:var(--muted);margin:0}
+.alert code{font-size:10.5px}
+
+/* roadmap */
+.phases{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.phase{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel);display:flex;flex-direction:column}
+.phase .ph-head{padding:15px 18px;border-bottom:1px solid var(--line)}
+.phase .ph-name{font-family:var(--mono);font-size:10px;letter-spacing:2px;margin-bottom:3px}
+.phase h4{font-size:15.5px;font-family:var(--serif)}
+.phase .ph-state{font-family:var(--mono);font-size:10px;margin-top:5px;display:inline-block;padding:2px 8px;border-radius:5px}
+.phase ul{list-style:none;padding:14px 18px;flex:1}
+.phase li{font-size:12px;color:var(--muted);padding:6px 0 6px 18px;position:relative;line-height:1.6}
+.phase li::before{content:"";position:absolute;left:0;top:13px;width:7px;height:7px;border-radius:2px;background:var(--line);transform:rotate(45deg)}
+.phase li.done{color:#C7CCDA}
+.phase li.done::before{background:var(--green)}
+.phase li.doing::before{background:var(--amber);animation:pulse 1.6s infinite}
+.phase.p1{border-color:rgba(242,181,68,.4)}
+.phase.p1 .ph-head{background:linear-gradient(180deg,rgba(242,181,68,.09),transparent)}
+.phase.p1 .ph-name{color:var(--amber)}
+.phase.p1 .ph-state{background:rgba(242,181,68,.14);color:var(--amber)}
+.phase.p2 .ph-name{color:var(--violet)}
+.phase.p2 .ph-state{background:rgba(139,124,246,.14);color:var(--violet)}
+.phase.p3 .ph-name{color:var(--cyan)}
+.phase.p3 .ph-state{background:rgba(88,199,216,.13);color:var(--cyan)}
+
+/* source index */
+details.source-index{margin-top:70px;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
+details.source-index summary{cursor:pointer;padding:16px 20px;font-size:13.5px;font-weight:700;list-style:none;
+  display:flex;align-items:center;gap:10px}
+details.source-index summary::-webkit-details-marker{display:none}
+details.source-index summary::before{content:"▸";color:var(--amber);font-family:var(--mono);transition:.2s}
+details.source-index[open] summary::before{transform:rotate(90deg)}
+.si-body{padding:4px 20px 20px;border-top:1px solid var(--line)}
+.si-body > p{font-size:12.5px;color:var(--muted);margin:14px 0 10px}
+.src-grid{display:grid;gap:8px}
+.src-row{display:grid;grid-template-columns:70px 1fr;gap:12px;border:1px solid var(--line);border-radius:9px;
+  padding:11px 14px;background:var(--panel2)}
+.src-row .si-base{font-family:var(--mono);font-size:10px;color:var(--green);padding-top:2px}
+.src-row .si-ti{font-size:13px;font-weight:700}
+.src-row .si-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.src-row code{font-size:10.5px}
+.foot-note{text-align:center;color:var(--faint);font-size:11px;margin-top:40px;font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<nav class="rail">
+  <a href="#top"><span class="n">00</span>总览</a>
+  <a href="#features"><span class="n">01</span>Feature 看板</a>
+  <a href="#steps"><span class="n">02</span>八步闭环</a>
+  <a href="#quality"><span class="n">03</span>质量实况</a>
+  <a href="#roadmap"><span class="n">04</span>三期路线</a>
+</nav>
+
+<main>
+<header class="hero" id="top">
+  <div class="kicker">PROGRESS · ROADMAP</div>
+  <h1>进度<em>看板</em>与路线图</h1>
+  <p class="lede">面向不读规格的人：<b>旧 10 个 Feature 已随 D-005 作废归档、八步闭环覆盖、测试质量与三期路线</b>，一眼看全局。现存代码整体基于旧模型，新包从 feature-001 反向补录重建。</p>
+  <div class="verline">
+    <span class="chip">旧包 <b>22 个已作废归档（D-005）</b></span>
+    <span class="chip">新包 <b>0 个（从 feature-001 重建）</b></span>
+    <span class="chip">当前焦点 <b>立项 → 故事 → 剧本分场反向补录</b></span>
+    <span class="chip">画像 <b>P2</b></span>
+  </div>
+  <div class="snapshot">数据快照：2026-10-09 复核 · npm run test:run（197 通过 / 1 跳过）/ typecheck（0 错误），与 10-08 首测一致；F-001~F-010 为旧包历史</div>
+  <div class="truth-banner">
+    <span class="tb-ic">⚠ FACT</span>
+    <span>本页是 <b>B 类可视化文档</b>，仅用于汇报与快速理解，<b>不是事实源</b>。进度以各任务清单与 A 类文档为准；如冲突以 A 类为准并修正本页。事实来源见 <a href="#sources">页底索引</a>。</span>
+  </div>
+
+  <div class="stats rv">
+    <div class="stat"><div class="num"><span data-to="22">0</span><small> 个旧包</small></div><div class="lbl">已整体作废归档（D-005）；新包 0 个，从 feature-001 重建</div></div>
+    <div class="stat"><div class="num"><span data-to="197">0</span><small> 通过</small></div><div class="lbl">单测通过（24 文件 · 1 跳过 · 0 失败）</div></div>
+    <div class="stat"><div class="num"><span data-to="0">0</span><small> /8 步</small></div><div class="lbl">新设计已落地步数；旧代码仅覆盖前 3 步形态，待反补认定</div></div>
+    <div class="stat"><div class="num"><span data-to="0">0</span><small> 个</small></div><div class="lbl">typecheck 待清错误</div></div>
+  </div>
+</header>
+
+<!-- ══════ 01 Feature 看板 ══════ -->
+<section id="features">
+  <div class="sec-head rv"><span class="sec-no">01</span><h2>Feature 看板</h2></div>
+  <p class="sec-sub rv">下列 F-001~F-010（及 F-011~F-022）均为<b>已作废的旧任务包</b>，2026-10-08 整体归档（D-005）；卡片只保留历史事实，现存代码即这些旧包的产物，待反向补录认定。</p>
+
+  <div class="kanban">
+    <div class="fcard arch rv">
+      <div class="ftop"><span class="fid">旧 F-001</span><h4>立项</h4><span class="status st-arch">已作废归档</span></div>
+      <p class="fdesc">旧立项门模型（4 节点 + 4 门 + 多 tab 立项单），已被设计 §2.6「2 节点 + 1 定案门」取代。</p>
+      <div class="fmeta"><span>docs/archive/features-pre-rebuild/</span><span>旧模型·待反补</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard arch rv">
+      <div class="ftop"><span class="fid">旧 F-002</span><h4>对话消息动态化</h4><span class="status st-arch">已作废归档 v1.1</span></div>
+      <p class="fdesc">演示态 → 真实对话消息；背景档案落盘、消息持久化、可回放。</p>
+      <div class="fmeta"><span>docs/archive/</span><span>v1.1</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard arch rv">
+      <div class="ftop"><span class="fid">旧 F-003</span><h4>编剧 Agent</h4><span class="status st-arch">已作废归档 v1.1</span></div>
+      <p class="fdesc">故事大纲 + 人物小传；STAGE 1 编剧链路（63 测试）。</p>
+      <div class="fmeta"><span>63 测试</span><span>v1.1</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard arch rv">
+      <div class="ftop"><span class="fid">旧 F-004</span><h4>剧本分镜</h4><span class="status st-arch">已作废归档 v1.2</span></div>
+      <p class="fdesc">分场 → 台词 → 分镜表；STAGE 2 画布与产物（99 测试）。</p>
+      <div class="fmeta"><span>99 测试</span><span>v1.2</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard arch rv">
+      <div class="ftop"><span class="fid">旧 F-005</span><h4>产物变更传播（解锁重做）</h4><span class="status st-arch">已作废归档</span></div>
+      <p class="fdesc">上游产物变更向下游传播失效态 / 解锁重做（旧包 D-016~023）。</p>
+      <div class="fmeta"><span>旧包 D-016~023</span><span>变更传播</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard arch rv">
+      <div class="ftop"><span class="fid">旧 F-006</span><h4>通用产物查看</h4><span class="status st-arch">已作废归档</span></div>
+      <p class="fdesc">各类产物的统一查看器；旧包时 AC 基本全过，仅余 2 项真机验收未勾选（状态随包冻结）。</p>
+      <div class="fmeta"><span>AC 状态冻结</span><span>历史记录</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:92%"></i></div>
+    </div>
+
+    <div class="fcard arch rv">
+      <div class="ftop"><span class="fid">旧 F-007</span><h4>数据治理</h4><span class="status st-arch">已作废归档</span></div>
+      <p class="fdesc">manifest 字段漂移 / 双份存储等历史数据债务治理；旧包 T1–T9 完成。</p>
+      <div class="fmeta"><span>旧包 T1–T9</span><span>数据治理</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard arch rv">
+      <div class="ftop"><span class="fid">旧 F-008</span><h4>Agent 运行时集成（opencode 基座）</h4><span class="status st-arch">已作废归档</span></div>
+      <p class="fdesc">opencode 生命周期、client、SSE 投影、12+2 IPC；旧通道零回归。</p>
+      <div class="fmeta"><span>旧包 AC-1~11</span><span>运行时基座</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard arch rv">
+      <div class="ftop"><span class="fid">旧 F-009</span><h4>运行时界面接入（调试面板）</h4><span class="status st-arch">已作废归档</span></div>
+      <p class="fdesc">420px 右侧抽屉、状态条、会话列表、事件日志；旧基线 357/1（该数字已随代码演进失真）。</p>
+      <div class="fmeta"><span>旧基线 357/1</span><span>调试面板</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard arch rv">
+      <div class="ftop"><span class="fid">旧 F-010</span><h4>对话通道全量接入</h4><span class="status st-arch">已作废归档</span></div>
+      <p class="fdesc">ChatComposer ⇄ opencode runtime 流式单轨：正文/推理分轨、可停止；旧 8 个对话 IPC 已快照后删除。通道收口为旧包级决策，反补时按 v1.9 重新认定。</p>
+      <div class="fmeta"><span>旧包 T1–T10</span><span>D-006~D-012（旧包级）</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ 02 八步闭环 ══════ -->
+<section id="steps">
+  <div class="sec-head rv"><span class="sec-no">02</span><h2>八步生产闭环覆盖</h2></div>
+  <p class="sec-sub rv">红色 0/1/2 = 旧代码曾覆盖的形态（旧立项门模型与设计 §2.6 不符），<b>属旧代码现状、不计为新设计落地，待反向补录重建</b>；重建顺序为立项 → 故事 → 剧本分场，随后第 3 步「资产」接入 ComfyUI 统一媒体引擎。</p>
+
+  <div class="steps rv">
+    <div class="step legacy"><div class="dot">0</div><div class="sn">立项</div><div class="sd">诊断（含六要素草案）/ 故事前提 / 定案卡</div><div class="bar"></div></div>
+    <div class="step legacy"><div class="dot">1</div><div class="sn">故事</div><div class="sd">大纲 / 小传</div><div class="bar"></div></div>
+    <div class="step legacy"><div class="dot">2</div><div class="sn">剧本分场</div><div class="sd">分场 / 台词 / 分镜文本</div><div class="bar"></div></div>
+    <div class="step todo"><div class="dot">3</div><div class="sn">资产</div><div class="sd">定妆 / 场景图（待建）</div><div class="bar"></div></div>
+    <div class="step todo"><div class="dot">4</div><div class="sn">分镜</div><div class="sd">可视化分镜</div><div class="bar"></div></div>
+    <div class="step todo"><div class="dot">5</div><div class="sn">镜头</div><div class="sd">图生视频</div><div class="bar"></div></div>
+    <div class="step todo"><div class="dot">6</div><div class="sn">后期</div><div class="sd">剪辑 / 配乐 / 配音</div><div class="bar"></div></div>
+    <div class="step todo"><div class="dot">7</div><div class="sn">发布</div><div class="sd">成片 / 分发</div><div class="bar"></div></div>
+  </div>
+  <p class="mut rv" style="margin-top:18px">现存分镜仅为<b>文本结构</b>（旧 F-004 产物），不含视觉画面；3–7 步尚未开始，全部媒体经局域网 ComfyUI（qwen-image / H3 / Music3）。新设计当前落地进度为 <b>0/8 步</b>。</p>
+</section>
+
+<!-- ══════ 03 质量实况 ══════ -->
+<section id="quality">
+  <div class="sec-head rv"><span class="sec-no">03</span><h2>质量实况（当日实测）</h2></div>
+  <p class="sec-sub rv">以下为 2026-10-09 当日复核的命令行真实结果，不做美化。注意：测试全绿只代表现存代码自洽，<b>不代表其符合设计 v1.9</b>——代码整体基于旧模型，待反向补录重建。</p>
+
+  <div class="alerts rv">
+    <div class="alert">
+      <span class="alvl al-ok">单测</span>
+      <div>
+        <h4>test:run：197 通过 · 1 跳过 · 0 失败</h4>
+        <p>24 个测试文件全绿；唯一跳过项为既有占位用例。2026-10-09 复核结果与首测一致；旧文档中的 390 / 357 等失真数字早已更正。</p>
+      </div>
+    </div>
+    <div class="alert">
+      <span class="alvl al-ok">类型</span>
+      <div>
+        <h4>typecheck：0 个错误</h4>
+        <p><code>tsc --noEmit</code> 干净（2026-10-09 复核）。</p>
+      </div>
+    </div>
+    <div class="alert">
+      <span class="alvl al-warn">文档-代码</span>
+      <div>
+        <h4>现存代码与设计 v1.9 存在偏差（D-005）</h4>
+        <p>磁盘实况（2026-10-09 核对）：代码已是 feature-019/020/022 新壳——src/studio 三栏工作台 + canvas.json 数据驱动画布 + 11 个纯 MCP 工具 + 25 个 IPC；旧的立项门多 tab、style-catalog、9 节点画布等文件已不存在。但该形态仍属 D-005 前代码：业务口径基于旧立项模型，且 Agent 定义放行名（shortdrama_*）与实际工具名不符，仍须从 feature-001 按反向补录六步法对照 v1.9 重新认定。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ 04 三期路线 ══════ -->
+<section id="roadmap">
+  <div class="sec-head rv"><span class="sec-no">04</span><h2>三期路线图</h2></div>
+  <p class="sec-sub rv">实施计划为本平台规划，与 MiniMax Design 发布节奏无关（设计 §11）。一期目标是单集闭环。</p>
+
+  <div class="phases rv">
+    <div class="phase p1">
+      <div class="ph-head">
+        <div class="ph-name">PHASE Ⅰ</div>
+        <h4>一期 MVP · 单集闭环</h4>
+        <span class="ph-state">重新启动（旧 10 Feature 已作废归档；先反向补录前 3 步）</span>
+      </div>
+      <ul>
+        <li class="done">应用骨架 + MCP 网关 + Agent 运行时（磁盘实况，待反补认定）</li>
+        <li class="done">三栏工作台 / 画布节点 / 状态着色（feature-020/022 形态，待按 v1.9 认定）</li>
+        <li class="done">编剧 → 剧本 / 分场 / 分镜文本（旧模型产物，待反补）</li>
+        <li class="done">runtime 对话单轨（旧包级收口，待按 v1.9 重新认定）</li>
+        <li class="doing">feature-001 起：立项 → 故事 → 剧本分场反向补录重建</li>
+        <li>第 3 步「资产」：美术 Agent + 定妆 / 场景图（排在文本侧反补之后）</li>
+        <li>ComfyUI 统一媒体引擎（B0/B5/B8/B9）</li>
+        <li>分镜 → 镜头：逐镜图生视频</li>
+        <li>立项定案门 + 各步确认门全链路 · Harness 校验</li>
+        <li>T2A 人机配音通道</li>
+        <li>剪辑 Agent：粗剪 / 字幕 / 成片</li>
+      </ul>
+    </div>
+
+    <div class="phase p2">
+      <div class="ph-head">
+        <div class="ph-name">PHASE Ⅱ</div>
+        <h4>二期 · 能力增强</h4>
+        <span class="ph-state">未开始</span>
+      </div>
+      <ul>
+        <li>语音 OpenAPI（替换人工节点）</li>
+        <li>声音复刻</li>
+        <li>任务级画布展开</li>
+        <li>资产中心完整选定 / 沉淀</li>
+        <li>更多工作流与插件</li>
+        <li>多项目管理</li>
+      </ul>
+    </div>
+
+    <div class="phase p3">
+      <div class="ph-head">
+        <div class="ph-name">PHASE Ⅲ</div>
+        <h4>三期 · 规模化生态</h4>
+        <span class="ph-state">未开始</span>
+      </div>
+      <ul>
+        <li>Skill 广场与社区</li>
+        <li>模板中心</li>
+        <li>批量跨集 / 跨项目生产</li>
+        <li>多用户与协作</li>
+        <li>渠道一键分发</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ 事实来源索引 ══════ -->
+<details class="source-index rv" id="sources" open>
+  <summary>事实来源索引 · B 类不是事实源</summary>
+  <div class="si-body">
+    <p>本页全部内容渲染自以下 A 类事实源与当日实测。进度判定请以 A 类为准；发现冲突按 L1 修正本页。</p>
+    <div class="src-grid">
+      <div class="src-row">
+        <span class="si-base">A · 规划</span>
+        <div><div class="si-ti">短剧Agent平台设计.md（v1.9）</div><div class="si-sub">§2.6 新立项模型 · §7.1 三阶段血缘 · §8.3 系统级外部数据源 · §11 三期路线</div></div>
+      </div>
+      <div class="src-row">
+        <span class="si-base">A · 归档</span>
+        <div><div class="si-ti">docs/archive/features-pre-rebuild/ + archive/README.md</div><div class="si-sub">旧 22 包（含旧 feature-001~010 任务清单）已作废归档，勾选与 AC 状态随包冻结</div></div>
+      </div>
+      <div class="src-row">
+        <span class="si-base">A · 决策</span>
+        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005）</div><div class="si-sub">立项模型重建 + 旧 22 包作废 + 谱系定位系统级外部数据源</div></div>
+      </div>
+      <div class="src-row">
+        <span class="si-base">A · 新包</span>
+        <div><div class="si-ti">docs/features/（当前为空）</div><div class="si-sub">新包从 feature-001 按反向补录六步法重建</div></div>
+      </div>
+      <div class="src-row">
+        <span class="si-base">实测</span>
+        <div><div class="si-ti">2026-10-09 命令行复核结果</div><div class="si-sub"><code>npm run test:run</code> → 197 通过 / 24 文件 / 1 跳过 / 0 失败；<code>npm run typecheck</code> → 0 错误（均与 2026-10-08 首测一致）</div></div>
+      </div>
+      <div class="src-row">
+        <span class="si-base">代码核对</span>
+        <div><div class="si-ti">磁盘实况（只读核对 · 2026-10-09）</div><div class="si-sub"><code>electron/main.ts</code>（25 IPC）· <code>electron/mcp/tools.ts</code>（11 纯工具）· <code>src/studio/</code>（StudioApp / CanvasBoard / ChatComposer 等）· <code>src/lib/chat-runtime.ts</code> · <code>electron/runtime/ · fs/ · comfy/</code></div></div>
+      </div>
+      <div class="src-row">
+        <span class="si-base">A · 治理</span>
+        <div><div class="si-ti">AGENTS.md（v1.5）+ docs/governance/AI-SDG-AI工具执行指令.md</div><div class="si-sub">§2.1 三层文档模型与画像 P2 配置矩阵；铁律 3 反向同步；L1/L2/L3 裁决</div></div>
+      </div>
+    </div>
+  </div>
+</details>
+
+<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准（设计 v1.9 / 决策台账 D-005）· 快照 2026-10-08 · 2026-10-09 复核修订</div>
+</main>
+</div>
+
+<script>
+/* 仅展示脚本：导航高亮 + 区块渐入 + 数字计数，无业务逻辑 */
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.rail a'));
+  var sections = links.map(function(a){ return document.getElementById(a.getAttribute('href').slice(1)); });
+
+  var rv = document.querySelectorAll('.rv');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold:.12});
+  rv.forEach(function(el){ io.observe(el); });
+
+  /* 数字计数动画 */
+  var counters = document.querySelectorAll('[data-to]');
+  var cio = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(!e.isIntersecting) return;
+      var el = e.target, target = parseInt(el.getAttribute('data-to'),10), t0 = performance.now(), dur = 900;
+      function tick(t){
+        var k = Math.min(1,(t-t0)/dur); k = 1-Math.pow(1-k,3);
+        el.textContent = Math.round(target*k);
+        if(k<1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+      cio.unobserve(el);
+    });
+  }, {threshold:.5});
+  counters.forEach(function(el){ cio.observe(el); });
+
+  function onScroll(){
+    var pos = window.scrollY + window.innerHeight*0.3;
+    var current = sections[0] ? sections[0].id : null;
+    sections.forEach(function(s){ if(s && s.offsetTop <= pos) current = s.id; });
+    links.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href').slice(1) === current); });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+</body>
+</html>

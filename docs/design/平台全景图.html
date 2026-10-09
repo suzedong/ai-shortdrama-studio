@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>短剧 Agent 平台 · 全景图</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0D14; --panel:#12151F; --panel2:#171C2B; --line:#252B3D;
+  --ink:#E9EBF3; --muted:#8B93A9; --faint:#5B6378;
+  --amber:#F2B544; --violet:#8B7CF6; --green:#46C98C; --red:#F0625D; --cyan:#58C7D8;
+  --serif:"Noto Serif SC",Georgia,"Songti SC",serif;
+  --mono:"JetBrains Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.75;
+  background-image:radial-gradient(rgba(139,124,246,.05) 1px,transparent 1px);background-size:26px 26px;}
+::selection{background:rgba(242,181,68,.3)}
+
+/* ── layout ── */
+.shell{display:flex;max-width:1240px;margin:0 auto;gap:36px;padding:0 28px}
+nav.rail{position:sticky;top:0;align-self:flex-start;width:150px;height:100vh;flex:none;
+  display:flex;flex-direction:column;justify-content:center;gap:4px;padding:24px 0;z-index:30}
+nav.rail a{color:var(--muted);text-decoration:none;font-size:13px;padding:7px 12px;border-left:2px solid var(--line);
+  transition:.25s;letter-spacing:.5px}
+nav.rail a .n{font-family:var(--mono);font-size:10px;color:#565e75;margin-right:8px}
+nav.rail a:hover{color:var(--ink)}
+nav.rail a.on{color:var(--amber);border-left-color:var(--amber);background:linear-gradient(90deg,rgba(242,181,68,.08),transparent)}
+main{flex:1;min-width:0;padding-bottom:120px}
+
+/* ── hero ── */
+header.hero{padding:96px 0 56px;position:relative}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:4px;color:var(--amber);margin-bottom:18px}
+.kicker::before{content:"●";margin-right:10px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+h1{font-family:var(--serif);font-weight:900;font-size:clamp(34px,5vw,54px);line-height:1.25;letter-spacing:1px}
+h1 em{font-style:normal;color:var(--amber);position:relative}
+.lede{margin-top:20px;color:var(--muted);font-size:16px;max-width:640px}
+.lede b{color:var(--ink);font-weight:600}
+.verline{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:11px;padding:4px 12px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
+.chip b{color:var(--violet)}
+
+/* stat strip */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:48px}
+.stat{background:linear-gradient(180deg,var(--panel),var(--panel2));padding:22px 20px}
+.stat .num{font-family:var(--mono);font-size:30px;font-weight:700;line-height:1.1}
+.stat .num small{font-size:15px;color:var(--muted)}
+.stat .lbl{font-size:12px;color:var(--muted);margin-top:6px}
+.stat:nth-child(1) .num{color:var(--green)} .stat:nth-child(2) .num{color:var(--violet)}
+.stat:nth-child(3) .num{color:var(--amber)} .stat:nth-child(4) .num{color:var(--cyan)}
+
+/* ── sections ── */
+section{padding:72px 0 8px;scroll-margin-top:30px}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}
+.sec-no{font-family:var(--mono);font-size:13px;color:var(--amber)}
+h2{font-family:var(--serif);font-size:28px;font-weight:900;letter-spacing:1px}
+.sec-sub{color:var(--muted);font-size:14px;margin-bottom:34px;max-width:680px}
+h3{font-size:15px;font-weight:700;margin:38px 0 14px;display:flex;align-items:center;gap:9px}
+h3::before{content:"";width:8px;height:8px;background:var(--amber);transform:rotate(45deg);flex:none}
+p{margin:10px 0;color:#C7CCDA}
+p.mut{color:var(--muted)}
+p.more{margin:14px 0 4px;font-size:13px}
+p.more a{color:var(--green);text-decoration:none;border-bottom:1px dashed rgba(70,201,140,.45)}
+p.more a:hover{border-bottom-color:var(--green)}
+p.more .sep{color:var(--faint);margin:0 8px}
+b,strong{color:var(--ink);font-weight:600}
+code{font-family:var(--mono);font-size:12px;background:#1d2233;border:1px solid var(--line);
+  padding:1px 6px;border-radius:5px;color:var(--amber)}
+
+/* reveal */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
+.rv.in{opacity:1;transform:none}
+
+/* cards */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 20px 18px;
+  transition:border-color .25s,transform .25s}
+.card:hover{border-color:#39405a;transform:translateY(-2px)}
+.card h4{font-size:14.5px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.card p{font-size:13px;color:var(--muted);margin:4px 0 0}
+.ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;flex:none;
+  background:rgba(242,181,68,.12);border:1px solid rgba(242,181,68,.25)}
+
+/* tag pills */
+.src{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px;letter-spacing:.5px;vertical-align:middle}
+.src.d{background:rgba(139,124,246,.15);color:var(--violet);border:1px solid rgba(139,124,246,.3)}
+.src.a{background:rgba(88,199,216,.12);color:var(--cyan);border:1px solid rgba(88,199,216,.3)}
+.src.n{background:rgba(242,181,68,.13);color:var(--amber);border:1px solid rgba(242,181,68,.3)}
+
+/* why gaps */
+.gap{position:relative;overflow:hidden}
+.gap .big{font-family:var(--mono);font-size:11px;color:var(--red);letter-spacing:2px}
+.gap .arrow{position:absolute;right:18px;bottom:10px;font-size:40px;color:rgba(242,181,68,.18);font-family:var(--serif)}
+
+/* architecture diagram */
+.diagram{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 24px;overflow-x:auto}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:18px;font-family:var(--mono)}
+.legend i{display:inline-block;width:22px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+.layer{border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0;position:relative}
+.layer .ltag{position:absolute;top:-10px;left:14px;font-family:var(--mono);font-size:10px;letter-spacing:1.5px;
+  background:var(--panel);padding:0 8px;color:var(--muted)}
+.l-renderer{border-color:rgba(139,124,246,.4);background:rgba(139,124,246,.05)}
+.l-main{border-color:rgba(242,181,68,.35);background:rgba(242,181,68,.04)}
+.l-child{border-color:rgba(70,201,140,.35);background:rgba(70,201,140,.04)}
+.l-ext{border-style:dashed;background:transparent}
+.flowrow{display:flex;gap:10px;flex-wrap:wrap}
+.node{flex:1;min-width:120px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;
+  padding:10px 12px;transition:.25s;cursor:default}
+.node .nt{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.node .nd{font-size:10.5px;color:var(--muted);margin-top:2px;line-height:1.5}
+.node:hover{border-color:var(--amber);box-shadow:0 0 0 3px rgba(242,181,68,.08)}
+.node.future{border-style:dashed;opacity:.75}
+.node.future .nt::after{content:" ·待建";font-family:var(--mono);font-size:9px;color:var(--amber);font-weight:400}
+.node.old{border-color:rgba(240,98,93,.4)}
+.node.old .nt::after{content:" ·将退役";font-family:var(--mono);font-size:9px;color:var(--red);font-weight:400}
+.conn{text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:2px;margin:2px 0}
+.conn svg{vertical-align:middle}
+.flowline{stroke-dasharray:5 5}
+.hint-pill{font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:4px;margin-left:6px}
+.hp-now{background:rgba(70,201,140,.15);color:var(--green)}
+.hp-next{background:rgba(242,181,68,.15);color:var(--amber)}
+.hp-lan{background:rgba(88,199,216,.13);color:var(--cyan)}
+
+/* 8 steps */
+.steps{display:grid;grid-template-columns:repeat(8,1fr);gap:0;position:relative;margin-top:10px}
+.step{text-align:center;position:relative;padding:0 4px}
+.step .dot{width:42px;height:42px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;
+  font-family:var(--mono);font-weight:700;font-size:15px;border:2px solid;position:relative;z-index:2;background:var(--bg)}
+.step .sn{font-size:12px;font-weight:700}
+.step .sd{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4}
+.step.done .dot{border-color:var(--green);color:var(--green);background:rgba(70,201,140,.1)}
+.step.legacy .dot{border-color:rgba(240,98,93,.55);color:var(--red);background:rgba(240,98,93,.08)}
+.step.legacy .bar{background:rgba(240,98,93,.4)}
+.step.todo .dot{border-color:var(--line);color:#555d74}
+.step.next .dot{border-color:var(--amber);color:var(--amber);background:rgba(242,181,68,.1);
+  animation:glow 2s infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(242,181,68,.35)}50%{box-shadow:0 0 0 9px rgba(242,181,68,0)}}
+.steps::before{content:"";position:absolute;top:21px;left:calc(100%/16);right:calc(100%/16);height:2px;background:var(--line);z-index:1}
+.step .bar{position:absolute;top:21px;left:50%;width:50%;height:2px;z-index:1}
+.step.done .bar{background:var(--green)}
+
+/* agent crew */
+.crew{position:relative}
+.crew .director{background:linear-gradient(135deg,rgba(242,181,68,.14),rgba(242,181,68,.04));
+  border:1px solid rgba(242,181,68,.4);border-radius:13px;padding:16px 18px;text-align:center;margin-bottom:14px}
+.crew .director .role{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--amber)}
+.crew .director .rn{font-family:var(--serif);font-size:19px;font-weight:900;margin-top:2px}
+.crew .director .rd{font-size:12px;color:var(--muted)}
+.bus{font-family:var(--mono);font-size:10px;text-align:center;color:var(--muted);letter-spacing:3px;margin:10px 0}
+.bus::before,.bus::after{content:"────";color:var(--line);margin:0 10px}
+
+/* data lineage */
+.dltree{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:18px 20px;
+  font-family:var(--mono);font-size:12px;line-height:2;color:#B9C0D4;overflow-x:auto;white-space:pre}
+.dltree .dir{color:var(--violet)}.dltree .cmt{color:#5a6278}.dltree .key{color:var(--amber)}
+.keyflow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px;font-size:12.5px}
+.keyflow .kbox{font-family:var(--mono);font-size:11px;border:1px solid var(--line);background:var(--panel2);
+  padding:3px 9px;border-radius:6px;color:var(--amber)}
+.keyflow .ar{color:var(--muted)}
+
+/* governance */
+.iron{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.iron .card{text-align:center}
+.iron .no{font-family:var(--serif);font-size:34px;font-weight:900;color:var(--amber);line-height:1}
+.iron h4{justify-content:center;margin-top:8px}
+.k-tabs{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+.k-tabs span{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:6px;
+  padding:3px 9px;color:var(--muted);background:var(--panel2)}
+.k-tabs span b{color:var(--red)}
+
+/* strangler */
+.strangle{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center}
+.scol{border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--panel)}
+.scol h4{font-size:13.5px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.scol ul{list-style:none;font-size:12px}
+.scol li{color:var(--muted);padding:4px 0;border-bottom:1px dashed var(--line);font-family:var(--mono)}
+.scol li:last-child{border:none}
+.scol.old{border-color:rgba(240,98,93,.3)}
+.scol.new{border-color:rgba(70,201,140,.35)}
+.sbadge{font-family:var(--mono);font-size:10px;border-radius:4px;padding:1px 6px;margin-left:auto}
+
+/* timeline */
+.timeline{position:relative;padding-left:28px;margin-top:10px}
+.timeline::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl{position:relative;padding:0 0 22px 18px}
+.tl::before{content:"";position:absolute;left:-25px;top:7px;width:12px;height:12px;border-radius:50%;
+  background:var(--bg);border:2px solid var(--violet)}
+.tl.cur::before{border-color:var(--amber);box-shadow:0 0 0 4px rgba(242,181,68,.15)}
+.tl .date{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.tl .tt{font-size:14px;font-weight:700;margin:2px 0}
+.tl .td{font-size:12.5px;color:var(--muted)}
+
+/* feature cards */
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.fcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;position:relative;overflow:hidden}
+.fcard::after{content:"";position:absolute;top:0;left:0;width:4px;height:100%;background:var(--green)}
+.fcard.wait::after{background:var(--amber)}
+.fcard.arch{opacity:.55}
+.fcard.arch::after{background:var(--red)}
+.fcard .fh{display:flex;align-items:baseline;gap:8px}
+.fcard .fid{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.fcard h4{font-size:14px;margin:2px 0 6px}
+.fcard p{font-size:12px;color:var(--muted);margin:0 0 10px}
+.fmeta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--muted);
+  border-top:1px solid var(--line);padding-top:9px}
+.fstate{font-weight:700;color:var(--green)}
+.fcard.wait .fstate{color:var(--amber)}
+.fcard.arch .fstate{color:var(--red)}
+.fcard.arch .progressbar i{background:var(--red)}
+.progressbar{height:4px;background:var(--panel2);border-radius:2px;overflow:hidden;margin-top:8px}
+.progressbar i{display:block;height:100%;background:var(--green);border-radius:2px}
+.fcard.wait .progressbar i{background:var(--amber)}
+
+/* problems */
+.pcard{display:flex;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.pcard .plvl{font-family:var(--mono);font-size:10px;writing-mode:vertical-rl;letter-spacing:2px;
+  border-radius:5px;padding:8px 4px;flex:none;height:fit-content}
+.lvl-h{background:rgba(240,98,93,.15);color:var(--red);border:1px solid rgba(240,98,93,.35)}
+.lvl-m{background:rgba(242,181,68,.13);color:var(--amber);border:1px solid rgba(242,181,68,.3)}
+.lvl-l{background:rgba(139,124,246,.13);color:var(--violet);border:1px solid rgba(139,124,246,.3)}
+.pcard h4{font-size:14px;margin-bottom:4px}
+.pcard p{font-size:12.5px;color:var(--muted);margin:0 0 8px}
+.fix{font-size:12px;color:var(--green)}
+.fix::before{content:"解法 → ";font-family:var(--mono);font-size:10px}
+
+/* footer */
+footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:11px;color:#565e75;flex-wrap:wrap;gap:8px}
+
+@media(max-width:960px){
+  nav.rail{display:none}
+  .stats,.g3,.g4,.fgrid{grid-template-columns:1fr 1fr}
+  .steps{grid-template-columns:repeat(4,1fr);gap:18px 0}.steps::before{display:none}
+  .strangle{grid-template-columns:1fr}.iron,.g2{grid-template-columns:1fr}
+  .src-grid{grid-template-columns:1fr}
+}
+
+/* ── 事实来源索引 ── */
+.source-index{background:var(--panel);border:1px solid var(--line);border-radius:16px;margin:18px 0 8px;overflow:hidden}
+.source-index summary{list-style:none;cursor:pointer;padding:16px 22px;display:flex;align-items:center;gap:12px;
+  user-select:none}
+.source-index summary::-webkit-details-marker{display:none}
+.source-index summary .si-ic{font-family:var(--mono);color:var(--cyan);font-size:13px;letter-spacing:1px}
+.source-index summary .si-ti{font-weight:700;font-size:14px}
+.source-index summary .si-sub{color:var(--muted);font-size:12px;flex:1}
+.source-index summary .si-go{font-family:var(--mono);color:var(--muted);font-size:12px;display:flex;align-items:center;gap:6px}
+.source-index summary .si-go .g-open{display:none}
+.source-index[open] summary .si-go .g-open{display:inline}
+.source-index[open] summary .si-go .g-closed{display:none}
+.source-index summary .si-ar{font-style:normal;transition:transform .25s}
+.source-index[open] summary .si-ar{transform:rotate(180deg)}
+.si-body{padding:4px 22px 22px}
+.si-note{font-size:12px;color:var(--muted);line-height:1.7;border-left:2px solid var(--cyan);padding:2px 0 2px 12px;margin:8px 0 18px}
+.si-note b{color:var(--ink)}
+.src-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 22px}
+.src-row{display:grid;grid-template-columns:64px 1fr;gap:12px;padding:11px 0;border-bottom:1px solid rgba(37,43,61,.6)}
+.src-row .sr-ch{font-family:var(--mono);font-size:12px;color:var(--amber);padding-top:1px}
+.src-row .sr-files{display:flex;flex-wrap:wrap;gap:6px 8px;line-height:1.5}
+.src-row .sr-files a{color:var(--violet);text-decoration:none;font-size:12px;border-bottom:1px dashed rgba(139,124,246,.45);
+  padding-bottom:1px;transition:color .15s,border-color .15s}
+.src-row .sr-files a:hover{color:#a99cff;border-bottom-color:#a99cff}
+.src-row .sr-files .sep{color:#3a4156;font-size:12px}
+.src-row .sr-cap{grid-column:2;font-size:11px;color:#565e75;margin-top:2px}
+.si-base{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.9}
+.si-base b{color:var(--ink)}
+.si-base a{color:var(--violet);text-decoration:none;border-bottom:1px dashed rgba(139,124,246,.45)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<nav class="rail" id="rail">
+  <a href="#top" class="on"><span class="n">00</span>开篇</a>
+  <a href="#why"><span class="n">01</span>为什么做</a>
+  <a href="#design"><span class="n">02</span>软件设计</a>
+  <a href="#plan"><span class="n">03</span>实践计划</a>
+  <a href="#progress"><span class="n">04</span>当前进度</a>
+  <a href="#problems"><span class="n">05</span>问题风险</a>
+</nav>
+
+<main>
+<!-- ══════════ HERO ══════════ -->
+<header class="hero" id="top">
+  <div class="kicker">AI SHORT-DRAMA STUDIO · 全景导览</div>
+  <h1>一块画布 = 一条生产线<br><em>一个指令</em> = 一支摄制组</h1>
+  <p class="lede">这是一个 Agent 驱动的短剧内容生产桌面应用：用户只表达创作目标，<b>主控 Agent 像导演一样</b>把任务拆给虚拟摄制组——编剧、美术、镜头、声音、引擎在同一块画布上并行作业，从立项到成片全自动推进，人只在关键节点"拍板"。</p>
+  <div class="verline">
+    <span class="chip">设计 <b>v1.9</b></span>
+    <span class="chip">Electron + React 18 + TS</span>
+    <span class="chip">opencode-ai <b>1.18.34</b></span>
+    <span class="chip">纯 JSON 持久化 · 无数据库</span>
+    <span class="chip">更新于 2026-10-08</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="num">22<small> 个旧包</small></div><div class="lbl">已整体作废归档（D-005），新包从 feature-001 重建</div></div>
+    <div class="stat"><div class="num" data-to="197">0</div><div class="lbl">测试通过（1 skipped；npm run test:run 实测）</div></div>
+    <div class="stat"><div class="num">0<small>/8 步</small></div><div class="lbl">新设计尚未反补落地；旧代码仅覆盖前 3 步形态</div></div>
+    <div class="stat"><div class="num">39<small> 个IPC</small></div><div class="lbl">旧代码现状（runtime 单轨），待反向补录对照</div></div>
+  </div>
+</header>
+
+<!-- ══════════ 事实来源索引 ══════════ -->
+<details class="source-index rv" id="sources">
+  <summary>
+    <span class="si-ic">SRC</span>
+    <span class="si-ti">事实来源索引</span>
+    <span class="si-sub">本页是可视化呈现 · 一切事实以对应 Markdown / 规格为准</span>
+    <span class="si-go"><span class="g-open">收起</span><span class="g-closed">展开</span><i class="si-ar">▾</i></span>
+  </summary>
+  <div class="si-body">
+    <p class="si-note">本页仅作<b>人读导览</b>，不由 AI 当作事实源。当图形与下列文档冲突时，<b>以 Markdown / 规格为准</b>（AGENTS.md 铁律 2：Spec is Truth）。链接均为相对路径，可直接点击跳转。</p>
+    <div class="src-grid">
+
+      <div class="src-row">
+        <span class="sr-ch">00 开篇</span>
+        <span class="sr-files">
+          <a href="../短剧Agent平台设计.md">短剧Agent平台设计.md</a><span class="sep">·</span>
+          <a href="../../版本记录.md">版本记录.md</a>
+        </span>
+        <span class="sr-cap">定位 / 版本 / 关键数字（版本、依赖、持久化）</span>
+      </div>
+
+      <div class="src-row">
+        <span class="sr-ch">01 为什么</span>
+        <span class="sr-files">
+          <a href="../../AGENTS.md">AGENTS.md §0.1</a><span class="sep">·</span>
+          <a href="../research/MiniMax%20Design功能与架构参考.md">research/功能与架构参考.md</a><span class="sep">·</span>
+          <a href="../research/MiniMax%20Design-架构逆向图.svg">架构逆向图.svg</a>
+        </span>
+        <span class="sr-cap">两个缺口 / 项目必要性原则 / Design 对标</span>
+      </div>
+
+      <div class="src-row">
+        <span class="sr-ch">02 设计</span>
+        <span class="sr-files">
+          <a href="../短剧Agent平台设计.md">短剧Agent平台设计.md</a><span class="sep">·</span>
+          <a href="../../shared/types.ts">shared/types.ts</a><span class="sep">·</span>
+          <a href="../governance/SDG-AI-决策台账.md">决策台账 D-005</a>
+        </span>
+        <span class="sr-cap">四层架构 / 八步闭环 / 摄制组 / 数据血缘与主键</span>
+      </div>
+
+      <div class="src-row">
+        <span class="sr-ch">03 实践</span>
+        <span class="sr-files">
+          <a href="../../AGENTS.md">AGENTS.md §1·§4</a><span class="sep">·</span>
+          <a href="../governance/AI-SDG-AI工具执行指令.md">AI-SDG 执行指令.md</a><span class="sep">·</span>
+          <a href="../governance/SDG-AI-决策台账.md">决策台账（D-001~D-005）</a>
+        </span>
+        <span class="sr-cap">三铁律 / K1–K10 / 绞杀者双轨 / 三期路线</span>
+      </div>
+
+      <div class="src-row">
+        <span class="sr-ch">04 进度</span>
+        <span class="sr-files">
+          <a href="../archive/features-pre-rebuild/">archive/features-pre-rebuild/</a><span class="sep">·</span>
+          <a href="../archive/README.md">archive/README.md（作废声明）</a><span class="sep">·</span>
+          <a href="../features/">docs/features/（待重建）</a>
+        </span>
+        <span class="sr-cap">旧 22 包 AC 状态已随包冻结归档；新包从 feature-001 按反补六步法重建</span>
+      </div>
+
+      <div class="src-row">
+        <span class="sr-ch">05 问题</span>
+        <span class="sr-files">
+          <a href="../governance/SDG-AI-决策台账.md">决策台账 D-005</a><span class="sep">·</span>
+          <a href="../SDG-OD-legacy/feature-010-ark对话IPC快照.md">legacy/ark IPC 快照</a><span class="sep">·</span>
+          <a href="../../electron/preload.ts">electron/preload.ts</a>
+        </span>
+        <span class="sr-cap">代码与新设计偏差 / 无 Git 版本控制 / 待建媒体能力等风险</span>
+      </div>
+
+    </div>
+    <div class="si-base">
+      <b>规范上游（AI-SDG v1.4 源头，工作区外）：</b>
+      <a href="file:///Users/szd/Documents/WPS/Vibe%20Coding/AI-SDG-AI%E5%B7%A5%E5%85%B7%E6%89%A7%E8%A1%8C%E6%8C%87%E4%BB%A4.md">AI-SDG-AI工具执行指令.md</a>
+      ·
+      <a href="file:///Users/szd/Documents/WPS/Vibe%20Coding/AI-SDG-Trae-Vibe-Coding-%E5%9B%A2%E9%98%9F%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%B5%81%E7%A8%8B%E6%96%B9%E6%A1%88.md">团队架构与流程方案.md</a>
+      （目录：/Users/szd/Documents/WPS/Vibe Coding，2026-10-05 v1.4）。项目内副本见
+      <a href="../governance/AI-SDG-AI工具执行指令.md">docs/governance/AI-SDG-AI工具执行指令.md</a>，AGENTS.md 在其基础上补充了本项目上下文；本页为 B 类可视化文档（v1.3 三层模型），v1.4 起按项目画像（本项目 <b>P2</b>）配置、Feature 闭环后直接重渲染；全局决策见 <a href="../governance/SDG-AI-决策台账.md">台账 D-001 ~ D-005</a>。<br>
+      <b>规格文件命名约定（每个 Feature 任务包）：</b>SDG-RE-需求规格.md（为什么做）· SDG-RE-契约.md（接口/字段/IPC）· SDG-RE-任务清单.md（原子任务与 AC）· SDG-OD-设计说明.md（视觉验收）· SDG-AI-变更记录.md（K1–K10 决策留痕）。目录：<a href="../features/">docs/features/</a>（当前为空，新包从 feature-001 重建）
+    </div>
+  </div>
+</details>
+
+<!-- ══════════ WHY ══════════ -->
+<section id="why">
+  <div class="sec-head"><span class="sec-no">01</span><h2>为什么做这个软件</h2></div>
+  <p class="sec-sub">不是另起炉灶，而是精准填补 MiniMax Design 的两个缺口——除此之外不做功能扩张（2026-10-04 用户拍板的项目必要性原则）。</p>
+  <div class="grid g2 rv">
+    <div class="card gap">
+      <div class="big">GAP ①</div>
+      <h4>无法调用本地 / 局域网 ComfyUI</h4>
+      <p>Design 只能走云端模型矩阵：按次付费、限流、素材必须上公网，无法利用本地 GPU 与已有工作流资产。</p>
+      <span class="arrow">→</span>
+    </div>
+    <div class="card gap">
+      <div class="big">GAP ②</div>
+      <h4>不具备旧体系的完整生产闭环</h4>
+      <p>从立项、故事、分场、资产、分镜、镜头到后期、发布的 8 步业务链，Design 没有完整覆盖。</p>
+      <span class="arrow">→</span>
+    </div>
+  </div>
+  <div class="card rv" style="margin-top:14px;border-color:rgba(242,181,68,.35);background:linear-gradient(135deg,rgba(242,181,68,.07),transparent)">
+    <h4>本项目的答案</h4>
+    <p><b>ComfyUI 做统一媒体引擎</b>（地址可配、局域网多实例）＋ <b>8 步闭环一步不裁剪</b>。形态对齐 Design，底层全部用开源同源组件（opencode / MCP / Skill）自行实现，不碰其闭源代码。</p>
+  </div>
+</section>
+
+<!-- ══════════ DESIGN ══════════ -->
+<section id="design">
+  <div class="sec-head"><span class="sec-no">02</span><h2>软件是怎么设计的</h2></div>
+  <p class="sec-sub">四层关键设计：技术架构 → 八步生产闭环 → 多 Agent 摄制组 → 数据模型与血缘。</p>
+
+  <h3>2.1 技术架构（代码现状 · runtime 单轨，待反向补录对照）</h3>
+  <p class="mut" style="font-size:13px">实线/绿色 = 现存代码已建成；琥珀色 = 规划中（媒体侧）；下图描述的是 2026-10-05 旧代码状态，D-005 后须对照设计 v1.9 反向补录，不代表新设计已落地。旧 ark 对话 IPC 已随旧 feature-010 退役。</p>
+  <div class="diagram rv">
+    <div class="legend">
+      <span><i style="border-color:var(--green)"></i>已建成链路</span>
+      <span><i class="flowline" style="border-color:var(--amber)"></i>规划中（媒体侧）</span>
+      <span><i style="border-color:var(--cyan)"></i>出公网（仅文本）</span>
+    </div>
+
+    <div class="layer l-renderer">
+      <span class="ltag">RENDERER · 渲染进程</span>
+      <div class="flowrow">
+        <div class="node"><div class="nt">项目侧栏</div><div class="nd">项目库 / Skill / 资产（当前为静态占位）</div></div>
+        <div class="node"><div class="nt">中央画布</div><div class="nd">9 节点 + 自动连线 + 确认状态（旧门模型，待重建）</div></div>
+        <div class="node"><div class="nt">ChatPanel 对话面板</div><div class="nd">产物卡 / 确认门 / 消息流</div></div>
+        <div class="node"><div class="nt">流式 UI</div><div class="nd">流式正文 / 推理折叠 / 工具卡 / 停止生成</div></div>
+      </div>
+    </div>
+
+    <div class="conn">contextBridge 安全桥 · IPC（renderer 不直连任何外部服务）
+      <svg width="60" height="12"><line x1="0" y1="6" x2="60" y2="6" stroke="#46C98C" stroke-width="2"/><polygon points="54,2 60,6 54,10" fill="#46C98C"/></svg>
+    </div>
+
+    <div class="layer l-main">
+      <span class="ltag">MAIN · Electron 主进程（信任边界）</span>
+      <div class="flowrow">
+        <div class="node"><div class="nt">会话 / 持久化</div><div class="nd">JSON 文件读写 · 单写队列 · 三层数据治理</div></div>
+        <div class="node"><div class="nt">RuntimeManager</div><div class="nd">opencode 子进程生命周期 · 端口 4096 · 随机口令</div></div>
+        <div class="node"><div class="nt">MCP 工具服务</div><div class="nd">loopback · 随机口令鉴权 · 8 个文本业务工具（超时 180s）</div></div>
+        <div class="node"><div class="nt">ark.ts（工具内复用）</div><div class="nd">仅 MCP 工具非流式调用方舟；8 个对话 IPC 已删除</div></div>
+      </div>
+    </div>
+
+    <div class="conn">
+      <svg width="2" height="18"><line x1="1" y1="0" x2="1" y2="18" stroke="#46C98C" stroke-width="2"/></svg><br>
+      spawn（stdio ignore · 环境变量注入 URL/Token，不落盘）
+    </div>
+
+    <div class="layer l-child">
+      <span class="ltag">OPENCODE 子进程 · 127.0.0.1 only</span>
+      <div class="flowrow">
+        <div class="node" style="max-width:260px;flex:none"><div class="nt">Director 主控 Agent</div><div class="nd">意图理解 → 任务拆解 → 调工具 → 合流；经 8 个 shortdrama_* 工具产出</div></div>
+        <div class="node" style="max-width:260px;flex:none"><div class="nt">MCP 工具调用</div><div class="nd">director 经 shortdrama_* 工具产出业务产物（D-001/D-003）</div></div>
+      </div>
+    </div>
+
+    <div class="layer l-ext">
+      <span class="ltag">外部世界</span>
+      <div class="flowrow">
+        <div class="node" style="border-color:rgba(88,199,216,.4)"><div class="nt" style="color:var(--cyan)">火山方舟</div><div class="nd">文本 LLM · 平台唯一出公网通道</div></div>
+        <div class="node future"><div class="nt" style="color:var(--amber)">局域网 ComfyUI 池</div><div class="nd">qwen-image 图像 · H3 视频 · Music3 音乐（媒体零公网）</div></div>
+        <div class="node future"><div class="nt" style="color:var(--amber)">FFmpeg / MediaKit</div><div class="nd">后期剪辑（引擎不承担剪辑）</div></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="more"><a href="./短剧Agent平台设计.html#sec-5">详见设计书 §5 工具层</a><span class="sep">·</span><a href="./短剧Agent平台设计.html#sec-8">§8 引擎与生成通道 →</a></p>
+
+  <h3>2.2 八步生产闭环（业务验收基线，不可合并裁剪）</h3>
+  <div class="diagram rv">
+    <div class="steps">
+      <div class="step legacy"><div class="bar"></div><div class="dot">0</div><div class="sn">立项</div><div class="sd">诊断（含六要素草案）/故事前提/定案卡</div></div>
+      <div class="step legacy"><div class="bar"></div><div class="dot">1</div><div class="sn">故事</div><div class="sd">大纲 / 人物小传</div></div>
+      <div class="step legacy"><div class="bar"></div><div class="dot">2</div><div class="sn">剧本分场</div><div class="sd">分场/台词/分镜文本</div></div>
+      <div class="step todo"><div class="bar"></div><div class="dot">3</div><div class="sn">资产</div><div class="sd">角色/场景/道具中心</div></div>
+      <div class="step todo"><div class="bar"></div><div class="dot">4</div><div class="sn">分镜</div><div class="sd">镜号/景别/运镜</div></div>
+      <div class="step todo"><div class="bar"></div><div class="dot">5</div><div class="sn">镜头</div><div class="sd">逐镜生成收片</div></div>
+      <div class="step todo"><div class="bar"></div><div class="dot">6</div><div class="sn">后期</div><div class="sd">剪辑/字幕/混音</div></div>
+      <div class="step todo"><div class="bar"></div><div class="dot">7</div><div class="sn">发布</div><div class="sd">成片/切片/交付</div></div>
+    </div>
+    <p class="mut" style="font-size:12.5px;margin-top:20px">红色 0/1/2 = <b style="color:var(--red)">旧代码曾覆盖的形态</b>（旧立项门模型与新设计 §2.6 不符），D-005 后须按反向补录六步法对照设计 v1.9 重建，当前不计为新设计落地；重建推进顺序为立项 → 故事 → 剧本分场，随后第 3 步「资产」接入 ComfyUI 统一媒体引擎。</p>
+  </div>
+
+  <p class="more"><a href="./短剧Agent平台设计.html#sec-0-1">详见设计书 §0.1 原则三 · 八步闭环完整性 →</a></p>
+
+  <h3>2.3 多 Agent 摄制组</h3>
+  <div class="grid g2 rv">
+    <div class="crew card">
+      <div class="director">
+        <div class="role">MAIN CONTROL</div>
+        <div class="rn">主控 Agent · 导演 / 制片</div>
+        <div class="rd">意图理解 · 创意简报 · 任务地图 DAG · 派发合流 · 确认门状态机</div>
+      </div>
+      <div class="bus">消息总线 · 共享黑板（Agent 不互调，全留痕可重放）</div>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+      <div class="card"><h4><span class="ico" style="font-size:12px">编</span>编剧 Agent</h4><p>大纲/小传/分场/台词/分镜文字稿 <span class="src n">自研</span></p></div>
+      <div class="card"><h4><span class="ico" style="font-size:12px">美</span>美术 Agent</h4><p>定妆/场景/道具/关键帧/一致性配方</p></div>
+      <div class="card"><h4><span class="ico" style="font-size:12px">镜</span>镜头 Agent</h4><p>参数组装/参考图编排/运镜/提交</p></div>
+      <div class="card"><h4><span class="ico" style="font-size:12px">声</span>声音 Agent</h4><p>配音/配乐/音效/混音</p></div>
+      <div class="card"><h4><span class="ico" style="font-size:12px">擎</span>引擎 Agent</h4><p>调度/工作流装载/队列/断点续跑</p></div>
+      <div class="card"><h4><span class="ico" style="font-size:12px">剪</span>剪辑 Agent</h4><p>粗剪/字幕/合流/切片/封面</p></div>
+    </div>
+  </div>
+  <p class="mut" style="font-size:12.5px;margin-top:10px">协作铁则：无依赖任务并行、失败单镜隔离、产物只写新版本、不可逆动作必须过人审确认门。</p>
+
+  <p class="more"><a href="./短剧Agent平台设计.html#sec-4">详见设计书 §4 多 Agent 架构 →</a></p>
+
+  <h3>2.4 数据模型与血缘</h3>
+  <div class="grid g2 rv">
+    <div>
+      <div class="dltree"><span class="cmt"># 现存代码会话目录（旧三层治理；代码现状，待反向补录重建）</span>
+project-xxx/
+├─ manifest.json        <span class="cmt"># 状态层：旧门状态机（initiating→…）</span>
+├─ brief.json           <span class="cmt"># 旧立项单定稿；新模型由 manifest + 立项单.vN.json 取代</span>
+├─ 故事背景档案.md       <span class="cmt"># 旧 0-c 锁定；新模型见设计 §2.6.3 故事前提</span>
+├─ chat.messages.json   <span class="cmt"># 对话展示层：可清空/可 replay</span>
+├─ <span class="dir">剧本/</span>
+│  ├─ 故事大纲.json/.md
+│  ├─ 人物小传.json/.md   <span class="key">← CharacterProfile.id</span>
+│  ├─ 分场.json/.md       <span class="key">← Scene.sceneNo</span>
+│  └─ 台词.json/.md
+└─ <span class="dir">分镜/</span>shotlist.json/.md</div>
+      <p class="mut" style="font-size:12px">JSON 源 + MD 镜像双写；无数据库；本树为旧代码现状（D-005 重新定性），新设计目录还将增加 立项单.vN.json / 资产 / 镜头 / 声音 / 时间线 / 成片。</p>
+    </div>
+    <div class="card">
+      <h4>两条主键贯穿全链路</h4>
+      <div class="keyflow">
+        <span class="kbox">CharacterProfile.id</span><span class="ar">诞生于人物小传 →</span>
+        <span class="kbox">分场 characterIds</span><span class="ar">→</span>
+        <span class="kbox">台词 speakerId</span><span class="ar">→</span>
+        <span class="kbox">分镜 characterIds</span>
+      </div>
+      <div class="keyflow" style="margin-top:10px">
+        <span class="kbox">Scene.sceneNo</span><span class="ar">诞生于分场 →</span>
+        <span class="kbox">台词归场</span><span class="ar">→</span>
+        <span class="kbox">镜头 Shot.sceneNo</span>
+      </div>
+      <p class="mut" style="font-size:12px;margin-top:14px">manifest 状态机（旧代码现状）：initiating → story-outline → story-profiles → script-scenes → script-dialogue → script-storyboard → storyboard-done。下游只读已定稿上游，缺失则 reject <code>STORY_CTX_MISSING</code>；新立项模型下状态机需随反补重建。</p>
+    </div>
+  </div>
+
+  <p class="more"><a href="./短剧Agent平台设计.html#sec-7">详见设计书 §7 数据模型 / §7.1 三阶段血缘 →</a></p>
+</section>
+
+<!-- ══════════ PLAN ══════════ -->
+<section id="plan">
+  <div class="sec-head"><span class="sec-no">03</span><h2>计划怎么实践</h2></div>
+  <p class="sec-sub">用 SDG 规格驱动治理约束"怎么写"，用绞杀者模式约束"怎么换"，用三期路线约束"走到哪"。</p>
+
+  <h3>3.1 SDG 治理：No Spec, No Code</h3>
+  <div class="iron rv">
+    <div class="card"><div class="no">壹</div><h4>No Spec No Code</h4><p>没有任务包三件套（需求规格/契约/任务清单），不准写业务代码</p></div>
+    <div class="card"><div class="no">贰</div><h4>Spec is Truth</h4><p>文档与代码冲突时错的一定是代码，以文档为准修正</p></div>
+    <div class="card"><div class="no">叁</div><h4>Reverse Sync</h4><p>发现 Bug 或变更，先改文档再改代码</p></div>
+  </div>
+  <div class="card rv" style="margin-top:14px">
+    <h4>十个决策卡口（K1–K10）：触发即暂停、说明、等签字、留永久记录</h4>
+    <div class="k-tabs">
+      <span><b>K1</b> 改共享层 shared/</span><span><b>K2</b> 技术偏离</span>
+      <span><b>K3</b> 旧系统改造/退役</span><span><b>K4</b> 新顶层实体</span>
+      <span><b>K5</b> 术语/命名</span><span><b>K6</b> 新业务模块/目录</span>
+      <span><b>K7</b> 改 AGENTS 核心规则</span><span><b>K8</b> 破坏接口契约</span>
+      <span><b>K9</b> 新核心依赖</span><span><b>K10</b> 大规模禁用规范</span>
+    </div>
+  </div>
+
+  <h3>3.2 绞杀者模式（旧代码现状）：对话通道曾收敛为 runtime 单轨</h3>
+  <div class="strangle rv">
+    <div class="scol old" style="opacity:.6">
+      <h4>旧世界 · Ark 对话 IPC <span class="sbadge" style="background:rgba(240,98,93,.15);color:var(--red)">已退役</span></h4>
+      <ul>
+        <li>agent:* 对话 ×8（整卡返回）— 已删除</li>
+        <li>ark.ts 仅保留供 MCP 工具复用</li>
+        <li>删除前已快照 legacy/ark IPC 快照</li>
+      </ul>
+    </div>
+    <div style="text-align:center;font-family:var(--mono);font-size:22px;color:var(--green)">✓</div>
+    <div class="scol new">
+      <h4>新世界 · Runtime 单轨 <span class="sbadge" style="background:rgba(70,201,140,.15);color:var(--green)">在用</span></h4>
+      <ul>
+        <li>runtime:start / stop / status</li>
+        <li>chat:load / append（仅持久化）</li>
+        <li>prompt 经 ChatPanel 流式发起</li>
+        <li>event:subscribe + SSE 推送</li>
+      </ul>
+    </div>
+  </div>
+  <p class="mut" style="font-size:13px;margin-top:12px">以下为旧代码现状：旧 feature-010 曾执行"最后一刀"，业务逻辑迁入主进程 MCP 工具后删除 8 个 agent:* 对话 IPC（先快照、旧包级决策二次签字）；旧包已随 D-005 整体作废归档，该通道结构在反补重建时需对照 v1.9 重新认定；ark.ts 保留 <code>chat</code> 方法仅供 MCP 工具非流式调用。</p>
+
+  <h3>3.3 三期落地路线</h3>
+  <div class="grid g3 rv">
+    <div class="card">
+      <h4>一期 · MVP 单集闭环 <span class="src n">待反补重建</span></h4>
+      <p>旧代码已有骨架与 MCP、画布节点、文本三阶段、opencode 运行时、runtime 单轨对话的形态；D-005 后先按反补六步法重建立项 → 故事 → 剧本分场，再推进第 3 步「资产」→ ComfyUI 统一媒体引擎（qwen-image/H3/Music3）→ T2A 配音 → FFmpeg 产出第一集成片。</p>
+    </div>
+    <div class="card" style="opacity:.75">
+      <h4>二期 · 能力补全</h4>
+      <p>语音 OpenAPI 与声音复刻、任务级画布展开、资产完整沉淀、工作流插件、多项目管理。</p>
+    </div>
+    <div class="card" style="opacity:.75">
+      <h4>三期 · 规模化</h4>
+      <p>Skill 广场社区、模板中心、批量跨集生产、多用户协作、渠道分发。</p>
+    </div>
+  </div>
+
+  <h3>3.4 推进时间线</h3>
+  <div class="timeline rv">
+    <div class="tl" style="opacity:.6"><div class="date">2026-10-02</div><div class="tt">旧 feature-001 立项链路（已作废归档）</div><div class="td">旧模型 0-a/0-b/0-c 三门 + 画布立项节点；已被设计 v1.9 §2.6 取代</div></div>
+    <div class="tl" style="opacity:.6"><div class="date">2026-10-03</div><div class="tt">旧 feature-002 / 003 / 004（已归档）</div><div class="td">消息动态化持久化 · 编剧 Agent · 剧本分镜（台词/分镜文本）</div></div>
+    <div class="tl" style="opacity:.6"><div class="date">2026-10-03 ~ 04</div><div class="tt">旧 feature-005 / 006 / 007（已归档）</div><div class="td">产物解锁重做 · 通用产物查看器 · 三层数据治理</div></div>
+    <div class="tl" style="opacity:.6"><div class="date">2026-10-04</div><div class="tt">旧 feature-008 / 009（已归档）</div><div class="td">opencode 运行时集成（旧包级通道裁决）· 运行时调试抽屉</div></div>
+    <div class="tl" style="opacity:.6"><div class="date">2026-10-05</div><div class="tt">旧 feature-010 对话通道全量接入（已归档）</div><div class="td">流式正文/推理分轨/工具卡/停止 · 删旧 8 对话 IPC</div></div>
+    <div class="tl cur"><div class="date">2026-10-08 · 现在</div><div class="tt">D-005：立项模型重建 + 旧 22 包整体作废归档</div><div class="td">新设计 v1.9：2 节点 + 1 定案门、谱系定位系统级外部数据源；下一步从 feature-001 反向补录重建，再接资产/媒体引擎</div></div>
+  </div>
+</section>
+
+<!-- ══════════ PROGRESS ══════════ -->
+<section id="progress">
+  <div class="sec-head"><span class="sec-no">04</span><h2>现在做到了哪一步</h2></div>
+  <p class="sec-sub">下列 F-001~F-010（及 F-011~F-022）均为<b style="color:var(--red)">已作废的旧任务包</b>，随 D-005 整体归档冻结；新任务包将从 feature-001 重新编号、按反向补录六步法重建。现存代码即这些旧包的产物。</p>
+
+  <div class="fgrid rv">
+    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-001</span></div><h4>立项链路</h4><p>旧模型：选题诊断 / 六要素 / 视觉风格三门（已被 §2.6 取代）</p>
+      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
+    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-002</span></div><h4>对话消息动态化</h4><p>去硬编码 / 持久化 / replay 恢复</p>
+      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
+    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-003</span></div><h4>编剧 Agent</h4><p>故事大纲 / 人物小传（旧 1-a / 1-b）</p>
+      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
+    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-004</span></div><h4>剧本分镜</h4><p>分场 / 台词 / 分镜文本（旧 2-a/b/c）</p>
+      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
+    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-005</span></div><h4>产物解锁重做</h4><p>8 源失效传播 / 画风谱系 4×18</p>
+      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
+    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-006</span></div><h4>通用产物查看</h4><p>ProductViewer 统一只读查看器</p>
+      <div class="progressbar"><i style="width:96%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
+    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-007</span></div><h4>数据治理</h4><p>产物层 / 状态层 / 对话层三层分离</p>
+      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
+    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-008</span></div><h4>Agent 运行时集成</h4><p>opencode 无头 serve + client/manager/projection</p>
+      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
+    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-009</span></div><h4>运行时界面接入</h4><p>420px 调试抽屉 / 会话 / 事件流</p>
+      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
+    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-010</span></div><h4>对话通道全量接入</h4><p>ChatPanel ⇄ opencode runtime 流式单轨</p>
+      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
+  </div>
+
+  <div class="grid g4 rv" style="margin-top:16px">
+    <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--green)">24</div><div style="font-size:11.5px;color:var(--muted)">测试文件（实测 197 passed / 1 skipped）</div></div>
+    <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--violet)">9 / 9</div><div style="font-size:11.5px;color:var(--muted)">旧画布节点（旧代码现状，待重建）</div></div>
+    <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--red)">1</div><div style="font-size:11.5px;color:var(--muted)">新立项定案门（取代旧 0-a…2-c 八道门）</div></div>
+    <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--cyan)">0</div><div style="font-size:11.5px;color:var(--muted)">媒体能力接入度（ComfyUI 待建）</div></div>
+  </div>
+</section>
+
+<!-- ══════════ PROBLEMS ══════════ -->
+<section id="problems">
+  <div class="sec-head"><span class="sec-no">05</span><h2>有什么问题</h2></div>
+  <p class="sec-sub">当前首要风险是<b style="color:var(--red)">现存代码与设计 v1.9 的系统性偏差</b>，须反向补录重建；其余为工程债与远期关口。</p>
+
+  <div class="grid" style="gap:12px">
+    <div class="pcard rv" style="border-color:rgba(240,98,93,.45)">
+      <div class="plvl lvl-h">高</div>
+      <div style="flex:1">
+        <h4>现存代码整体基于旧模型，需反向补录重建（D-005）</h4>
+        <p>旧 22 包已作废归档，但其产物仍是现存代码全部：旧立项门（0-a~0-d 多 tab）、固化在 style-catalog 的谱系快照、9 节点旧画布、39 个 IPC 的 runtime 单轨。代码可运行，但与设计 v1.9 §2.6/§8.3 不符，不能当作新设计已落地。</p>
+        <div class="fix" style="background:rgba(240,98,93,.08);color:var(--red)">从 feature-001 起按《AI-SDG 执行指令》§7 存量功能反向补录六步法，逐步对照设计重建、改一项核一项。</div>
+      </div>
+    </div>
+
+    <div class="pcard rv" style="opacity:.7">
+      <div class="plvl" style="background:rgba(139,124,246,.13);color:var(--violet)">旧包历史</div>
+      <div style="flex:1">
+        <h4>对话通道双轨割裂 —— 旧 feature-010 曾收敛为 runtime 单轨（已归档）</h4>
+        <p>旧代码中 ChatPanel 已切到 opencode runtime：流式正文、推理分轨折叠、工具调用卡、可中途停止；旧 8 个对话 IPC 已快照后删除。该事实随旧包归档冻结，反补重建时按 v1.9 重新认定。</p>
+        <div class="fix" style="background:rgba(139,124,246,.08);color:var(--violet)">旧包级决策留痕在归档包内；当前实测 197 passed / 1 skipped。</div>
+      </div>
+    </div>
+
+    <div class="pcard rv">
+      <div class="plvl lvl-m">中</div>
+      <div style="flex:1">
+        <h4>项目没有 Git 版本控制</h4>
+        <p>目录下只有 .gitignore、没有 .git，所有代码变更无历史、无回滚兜底——与"可追溯"的治理目标相悖。</p>
+        <div class="fix">建议尽快 git init 并做首次基线提交（需用户指示）。</div>
+      </div>
+    </div>
+
+    <div class="pcard rv">
+      <div class="plvl lvl-m">中</div>
+      <div style="flex:1">
+        <h4>ComfyUI 媒体引擎完全未动工，且存在未决技术选型</h4>
+        <p>图像/视频/音乐三类媒体接入度为 0，footer 仍标"待接入"；Music3 的 ComfyUI 音频节点选型未定（需走 K2/K9 卡口）；三类权重与 GPU/显存首启检测未做；音乐仅 CPU 兜底方案待验证。</p>
+        <div class="fix">媒体 Feature 排在文本侧反补重建之后：先定音频节点与权重部署，再做引擎探活/队列/收片与多实例批处理。</div>
+      </div>
+    </div>
+
+    <div class="pcard rv">
+      <div class="plvl lvl-m">中</div>
+      <div style="flex:1">
+        <h4>左栏项目库是硬编码静态稿，多项目能力缺失</h4>
+        <p>项目列表/新建已接真实 project IPC，projectDir→opencode session 映射在旧代码中已建立；完整的多项目管理（重命名/删除/批量等）仍列二期补齐。</p>
+        <div class="fix">旧映射随会话恢复，反补时重新认定；剩余多项目管理能力列二期。</div>
+      </div>
+    </div>
+
+    <div class="pcard rv">
+      <div class="plvl lvl-l">低</div>
+      <div style="flex:1">
+        <h4>MCP stdio 骨架 6 工具全为 mock</h4>
+        <p>顶层 mcp/server.ts 的 canvas.read / video.submit / harness.verify 等仅返回占位文本，属二期实现项；注意它与旧代码 electron/mcp/ HTTP 服务是两套东西，勿混淆。</p>
+        <div class="fix">保留骨架；业务工具走 electron/mcp/，画布/质检类工具后续按设计 §5 逐项实现。</div>
+      </div>
+    </div>
+
+    <div class="pcard rv">
+      <div class="plvl lvl-l">低</div>
+      <div style="flex:1">
+        <h4>文档与代码状态的小不同步</h4>
+        <p>旧包未勾选项随包冻结归档，不再作为待办；T2A 人工配音通道在反补重建时需"待配/已配"清单防漏镜。</p>
+        <div class="fix">旧勾选差异已作废；以新包 AC 为准。</div>
+      </div>
+    </div>
+
+    <div class="pcard rv">
+      <div class="plvl lvl-l">观察</div>
+      <div style="flex:1">
+        <h4>媒体路径一天内三次裁决（D-007 → D-009 → D-010）</h4>
+        <p>图像与音乐的执行路径在 2026-10-04 经历"云端 → 回归 ComfyUI"反复，终局为三类媒体全部局域网推理。决策留痕完整但暴露了架构方向在拍板前收敛不足。</p>
+        <div class="fix">重大通道决策建议先出一页备选对比（成本/边界/依赖）再签字，减少反转成本。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>短剧 Agent 平台 · 全景图 · 2026-10-08（B 类人读文档）</span>
+  <span>事实源：设计 v1.9 / 决策台账 D-005 / docs/archive/ / vitest 实测 197 passed · 1 skipped</span>
+</footer>
+
+</main>
+</div>
+
+<script>
+// scrollspy
+const links=[...document.querySelectorAll('nav.rail a')];
+const secs=links.map(a=>document.querySelector(a.getAttribute('href')));
+const obs=new IntersectionObserver(es=>{
+  es.forEach(e=>{if(e.isIntersecting){
+    links.forEach(l=>l.classList.toggle('on',l.getAttribute('href')==='#'+e.target.id));
+  }});
+},{rootMargin:'-40% 0px -55% 0px'});
+secs.forEach(s=>s&&obs.observe(s));
+
+// reveal
+const ro=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');ro.unobserve(e.target);}})},{threshold:.12});
+document.querySelectorAll('.rv').forEach(el=>ro.observe(el));
+
+// counters
+const co=new IntersectionObserver(es=>{es.forEach(e=>{
+  if(!e.isIntersecting)return; const el=e.target,to=+el.dataset.to;let v=0;
+  const step=Math.max(1,Math.ceil(to/40));
+  const t=setInterval(()=>{v+=step;if(v>=to){v=to;clearInterval(t)}el.textContent=v;},28);
+  co.unobserve(el);
+})},{threshold:.5});
+document.querySelectorAll('[data-to]').forEach(el=>co.observe(el));
+</script>
+</body>
+</html>

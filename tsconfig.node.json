@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "target": "ES2020",
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "outDir": "dist-electron",
+    "rootDir": ".",
+    "esModuleInterop": true,
+    "types": ["node"]
+  },
+  "include": ["electron", "mcp", "shared", "src/lib/runtime-types.ts"],
+  "exclude": ["dist", "dist-electron", "node_modules", "electron/preload.ts"]
+}

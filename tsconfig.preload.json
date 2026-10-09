@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "composite": false,
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "outDir": "dist-electron",
+    "rootDir": "."
+  },
+  "include": ["electron/preload.ts", "src/lib/runtime-types.ts"],
+  "exclude": ["dist", "dist-electron", "node_modules"]
+}

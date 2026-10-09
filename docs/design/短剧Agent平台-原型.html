@@ -64,11 +64,24 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .proj-item{display:flex;gap:9px;align-items:center;padding:9px;border-radius:10px;cursor:pointer;border:1px solid transparent;transition:.15s;margin-bottom:3px;}
 .proj-item:hover{background:#F5F6FB;}
 .proj-item.active{background:var(--violet-soft);border-color:#DED9FB;}
-.proj-thumb{width:34px;height:34px;border-radius:8px;flex:0 0 34px;background:linear-gradient(135deg,#B8AFFF,#6C5CE7);display:grid;place-items:center;color:#fff;font-size:10px;font-weight:700;}
-.proj-item .nm{font-size:12.5px;font-weight:700;line-height:1.3;}
+.proj-thumb{position:relative;width:40px;height:40px;border-radius:8px;flex:0 0 40px;background:linear-gradient(135deg,#B8AFFF,#6C5CE7);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700;overflow:hidden;}
+.proj-thumb .ptag{position:absolute;left:0;bottom:0;right:0;font-size:7.5px;font-weight:700;text-align:center;background:rgba(0,0,0,.42);color:#fff;letter-spacing:.4px;padding:1px 0;}
+.proj-item .nm{font-size:12.5px;font-weight:700;line-height:1.3;display:flex;align-items:center;gap:5px;}
+.proj-item .nm .ep{font-size:8.5px;font-weight:700;color:var(--ink-4);background:#F2F3F9;padding:1px 5px;border-radius:4px;letter-spacing:.3px;}
 .proj-item .meta{font-size:10.5px;color:#9AA0B5;}
 .proj-item .st{margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--green);}
 .proj-item .st.gold{background:var(--amber);}.proj-item .st.gray{background:#C9CCDA;}
+
+/* ── STAGE 进度轨（titlebar 顶部 0→7 八步指示器） ── */
+.stage-track{display:flex;align-items:center;gap:1px;background:#F6F7FB;border:1px solid var(--line);border-radius:999px;padding:3px 7px;font-size:9.5px;}
+.stage-track .stp{display:flex;align-items:center;gap:3px;padding:2px 4px;border-radius:999px;color:#9AA0B5;font-weight:700;letter-spacing:.2px;}
+.stage-track .stp .dt{width:7px;height:7px;border-radius:50%;background:#C9CCDA;flex:0 0 7px;}
+.stage-track .stp.done{color:#1E9E66;}
+.stage-track .stp.done .dt{background:var(--green);}
+.stage-track .stp.cur{color:#fff;background:var(--violet);box-shadow:0 4px 10px rgba(108,92,231,.35);}
+.stage-track .stp.cur .dt{background:#fff;animation:pulse 1.4s ease-in-out infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.4);}}
+.stage-track .sep{color:#D9DCEA;font-size:8px;padding:0 1px;}
 
 /* skill cards */
 .skill-cat{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap;}
@@ -79,8 +92,17 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .skill-card .row{display:flex;align-items:center;gap:7px;}
 .skill-ico{width:26px;height:26px;border-radius:8px;background:var(--violet-soft);display:grid;place-items:center;color:var(--violet);flex:0 0 26px;}
 .skill-ico svg{width:14px;height:14px;}
-.skill-card .t{font-size:12px;font-weight:700;}
+.skill-card .t{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;}
+.skill-card .t .sid{font-size:9px;font-weight:700;color:var(--ink-4);background:#F2F3F9;padding:1px 5px;border-radius:4px;letter-spacing:.4px;font-family:ui-monospace,Menlo,monospace;}
 .skill-card .d{font-size:10.5px;color:#9AA0B5;margin-top:2px;line-height:1.45;}
+.skill-card .meta{display:flex;align-items:center;gap:5px;margin-top:6px;flex-wrap:wrap;}
+.skill-card .ver{font-size:9px;color:var(--ink-4);font-weight:600;background:#F6F7FB;padding:1px 6px;border-radius:999px;font-family:ui-monospace,Menlo,monospace;}
+.skill-card .cat{font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;letter-spacing:.3px;}
+.skill-card .cat.portable{background:#E7F8F0;color:#1E9E66;}
+.skill-card .cat.role{background:var(--violet-soft);color:var(--violet-d);}
+.skill-card .cat.mood{background:#FFF4DE;color:#C0841D;}
+.skill-card .cat.scene{background:#E6EEFE;color:#3F6FCB;}
+.skill-card .cat.batch{background:#FCE6E5;color:#B23B33;}
 .skill-card .run{margin-top:8px;font-size:11px;color:var(--violet-d);font-weight:600;display:flex;align-items:center;gap:4px;}
 
 /* assets */
@@ -485,6 +507,271 @@ body.rx-on .rx-layer{display:flex;}
 .rx-menu-i .mt{font-weight:700;font-size:10.5px;}
 .rx-menu-i .md{font-size:9px;color:#A6ABC0;margin-top:1px;}
 .rx-menu-i .shortcut{margin-left:auto;font-family:Menlo,monospace;font-size:9px;color:#A6ABC0;background:#F4F5FA;border-radius:5px;padding:2px 6px;}
+
+/* ════════════════════════════════════════════════════════════
+   方案 A · 左栏分段 toggle + 流程导航面板
+   ════════════════════════════════════════════════════════════ */
+.lp-seg{display:flex;background:#F1F2F8;border-radius:9px;padding:2px;margin:8px 0 2px;gap:2px;}
+.lp-seg button{flex:1;font-size:11px;font-weight:700;color:#7A8098;padding:6px 0;border-radius:7px;transition:.2s;display:flex;align-items:center;justify-content:center;gap:4px;}
+.lp-seg button svg{width:11px;height:11px;}
+.lp-seg button.on{background:#fff;color:var(--violet-d);box-shadow:0 2px 6px rgba(40,42,80,.08);}
+.lp-seg .badge{margin-left:3px;font-size:8.5px;font-weight:800;color:#fff;background:var(--violet);padding:1px 5px;border-radius:99px;}
+.lp-seg .badge.warn{background:var(--amber);}
+.lp-seg .badge.ok{background:var(--green);}
+
+/* 流程导航面板（隐藏资源库的 4 个 tab；显示项目内阶段） */
+.lp-nav{display:none;padding:6px 0 0;}
+.lp-nav.active{display:block;}
+.lp-nav-head{font-size:10.5px;font-weight:800;color:#9AA0B5;padding:6px 14px 4px;letter-spacing:.4px;display:flex;align-items:center;gap:5px;}
+.lp-nav-head .ver{margin-left:auto;font-size:9px;color:#1E9E66;background:#E7F8F0;padding:1px 6px;border-radius:99px;font-weight:700;}
+.lp-nav-head .ver.warn{color:#C0841D;background:#FFF4DE;}
+.fs2{display:flex;gap:9px;padding:8px 10px;border-radius:9px;position:relative;cursor:pointer;transition:.18s;}
+.fs2 + .fs2::before{content:"";position:absolute;top:-1px;left:18px;width:1.5px;height:8px;background:#E3E6F0;}
+.fs2:hover{background:#F5F6FB;}
+.fs2 .ic{width:22px;height:22px;border-radius:7px;background:#F1F2F8;color:#AEB4C8;display:grid;place-items:center;flex:0 0 22px;font-size:10.5px;font-weight:800;z-index:1;transition:.25s;}
+.fs2 .ic svg{width:11px;height:11px;}
+.fs2 .t{font-size:11.5px;font-weight:700;color:#A6ABC0;line-height:1.3;transition:.2s;display:flex;align-items:center;gap:4px;}
+.fs2 .d{font-size:9.5px;color:#B7BCD0;margin-top:1px;}
+.fs2 .vb{margin-left:auto;font-size:8.5px;font-weight:700;padding:1px 5px;border-radius:5px;background:#F2F3F9;color:#9AA0B5;align-self:center;}
+.fs2 .vb.ok{background:#E7F8F0;color:#1E9E66;}
+.fs2 .vb.warn{background:#FFF4DE;color:#C0841D;}
+.fs2 .vb.cur{background:var(--violet);color:#fff;}
+.fs2.active .ic{background:var(--violet);color:#fff;box-shadow:0 4px 10px rgba(108,92,231,.32);}
+.fs2.active .t{color:var(--ink);}
+.fs2.done .ic{background:var(--green);color:#fff;}
+.fs2.done .t{color:#5A6078;}
+
+/* 资源库面板容器 */
+.lp-resource{display:none;}
+.lp-resource.active{display:block;}
+
+/* ════════════════════════════════════════════════════════════
+   方案 A · 中栏 view-stage0（立项视图 · 1 入口 + 2 节点 + 1 门）
+   ════════════════════════════════════════════════════════════ */
+.view-dag,.view-stage0{display:none;width:100%;height:100%;}
+.view-dag.active,.view-stage0.active{display:block;animation:fade .3s ease;}
+
+.s0-head{position:absolute;top:0;left:0;right:0;height:38px;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:10px;z-index:4;}
+.s0-head .lb{font-size:10.5px;font-weight:800;color:#9AA0B5;letter-spacing:.4px;}
+.s0-head .case{font-size:12px;font-weight:800;}
+.s0-head .v{font-size:9.5px;font-weight:700;color:#1E9E66;background:#E7F8F0;padding:2px 8px;border-radius:99px;margin-left:6px;}
+.s0-head .spacer{flex:1;}
+.s0-head .btn-rst{font-size:10.5px;color:#7A8098;padding:5px 10px;border-radius:7px;border:1px solid var(--line);background:#fff;}
+.s0-head .btn-rst:hover{background:#F1F2F8;}
+
+.s0-body{position:absolute;top:38px;left:0;right:0;bottom:0;overflow-y:auto;padding:22px 26px 30px;display:flex;flex-direction:column;gap:18px;}
+.s0-body::-webkit-scrollbar{width:5px;}.s0-body::-webkit-scrollbar-thumb{background:#DDE0EA;border-radius:99px;}
+
+/* 入口创意卡 */
+.s0-entry{background:linear-gradient(135deg,#F8F6FF 0%,#F0EEFF 100%);border:1px solid #DED9FB;border-radius:13px;padding:14px 17px;display:flex;align-items:center;gap:13px;box-shadow:0 8px 22px rgba(108,92,231,.08);}
+.s0-entry .pin{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#B8AFFF,#6C5CE7);display:grid;place-items:center;color:#fff;flex:0 0 30px;box-shadow:0 5px 12px rgba(108,92,231,.3);}
+.s0-entry .pin svg{width:14px;height:14px;}
+.s0-entry .body{flex:1;min-width:0;}
+.s0-entry .body .tag{font-size:9.5px;font-weight:800;color:var(--violet-d);background:var(--violet-soft);padding:1px 7px;border-radius:5px;letter-spacing:.3px;}
+.s0-entry .body .q{font-size:12.5px;font-weight:700;margin-top:5px;line-height:1.5;color:var(--ink);}
+.s0-entry .body .note{font-size:9.5px;color:var(--ink-4);margin-top:4px;display:flex;align-items:center;gap:4px;}
+
+/* 节点链 · 1 行 3 列（诊断/前提/定案门） */
+.s0-chain{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:stretch;}
+.s0-chain::before{content:"";position:absolute;left:25%;right:25%;top:50%;height:1.5px;background:repeating-linear-gradient(90deg,#D9D3FB 0 6px,transparent 6px 12px);opacity:.5;z-index:0;}
+
+.s0-cnode{position:relative;background:#fff;border:1.5px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:.25s;opacity:.55;z-index:1;}
+.s0-cnode.active{opacity:1;border-color:#D9D3FB;box-shadow:0 10px 26px rgba(108,92,231,.12);transform:translateY(-1px);}
+.s0-cnode.done{opacity:1;border-color:#BFE6D2;background:linear-gradient(180deg,#FBFFFE 0%,#fff 100%);}
+.s0-cnode .nh{display:flex;align-items:center;gap:7px;padding:10px 12px;border-bottom:1px solid #F2F3F8;}
+.s0-cnode .nh .ni{width:24px;height:24px;border-radius:7px;background:var(--violet-soft);color:var(--violet);display:grid;place-items:center;font-size:10.5px;font-weight:800;flex:0 0 24px;}
+.s0-cnode.done .nh .ni{background:#E7F8F0;color:var(--green);}
+.s0-cnode .nh .nt{font-size:12px;font-weight:800;}
+.s0-cnode .nh .ns{margin-left:auto;font-size:8.5px;font-weight:700;color:#A6ABC0;padding:1px 7px;border-radius:99px;background:#F2F3F9;}
+.s0-cnode.active .nh .ns{color:var(--violet-d);background:var(--violet-soft);}
+.s0-cnode.done .nh .ns{color:#1E9E66;background:#E7F8F0;}
+.s0-cnode .nb{padding:11px 12px;font-size:10.5px;color:#6A708A;line-height:1.6;flex:1;}
+
+/* 六要素微表 */
+.s0-kv{display:flex;align-items:center;font-size:10px;border-bottom:1px solid #F6F7FB;padding:0;}
+.s0-kv:last-child{border-bottom:none;}
+.s0-kv .k{width:52px;flex:0 0 52px;color:#9AA0B5;padding:4px 0;font-weight:600;}
+.s0-kv .v{padding:4px 0;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:4px;}
+.s0-kv .v.tbd{color:#B8BDCE;}
+.s0-kv .v .ed{margin-left:auto;width:14px;height:14px;border-radius:4px;display:grid;place-items:center;color:#C3C8D8;}
+.s0-kv .v .ed:hover{background:var(--violet-soft);color:var(--violet);}
+.s0-kv .v .ed svg{width:8px;height:8px;}
+
+/* 故事前提 · 双行 */
+.s0-prem{display:flex;flex-direction:column;gap:5px;margin-top:4px;}
+.s0-prem .pi{display:flex;gap:6px;padding:6px 8px;border-radius:7px;font-size:10px;line-height:1.5;border:1px solid transparent;}
+.s0-prem .pi.guess{background:#FFF8EC;border-color:#F6E6C4;}
+.s0-prem .pi.guess .k{color:#C0841D;}
+.s0-prem .pi.fact{background:#F2FBF7;border-color:#D3F0E2;}
+.s0-prem .pi.fact .k{color:var(--green);}
+.s0-prem .pi .k{flex:0 0 40px;font-weight:800;font-size:9.5px;padding-top:1px;}
+
+/* 定案门节点 */
+.s0-cnode.gate .nh{background:linear-gradient(135deg,#F4F1FF,#EFEDFE);}
+.s0-cnode.gate.active{background:linear-gradient(180deg,#F8F6FF,#fff);}
+.s0-cnode.gate .door{width:46px;height:46px;border-radius:13px;background:#F1F2F8;color:#AEB4C8;display:grid;place-items:center;margin:8px auto 4px;transition:.3s;}
+.s0-cnode.gate.active .door{background:var(--violet);color:#fff;box-shadow:0 8px 20px rgba(108,92,231,.4);animation:glow 1.6s ease-in-out infinite;}
+.s0-cnode.gate.done .door{background:var(--green);color:#fff;animation:none;}
+.s0-cnode.gate .door svg{width:22px;height:22px;}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(108,92,231,.45);}50%{box-shadow:0 0 0 10px rgba(108,92,231,0);}}
+.s0-cnode.gate .nb{text-align:center;font-size:10.5px;color:#7A8098;line-height:1.6;padding-top:0;}
+.s0-cnode.gate.active .nb{color:#4A4F68;}
+.s0-cnode.gate .diff{font-size:9px;color:#C0841D;background:#FFF4DE;padding:3px 7px;border-radius:6px;margin:6px 12px 11px;display:none;line-height:1.5;}
+.s0-cnode.gate.active .diff{display:block;}
+
+/* ── 节点内嵌内容：诊断块 / 风格选择 / 辅助开关 ── */
+.s0-diag{font-size:10px;color:#7A8098;display:flex;flex-direction:column;gap:7px;margin-bottom:6px;}
+.s0-diag .ds-h{font-weight:800;color:#4A4F68;display:flex;align-items:center;gap:5px;font-size:10px;}
+.s0-diag ul{list-style:none;display:flex;flex-direction:column;gap:2px;padding-left:0;}
+.s0-diag li{padding-left:9px;position:relative;line-height:1.45;}
+.s0-diag li::before{content:"";position:absolute;left:0;top:6px;width:3.5px;height:3.5px;border-radius:50%;background:#C9C1F5;}
+.s0-diag.weak{opacity:.7;}
+.s0-concl{margin-top:6px;background:#E7F8F0;border-radius:7px;padding:6px 9px;font-size:10px;font-weight:800;color:#1E9E66;display:flex;align-items:center;gap:5px;}
+.s0-concl svg{width:11px;height:11px;flex:0 0 11px;}
+
+/* 风格选择卡 */
+.s0-style-intro{font-size:10px;color:#7A8098;line-height:1.5;margin-bottom:7px;}
+.s0-style-opt{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:7px 9px;width:100%;margin-bottom:6px;text-align:left;transition:.18s;cursor:pointer;}
+.s0-style-opt:hover{border-color:var(--violet);}
+.s0-style-opt.picked{border-color:var(--violet);background:var(--violet-soft);pointer-events:none;}
+.s0-style-thumb{width:30px;height:30px;border-radius:7px;flex:0 0 30px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:10.5px;}
+.s0-style-name{font-size:11.5px;font-weight:800;color:#3A3F57;}
+.s0-style-meta{font-size:9px;color:#A6ABC0;margin-top:2px;display:flex;align-items:center;gap:5px;}
+.s0-st-badge{font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:4px;}
+.s0-st-badge.main{background:#E7F8F0;color:#1E9E66;}
+.s0-st-badge.backup{background:#FFF4DE;color:#C0841D;}
+.s0-aux{display:flex;align-items:center;gap:7px;margin-top:4px;font-size:10px;color:var(--muted);font-weight:600;cursor:pointer;}
+.s0-aux-sw{width:28px;height:16px;border-radius:99px;background:#D7DAE6;position:relative;transition:.2s;flex:0 0 28px;}
+.s0-aux-sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.s0-aux-sw.on{background:var(--violet);}.s0-aux-sw.on::after{left:14px;}
+
+/* 节点底部 quick-hint（v1.9 风格） */
+.s0-qhint{margin-top:8px;background:#FFF9EC;border:1px solid #F6E6C4;border-radius:8px;padding:7px 9px;font-size:10px;color:#9A7420;line-height:1.5;}
+.s0-qhint .qh-t{font-weight:800;display:flex;align-items:center;gap:4px;margin-bottom:3px;font-size:9.5px;}
+.s0-chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
+.s0-chip{font-size:10px;font-weight:700;background:var(--violet-soft);color:var(--violet-d);border:1px solid #DED9FB;padding:4px 9px;border-radius:99px;transition:.15s;cursor:pointer;}
+.s0-chip:hover{background:var(--violet);color:#fff;border-color:var(--violet);}
+.s0-chip.ghost{background:#F4F5FA;color:#7A8098;border-color:#E6E8F1;}
+.s0-chip.ghost:hover{background:#E9EBF4;color:#4A4F68;}
+
+/* 故事前提缺口追问（v1.9 chip 选择） */
+.s0-edge-card{background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:7px 9px;font-size:10px;line-height:1.5;}
+
+/* ── 顶栏进度条 */
+.s0-prog{margin:6px 0 0;height:3px;background:#ECEEF5;border-radius:99px;overflow:hidden;}
+.s0-prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,#8FA8F5,#6C5CE7);border-radius:99px;transition:width .5s ease;}
+
+/* 观看式演示按钮 + 状态条 */
+.s0-autoplay{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;color:#fff;background:linear-gradient(135deg,#8FA8F5,#6C5CE7);border:none;padding:6px 12px;border-radius:8px;cursor:pointer;box-shadow:0 4px 10px rgba(108,92,231,.32);transition:.2s;}
+.s0-autoplay:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(108,92,231,.42);}
+.s0-autoplay.playing{background:linear-gradient(135deg,#E8744F,#C8443C);}
+.s0-autoplay svg{width:12px;height:12px;}
+.s0-auto-tip{font-size:9.5px;color:var(--ink-4);background:#FFF4DE;padding:3px 8px;border-radius:99px;border:1px solid #F6E6C4;display:none;align-items:center;gap:4px;}
+.s0-auto-tip.show{display:inline-flex;animation:fade .3s ease;}
+
+/* 流程导航（v1.9 风格 4 步 + active/done 状态）—— 用于 s0-body 顶部 */
+.s0-fstep{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:9px;background:#F8F9FD;border:1px solid var(--line);transition:.2s;flex:1;min-width:0;}
+.s0-fstep .ic{width:22px;height:22px;border-radius:6px;background:#F1F2F8;color:#AEB4C8;display:grid;place-items:center;flex:0 0 22px;font-size:10px;font-weight:800;transition:.25s;}
+.s0-fstep .ic svg{width:11px;height:11px;}
+.s0-fstep .t{font-size:11px;font-weight:700;color:#A6ABC0;line-height:1.25;transition:.2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.s0-fstep.active{background:var(--violet-soft);border-color:#D9D3FB;}
+.s0-fstep.active .ic{background:var(--violet);color:#fff;box-shadow:0 4px 10px rgba(108,92,231,.3);}
+.s0-fstep.active .t{color:var(--violet-d);}
+.s0-fstep.done{background:#E7F8F0;border-color:#BFE6D2;}
+.s0-fstep.done .ic{background:var(--green);color:#fff;}
+.s0-fstep.done .t{color:#1E9E66;}
+.s0-fnav{display:flex;gap:7px;margin-bottom:4px;}
+
+/* 对话流 picked 状态 */
+.cmsg .opt.picked{background:var(--violet);color:#fff;border-color:var(--violet);pointer-events:none;}
+.cmsg .opt.picked .oi{background:rgba(255,255,255,.2);color:#fff;}
+.cmsg .opt.picked .oi svg{color:#fff;}
+.cmsg .opt.picked:hover{transform:none;}
+
+/* 对话内 短链 行内 chip（v1.9 风格 quick-hint 在对话中） */
+.cmsg .qh{margin-top:7px;background:#FFF9EC;border:1px solid #F6E6C4;border-radius:8px;padding:6px 8px;font-size:10px;color:#9A7420;line-height:1.5;}
+.cmsg .qh .qh-t{font-weight:800;font-size:9.5px;margin-bottom:3px;display:flex;align-items:center;gap:4px;}
+.cmsg .cr{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
+.cmsg .cr .chip{font-size:10px;font-weight:700;background:var(--violet-soft);color:var(--violet-d);border:1px solid #DED9FB;padding:3px 8px;border-radius:99px;cursor:pointer;transition:.15s;}
+.cmsg .cr .chip:hover{background:var(--violet);color:#fff;}
+.cmsg .cr .chip.ghost{background:#F4F5FA;color:#7A8098;border-color:#E6E8F1;}
+.cmsg .cr .chip.ghost:hover{background:#E9EBF4;color:#4A4F68;}
+
+/* 定案卡弹层（v1.10 发布 v(N+1)） */
+.s0-modal{position:absolute;inset:0;background:rgba(30,34,51,.45);backdrop-filter:blur(3px);display:none;place-items:center;z-index:30;animation:fadebg .3s ease;}
+.s0-modal.show{display:grid;}
+@keyframes fadebg{from{opacity:0;}to{opacity:1;}}
+.s0-gcard{width:420px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 30px 70px rgba(20,22,45,.4);animation:popcard .45s cubic-bezier(.2,.9,.3,1.25);}
+@keyframes popcard{from{opacity:0;transform:translateY(18px) scale(.96);}to{opacity:1;transform:none;}}
+.s0-gh{background:linear-gradient(135deg,#7A6BF0,#6C5CE7);padding:14px 18px;color:#fff;display:flex;align-items:center;gap:10px;}
+.s0-gh .gi{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.2);display:grid;place-items:center;}
+.s0-gh .gi svg{width:15px;height:15px;}
+.s0-gh .gt{font-size:13.5px;font-weight:800;}
+.s0-gh .gs{font-size:9.5px;opacity:.8;margin-top:2px;}
+.s0-gh .v{margin-left:auto;font-size:10px;background:rgba(255,255,255,.2);padding:3px 9px;border-radius:99px;font-weight:700;}
+.s0-gb{padding:14px 18px;display:flex;flex-direction:column;gap:10px;}
+.s0-gs2{font-size:11px;}
+.s0-gs2 .h{font-size:9.5px;font-weight:800;color:#9AA0B5;margin-bottom:4px;letter-spacing:.4px;}
+.s0-gs2 .line{display:flex;gap:8px;line-height:1.55;color:#4A4F68;}
+.s0-gs2 .line .k{flex:0 0 56px;color:#9AA0B5;font-weight:700;font-size:10.5px;}
+.s0-diff{background:#FFF4DE;border-left:3px solid #E8A93C;padding:6px 10px;font-size:10px;color:#7A5C1D;line-height:1.5;border-radius:0 7px 7px 0;}
+.s0-diff b{color:#C0841D;}
+.s0-gquote{background:#F7F8FC;border-left:3px solid #C9C1F5;border-radius:0 8px 8px 0;padding:7px 10px;font-size:10px;color:#6A708A;line-height:1.5;}
+.s0-gquote .qh{font-size:9px;color:#A6ABC0;font-weight:800;margin-bottom:2px;}
+.s0-ga{display:flex;gap:9px;padding:0 18px 16px;}
+.s0-ga button{flex:1;font-size:12px;font-weight:800;padding:10px;border-radius:10px;transition:.2s;}
+.s0-ga .ok{background:var(--violet);color:#fff;}
+.s0-ga .ok:hover{background:var(--violet-d);transform:translateY(-1px);}
+.s0-ga .edit{background:#F1F2F8;color:#6A708A;}
+.s0-ga .hist{background:#fff;color:var(--violet-d);border:1px solid #DED9FB;flex:0 0 auto;padding:10px 14px;}
+
+/* ════════════════════════════════════════════════════════════
+   方案 A · 右栏 view-capture（已捕获口径，三色 chip）
+   ════════════════════════════════════════════════════════════ */
+.right-chat,.right-capture{display:none;width:100%;height:100%;flex-direction:column;min-height:0;}
+.right-chat.active,.right-capture.active{display:flex;animation:fade .25s ease;}
+
+.cpt-head{padding:11px 16px 8px;border-bottom:1px solid var(--line);}
+.cpt-head .h{font-size:12.5px;font-weight:800;display:flex;align-items:center;gap:7px;}
+.cpt-head .h .ic{width:18px;height:18px;border-radius:5px;background:var(--violet-soft);display:grid;place-items:center;color:var(--violet);}
+.cpt-head .h .ic svg{width:11px;height:11px;}
+.cpt-head .sub{font-size:9.5px;color:var(--ink-4);margin-top:2px;}
+.cpt-head .ct{font-size:9.5px;color:var(--ink-4);margin-top:4px;background:#F4F5FA;padding:1px 7px;border-radius:99px;font-weight:600;display:inline-block;}
+.cpt-list{flex:1;overflow-y:auto;padding:10px 14px 14px;display:flex;flex-direction:column;gap:9px;}
+.cpt-list::-webkit-scrollbar{width:5px;}.cpt-list::-webkit-scrollbar-thumb{background:#DDE0EA;border-radius:99px;}
+
+/* 对话气泡（与主原 chat 风格一致，但每条带来源色 chip） */
+.cmsg{display:flex;gap:8px;animation:fade .35s ease;}
+.cmsg .ma{width:26px;height:26px;border-radius:8px;flex:0 0 26px;display:grid;place-items:center;color:#fff;font-size:9.5px;font-weight:800;}
+.cmsg.agent .ma{background:linear-gradient(135deg,#B8AFFF,#6C5CE7);}
+.cmsg.user{flex-direction:row-reverse;}
+.cmsg.user .ma{background:linear-gradient(135deg,#8FA8E8,#5B7FD8);}
+.cmsg .bubble{max-width:88%;padding:8px 11px;font-size:11.5px;line-height:1.6;color:#3A3F57;background:#F4F5FA;border-radius:4px 12px 12px 12px;position:relative;}
+.cmsg.user .bubble{background:var(--violet);color:#fff;border-radius:12px 4px 12px 12px;}
+.cmsg .bubble b{color:var(--violet-d);}
+.cmsg.user .bubble b{color:#E8E4FD;}
+/* 来源色 chip（在气泡左上） */
+.cmsg .src{position:absolute;top:-7px;left:8px;font-size:8.5px;font-weight:800;padding:1px 6px;border-radius:5px;letter-spacing:.3px;background:#fff;border:1px solid var(--line);}
+.cmsg .src.user{color:#3F6FCB;background:#E6EEFE;border-color:#C9D7F4;}
+.cmsg .src.ai{color:var(--violet-d);background:var(--violet-soft);border-color:#D9D3FB;}
+.cmsg .src.infer{color:#C0841D;background:#FFF4DE;border-color:#F6E6C4;}
+.cmsg.user .src{left:auto;right:8px;background:rgba(255,255,255,.18);color:#fff;border-color:transparent;}
+/* 反问选择卡（嵌入气泡下方） */
+.cmsg .opts{margin-top:7px;display:flex;flex-direction:column;gap:5px;}
+.cmsg .opt{display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:7px 9px;font-size:10.5px;font-weight:700;color:#4A4F68;cursor:pointer;transition:.15s;}
+.cmsg .opt:hover{border-color:var(--violet);background:var(--violet-soft);transform:translateX(2px);}
+.cmsg .opt .oi{width:20px;height:20px;border-radius:6px;background:var(--violet-soft);color:var(--violet);display:grid;place-items:center;flex:0 0 20px;}
+.cmsg .opt .oi svg{width:11px;height:11px;}
+
+.cpt-cmd{padding:9px 14px 14px;border-top:1px solid var(--line);background:#fff;}
+.cpt-cmd .ci-box{background:#F4F5FA;border-radius:12px;padding:8px 10px;}
+.cpt-cmd textarea{width:100%;border:none;background:none;outline:none;resize:none;font-size:11.5px;height:18px;font-family:inherit;color:var(--ink);}
+.cpt-cmd .ci-row{display:flex;align-items:center;gap:6px;margin-top:5px;}
+.cpt-cmd .mchip{font-size:9px;color:var(--violet-d);background:var(--violet-soft);padding:2px 8px;border-radius:999px;font-weight:700;}
+.cpt-cmd .send{margin-left:auto;width:26px;height:26px;background:var(--violet);border-radius:7px;display:grid;place-items:center;transition:.2s;}
+.cpt-cmd .send svg{width:12px;height:12px;color:#fff;}
+.cpt-cmd .btn-aux{width:100%;background:#F4F5FA;color:var(--violet-d);font-size:11px;font-weight:800;padding:8px;border-radius:9px;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:5px;border:1px solid #DED9FB;}
+.cpt-cmd .btn-aux:hover{background:var(--violet-soft);}
 </style>
 </head>
 <body>
@@ -634,6 +921,23 @@ body.rx-on .rx-layer{display:flex;}
   <div class="titlebar">
     <div class="dots"><i></i><i></i><i></i></div>
     <div class="title"><span class="logo">剧</span>短剧 Agent · 安妮的夏天 · 第一集</div>
+    <div class="stage-track" title="八步闭环进度">
+      <span class="stp done" id="stp0" title="立项 v1 · 5 产物已对齐 · 2 待处理（点此进入立项视图）" style="cursor:pointer"><span class="dt"></span>0</span>
+      <span class="sep">·</span>
+      <span class="stp done" title="STAGE 1 · 故事"><span class="dt"></span>1</span>
+      <span class="sep">·</span>
+      <span class="stp done" title="STAGE 2 · 剧本分场"><span class="dt"></span>2</span>
+      <span class="sep">·</span>
+      <span class="stp cur" title="STAGE 3 · 资产（当前）"><span class="dt"></span>3</span>
+      <span class="sep">·</span>
+      <span class="stp" title="STAGE 4 · 分镜"><span class="dt"></span>4</span>
+      <span class="sep">·</span>
+      <span class="stp" title="STAGE 5 · 镜头"><span class="dt"></span>5</span>
+      <span class="sep">·</span>
+      <span class="stp" title="STAGE 6 · 后期"><span class="dt"></span>6</span>
+      <span class="sep">·</span>
+      <span class="stp" title="STAGE 7 · 发布"><span class="dt"></span>7</span>
+    </div>
     <div class="spacer"></div>
     <button class="model-chip"><span class="auto">自动</span>MiniMax H3 · 768P–2K</button>
     <button class="tb-btn">使用指南</button>
@@ -660,29 +964,41 @@ body.rx-on .rx-layer{display:flex;}
     <!-- Left panel -->
     <div class="left">
       <div class="lp-head">
-        <h3 id="lpTitle">项目库</h3>
-        <div class="lp-search">
+        <h3 id="lpTitle">项目内导航</h3>
+        <div class="lp-seg" id="lpSeg">
+          <button class="on" id="segResource">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            资源库
+          </button>
+          <button id="segNav">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h12"/></svg>
+            流程导航
+            <span class="badge warn" id="segNavBadge" title="2 个下游待对齐">2</span>
+          </button>
+        </div>
+        <div class="lp-search" id="lpSearch">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
           <input placeholder="搜索项目 / Skill / 资产">
         </div>
       </div>
       <div class="lp-body">
 
-        <!-- Projects -->
-        <div class="lp-panel active" id="pan-projects">
+        <!-- 资源库：原 4 个 panel（项目库 / Skill 广场 / 资产中心 / 插件） -->
+        <div class="lp-resource active" id="resPanels">
+          <div class="lp-panel active" id="pan-projects">
           <div class="proj-item active">
-            <div class="proj-thumb">安</div>
-            <div><div class="nm">安妮的夏天</div><div class="meta">校园恋爱 · 第 1 集 · 2 分钟前</div></div>
+            <div class="proj-thumb">安<span class="ptag">校园</span></div>
+            <div><div class="nm">安妮的夏天<span class="ep">EP01</span></div><div class="meta">2 分钟前 · 编辑中</div></div>
             <div class="st"></div>
           </div>
           <div class="proj-item">
-            <div class="proj-thumb" style="background:linear-gradient(135deg,#9FD8C4,#3E9E86)">旧</div>
-            <div><div class="nm">旧港往事</div><div class="meta">年代情感 · 第 3 集 · 昨天</div></div>
+            <div class="proj-thumb" style="background:linear-gradient(135deg,#9FD8C4,#3E9E86)">旧<span class="ptag">年代</span></div>
+            <div><div class="nm">旧港往事<span class="ep">EP03</span></div><div class="meta">昨天 · 已发布</div></div>
             <div class="st gold"></div>
           </div>
           <div class="proj-item">
-            <div class="proj-thumb" style="background:linear-gradient(135deg,#FFC6A0,#E8744F)">未</div>
-            <div><div class="nm">未命名项目 2</div><div class="meta">暂无内容 · 3 天前</div></div>
+            <div class="proj-thumb" style="background:linear-gradient(135deg,#FFC6A0,#E8744F)">未<span class="ptag">空</span></div>
+            <div><div class="nm">未命名项目 2</div><div class="meta">3 天前 · 暂无内容</div></div>
             <div class="st gray"></div>
           </div>
         </div>
@@ -695,29 +1011,33 @@ body.rx-on .rx-layer{display:flex;}
           <div class="skill-card">
             <div class="row">
               <div class="skill-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
-              <div><div class="t">日漫定妆流</div><div class="d">角色概念 → 定妆，一致性配方自动生成</div></div>
+              <div><div class="t">日漫定妆流<span class="sid">SKL_01</span></div><div class="d">角色概念 → 定妆，一致性配方自动生成</div></div>
             </div>
+            <div class="meta"><span class="cat role">角色</span><span class="ver">v1.2.0</span></div>
             <button class="run">在对话中试用 →</button>
           </div>
           <div class="skill-card">
             <div class="row">
               <div class="skill-ico" style="background:#FFF0E6;color:#E8744F"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/></svg></div>
-              <div><div class="t">强情绪三连镜</div><div class="d">特写递进 + 光影升级，情绪爆发模板</div></div>
+              <div><div class="t">强情绪三连镜<span class="sid">SKL_02</span></div><div class="d">特写递进 + 光影升级，情绪爆发模板</div></div>
             </div>
+            <div class="meta"><span class="cat mood">情绪</span><span class="cat portable">可移植</span><span class="ver">v0.4.3</span></div>
             <button class="run">在对话中试用 →</button>
           </div>
           <div class="skill-card">
             <div class="row">
               <div class="skill-ico" style="background:#E6F7F0;color:#1E9E66"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg></div>
-              <div><div class="t">校园恋爱开场</div><div class="d">前三秒钩子 + 女主出场的标准开场</div></div>
+              <div><div class="t">校园恋爱开场<span class="sid">SKL_03</span></div><div class="d">前三秒钩子 + 女主出场的标准开场</div></div>
             </div>
+            <div class="meta"><span class="cat scene">场景</span><span class="ver">v0.9.1</span></div>
             <button class="run">在对话中试用 →</button>
           </div>
           <div class="skill-card">
             <div class="row">
               <div class="skill-ico" style="background:#EAF1FE;color:#4A7DD8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg></div>
-              <div><div class="t">批量出镜</div><div class="d">分镜表 → 多实例池逐镜批量生成</div></div>
+              <div><div class="t">批量出镜<span class="sid">SKL_04</span></div><div class="d">分镜表 → 多实例池逐镜批量生成</div></div>
             </div>
+            <div class="meta"><span class="cat batch">批量</span><span class="ver">v0.1.16</span></div>
             <button class="run">在对话中试用 →</button>
           </div>
         </div>
@@ -780,6 +1100,36 @@ body.rx-on .rx-layer{display:flex;}
             <div class="switch"></div>
           </div>
         </div>
+        </div><!-- /#resPanels .lp-resource -->
+
+        <!-- 流程导航：项目内 STAGE 0→7 八步（与 titlebar 进度轨共享数据） -->
+        <div class="lp-nav" id="navPanels">
+          <div class="lp-nav-head">项目内流程<span class="ver" id="briefVer">✓ v1</span></div>
+          <div class="fs2 done" data-stage="0" title="立项 v1 · 2 产物待对齐（点此进入立项视图）">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 12.5 11.5 15 16 9.5"/><circle cx="12" cy="12" r="9.2"/></svg></div>
+            <div style="flex:1;min-width:0"><div class="t">立项 · STAGE 0</div><div class="d">1 入口 + 2 节点 + 1 门</div></div>
+            <span class="vb warn" title="2 个下游待对齐">v1 ⚠2</span>
+          </div>
+          <div class="fs2 done" data-stage="1">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V6a2 2 0 0 1 2-2h12v15H6a2 2 0 0 0-2 2Zm0 0a2 2 0 0 0 2 2h12"/></svg></div>
+            <div style="flex:1;min-width:0"><div class="t">故事 · STAGE 1</div><div class="d">三幕结构 + 钩子工程</div></div>
+            <span class="vb ok">✓</span>
+          </div>
+          <div class="fs2 done" data-stage="2">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 4v16"/></svg></div>
+            <div style="flex:1;min-width:0"><div class="t">剧本分场 · STAGE 2</div><div class="d">8 场 · 24 镜 · 已对齐 v1</div></div>
+            <span class="vb ok">✓</span>
+          </div>
+          <div class="fs2 active" data-stage="3">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+            <div style="flex:1;min-width:0"><div class="t">资产 · STAGE 3</div><div class="d">3 角色 · 5 场景 · 1 道具</div></div>
+            <span class="vb cur">3</span>
+          </div>
+          <div class="fs2" data-stage="4"><div class="ic">4</div><div style="flex:1;min-width:0"><div class="t">分镜 · STAGE 4</div><div class="d">24 个分镜待生成</div></div></div>
+          <div class="fs2" data-stage="5"><div class="ic">5</div><div style="flex:1;min-width:0"><div class="t">镜头 · STAGE 5</div><div class="d">出片 · 走 ComfyUI</div></div></div>
+          <div class="fs2" data-stage="6"><div class="ic">6</div><div style="flex:1;min-width:0"><div class="t">后期 · STAGE 6</div><div class="d">配乐 + 字幕 + 剪辑</div></div></div>
+          <div class="fs2" data-stage="7"><div class="ic">7</div><div style="flex:1;min-width:0"><div class="t">发布 · STAGE 7</div><div class="d">导出 + 多平台投放</div></div></div>
+        </div>
 
       </div>
       <div class="lp-foot">
@@ -789,6 +1139,9 @@ body.rx-on .rx-layer{display:flex;}
 
     <!-- Canvas -->
     <div class="center" id="center">
+
+      <!-- ── view-dag · 创作阶段（DAG 画布，现状） ── -->
+      <div class="view-dag active" id="viewDag">
       <div class="world" id="world">
         <svg class="edges" viewBox="0 0 1140 420" preserveAspectRatio="none">
           <defs>
@@ -930,10 +1283,201 @@ body.rx-on .rx-layer{display:flex;}
           <div class="view" id="mmView" style="left:0;top:0;width:55%;height:100%"></div>
         </div>
       </div>
+      </div><!-- /#viewDag .view-dag -->
+
+      <!-- ── view-stage0 · 立项视图（v1.10 终版 · 1 入口 + 2 节点 + 1 道定案门 + 完整状态机） ── -->
+      <div class="view-stage0" id="viewStage0">
+        <div class="s0-head">
+          <span class="lb">画布 · 线性收敛链（非 DAG）</span>
+          <span class="case">《2002 相识》</span>
+          <span class="v" id="s0VerChip">立项单 v1</span>
+          <span class="spacer"></span>
+          <button class="s0-autoplay" id="s0Autoplay">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
+            <span id="s0AutoplayLbl">▶ 观看式演示</span>
+          </button>
+          <button class="btn-rst" id="s0Replay">↺ 重置流程</button>
+          <button class="btn-rst" id="s0Back">← 返回 DAG</button>
+        </div>
+        <!-- 顶栏进度条（v1.9 nav-foot prog-track） -->
+        <div class="s0-prog" id="s0ProgTrack"><i id="s0ProgBar"></i></div>
+
+        <div class="s0-body">
+
+          <!-- 4 步流程导航（v1.9 风格 + active/done 联动） -->
+          <div class="s0-fnav" id="s0FNav">
+            <div class="s0-fstep active" data-fs="0">
+              <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+              <div class="t">入口 · 反问</div>
+            </div>
+            <div class="s0-fstep" data-fs="1">
+              <div class="ic">1</div>
+              <div class="t">选题诊断</div>
+            </div>
+            <div class="s0-fstep" data-fs="2">
+              <div class="ic">2</div>
+              <div class="t">故事前提</div>
+            </div>
+            <div class="s0-fstep" data-fs="3">
+              <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+              <div class="t">立项定案门</div>
+            </div>
+          </div>
+
+          <!-- 入口 · 用户原话（v1.9 entry 风格） -->
+          <div class="s0-entry" id="s0Entry">
+            <div class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+            <div class="body">
+              <div class="tag">入口动作 · 用户原话</div>
+              <div class="q">「我想做一个我和我老婆认识的故事，发生在 2002 年。」</div>
+              <div class="note">⏱ 能提取的事实立即记录（时间=2002 · 核心事件=相识 · 关系=夫妻），不等反问回答</div>
+            </div>
+          </div>
+
+          <!-- 节点链 · 1 行 3 列（v1.9 风格 + 状态机联动） -->
+          <div style="position:relative">
+            <div class="s0-chain">
+
+              <!-- ① 选题诊断（含诊断块 + 风格选型 + 辅助开关 + quick-hint） -->
+              <div class="s0-cnode" id="s0Node1">
+                <div class="nh">
+                  <div class="ni">1</div>
+                  <div class="nt">选题诊断</div>
+                  <div class="ns" id="s0N1St">待启动</div>
+                </div>
+                <div class="nb">
+                  <div class="s0-diag weak" id="s0N1Body">
+                    <div class="ds-h">📊 同赛道对标案例</div>
+                    <ul><li>千禧年代怀旧爱情 · 情绪流打法，平台表现稳健</li><li>参考其「年代细节＋情感钩子」结构</li></ul>
+                    <div class="ds-h">⚠️ 合规 / 使用边界</div>
+                    <ul><li>备案分级、AI 融像/融声授权、平台审核</li></ul>
+                    <div class="ds-h">📝 六要素口径草案（全部预填 · 全部可改）</div>
+                  </div>
+                  <div id="s0N1Diag"></div>
+                  <div class="s0-concl" id="s0N1Concl" style="display:none">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.7l4.6 4.6L19 7.3"/></svg>
+                    结论：可做 · 具体要改什么直接在对话里说
+                  </div>
+
+                  <!-- 风格选型（v1.9 风格选择卡 + 辅助开关） -->
+                  <div class="s0-style-intro" style="margin-top:9px">🎨 Agent 已按题材从《视觉风格谱系》匹配（不凭空自创画风），可改：</div>
+                  <button class="s0-style-opt picked" data-style="A7" id="s0StyleA7">
+                    <div class="s0-style-thumb" style="background:linear-gradient(135deg,#A8E6CF,#56C596)">A7</div>
+                    <div style="flex:1"><div class="s0-style-name">千禧清新怀旧</div>
+                      <div class="s0-style-meta">A7 @ v1.46 · <span class="s0-st-badge backup">备·未验证</span></div>
+                    </div>
+                  </button>
+                  <div class="s0-aux" id="s0AuxRow">
+                    <div class="s0-aux-sw" id="s0AuxSw"></div>挂 1 个辅助气氛（可选 · 候选域封闭 = B/D）
+                  </div>
+                </div>
+              </div>
+
+              <!-- ② 故事前提（假版本 + 已确认 + 本季边界 chip） -->
+              <div class="s0-cnode" id="s0Node2">
+                <div class="nh">
+                  <div class="ni">2</div>
+                  <div class="nt">故事前提</div>
+                  <div class="ns" id="s0N2St">待启动</div>
+                </div>
+                <div class="nb">
+                  <div id="s0N2Body">
+                    <div class="s0-prem">
+                      <div class="pi guess"><span class="k">AI 先编</span><span>男主 24 岁工厂青年、女主 20 岁供销社职员，经人介绍相亲认识——<b>用来引出真人真事，照此纠正即可</b></span></div>
+                      <div class="pi fact"><span class="k">已确认</span><span><b>时间</b> 2002 · <b>地点</b> 某小城 · <b>人物</b> 男女主身份年龄 · <b>核心事件</b> 相遇方式</span></div>
+                    </div>
+                  </div>
+                  <!-- 本季边界缺口追问（v1.9 chip 选择） -->
+                  <div class="s0-qhint" id="s0N2Edge" style="display:none">
+                    <div class="qh-t">⏳ 缺口追问</div>
+                    <b>本季边界：这一季讲到哪？</b>（必答后才能定案）
+                    <div class="s0-chip-row">
+                      <button class="s0-chip" data-edge="相识">第一季只讲相识</button>
+                      <button class="s0-chip ghost" data-edge="恋爱">讲到确定关系</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 🚪 定案门 -->
+              <div class="s0-cnode gate" id="s0Gate">
+                <div class="nh">
+                  <div class="ni">✓</div>
+                  <div class="nt">立项定案门</div>
+                  <div class="ns" id="s0N3St">等待就绪条件</div>
+                </div>
+                <div class="door"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12.5 11.5 15 16 9.5"/><circle cx="12" cy="12" r="9.2"/></svg></div>
+                <div class="nb">就绪条件客观判定<br><span style="color:var(--ink-4);font-size:9.5px">六要素有值 · 前提达 5 项 · 1 主风格</span></div>
+                <div class="diff" id="s0Diff"><b>相对 v1 改动：</b><span id="s0DiffTxt">集数 8→10、风格 A7→A5、premise 第 2 句修订</span></div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- 状态机推进条（v1.9 quick-hint 进入画布中部 · 演示控制） -->
+          <div class="s0-qhint" id="s0DemoBar">
+            <div class="qh-t">▶️ 演示控制（顺序自由）</div>
+            点选下方按钮推进 5 步状态机，每步都会自动改流程导航 + 节点状态 + 对话流：
+            <div class="s0-chip-row" id="s0DemoBtns">
+              <button class="s0-chip" data-step="nature">Step 0 · 项目性质反问</button>
+              <button class="s0-chip" data-step="diag">Step 1 · 诊断就绪</button>
+              <button class="s0-chip" data-step="style">Step 2 · 风格选型</button>
+              <button class="s0-chip" data-step="prem">Step 3 · 故事前提</button>
+              <button class="s0-chip" data-step="edge">Step 4 · 缺口追问</button>
+              <button class="s0-chip" data-step="ready">Step 5 · 就绪 · 发定案卡</button>
+              <button class="s0-chip" data-step="ok">Step 6 · 发布立项 → 跳回 DAG</button>
+            </div>
+          </div>
+
+          <!-- v1.10 规则提示条 -->
+          <div style="font-size:10.5px;color:var(--ink-3);background:#F4F5FA;border:1px solid var(--line);border-radius:9px;padding:9px 12px;line-height:1.55;">
+            <b style="color:var(--violet-d)">v1.10 规则：</b>所有字段（含 premise / 主风格）任何阶段都可改；改后系统反向追溯 <code>manifest.parentReference</code> 标记下游影响点，由用户三选一（<b>一键重生成</b> / <b>仅标记脏</b> / <b>取消</b>）。立项单 v1..vN 全量保留。
+          </div>
+
+        </div>
+
+        <!-- 定案卡弹层（v1.10 · 发布 v(N+1)） -->
+        <div class="s0-modal" id="s0Modal">
+          <div class="s0-gcard">
+            <div class="s0-gh">
+              <div class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12.5 11.5 15 16 9.5"/><circle cx="12" cy="12" r="9.2"/></svg></div>
+              <div><div class="gt">主控 Agent · 立项定案卡</div><div class="gs">就绪条件全部满足，可发布新版本</div></div>
+              <span class="v" id="s0ModalVer">立项单 v2</span>
+            </div>
+            <div class="s0-gb">
+              <div class="s0-gs2">
+                <div class="h">六要素口径</div>
+                <div class="line"><span class="k">题材</span><span>青春/爱情·年代纪念</span></div>
+                <div class="line"><span class="k">风格</span><span>千禧清新怀旧</span></div>
+                <div class="line"><span class="k">平台</span><span>待定</span></div>
+                <div class="line"><span class="k">时长/集数</span><span>待定 / 10 集</span></div>
+                <div class="line"><span class="k">画幅</span><span>待定</span></div>
+              </div>
+              <div class="s0-gs2">
+                <div class="h">故事前提（已确认 · 达最低门槛）</div>
+                <div class="line"><span style="flex:1">2002 · 某小城 · 男女主身份年龄 · 相遇方式 · <b>第一季只讲相识</b></span></div>
+              </div>
+              <div class="s0-diff"><b>相对 v1 改动：</b><span id="s0ModalDiff">集数 8→10、premise 第 2 句修订。已影响 2 个下游产物（影响评估见下）</span></div>
+              <div class="s0-gquote">
+                <div class="qh">口头拍板等价</div>
+                用户也可直接说「行，开始讲故事吧」——系统记录原话与定案卡版本，效果与按钮一致。
+              </div>
+            </div>
+            <div class="s0-ga">
+              <button class="edit" id="s0Edit">再改改</button>
+              <button class="hist">查看历史</button>
+              <button class="ok" id="s0Publish">发布立项 v2 →</button>
+            </div>
+          </div>
+        </div>
+      </div><!-- /#viewStage0 .view-stage0 -->
     </div>
 
     <!-- Right chat -->
     <div class="right">
+
+      <!-- ── right-chat · 创作阶段（多 Agent 对话） ── -->
+      <div class="right-chat active" id="rightChat">
       <div class="chat-head">
         <div class="row">
           <div>
@@ -1027,6 +1571,118 @@ body.rx-on .rx-layer{display:flex;}
             <button title="资产"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg></button>
             <span class="mchip"><span style="width:5px;height:5px;border-radius:50%;background:#6C5CE7"></span>H3 自动选配</span>
             <button class="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg></button>
+          </div>
+        </div>
+      </div>
+      </div><!-- /#rightChat .right-chat -->
+
+      <!-- ── right-capture · 立项视图（对话流 · 已捕获口径融合进消息气泡） ── -->
+      <div class="right-capture" id="rightCapture">
+        <div class="cpt-head">
+          <div class="h"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.2 8.7 8.7 0 0 1-3.8-.9L3 20l1.4-5.2a8 8 0 0 1-.9-3.3A8.4 8.4 0 0 1 12 3.3a8.4 8.4 0 0 1 9 8.2Z"/></svg></div>主控 Agent · 立项对话</div>
+          <div class="sub">回答 / 纠正 / 拍板即可。已捕获内容三色标记，可点回任一条修改。</div>
+          <span class="ct" id="cptCt">对话中 · 5 口径已落库</span>
+        </div>
+        <div class="cpt-list" id="cptList">
+
+          <!-- 0 · AI 立即提取（不等反问） -->
+          <div class="cmsg agent">
+            <div class="ma">AI</div>
+            <div class="bubble"><span class="src ai">AI 提取</span>已立即落库 3 个事实：<b>时间=2002</b> · <b>核心事件=相识</b> · <b>关系=夫妻</b>。地点、人物细节稍后补。</div>
+          </div>
+
+          <!-- 0 · AI 反问关键分叉 -->
+          <div class="cmsg agent">
+            <div class="ma">AI</div>
+            <div class="bubble"><span class="src ai">AI 反问</span>好题材。开干前先确认一个<b>关键分叉</b>——这决定选题诊断与合规口径方向：
+              <div class="opts" id="askNature">
+                <div class="opt" data-nature="biz"><div class="oi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg></div>商业短剧（要上平台 · 讲打法 · 走合规）</div>
+                <div class="opt" data-nature="mem"><div class="oi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9.2-9A5 5 0 0 1 12 6a5 5 0 0 1 9.2 6c-2.2 4.4-9.2 9-9.2 9Z"/></svg></div>个人纪念（不以投放为目的 · 诊断弱化）</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 用户原话（落库为口径） -->
+          <div class="cmsg user">
+            <div class="ma">我</div>
+            <div class="bubble"><span class="src user">用户 · 落库</span>「我想做一个<b>我和我老婆认识</b>的故事，发生在 <b>2002 年</b>」</div>
+          </div>
+
+          <!-- 用户答项目性质 -->
+          <div class="cmsg user" id="userBiz">
+            <div class="ma">我</div>
+            <div class="bubble"><span class="src user">用户</span>「商业短剧，想上抖音」</div>
+          </div>
+
+          <!-- 1 · AI 推断（待确认） -->
+          <div class="cmsg agent">
+            <div class="ma">AI</div>
+            <div class="bubble"><span class="src infer">AI 推断 · 待确认</span>根据商业短剧口径补全 2 个字段：<b>题材≈青春/爱情·年代纪念</b> · <b>风格≈千禧清新怀旧</b>。如有偏差请直接说，或点画布字段修改。</div>
+          </div>
+
+          <!-- 1 · AI 诊断就绪 -->
+          <div class="cmsg agent">
+            <div class="ma">AI</div>
+            <div class="bubble"><span class="src ai">AI 诊断</span>诊断出来了（<b>商业向</b>，对标/合规完整）。六要素预填好，可改。结论：<b style="color:var(--green-d)">可做</b>。</div>
+          </div>
+
+          <!-- 2 · 风格选型气泡（嵌在对话中） -->
+          <div class="cmsg agent">
+            <div class="ma">AI</div>
+            <div class="bubble"><span class="src ai">风格选型</span>已按题材从《视觉风格谱系》匹配（不凭空自创画风）：
+              <div class="opts" id="askStyle" style="margin-top:7px">
+                <div class="opt" data-style="A7"><div class="oi" style="background:linear-gradient(135deg,#A8E6CF,#56C596);color:#fff">A7</div>千禧清新怀旧 · A7 @ v1.46 · <span class="s0-st-badge backup" style="margin-left:4px">备·未验证</span></div>
+                <div class="opt" data-style="A5"><div class="oi" style="background:linear-gradient(135deg,#FFD6A5,#E8855F);color:#fff">A5</div>年代胶片暖黄 · A5 @ v1.46</div>
+                <div class="opt" data-style="B2"><div class="oi" style="background:linear-gradient(135deg,#C5B6F5,#8B7BD8);color:#fff">B2</div>青春校园柔和 · B2 @ v1.46</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 用户选风格 -->
+          <div class="cmsg user">
+            <div class="ma">我</div>
+            <div class="bubble"><span class="src user">用户</span>「就用 A7，辅助气氛先不挂」</div>
+          </div>
+
+          <!-- 3 · 故事前提：假版本 + 已确认 -->
+          <div class="cmsg agent">
+            <div class="ma">AI</div>
+            <div class="bubble"><span class="src ai">故事前提</span>先编一个「<b>假版本</b>」，你照着纠正真人真事，不用从零组织语言——
+              <div class="s0-prem" style="margin-top:5px">
+                <div class="pi guess"><span class="k">AI 先编</span><span>男主 24 岁工厂青年、女主 20 岁供销社职员，经人介绍相亲认识</span></div>
+                <div class="pi fact"><span class="k">已确认</span><span><b>时间</b> 2002 · <b>地点</b> 某小城 · <b>人物</b> 男女主身份年龄 · <b>核心事件</b> 相遇方式</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 · 缺口追问：本季边界（v1.9 chip） -->
+          <div class="cmsg agent">
+            <div class="ma">AI</div>
+            <div class="bubble"><span class="src ai">缺口追问</span>还差最后一项才能定案——<b>本季边界：这一季讲到哪？</b>
+              <div class="cr" id="askEdge">
+                <button class="chip" data-edge="相识">第一季只讲相识</button>
+                <button class="chip ghost" data-edge="恋爱">讲到确定关系</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5 · 就绪 · 发定案卡 + quick-hint 拍板提示 -->
+          <div class="cmsg agent" id="readyMsg">
+            <div class="ma">AI</div>
+            <div class="bubble"><span class="src ai">就绪 · 发卡</span>三项就绪条件全部满足 — 六要素有值（含待定）、故事前提达 5 项门槛、主风格已选。<b>立项定案卡来了 ↓</b>
+              <div class="qh"><div class="qh-t">💡 拍板提示</div>直接说「行，开始讲故事吧」= 按钮拍板（系统记录原话与定案卡版本）</div>
+            </div>
+          </div>
+
+        </div>
+        <div class="cpt-cmd">
+          <button class="btn-aux" id="cptOpenGate">✓ 检查就绪条件 · 发定案卡 →</button>
+          <div class="ci-box">
+            <textarea id="cptText" placeholder="回答 / 纠正 / 直接拍板「行，开始讲故事吧」…"></textarea>
+            <div class="ci-row">
+              <span class="mchip">火山方舟 · 文本侧</span>
+              <button class="send" id="cptSend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4Z"/></svg></button>
+            </div>
           </div>
         </div>
       </div>
@@ -1381,6 +2037,315 @@ document.querySelectorAll('.rx-wave').forEach(w=>{
   }
   w.innerHTML=html;
 });
+
+/* ═══════════ 方案 A · 视图切换 ═══════════
+   - 左栏 toggle：资源库 ⇄ 流程导航
+   - 中栏模式：view-dag（创作）⇄ view-stage0（立项）
+   - 右栏模式：right-chat（多 Agent）⇄ right-capture（已捕获口径）
+   - 触发：toggle 点击 / STAGE 0 步骤 / 流程导航 STAGE 0 步骤 / 返回 DAG / 定案门发布
+═════════════════════════════════════════ */
+const $ = (id) => document.getElementById(id);
+const segRes = $('segResource'), segNav = $('segNav');
+const resPanels = $('resPanels'), navPanels = $('navPanels');
+const viewDag = $('viewDag'), viewStage0 = $('viewStage0');
+const rightChat = $('rightChat'), rightCapture = $('rightCapture');
+const stp0 = $('stp0'), s0Back = $('s0Back'), s0Gate = $('s0Gate');
+const s0Modal = $('s0Modal'), s0Publish = $('s0Publish'), s0Edit = $('s0Edit');
+const cptOpenGate = $('cptOpenGate');
+const lpSearch = $('lpSearch');
+
+function switchTo(mode){
+  // mode = 'dag' | 'stage0'
+  viewDag.classList.toggle('active', mode==='dag');
+  viewStage0.classList.toggle('active', mode==='stage0');
+  rightChat.classList.toggle('active', mode==='dag');
+  rightCapture.classList.toggle('active', mode==='stage0');
+  lpSearch.style.display = mode==='stage0' ? 'none' : 'flex';
+}
+
+function switchSeg(which){
+  // which = 'resource' | 'nav'
+  segRes.classList.toggle('on', which==='resource');
+  segNav.classList.toggle('on', which==='nav');
+  resPanels.classList.toggle('active', which==='resource');
+  navPanels.classList.toggle('active', which==='nav');
+}
+
+segRes.addEventListener('click', () => switchSeg('resource'));
+segNav.addEventListener('click', () => switchSeg('nav'));
+stp0.addEventListener('click', () => { switchSeg('nav'); switchTo('stage0'); });
+s0Back.addEventListener('click', () => switchTo('dag'));
+
+// 流程导航 STAGE 0 步骤点击进入立项视图
+const fs2Stage0 = document.querySelector('.fs2[data-stage="0"]');
+if (fs2Stage0) fs2Stage0.addEventListener('click', () => switchTo('stage0'));
+
+// 定案门节点点击 → 打开弹层
+s0Gate.addEventListener('click', () => s0Modal.classList.add('show'));
+
+// "检查就绪条件" 按钮（同效果）
+cptOpenGate.addEventListener('click', () => s0Modal.classList.add('show'));
+
+// "再改改" 关闭弹层
+s0Edit.addEventListener('click', () => s0Modal.classList.remove('show'));
+
+// 立项对话 · 回车发送（演示）
+const cptText = $('cptText'), cptSend = $('cptSend'), cptList = $('cptList');
+function cptAppend(role, srcLabel, srcKind, html){
+  const d = document.createElement('div');
+  d.className = 'cmsg ' + (role==='user'?'user':'agent');
+  d.innerHTML = '<div class="ma">'+(role==='user'?'我':'AI')+'</div>'+
+                '<div class="bubble"><span class="src '+srcKind+'">'+srcLabel+'</span>'+html+'</div>';
+  cptList.appendChild(d);
+  cptList.scrollTop = cptList.scrollHeight;
+}
+function cptSubmit(){
+  const v = cptText.value.trim();
+  if (!v) return;
+  cptAppend('user', '用户', 'user', v);
+  cptText.value = '';
+  // 演示：1.5s 后 AI 假响应
+  setTimeout(() => {
+    cptAppend('agent', 'AI 提取', 'ai', '已记录到「<b>已捕获口径</b>」区。');
+  }, 1200);
+}
+cptSend.addEventListener('click', cptSubmit);
+cptText.addEventListener('keydown', (e)=>{ if (e.key==='Enter' && !e.shiftKey){ e.preventDefault(); cptSubmit(); }});
+
+// 反问选项点击（picked 联动 + 自动填输入框 + 推状态机）
+document.querySelectorAll('.cmsg .opt').forEach(opt => {
+  opt.addEventListener('click', () => {
+    const bubble = opt.closest('.bubble');
+    if (bubble) bubble.querySelectorAll('.opt').forEach(x => x.classList.remove('picked'));
+    opt.classList.add('picked');
+    const nature = opt.dataset.nature, style = opt.dataset.style;
+    if (nature) cptText.value = (nature==='biz' ? '商业短剧，想上抖音' : '个人纪念，不上平台');
+    else if (style) cptText.value = `就用 ${style}，辅助气氛先不挂`;
+    else cptText.value = opt.textContent.trim();
+    cptText.focus();
+    if (nature) setTimeout(() => s0StepUp('diag'), 400);
+    if (style) setTimeout(() => s0StepUp('prem'), 400);
+  });
+});
+// chip（askEdge）点击
+document.querySelectorAll('.cmsg .cr .chip').forEach(ch => {
+  ch.addEventListener('click', () => {
+    const cr = ch.closest('.cr');
+    if (cr) cr.querySelectorAll('.chip').forEach(x => { x.style.opacity=.4; x.style.pointerEvents='none'; });
+    ch.style.opacity=1; ch.style.background='var(--violet)'; ch.style.color='#fff';
+    cptText.value = (ch.dataset.edge==='相识' ? '第一季就讲我们怎么认识的' : '讲到我们确定恋爱关系');
+    cptText.focus();
+    setTimeout(() => s0StepUp('ready'), 400);
+  });
+});
+
+/* ═══════════ view-stage0 · 5 步状态机 ═══════════ */
+const s0FNav = $('s0FNav');
+const s0ProgBar = $('s0ProgBar');
+const s0VerChip = $('s0VerChip');
+const s0DiffTxt = $('s0DiffTxt');
+const s0ModalVer = $('s0ModalVer');
+const s0ModalDiff = $('s0ModalDiff');
+const s0N1St = $('s0N1St');
+const s0N2St = $('s0N2St');
+const s0N3St = $('s0N3St');
+const s0Diff = $('s0Diff');
+const s0AuxSw = $('s0AuxSw');
+const s0N1Diag = $('s0N1Diag');
+const s0N1Concl = $('s0N1Concl');
+const s0N2Body = $('s0N2Body');
+const s0N2Edge = $('s0N2Edge');
+const s0N1 = $('s0Node1');
+const s0N2 = $('s0Node2');
+const s0N3 = $('s0Gate');
+const s0DemoBtns = $('s0DemoBtns');
+const s0Replay = $('s0Replay');
+
+function s0SetFlow(active, doneCount){
+  s0FNav.querySelectorAll('.s0-fstep').forEach((el, i) => {
+    el.classList.toggle('active', i === active);
+    el.classList.toggle('done', i < doneCount);
+  });
+  s0ProgBar.style.width = (doneCount/4*100) + '%';
+}
+
+function s0StepUp(which){
+  if (which === 'nature'){ s0SetFlow(0, 0); return; }
+  if (which === 'diag'){
+    s0SetFlow(1, 1);
+    s0N1.classList.add('done');
+    s0N1St.textContent = '诊断就绪';
+    s0N1Diag.innerHTML =
+      '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0"><span style="width:52px;color:#9AA0B5;font-weight:600">题材</span><span style="font-weight:700">青春/爱情·年代纪念</span></div>'+
+      '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0"><span style="width:52px;color:#9AA0B5;font-weight:600">风格</span><span style="font-weight:700">千禧清新怀旧</span></div>'+
+      '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0"><span style="width:52px;color:#9AA0B5;font-weight:600">平台</span><span style="color:#B8BDCE">待定</span></div>'+
+      '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0"><span style="width:52px;color:#9AA0B5;font-weight:600">时长</span><span style="color:#B8BDCE">待定</span></div>'+
+      '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0"><span style="width:52px;color:#9AA0B5;font-weight:600">集数</span><span style="color:#B8BDCE">待定</span></div>'+
+      '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0"><span style="width:52px;color:#9AA0B5;font-weight:600">画幅</span><span style="color:#B8BDCE">待定</span></div>';
+    s0N1Concl.style.display = 'flex';
+    s0N1.querySelector('.s0-diag').classList.remove('weak');
+    return;
+  }
+  if (which === 'style'){ s0SetFlow(1, 1); return; }
+  if (which === 'prem'){
+    s0SetFlow(2, 2);
+    s0N2.classList.add('done');
+    s0N2St.textContent = '已达最低门槛';
+    s0N2Body.querySelector('.pi.fact').innerHTML = '<span class="k">已确认</span><span><b>时间</b> 2002 · <b>地点</b> 某小城 · <b>人物</b> 男女主身份年龄 · <b>核心事件</b> 相遇方式</span>';
+    return;
+  }
+  if (which === 'edge'){
+    s0N2Edge.style.display = 'block';
+    s0N2.classList.add('active');
+    s0N2St.textContent = '缺口追问中';
+    return;
+  }
+  if (which === 'ready'){
+    s0N2.classList.remove('active'); s0N2.classList.add('done');
+    s0N2St.textContent = '已达最低门槛';
+    s0N2Edge.style.display = 'none';
+    s0SetFlow(3, 3);
+    s0N3.classList.add('active');
+    s0N3St.textContent = '就绪条件满足';
+    s0DiffTxt.textContent = '集数 8→10、premise 第 2 句修订';
+    s0Diff.style.display = 'block';
+    s0Modal.classList.add('show');
+    return;
+  }
+  if (which === 'ok'){ s0Publish.click(); return; }
+}
+
+const s0Autoplay = $('s0Autoplay');
+const s0AutoplayLbl = $('s0AutoplayLbl');
+let s0AutoplayRunning = false;
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* 观看式自动播放：复刻 v1.9 的 5 步串行节奏 + 自动拟消息 + picked */
+async function s0AutoplayRun(){
+  if (s0AutoplayRunning) return;
+  s0AutoplayRunning = true;
+  s0Autoplay.classList.add('playing');
+  s0AutoplayLbl.textContent = '⏸ 停止演示';
+  s0Replay.click(); // 先重置
+  await sleep(300);
+
+  // STEP 0 · 入口 + 反问
+  s0SetFlow(0, 0);
+  await sleep(400);
+  cptAppend('user', '用户 · 落库', 'user', '「我想做一个<b>我和我老婆认识</b>的故事，发生在 <b>2002 年</b>」');
+  await sleep(700);
+  // 已预置的 AI 提取 + AI 反问消息由 cptList 静态加载
+  // 拟用户答项目性质
+  cptAppend('user', '用户', 'user', '「商业短剧，想上抖音」');
+  // 自动 picked nature
+  const bizOpt = document.querySelector('.cmsg .opt[data-nature="biz"]');
+  if (bizOpt) bizOpt.click();
+  await sleep(600);
+
+  // STEP 1 · 诊断就绪
+  s0StepUp('diag');
+  await sleep(700);
+
+  // STEP 2 · 风格选型 · 自动选 A7
+  const styleOpt = document.querySelector('.cmsg .opt[data-style="A7"]');
+  if (styleOpt) styleOpt.click();
+  await sleep(500);
+  cptAppend('user', '用户', 'user', '「就用 A7，辅助气氛先不挂」');
+  await sleep(600);
+
+  // STEP 3 · 故事前提 · 自动激活
+  s0StepUp('prem');
+  await sleep(700);
+
+  // STEP 4 · 缺口追问 + 自动选"第一季只讲相识"
+  s0N2Edge.style.display = 'block';
+  s0N2.classList.add('active');
+  s0N2St.textContent = '缺口追问中';
+  await sleep(500);
+  const edgeChip = s0N2Edge.querySelector('button[data-edge="相识"]');
+  if (edgeChip) edgeChip.click();
+  await sleep(500);
+  cptAppend('user', '用户', 'user', '「第一季就讲我们怎么认识的」');
+  await sleep(600);
+
+  // STEP 5 · 就绪 · 发定案卡
+  s0StepUp('ready');
+  // v1.9 风格：弹层出来后再等用户拍板
+  await sleep(2000);
+
+  // STEP 6 · 自动拍板（演示模式直接发布）
+  s0Publish.click();
+  await sleep(800);
+
+  s0Autoplay.classList.remove('playing');
+  s0AutoplayLbl.textContent = '▶ 观看式演示';
+  s0AutoplayRunning = false;
+  cptAppend('agent', 'AI 提取', 'ai', '<b>观看式演示完成</b> — 已自动发布立项 v2，<b>400ms 后跳回 DAG</b>。');
+}
+
+s0Autoplay.addEventListener('click', () => {
+  if (s0AutoplayRunning) {
+    // 停止（简单实现：刷新页面）
+    location.reload();
+  } else {
+    s0AutoplayRun();
+  }
+});
+
+s0DemoBtns.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-step]');
+  if (btn) s0StepUp(btn.dataset.step);
+});
+
+s0AuxSw.addEventListener('click', () => s0AuxSw.classList.toggle('on'));
+
+s0N2Edge.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-edge]');
+  if (!btn) return;
+  s0N2Edge.querySelectorAll('.s0-chip').forEach(x => { x.style.opacity=.4; x.style.pointerEvents='none'; });
+  btn.style.opacity=1; btn.style.background='var(--violet)'; btn.style.color='#fff';
+  setTimeout(() => s0StepUp('ready'), 300);
+});
+
+s0Replay.addEventListener('click', () => {
+  s0SetFlow(0, 0);
+  [s0N1, s0N2, s0N3].forEach(n => n.classList.remove('active','done'));
+  s0N1St.textContent = '待启动';
+  s0N2St.textContent = '待启动';
+  s0N3St.textContent = '等待就绪条件';
+  s0N1Diag.innerHTML = '';
+  s0N1Concl.style.display = 'none';
+  s0N1.querySelector('.s0-diag').classList.add('weak');
+  s0N2Body.querySelector('.pi.fact').innerHTML = '<span class="k">已确认</span><span><b>时间</b> 2002 · <b>地点</b> 某小城 · <b>人物</b> 男女主身份年龄 · <b>核心事件</b> 相遇方式</span>';
+  s0N2Edge.style.display = 'none';
+  s0N2Edge.querySelectorAll('.s0-chip').forEach(x => { x.style.opacity=''; x.style.pointerEvents=''; x.style.background=''; x.style.color=''; });
+  s0Diff.style.display = 'none';
+  s0VerChip.textContent = '立项单 v1';
+  s0Modal.classList.remove('show');
+  s0AuxSw.classList.remove('on');
+  document.querySelectorAll('.cmsg .opt.picked').forEach(x => x.classList.remove('picked'));
+  document.querySelectorAll('.cmsg .cr .chip').forEach(x => { x.style.opacity=''; x.style.pointerEvents=''; x.style.background=''; x.style.color=''; });
+  cptAppend('agent', 'AI 提取', 'ai', '已重置流程，<b>可重新演示</b>。');
+});
+
+// "发布立项 v2"：模拟落盘，关闭弹层，回到 DAG，badge 清零
+s0Publish.addEventListener('click', () => {
+  s0Modal.classList.remove('show');
+  // 模拟版本号从 v1 升到 v2，2 个待对齐被消费
+  const badge = $('segNavBadge');
+  if (badge){ badge.textContent = '✓'; badge.className = 'badge ok'; }
+  const fs0Badge = document.querySelector('.fs2[data-stage="0"] .vb');
+  if (fs0Badge){ fs0Badge.className = 'vb ok'; fs0Badge.textContent = '✓ v2'; fs0Badge.title = '立项 v2 · 7 产物已对齐'; }
+  const briefVer = $('briefVer');
+  if (briefVer){ briefVer.textContent = '✓ v2'; briefVer.className = 'ver'; }
+  const s0HeadVer = document.querySelector('.s0-head .v');
+  if (s0HeadVer) s0HeadVer.textContent = '立项单 v2';
+  // 回到 DAG
+  setTimeout(() => switchTo('dag'), 400);
+});
+
+// 状态条 STAGE 0 步骤区已加 cursor:pointer + v1.10 tooltip（HTML 中）
 </script>
 </body>
 </html>

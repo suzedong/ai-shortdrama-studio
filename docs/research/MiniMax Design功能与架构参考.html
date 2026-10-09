@@ -15,6 +15,7 @@
   .sub{font-size:13px;opacity:.94;}
   h2{font-size:19px;font-weight:800;color:var(--mint-deep);margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line);}
   h3{font-size:16px;font-weight:700;margin:18px 0 8px;color:#2C4A44;}
+  h4{font-size:14.5px;font-weight:700;margin:14px 0 6px;color:#2C4A44;}
   p{margin:8px 0;}
   ul,ol{margin:8px 0 8px 22px;}
   li{margin:4px 0;}
@@ -22,8 +23,13 @@
   th{background:#EAF5F1;color:#2C4A44;text-align:left;padding:8px 10px;border:1px solid var(--line);font-weight:700;}
   td{padding:7px 10px;border:1px solid var(--line);vertical-align:top;}
   code{background:#EEF3F1;border-radius:4px;padding:1px 6px;font-size:13px;font-family:Menlo,Consolas,monospace;}
+  pre{background:#0E1F1B;color:#E5F4F0;border-radius:8px;padding:14px 18px;margin:10px 0;overflow-x:auto;font-size:12.5px;line-height:1.6;border:1px solid #1B3530;}
+  pre code{background:none;color:inherit;padding:0;font-size:inherit;}
   .note{background:#FFF8E1;border-left:4px solid #D9A520;padding:10px 14px;border-radius:0 8px 8px 0;margin:12px 0;font-size:13.5px;}
+  .apply{background:#EAF5F1;border-left:4px solid var(--mint-deep);padding:10px 14px;border-radius:0 8px 8px 0;margin:12px 0;font-size:13.5px;}
+  .apply::before{content:"→ 对我们的应用：";font-weight:800;color:var(--mint-deep);}
   .tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:rgba(46,158,138,.12);color:var(--mint-deep);margin-left:6px;}
+  .ver-tag{background:#D9A520;color:#fff;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;margin-left:6px;}
   .foot{margin-top:36px;font-size:12px;color:var(--muted);text-align:center;border-top:1px solid var(--line);padding-top:14px;}
 </style>
 </head>
@@ -32,13 +38,13 @@
 
 <header>
   <div class="kicker">AI 短剧制作文档族 · 外部产品参考</div>
-  <h1>MiniMax Design 功能与架构参考 <span class="tag">v1.0 · 2026-10-02</span></h1>
+  <h1>MiniMax Design 功能与架构参考 <span class="tag">v1.1 · 2026-10-09</span><span class="ver-tag">v1.1 ↑ from v1.0</span></h1>
   <div class="sub">功能全景 + 架构实测 + 与我们体系的对照 · 供《短剧Agent平台设计》逐条参照（非规范成员）</div>
 </header>
 
 <h2>0. 定位</h2>
 <p><b>MiniMax Design = AI Agent 驱动的商业内容生产平台</b>：用户表达创作目标 → Agent 规划任务、扩展 Prompt、选择 Skill 与工具、调用适配模型、组织素材、持续修改，把想法做到最终交付。</p>
-<p>覆盖内容形态：文本脚本、图文、视频、Motion Graphic、3D 建模、网页 UI/UX、专业设计与影视后期。优势场景：广告投放、电商素材、品牌宣传、KOC 内容、短视频、Motion Graphic、3D 资产、影视后期。</p>
+<p>覆盖内容形态：文本脚本、图文、视频、Motion Graphic、3D 建模、网页 UI/UX、专业设计与影视后期。优势场景：广告投放、电商素材、品牌宣传、KOC 内容、短视频、Motion Graphic、3D 资产、网页 UI/UX、影视后期。</p>
 
 <h2>1. 功能全景</h2>
 
@@ -54,7 +60,7 @@
 <h3>1.2 四种创作入口（官方口径）</h3>
 <ol>
 <li><b>直接描述目标</b>：如"为一款无线耳机制作 15 秒竖屏广告，突出轻便降噪"。</li>
-<li><b>从 Skill 开始</b>：`/` 快捷键调用 / 与 Agent 询问匹配 / 已开启 Skill 自动调用。</li>
+<li><b>从 Skill 开始</b>：<code>/</code> 快捷键调用 / 与 Agent 询问匹配 / 已开启 Skill 自动调用。</li>
 <li><b>从提示词模板</b>：模板广场选模板 →「使用提示词」→ 修改 → 生成后继续对话调整。</li>
 <li><b>导入素材或项目</b>：本地图/视频/音频/3D/历史项目继续编辑；资产中心素材直接调入。</li>
 </ol>
@@ -65,6 +71,38 @@
 
 <h3>1.4 Skill 生态（官方口径）</h3>
 <p>沉淀四种：① 让 Agent 生成 Skill；② 创作后存成 Skill（<code>/skill-creator</code>）；③ 修改后"保存为我自己的 Skill"；④ 上传资料生成。分享：投稿社区 → 官方审核 → 积分奖励 → 用户精选。内置 9 个官方 skill（实测）：h3-visual-design、cool-music-video、brand-ad 等。</p>
+
+<h4>1.4.1 SKILL.md 官方格式 <span class="ver-tag">v1.1 新</span></h4>
+<p>实测 9 个 Hub 官方 Skill 之一 <code>h3-prompt-writing</code>（github.com/MiniMax-AI/MiniMax-H3）。<code>SKILL.md</code> 必需 YAML frontmatter + Markdown 正文：</p>
+<pre><code>---
+name: h3-prompt-writing           # 小写字母+数字+`-`，≤64 字符
+description: Write MiniMax H3 video generation prompts for T2VA, I2VA, FL2VA, L2VA, and Ref2VA. Use when rewriting multimodal requests into H3 prompt structures...
+compatibility: Portable to any agent that can read local files — no external API calls, MiniMax Hub tools, or proprietary runtime required...
+---
+# H3 Prompt Writing
+## Workflow
+1. Identify the input mode: T2VA, I2VA, FL2VA, L2VA, or full-reference Ref2VA.
+## Output Rules
+- Write rewrite sections in English; preserve dialogue, lyrics, and visible scene text in their original language.</code></pre>
+<ul>
+<li><b>name</b>：Hub/Agent 通过它路由到该 Skill。</li>
+<li><b>description</b>：Agent <b>发现与调用</b> 的核心依据（必须含"何时用 + 触发场景"）。</li>
+<li><b>compatibility</b>：可选，声明可移植性。</li>
+<li><code>references/</code> 子目录：放详细指南（如 <code>base-en.txt</code> / <code>ref-en.txt</code>）。</li>
+<li>可选 <code>agents/openai.yaml</code>：UI 元数据层（display_name / short_description / default_prompt），仅给 ChatGPT/Codex skills UI 用，不限制可移植性。</li>
+</ul>
+<pre><code># agents/openai.yaml
+interface:
+  display_name: "MiniMax H3 Prompt Writing"
+  short_description: "Write H3 base and full-reference video prompts"
+  default_prompt: "Use $h3-prompt-writing to rewrite this multimodal request into a MiniMax H3 generation prompt."</code></pre>
+<p><b>安装命令</b>：<code>npx skills add &lt;repo-url&gt; --skill &lt;skill-name&gt;</code></p>
+<p><b>9 个官方 Skill 的分类</b>（实测 GitHub README）：</p>
+<ul>
+<li><b>1 个 portable</b>（h3-prompt-writing）—— 不依赖 Hub 运行时，可移植到 Claude Code / Claude Agent SDK / Cursor / Windsurf / Codex / LangChain 等任何能读 <code>SKILL.md</code> 的 harness。</li>
+<li><b>8 个 Hub-specific</b>（风格化专用视频生成）—— 强依赖 Hub canvas workspace / choice cards / <code>hub_generate_image</code> / <code>hub_generate_video</code> 工具，不可移植。</li>
+</ul>
+<div class="apply">设计 §6 Skill 内容只模糊提到"触发条件 / 任务地图模板 / Agent 提示词"，缺文件级契约；SKILL.md 格式是<b>直接可采纳</b>的工程规范。</div>
 
 <h3>1.5 专业插件与工具（官方口径）</h3>
 <ul>
@@ -81,8 +119,25 @@
 <li>协作规范：需求 = 表达商业目标；修改公式 = <b>保留什么 + 修改什么 + 为什么 + 期望结果</b>；质量检查 8 条（商业目标/前三秒/卖点/准确性/品牌统一/字幕/节奏/规格）。</li>
 </ul>
 
+<h4>1.6.1 修改反馈公式 + 8 条商业内容质量检查 <span class="ver-tag">v1.1 新</span></h4>
+<p><b>修改反馈公式</b>（官方原文，作为人机协作话术硬模板）：</p>
+<blockquote><b>保留什么 + 修改什么 + 为什么 + 期望结果</b></blockquote>
+<p><b>8 条商业内容质量检查</b>（设计 §9 Harness 质量层已采纳为改编基础）：</p>
+<table>
+<tr><th>#</th><th>检查项</th><th>说明</th></tr>
+<tr><td>1</td><td>商业目标明确</td><td>表达商业目标而非描述画面</td></tr>
+<tr><td>2</td><td>前三秒有效</td><td>钩子工程，前 3 秒抓注意力</td></tr>
+<tr><td>3</td><td>卖点突出</td><td>卖点/钩子模式可视</td></tr>
+<tr><td>4</td><td>产品信息准确</td><td>品牌/产品信息不漂移</td></tr>
+<tr><td>5</td><td>品牌视觉统一</td><td>风格、字体、色调一致</td></tr>
+<tr><td>6</td><td>文字字幕正确</td><td>字幕内容/时间/位置</td></tr>
+<tr><td>7</td><td>节奏适配渠道</td><td>节奏与平台用户习惯对齐</td></tr>
+<tr><td>8</td><td>输出规格符合</td><td>画幅/时长/分辨率匹配渠道</td></tr>
+</table>
+<div class="apply">设计 §9 已采纳为改编基础；本节作为<b>官方原文</b>索引，便于后续 Harness 规则编写时溯源。</div>
+
 <h2>2. 架构实测</h2>
-<div class="note">本节来自社区实测（Je，2026-08-23，Windows）+ 用户实测截图（2026-10-02），非官方口径，注意时效。</div>
+<div class="note">本节来自社区实测（Je，2026-08-23，Windows）+ 用户实测截图（2026-10-02）+ 官方 GitHub README（2026-10-09），非官方文档口径，注意时效。</div>
 
 <h3>2.1 应用架构（实测 v43.1.0，内部名 @hilo/hub）</h3>
 <table>
@@ -150,40 +205,154 @@
   <text x="520" y="638" font-size="12.5" font-weight="700" fill="#C0504D">· 监听地址不可配，连不了局域网</text>
 </svg>
 </div>
-<p><b>等效链路（实测）</b>：外部 agent 写 H3 提示词 → 改模板工作流 → POST /prompt → /view 收片，与 Design 内部 comfyui-agent 的 hub_run_comfyui_workflow 同一件事（全本地免费；云端 Context-IR / Regenerate-2K 本地替代不了）。</p>
+<p><b>等效链路（实测）</b>：外部 agent 写 H3 格式提示词 → 改模板工作流 → POST /prompt → /view 收片，与 Design 内部 comfyui-agent 的 hub_run_comfyui_workflow 同一件事（全本地免费；云端 Context-IR / Regenerate-2K 本地替代不了）。</p>
+
+<h4>2.1.1 画布节点类型与 Choice Cards <span class="ver-tag">v1.1 新</span></h4>
+<p><b>节点按产物形态切分</b>（而非按阶段），从 <code>3d-animation-short-generator</code> 等 Hub-Style Skill 反推：</p>
+<table>
+<tr><th>节点类型</th><th>典型产物</th><th>对应形态</th></tr>
+<tr><td>文本节点</td><td>剧本 / 台词 / 创意简报</td><td>markdown / text</td></tr>
+<tr><td>表格节点</td><td>分场表 / 分镜表</td><td>表格 / JSON</td></tr>
+<tr><td>图片节点</td><td>概念图 / 定妆 / 关键帧</td><td>png / jpg</td></tr>
+<tr><td>视频节点</td><td>单镜头 / 成片</td><td>mp4</td></tr>
+<tr><td>音频节点</td><td>配音 / 配乐</td><td>static / wav / mp3</td></tr>
+<tr><td>时间线节点</td><td>粗剪 / 精剪</td><td>timeline JSON</td></tr>
+<tr><td>插件节点</td><td>3D 导演台 / 智能剪辑台 / 多角度</td><td>专属交互卡</td></tr>
+</table>
+<p><b>Choice Cards</b>：画布上的<b>内嵌选择交互卡</b>（来自 SKILL.md 兼容性声明 "canvas workspace, choice cards, and hub_generate_image/hub_generate_video tools"）—— Agent 主动发起（参数确认、方案选项），形态与我们设计 §3.3 确认门卡片<b>对位</b>。</p>
+<div class="apply"><code>shared/types.ts CanvasNode.kind</code> 当前枚举只覆盖部分形态（brief/outline/profiles/scenes/dialogue/storyboard/asset-image），缺<b>音频节点 / 时间线节点 / 插件节点</b>；这是补强型而非破坏边界的扩展。</div>
+
+<h4>2.1.2 ComfyUI 工作流侧栏 <span class="ver-tag">v1.1 新</span></h4>
+<p>实测 design.minimaxi.com/campaign 官方流程。侧栏入口「<b>ComfyUI Workflows</b>」是 Hub 的<b>一等公民面板</b>，不是二级菜单：</p>
+<pre><code>1. 打开 ComfyUI Workflows 页（左栏入口）
+   ↓
+2. 选模板
+   ├── Official Picks（H3 模板，含 VRAM/内存/磁盘需求说明）
+   ├── My Workflows（用户保存）
+   └── Import Workflow（拖入 JSON）
+   ↓ Download and Deploy → Add to Canvas
+3. 加输入（提示词 + 参考资产）
+4. 跑 + 保存（参数、版本、日志全存）</code></pre>
+<p><b>复现性保证（官方原文）</b>：</p>
+<blockquote>A workflow JSON records only the workflow structure and cannot guarantee identical results. Results can be affected by model and node versions, seed and sampler settings, input files, GPU drivers and runtime environment. <b>For reliable reproduction, save the workflow, model and node versions, sample inputs, and generation parameters together. For important tasks, also keep the generation logs.</b></blockquote>
+<div class="apply">每个媒体产物 JSON 当前缺 <code>workflow_id</code> / <code>workflow_version</code> / <code>model_revision</code> / <code>generation_log</code> 字段（设计 §7 数据模型只有 <code>model/seed/prompt/参考</code>），需补；这与设计 §0.1 原则五（媒体三类经 ComfyUI）天然对齐。</div>
+
+<h4>2.1.3 Agent 驱动工作流 <span class="ver-tag">v1.1 新</span></h4>
+<p>官方原文：</p>
+<blockquote>The Agent on the right side of MiniMax Design can fill workflow inputs from your conversation and start the current workflow for you. For example, choose a workflow and tell the Agent: "Use this workflow, use Picture 1 as the first frame, and generate a five-second video with a slow push-in." More advanced operations can also be completed through conversation, such as <b>having the Agent edit workflow nodes or adjust generation parameters</b> for more precise, higher-quality results.</blockquote>
+<p>即 Hub 的核心交互模式是 <b>「Agent 通过对话填充工作流输入并启动」</b>，高级操作支持 Agent 通过对话<b>编辑节点 / 调整参数</b>。</p>
+<div class="apply">我们设计 §4.3「专职 Agent 内部循环：接收任务 → 检索上下文与知识 → 规划步骤 → 调用 MCP 工具 → 自校验 → 回报」与此形态一致；建议在 <code>agents/camera.md</code> 等 Agent 配置里<b>显式采纳</b> "对话驱动工作流调用" 模式作为 Agent 提示词的标准段。</div>
 
 <h3>2.2 ComfyUI 接入实测（重要结论 · 用户截图）</h3>
 <p>用户实测 <b>设置 → ComfyUI</b> 界面：仅「启动参数」输入框（如 <code>--lowvram</code>、<code>--preview-method auto</code>），界面明文：<b>「端口、数据目录等由 Hub 托管的参数无法覆盖」</b>。</p>
-<div class="note"><b>结论</b>：当前版本 MiniMax Design 的 ComfyUI 后端为 <b>Hub 内置托管</b>，设置只允许追加性能参数，<b>端口/监听地址不可配置 → 无法连接局域网内非本机 ComfyUI</b>。此结论以用户实测为准（社区抖音教程曾演示"填服务地址"，疑似旧版本，已不适用）。</div>
+<div class="note"><b>结论</b>：当前版本 MiniMax Design 的 ComfyUI 后端为 <b>Hub 内置托管</b>，设置只允许追加性能参数，<b>端口/监听地址/服务地址不可配置 → 无法连接局域网内非本机 ComfyUI</b>。此结论以用户实测为准（社区抖音教程曾演示"填服务地址"，疑似旧版本，已不适用）。</div>
+
+<h3>2.3 提示词工程规范 <span class="ver-tag">v1.1 新</span></h3>
+<p>实测 GitHub README + SKILL.md。</p>
+<p><b>5 段式基础模式（官方 FAQ 推荐）</b>：</p>
+<ol>
+<li><b>Subject</b> — 谁/什么在场</li>
+<li><b>Action</b> — 在做什么</li>
+<li><b>Setting</b> — 时间、地点、环境</li>
+<li><b>Camera</b> — 景别、机位、运镜</li>
+<li><b>Lighting & Sound</b> — 光线、声音源、节奏</li>
+</ol>
+<p><b>否定约束</b>（官方原文）：</p>
+<blockquote>Also specify what must not change.</blockquote>
+<p>即在提示词中<b>显式标注不可变项</b>（角色形象、品牌色调、字幕内容等），对应角色一致性配方。</p>
+<p><b>多模态引用标签</b>：<code>&lt;Picture 1&gt;</code> / <code>&lt;Video 1&gt;</code> / <code>&lt;Audio 1&gt;</code> —— 用于 Ref2VA 模式的多模态参照，必须在所有段落保持标签一致。</p>
+<p><b>全参照模式 Ref2VA 6 段式</b>（来自 h3-prompt-writing SKILL.md，顺序严格）：</p>
+<ol>
+<li><code>subject_definitions</code> — 主体定义（含引用标签）</li>
+<li><code>summary</code> — 视频/音频总述</li>
+<li><code>retention_analysis</code> — 保留分析（哪些元素完全保留 / 部分保留 / 参考）</li>
+<li><code>detailed_description</code> — 镜头级详细描述（构图、主体、环境、动作、相机、声音）</li>
+<li><code>overall_soundscape</code> — 整体音景</li>
+<li><code>non_diegetic_music</code> — 非叙事性音乐</li>
+</ol>
+<div class="apply">编剧 Agent / 镜头 Agent 的提示词模板应采纳 5 段式 + 否定约束；分镜文字稿可参考 Ref2VA 6 段式做长 prompt 的章节化组织。</div>
+
+<h3>2.4 H3 技术规格与部署 <span class="ver-tag">v1.1 新</span></h3>
+<p>实测 GitHub README · 本地部署参考。</p>
+<p><b>输入输出规格</b>：</p>
+<table>
+<tr><th>维度</th><th>规格</th></tr>
+<tr><td>输出时长</td><td>4–15 秒</td></tr>
+<tr><td>输出画幅</td><td>21:9 / 16:9 / 4:3 / 1:1 / 3:4 / 9:16 等</td></tr>
+<tr><td>输出分辨率</td><td>默认 768p 短边；H3-Regenerate-2K 可上 2K</td></tr>
+<tr><td>输出帧率</td><td>24 FPS</td></tr>
+<tr><td>输出音频</td><td>32 kHz 立体声</td></tr>
+<tr><td>对话语言</td><td>11 种稳定支持（阿/中/英/法/德/意/日/韩/葡/俄/西）</td></tr>
+</table>
+<p><b>两变体</b>：</p>
+<table>
+<tr><th>变体</th><th>输入模式</th><th>适用</th></tr>
+<tr><td>H3-Base-FL2VA</td><td>首末帧模式（0/1/2 输入图）</td><td>文生视频 + 首/尾帧控制</td></tr>
+<tr><td>H3-Base-Ref2VA</td><td>全参照模式（≤9 图 + ≤3 视频 + ≤3 音频，合计 ≤12 文件）</td><td>角色一致性 / 视频编辑 / 动作参照 / 镜头续写</td></tr>
+</table>
+<p><b>完整系统 = 三模块</b>：</p>
+<table>
+<tr><th>模块</th><th>位置</th><th>职责</th></tr>
+<tr><td>H3-Context-IR</td><td>云端 API</td><td>多模态上下文 → Context Intermediate Representation（提示精修）</td></tr>
+<tr><td>H3-Base</td><td>本地</td><td>768p 视频 + 音频生成（开源权重）</td></tr>
+<tr><td>H3-Regenerate-2K</td><td>云端 API</td><td>2K 重生（将 768p + 原始上下文回送 H3 重生）</td></tr>
+</table>
+<p><b>部署方式</b>：</p>
+<ul>
+<li><b>SGLang / vLLM-Omni</b>（生产服务，OpenAI 兼容视频端点；4×B300 上 8.7 秒片端到端约 87 秒）</li>
+<li><b>Diffusers</b>（Python 管线）</li>
+<li><b>ComfyUI</b>（day-0 原生支持，自带工作流模板）</li>
+<li><b>WanGP</b>（低显存）</li>
+</ul>
+<p><b>硬件需求</b>：</p>
+<ul>
+<li><b>12 GB 显存</b>（RTX 3060 级）出 480p</li>
+<li><b>16–24 GB 显存</b> 从容</li>
+<li><b>5–8 GB 显存</b>（社区 FP8/INT4 量化方案）</li>
+<li>系统内存 32–64 GB</li>
+<li>无 GPU 可用 Colab</li>
+</ul>
+<div class="apply">H3 在我们媒体通道中（B5 参考生视频 / B8 文生视频）的工作流模板参数（分辨率、时长、画幅、显存门限）可参考本节对齐；3 模块拆分（Context-IR 云端 + Base 本地 + Regenerate-2K 云端）的"云端做精修、本地做主力"思路也适用于我们的 qwen-image + Music3 调度。</div>
 
 <h2>3. 与我们体系的对照（可借鉴 / 不可替代 / 不可连）</h2>
 <table>
 <tr><th>维度</th><th>MiniMax Design</th><th>我们的体系</th><th>结论</th></tr>
-<tr><td>画布自动连线</td><td>内容自动按流程连线、步骤节点</td><td>已升级为画布式界面</td><td>借鉴：画布+状态着色+预览跳转</td></tr>
-<tr><td>Agent 任务确认</td><td>生成前确认参数、制作简报</td><td>R4 确认门：check 全过+人点 advance</td><td>同源：Design 软确认 / 我们硬门禁</td></tr>
-<tr><td>Skill 沉淀</td><td>对话流程存 Skill、投稿分享</td><td>skill 目录 + pipeline 路由</td><td>借鉴：沉淀为可复用 Skill</td></tr>
-<tr><td>修改反馈公式</td><td>保留+修改+为什么+期望</td><td>flag 反向回流（归因+受影响传导）</td><td>互补：公式可并入人机话术</td></tr>
-<tr><td>质量检查</td><td>8 条商业内容检查</td><td>验收规则.json 30 种检查类型</td><td>互补：审美/商业 vs 文件/内容级</td></tr>
-<tr><td>生成通道</td><td>云端多模型矩阵</td><td>R8 红线：2512 + H3 + 豆包 T2A</td><td>不可替代：红线通道不改</td></tr>
-<tr><td>ComfyUI 接入</td><td>Hub 托管，端口不可覆盖（实测）</td><td>执行适配层可配置地址 + --listen 0.0.0.0</td><td>不可连：Design 连不了局域网，自研可以</td></tr>
-<tr><td>状态机/溯源</td><td>无流程状态机、无镜头 json 溯源</td><td>proj.py 状态机 + 30 种校验 + prompt_id 溯源</td><td>不可替代：Design 无此层</td></tr>
-<tr><td>部署</td><td>本地部署 Beta（H3 工作流）</td><td>venv 无 docker 一键启动</td><td>参考：本地优先一致</td></tr>
+<tr><td>画布自动连线</td><td>内容自动按流程连线、步骤节点</td><td>已升级为画布式界面（见《短剧Agent平台设计》）</td><td><b>借鉴</b>：画布 + 状态着色 + 预览跳转</td></tr>
+<tr><td>画布节点类型 <span class="ver-tag">新</span></td><td>按产物形态切分（文本/表格/图片/视频/音频/时间线/插件）+ Choice Cards</td><td>shared/types.ts CanvasNode.kind 部分覆盖</td><td><b>形态对齐</b>：补<b>音频/时间线/插件</b>枚举；Choice Cards 已是确认门卡片形态</td></tr>
+<tr><td>Agent 任务确认</td><td>生成前确认参数、产出制作简报</td><td>R4 确认门：check 全过 + 人点 advance</td><td><b>同源</b>：都是"执行前人工把关"，Design 是软确认、我们是硬门禁</td></tr>
+<tr><td>Skill 沉淀</td><td>对话流程存 Skill、投稿分享</td><td>skill 目录 + doubao-drama-pipeline 路由</td><td><b>借鉴</b>：创作过程沉淀为可复用 Skill 的思路</td></tr>
+<tr><td><b>SKILL.md 格式</b> <span class="ver-tag">新</span></td><td>frontmatter（name/description/compatibility）+ references/ + 可选 agents/openai.yaml；安装命令 <code>npx skills add</code></td><td>设计 §6 只模糊提到内容维度，缺文件级契约</td><td><b>借鉴</b>：建 SKILL.md 规范包（<b>直接可采纳</b>）</td></tr>
+<tr><td><b>ComfyUI 工作流侧栏</b> <span class="ver-tag">新</span></td><td>侧栏一等公民面板：Official Picks / My Workflows / Import Workflow</td><td>设计 §5 engine.workflows.load 有工具无 UI 入口</td><td><b>借鉴</b>：建侧栏面板 + 模板三分类</td></tr>
+<tr><td><b>Agent 驱动工作流</b> <span class="ver-tag">新</span></td><td>"Agent 可用对话填充工作流输入并启动"（官方原文）</td><td>设计 §4.3 专职 Agent 内部循环形态一致</td><td><b>借鉴</b>：在 Agent 提示词明示 "对话驱动工作流" 模式</td></tr>
+<tr><td>修改反馈公式</td><td>保留什么+修改什么+为什么+期望结果</td><td>flag 反向回流（归因通道 + 受影响传导）</td><td><b>互补</b>：公式可并入人机协作话术</td></tr>
+<tr><td>质量检查</td><td>8 条商业内容检查</td><td>验收规则.json 30 种检查类型</td><td><b>互补</b>：Design 偏审美/商业口径，我们偏文件/内容级机器校验</td></tr>
+<tr><td><b>提示词 5 段式</b> <span class="ver-tag">新</span></td><td>Subject/Action/Setting/Camera/Lighting&Sound + 否定约束</td><td>设计未规定提示词模板</td><td><b>借鉴</b>：补编剧/镜头 Agent 提示词模板</td></tr>
+<tr><td><b>复现性规范</b> <span class="ver-tag">新</span></td><td>workflow_id + model/node version + seed + sample inputs + generation logs</td><td>manifest 只有 model/seed/prompt/参考，缺 workflow_id/version/log</td><td><b>借鉴</b>：补产物 JSON 字段（与设计 §0.1 原则五对齐）</td></tr>
+<tr><td>生成通道</td><td>云端多模型矩阵（海螺/可灵/Veo3/Wan…）</td><td>R8 红线：固定 2512 + H3 + 豆包 T2A</td><td><b>不可替代</b>：红线通道我们不改</td></tr>
+<tr><td>ComfyUI 接入</td><td>Hub 托管，端口不可覆盖（实测）</td><td>执行适配层可配置地址 + ComfyUI <code>--listen 0.0.0.0</code></td><td><b>不可连</b>：Design 连不了局域网实例，我们自研工作台可以</td></tr>
+<tr><td>状态机/溯源</td><td>无流程状态机、无镜头 json 溯源</td><td>proj.py 状态机 + 30 种校验 + prompt_id 溯源</td><td><b>不可替代</b>：Design 无此层</td></tr>
+<tr><td>部署</td><td>本地部署 Beta（H3 工作流）</td><td>venv 无 docker 一键启动</td><td><b>参考</b>：本地优先一致</td></tr>
+<tr><td><b>H3 部署形态</b> <span class="ver-tag">新</span></td><td>SGLang / vLLM-Omni / Diffusers / ComfyUI 四线部署；12GB 显存可出 480p</td><td>ComfyUI 是统一媒体引擎（设计 §0.1 原则五）</td><td><b>同源</b>：我们与 Hub 在 ComfyUI 路径一致，硬件门限可对齐</td></tr>
 </table>
-<p><b>结论</b>：Design 适合做"创意发散/云端多模型生产"的参考形态与对照物；我们的工作台定位（画布+内嵌 Agent+规范门禁+可配置 ComfyUI）在当前版本 Design 上无法实现，需自研（见《短剧Agent平台设计》）。</p>
+<p><b>结论</b>：MiniMax Design 适合做"创意发散 / 云端多模型内容生产"的参考形态与对照物；我们的工作台定位（画布 + 内嵌 Agent + 规范门禁 + 可配置 ComfyUI）在当前版本 Design 上无法实现，需自研（见《短剧Agent平台设计》）。</p>
 
 <h2>4. 来源与版本</h2>
 <ul>
-<li>官方手册：《MiniMax Design - 手册与指南》（飞书 VEoVwpfCKiTHvHkAGQ7cQJxCncf，revision 11360）——功能/创作/Skill/插件/商用（官方口径）</li>
-<li>官方页面：design.minimaxi.com/h3（H3 本地部署/硬件/商用 FAQ）；design.minimaxi.com/campaign（开源与部署教程）</li>
-<li>社区实测：Je《本机 ComfyUI 与 MiniMax Design 接管指南》（2026-08-23）——架构/端口/API/云端能力（实测，注意时效）</li>
-<li>用户实测：Design 设置 → ComfyUI 截图（2026-10-02）——启动参数界面 / Hub 托管结论</li>
-<li>时效声明：Design 迭代快（手册含 v3.0.16：Wan 3.0、Agent 自定义模型接入），本节基于 2026-10-02 时点</li>
+<li>官方手册：《MiniMax Design - 手册与指南》（飞书 wiki VEoVwpfCKiTHvHkAGQ7cQJxCncf，docx RC33dT20ooJnBUxhoJpcU5GDnsc，revision 11360）——功能全景/创作方式/Skill 生态/插件/商用/质量检查（官方口径）</li>
+<li>官方页面：design.minimaxi.com/h3（H3 本地部署/硬件/商用 FAQ，官方口径）；design.minimaxi.com/campaign（开源与部署教程入口）</li>
+<li><b>官方 GitHub：github.com/MiniMax-AI/MiniMax-H3 <span class="ver-tag">v1.1 新</span></b>——SKILL.md 官方格式 / 9 个官方 Skill / H3 模型技术规格 / 三模块系统 / SGLang vLLM ComfyUI 部署</li>
+<li>社区实测：Je《本机 ComfyUI 与 MiniMax Design 接管指南》（je-qljx.github.io，2026-08-23）——架构/端口/ComfyUI API/云端能力清单（实测，注意时效）</li>
+<li>用户实测：MiniMax Design 设置 → ComfyUI 截图（2026-10-02）——启动参数界面 / Hub 托管结论（以用户实测为准）</li>
+<li>时效声明：Design 版本迭代快（手册含 v3.0.16 更新：Wan 3.0、Agent 自定义模型接入、画布对齐吸附），本节内容基于 2026-10-09 时点</li>
 </ul>
 
 <h2>5. 版本记录（入口）</h2>
-<p>本文件 v1.0（2026-10-02）；变更史记入《版本记录.md》（AI 可读）。镜像纪律：改 md 必须同步 .html，两版标题/正文/数字逐一对齐；html 非独立事实源。</p>
+<ul>
+<li>本文件版本：v1.0（2026-10-02）；<b>v1.1（2026-10-09）</b>增量：从 MiniMax H3 GitHub 仓库 + design.minimaxi.com/campaign 官方页面补充 SKILL.md 格式、画布节点类型、ComfyUI 工作流侧栏、Agent 驱动工作流、提示词 5 段式、复现性规范、H3 技术规格与部署；变更史记入《版本记录.md》（AI 可读）。</li>
+<li>镜像纪律：改本文 md 必须同步 .html（人读镜像），两版标题/正文/数字逐一对齐；html 非独立事实源。</li>
+</ul>
 
-<div class="foot">AI 短剧制作文档族 · MiniMax Design 功能与架构参考 v1.0 · 依据官方手册/官方页面/社区实测/用户实测 · 非规范成员</div>
+<div class="foot">AI 短剧制作文档族 · MiniMax Design 功能与架构参考 v1.1 · 依据官方手册/官方页面/官方 GitHub/社区实测/用户实测 · 非规范成员</div>
 </div>
 </body>
 </html>

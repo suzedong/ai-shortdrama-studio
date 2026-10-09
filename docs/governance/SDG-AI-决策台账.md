@@ -159,3 +159,27 @@
   - 反向补录阶段如发现旧代码含 premise 锁定逻辑，按本决策反转。
   - feature-003（画布节点 / 状态机）需在 `CanvasNode.parentReference` 与 `CanvasNode.dirty` 字段落地本规则。
 - **编号说明**：本条 D-011 为治理台账全局编号；与 D-005 同源（均修改 §2.6），不共用编号但同属 K8 立项模型族。
+
+---
+
+## D-012 ｜ K8 ｜ 对话通道定稿：runtime 单轨为终态，旧 IPC 快照并入设计后删除
+
+- **日期**：2026-10-09
+- **卡口**：K8（修改设计文档核心章节 §5 / §7.1，对话与生成通道规则定稿）
+- **触发背景**：feature-010 存量快照（docs/SDG-OD-legacy/feature-010-ark对话IPC快照.md）记录了旧 8 个 `agent:*` IPC + `app:ark-status` 的逐 handler 行为与迁移决策表；迁移已执行完成（归档 AC-9 ✅：旧 IPC / preload 方法 / global.d.ts 类型全删、对话链路零引用）。用户问"这个还有用吗"，随即拍板"**不会回退了，有用的放以设计里，所有设计要最后状态，如果有不确定的设计，可以讨论**"——旧链路不回退、快照有用内容并入设计、设计文档定稿为最终状态。
+- **用户决策**（2026-10-09 拍板，三项）：
+  1. **旧对话链路不回退**：对话 / 生成通道以磁盘实况为终态——**Agent 运行时单轨（runtime:\*）+ 11 个纯 MCP 工具（canvas / file / asset / comfyui / gate）**；不重建旧 8 个 `agent:*` IPC 与 `shortdrama_*` 生成工具；快照文件删除。
+  2. **快照处置**：有用内容（runtime 通道机制、上下文依赖原则、错误码语义）并入设计文档 §5.1 / §7.1 后，`docs/SDG-OD-legacy/feature-010-ark对话IPC快照.md` 删除。
+  3. **§7.1 定稿**：按新模型整体改写为最终数据模型描述，删除"旧代码现状 / 待反向补录 / 不代表目标设计"框架。
+- **落地内容**（设计 v1.11 一次性同步）：
+  - [短剧Agent平台设计.md](../../短剧Agent平台设计.md)：
+    - §5 改写为「**MCP 工具层与对话生成网关**」——新增 §5.1 对话生成网关（runtime 单轨通道表；诊断 / 大纲 / 小传 / 分场 / 台词 / 分镜 / 改写等生成动作由会话内 Agent 规划完成；统一 runtime 错误码 14 个，旧 `STORY_CTX_MISSING` / `REVISE_*` / `STYLE_NOT_IN_CATALOG` 退役；无 Key 显式报 `UPSTREAM_AUTH_MISSING`，不 mock 降级）；§5.2 工具族按磁盘实况定稿（已落地 11 个纯工具 + 目标族 project / media / engine / 资产扩展 / edit / harness / skill）
+    - §7.1「现存代码数据血缘（待反向补录重建）」改写为「**数据血缘、状态机与版本归档（最终设计）**」——brief.json 由立项单.vN.json 取代；谱系小节并入 §8.3 口径；补 §2.6.6 / §2.6.7 影响评估字段落点（manifest.briefVersion + parentReference + 影响清单）
+    - §8.3 注记改中性事实（去"过渡实现 / 后续重建"措辞）；§13 加 v1.11 记录
+  - B 类同步：镜像 [短剧Agent平台设计.html](../design/短剧Agent平台设计.html)（§5 / §7.1 / 版本记录 v1.11）；[平台全景图.html](../design/平台全景图.html) 05 问题区块快照链接改指「设计 §5.1 对话网关（终态）」；[三阶段数据血缘.svg](../design/images/三阶段数据血缘.svg) 清理"旧 / 待反补 / D-005"过渡标注。
+  - 删除 `docs/SDG-OD-legacy/feature-010-ark对话IPC快照.md`；归档包 feature-010 两处提及（变更记录 / 任务清单）随包冻结保留。
+- **波及文件**：短剧Agent平台设计.md / 短剧Agent平台设计.html / 平台全景图.html / 三阶段数据血缘.svg / 版本记录.md；**代码未改**（以磁盘实况为终态，反向同步）。
+- **后续约束**：
+  - 错误码以 runtime 14 个为唯一口径（`electron/runtime/types.ts`），旧业务错误码不再引入；
+  - 无 Key 场景显式报 `UPSTREAM_AUTH_MISSING` 提示配置，不恢复 mock 降级；
+  - 新增生成 / 工具能力须走 §5.2 目标族与 feature 包流程，不得绕过 runtime 单轨另立通道。

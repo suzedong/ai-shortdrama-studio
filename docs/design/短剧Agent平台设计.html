@@ -387,16 +387,38 @@
 <h3>4.3 内部循环 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[改编]</span></h3>
 <p>每个专职 Agent：<code>接收任务 → 检索上下文 → 规划 → 调 MCP 工具 → 自校验 → 回报/进确认门</code>。无删除权，产物写新版本；不可逆动作必须经确认门。</p>
 
-<h2 id="sec-5">5. MCP 工具层 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[改编]</span></h2>
-<p>平台内置 MCP 网关（仅本机），工具以 schema 声明、统一鉴权审计：</p>
+<h2 id="sec-5">5. MCP 工具层与对话生成网关 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[改编]</span></h2>
+<h3 style="font-size:14px">5.1 对话生成网关（runtime 单轨，v1.11 定稿）</h3>
+<p>对话与生成统一经 <b>Agent 运行时单轨（runtime:*）</b>，不设预置"生成动作"业务 IPC / 工具——旧 8 个 <code>agent:*</code> IPC 与 <code>shortdrama_*</code> 生成工具已退役、不再重建（2026-10-09 用户拍板"不回退"）。诊断 / 选题 / 大纲 / 小传 / 分场 / 台词 / 分镜 / 改写等生成动作，全部由会话内 Agent 规划完成。</p>
+<table>
+<tr><th>通道</th><th>职责</th></tr>
+<tr><td>runtime:start / stop / status</td><td>运行时生命周期与状态（stopped / starting / running / error；首次业务访问惰性自启）</td></tr>
+<tr><td>runtime:session:create / list / abort / delete</td><td>Agent 会话管理；会话声明可用 MCP 工具（<code>tools[]</code>）</td></tr>
+<tr><td>runtime:prompt / prompt:async</td><td>消息入会话，Agent 规划并调用工具；异步走事件流</td></tr>
+<tr><td>runtime:event:subscribe / unsubscribe</td><td>事件流：text / reasoning / tool.call / structured 分轨，UI 可折叠展示</td></tr>
+</table>
+<ul>
+<li><b>上下文依赖原则</b>：生成动作只读<b>已定稿</b>上游产物（立项单 → 大纲 → 小传 → 分场 → 台词 → 分镜），Agent 经 MCP 工具（canvas / file / asset / gate）读取与写入；缺上游由 Agent 报告缺料，不静默产出（数据血缘见 §7.1）。</li>
+<li><b>错误码</b>：统一走 runtime 错误码（<code>INVALID_ARGUMENT</code> / <code>RUNTIME_NOT_READY</code> / <code>SESSION_NOT_FOUND</code> / <code>PROMPT_FAILED</code> / <code>UPSTREAM_AUTH_MISSING</code> / <code>PATH_ESCAPE_DENIED</code> / <code>GATE_TIMEOUT</code> 等 14 个，见 <code>electron/runtime/types.ts</code>），经 envelope.error 透出；旧业务错误码（<code>STORY_CTX_MISSING</code> / <code>REVISE_*</code> / <code>STYLE_NOT_IN_CATALOG</code>）已随旧 IPC 退役，不沿用。</li>
+<li><b>无 Key 行为</b>：未配置火山方舟 Key → 显式报 <code>UPSTREAM_AUTH_MISSING</code> 提示配置，<b>不静默降级 mock</b>（旧 mock 降级策略随旧 IPC 退役）。</li>
+</ul>
+<h3 style="font-size:14px">5.2 工具族（MCP 网关：已落地 + 目标）</h3>
+<p>平台内置 MCP 网关（仅本机），工具以 schema 声明、统一鉴权审计。**已落地（磁盘实况，11 个纯工具）**：</p>
+<table>
+<tr><th>工具族</th><th>代表工具</th><th>说明</th></tr>
+<tr><td>画布</td><td>canvas.get / canvas.update</td><td>画布节点与连线读写</td></tr>
+<tr><td>文件</td><td>file.list / file.read / file.write</td><td>项目内文本产物读写（路径白名单）</td></tr>
+<tr><td>资产</td><td>asset.list / asset.register</td><td>资产索引检索与登记</td></tr>
+<tr><td>ComfyUI</td><td>comfyui.instances / comfyui.queue / comfyui.status</td><td>引擎实例探活、队列、状态（renderer 不直连）</td></tr>
+<tr><td>确认门</td><td>gate.request</td><td>确认门请求（放行 / 否决须确认令牌）</td></tr>
+</table>
+<p><b>目标族（随 feature 包逐步落地，§11 路线）</b>：</p>
 <table>
 <tr><th>工具族</th><th>代表工具</th><th>说明</th><th>来源</th></tr>
-<tr><td>画布</td><td>canvas.read/write/connect/layout</td><td>节点连线读写与自动布局</td><td>[改编]</td></tr>
 <tr><td>项目</td><td>project.manifest/events/timeline</td><td>元信息、事件流、任务地图</td><td>[自研新增]</td></tr>
-<tr><td>文本资产</td><td>file.read/write/version</td><td>剧本文本落盘与版本</td><td>[改编]</td></tr>
-<tr><td>媒体生成</td><td>image/video/music submit</td><td><b>三类媒体全部经本地/局域网 ComfyUI（v1.7 终局，D-010）</b>：image.submit → <b>qwen-image 权重</b>（B0）；video.submit → <b>H3 工作流</b>（B5/B8）；music.submit → <b>Music3 权重</b>（B9）；提交/轮询/收片，纯局域网、媒体零公网，renderer 不直连</td><td>[改编]（模型按原则五锁定，执行统一 ComfyUI 权重推理）</td></tr>
+<tr><td>媒体生成</td><td>image/video/music submit</td><td><b>三类媒体全部经本地/局域网 ComfyUI（v1.7 终局，D-010）</b>：image.submit → <b>qwen-image 权重</b>（B0）；video.submit → <b>H3 工作流</b>（B5/B8）；music.submit → <b>Music3 权重</b>（B9）；提交/轮询/收片，纯局域网、媒体零公网</td><td>[改编]（模型按原则五锁定，执行统一 ComfyUI 权重推理）</td></tr>
 <tr><td>引擎</td><td>engine.list/workflows/queue/history</td><td>ComfyUI 探活、<b>媒体工作流</b>模板装载（复用 Dufs <b>B0/B5/B8/B9</b> JSON）；qwen-image 图像节点、H3 视频节点、Music3 音频节点</td><td>[改编]（v1.7 图像/视频/音乐统一媒体引擎）</td></tr>
-<tr><td>资产</td><td>asset.query/select/import/export</td><td>检索、选定、导入导出</td><td>[改编]</td></tr>
+<tr><td>资产扩展</td><td>asset.query/select/import/export</td><td>检索、选定、导入导出</td><td>[改编]</td></tr>
 <tr><td>剪辑</td><td>edit.cut/subtitle/concat/mix/slice</td><td>MediaKit/FFmpeg 程序化剪辑</td><td>[改编]</td></tr>
 <tr><td>质检</td><td>harness.rules/verify/report</td><td>规则、校验、结构化报告</td><td>[Design 原有]</td></tr>
 <tr><td>Skill</td><td>skill.list/run/save/publish</td><td>检索、执行、沉淀、投稿</td><td>[Design 原有]</td></tr>
@@ -429,21 +451,21 @@
 <li><b>事件</b>：{时间,agent,类型,载荷,关联节点}——可溯源、可重放。</li>
 </ul>
 
-<h3>7.1 现存代码数据血缘（待反向补录重建） <span class="note" style="display:inline;font-size:11px;padding:1px 7px">2026-10-03 初建 · 2026-10-08 随 D-005 重新定性</span></h3>
-<div class="note">上方目录为<b>终态目标</b>。以下是旧任务包时期落地的代码现状：STAGE 0/1/2 的纯文件持久化（旧 8 确认门 0-a/0-b/0-c、1-a/1-b、2-a/2-b/2-c），无数据库。<b>注意</b>：STAGE 0 的门模型已被 §2.6 新模型（2 节点 + 1 定案门）取代，本节中立项部分的目录与字段仅为代码现状记录，不代表目标设计；后续按反向补录六步法重建。字段契约以 <code>shared/types.ts</code> 为准。</div>
+<h3>7.1 数据血缘、状态机与版本归档（最终设计） <span class="note" style="display:inline;font-size:11px;padding:1px 7px">v1.11 定稿</span></h3>
+<div class="note">本节为数据血缘与持久化的<b>最终状态设计</b>（v1.11 由"现存代码现状"定稿，2026-10-09 用户拍板"旧链路不回退、以磁盘实况为终态"）。§7 上方的项目目录为终态目标布局；本节描述会话 / 产物层的数据血缘、状态机、版本归档与术语约定，字段契约以 <code>shared/types.ts</code> 为准。旧 8 确认门（0-a~0-d / 1-a~1-b / 2-a~2-c）模型已作废（由 §2.6 新模型取代），不再作为设计依据。</div>
 <pre>project-*/                      ~/Documents/ai-shortdrama-studio/
-├─ manifest.json           阶段指针 {status, createdAt, ...}；读-改-写保留既有字段
-├─ brief.json              旧立项单（STAGE 0 定稿；新模型下由 manifest + 立项单.vN.json 取代）
-├─ 故事背景档案.md          背景档案（旧 0-c 锁定；新模型见 §2.6.3）
-├─ chat.messages.json      唯一事实源：全量消息流，replay 重建 phase/节点/门/redo
+├─ manifest.json           阶段状态指针 {status, createdAt, ...}；读-改-写保留既有字段
+├─ 立项单.vN.json          立项定稿版本（全量保留 v1..vN，不覆盖；旧 brief.json 由本文件取代）
+├─ 故事背景档案.md          背景档案（§2.6.3 对话收敛产物）
+├─ chat.messages.json      会话消息流唯一事实源；replay 重建 UI 状态（阶段/节点/待处理门/redo）
 ├─ .session.json
 ├─ 剧本/
-│  ├─ 故事大纲.json/.md     1-a 定稿
-│  ├─ 人物小传.json/.md     1-b 定稿（角色 id 诞生地）
-│  ├─ 分场.json/.md         2-a 定稿（sceneNo 场号主键诞生地）
-│  └─ 台词.json/.md         2-b 定稿
+│  ├─ 故事大纲.json/.md     大纲定稿
+│  ├─ 人物小传.json/.md     小传定稿（角色 id 诞生地）
+│  ├─ 分场.json/.md         分场定稿（sceneNo 场号主键诞生地）
+│  └─ 台词.json/.md         台词定稿
 └─ 分镜/
-   └─ shotlist.json/.md     2-c 定稿（新建顶层产物目录）</pre>
+   └─ shotlist.json/.md     分镜定稿</pre>
 
 <div role="img" aria-label="三阶段数据血缘：STAGE 0 立项 → STAGE 1 故事创作 → STAGE 2 剧本分镜；CharacterProfile.id 与 Scene.sceneNo 两条主键贯穿" style="width:100%;max-width:880px;margin:14px auto 6px;padding:10px 8px;border:1px solid var(--line);border-radius:12px;background:#fff;">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 620" style="display:block;width:100%;height:auto;" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif">
@@ -501,7 +523,7 @@
 
   <rect x="230" y="108" width="240" height="66" rx="10" fill="#1E2233"/>
   <text x="250" y="137" font-size="14" font-weight="700" fill="#fff">立项单</text>
-  <text x="250" y="160" font-size="11.5" fill="#AAB2CC">brief.json · 六要素/视觉</text>
+  <text x="250" y="160" font-size="11.5" fill="#AAB2CC">立项单.vN.json · 六要素/视觉</text>
   <rect x="510" y="108" width="240" height="66" rx="10" fill="#1E2233"/>
   <text x="530" y="137" font-size="14" font-weight="700" fill="#fff">故事背景档案</text>
   <text x="530" y="160" font-size="11.5" fill="#AAB2CC">故事背景档案.md</text>
@@ -541,26 +563,25 @@
 <ul>
 <li><b>角色主键</b>：<code>CharacterProfile.id</code>（如 c-heroine）在人物小传诞生，被分场 <code>characterIds[]</code>、台词 <code>speakerId</code>（功能性无小传角色用 '' + speakerName 兜底）、分镜 <code>characterIds[]</code> 引用。</li>
 <li><b>场号主键</b>：<code>Scene.sceneNo</code>（1..N）在分场诞生，台词 <code>DialogueScene.sceneNo</code> 归场、分镜 <code>Shot.sceneNo</code> 归属；空镜 <code>dialogue=null</code>、<code>refs=[]</code> 为美术资产引用预留位。</li>
-<li><b>状态机</b>（manifest.status，每次定稿推进一格）：<code>initiating → story-outline → story-profiles → script-scenes → script-dialogue → script-storyboard → storyboard-done</code></li>
-<li><b>约束</b>：下游 Agent 只读已定稿上游文件，缺上游 reject <code>STORY_CTX_MISSING</code>；产物 JSON 源 + MD 镜像双写。</li>
+<li><b>状态机</b>（manifest.status，每次定稿读-改-写推进一格；当前实现覆盖 STAGE 0-2 产物链，STAGE 3-7 沿同一机制随 feature 包扩展）：<code>initiating → story-outline → story-profiles → script-scenes → script-dialogue → script-storyboard → storyboard-done</code></li>
+<li><b>约束</b>：生成动作只读已定稿上游文件，缺上游由 Agent 报告缺料（runtime 错误码，见 §5.1），不静默产出；产物 JSON 源 + MD 镜像双写。立项后变更按 §2.6.6 / §2.6.7 全字段可改 + 影响评估 + 用户决策（<code>manifest.briefVersion</code> + <code>parentReference</code> + <code>影响清单.vN→v(N+1).json</code>，feature-005/006 包落地）。</li>
 </ul>
 
-<h4>版本归档区（代码现状，2026-10-04 初建）</h4>
+<h4>版本归档区（持久化机制）</h4>
 <ul>
 <li><b>目录约定</b>：任何产物文件被覆盖前，旧文件自动移入同目录 <code>版本/&lt;basename&gt;.&lt;YYYYMMDD-HHmmss&gt;&lt;ext&gt;</code>；同秒冲突追加 <code>.N</code> 序号。<code>manifest.json</code> 永不归档。</li>
 <li><b>副本语义</b>：归档失败（rename/mkdir 异常）向上抛错阻断本次写入——宁可写入失败也不做无备份覆盖。</li>
-<li><b>触发点</b>：<code>saveToCurrent</code>（brief.json）、<code>saveStory</code>（剧本/*.json/.md 双写）、<code>saveScript</code>（剧本/分镜 .json/.md 双写）、<code>saveArchive</code>（故事背景档案.md）。</li>
+<li><b>触发点</b>：立项单定稿、剧本 / 分镜 .json/.md 双写、背景档案保存。</li>
 <li><b>消费方式</b>：replay/hydrate 时读取 <code>chat.messages.json</code> 中 unlock 消息，对 source 为 idea/background 的 unlock 从消息流取 <code>newIdea</code>/档案全文，从 <code>版本/</code> 目录反查对应历史版本文件作为 diff 参照；UI 历史角标点击展示同目录版本快照。</li>
 </ul>
 
-<h4>视觉风格谱系快照（代码现状；外部数据源定位见 §8.3）</h4>
+<h4>视觉风格谱系（外部数据源）</h4>
 <ul>
-<li><b>来源</b>：见 §8.3 注册的《AI短剧制作视觉风格谱系》（代码快照对应 v1.45；谱系当前 v1.46）。</li>
-<li><b>同步责任（现状实现）</b>：<code>electron/style-catalog.ts</code> 在谱系升级后人工比对，把谱系条目固化到代码；<code>CATALOG_VERSION</code> 同步更新，作为 UI 徽标与 diff 触发器。新模型下目标形态是路径注册 + 版本跟踪的外部数据库（§8.3），而非固化到代码，此实现待重建。</li>
-<li><b>运行时</b>：<code>assertInCatalog</code> 校验 AI 返回的 form/mainStyle 必须在目录内，否则 reject <code>STYLE_NOT_IN_CATALOG</code>；<code>buildVisualStylePrompt</code> 的 system 段从目录注入完整谱系供模型选型。重建后还须区分主/辅角色：辅助风格仅允许 B/D 候选域（§2.6.4）。</li>
+<li>视觉风格谱系为系统级外部数据源（注册路径 / 版本跟踪 / 引用风格 ID + 谱系版本），完整约定见 §8.3；当前实现 <code>electron/style-catalog.ts</code> 固化谱系（<code>CATALOG_VERSION</code> + <code>assertInCatalog</code> 校验，失败即拒），与 §8.3 机制并存。</li>
+<li>辅助风格仅允许 B/D 候选域（§2.6.4）。</li>
 </ul>
 
-<h4>术语对齐（代码现状，2026-10-04 初建）</h4>
+<h4>术语对齐</h4>
 <ul>
 <li>「立项五要素」统一更名为「<b>立项六要素</b>」（题材/平台/集数/单集时长/风格基调/画幅），画幅由 <code>deriveFiveElements</code> 按平台规则派生；<code>FiveElements.aspectRatio</code> 为必填字段，旧数据回退竖屏。</li>
 </ul>
@@ -587,7 +608,7 @@
 <tr><td>项目引用</td><td>每个项目记录「<b>风格 ID + 谱系版本</b>」（如 <code>A7 @ v1.46</code>）；主风格 1 个、辅助 0–1 个（候选域见 §2.6.4）</td></tr>
 <tr><td>使用边界</td><td>谱系只管画风；风格影响提示词生成，改风格 → 全链路提示词重出。年代 / 地域等事实进入提示词内容，不决定画风 ID</td></tr>
 </table>
-<div class="note">现存代码中谱系被人工固化进 <code>electron/style-catalog.ts</code>（§7.1），是外部数据源机制建成前的过渡实现，后续重建为本节的注册 / 版本机制。</div>
+<div class="note">当前实现：<code>electron/style-catalog.ts</code> 固化谱系（<code>CATALOG_VERSION</code> + <code>assertInCatalog</code> 校验，失败即拒），与本节机制并存（见 §7.1「视觉风格谱系」）。</div>
 
 <h2>9. Harness 质量层 <span class="note" style="display:inline;font-size:11px;padding:1px 7px">[Design 原有]</span></h2>
 <ul>
@@ -631,6 +652,7 @@
 <li><b>v1.8（2026-10-05，一致性修复）</b>：<b>裁决反向同步</b>——§2.6 立项单由"五要素"统一为"<b>立项六要素</b>"（补画幅，落实 feature-005 §术语对齐裁决，消除 md 内部矛盾），同步更新立项单卡 tab、Agent 干预时机、数据模型对应与用户路径（确认门表"0-b 五要素拍板"为《安妮的夏天》历史事实，保留）；§7.1 补入 feature-005 三个小节（版本归档区 / 视觉风格谱系快照 / 术语对齐）；§0 补旧体系对比表；原型底部状态条过期口径"云端模型矩阵"改为"火山方舟（文本）"；§7.1 血缘图由位图 PNG 改为内联矢量 SVG（同目录另存同名 svg 供 md 引用），图内"五要素"同步改"六要素"，删除原 PNG。</li>
 <li><b>v1.9（2026-10-08，立项模型重建，决策见 D-005）</b>：经《2002 相识》立项流程对话推演，§2.6 整体重写——旧「4 节点 + 4 确认门（0-a~0-d）+ 多 tab 立项单」模型⛔ 作废，改为「<b>1 入口动作 + 2 节点（选题诊断含六要素口径草案 / 故事前提）+ 1 道定案门（就绪客观判定，定案卡一键或口头拍板）</b>」；新增反问机制、「已捕获口径」常驻区、故事前提最低门槛、立项后变更走反补。视觉风格选型明确「<b>主风格唯一（候选含主·备全部条目）+ 辅助 0–1 个（候选域封闭 = B 青春治愈 1 项 + D 类型氛围 5 项，挂气氛）</b>」；新增 §8.3 将视觉风格谱系定位为系统级外部数据源（路径注册 / 版本跟踪 / 引用风格 ID + 谱系版本）。§0.1 八步表立项行、§7.1（重新定性为现存代码待反向补录）同步更新。旧 22 个 feature 任务包整体归档至 docs/archive/features-pre-rebuild/，新包从 feature-001 重建。</li>
 <li><b>v1.10（2026-10-09，立项后变更规则升级，决策见 D-011）</b>：经用户拍板"立项字段全可改 + 改后标记影响点 + 用户决定是否重生成"，§2.6 立项后变更机制从"反补（半锁定，premise 不可改）"⛔ 升级为"<b>全可改 + 影响评估 + 用户决策</b>"（落地为三原则：全字段可改 / 影响必标记 / 决策归用户）。具体修订：① §2.6.5 定案门语义从"立项完成 = 灵魂边界"改为"立项完成 = 当前版本落定"——按钮文案「立项完成，进入故事」→「发布立项 v(N+1)」，新增"相对 vN 改动"提示与"查看历史"按钮；② §2.6.6 重写立项后变更规则（核心三原则、触发入口 4 类、字段改动→影响范围映射 6 类、待对齐角标语义、脏读运行时表现、历史版本与回滚、STAGE 0 步骤视觉）；③ <b>新增 §2.6.7 影响评估机制</b>（追溯算法 4 步 + 影响分级表 高/中/低 + 评估面板 UI 草图 + 三个动作语义 + Harness 校验补充）；④ 原 §2.6.7 → §2.6.8 画布布局，数据模型段补"立项单 v1..vN 全量保留 + 影响清单 + parentReference 字段"、新增与方案 A 左栏融合 / titlebar STAGE 进度轨联动两条。立项模型 v1.9 主体（1 入口 + 2 节点 + 1 定案门）保持不变，本次仅升级"立项后"行为。原型（短剧Agent平台-原型.html）当前已具备 STAGE 进度轨（v1.10 待办：在 STAGE 0 步骤 hover tooltip 接入版本号显示）。镜像 HTML 同步更新。</li>
+<li><b>v1.11（2026-10-09，对话通道定稿 + §7.1 定稿，决策见台账 D-012）</b>：用户拍板"旧对话链路不回退、以磁盘实况为终态、所有设计要最后状态"。① §5 改写为「<b>MCP 工具层与对话生成网关</b>」——新增 §5.1 对话生成网关（runtime 单轨：runtime:start/stop/status、runtime:session:*、runtime:prompt/async、runtime:event:*；诊断/大纲/小传/分场/台词/分镜/改写等生成动作由会话内 Agent 规划完成，旧 8 个 <code>agent:*</code> IPC 与 <code>shortdrama_*</code> 生成工具不再重建；统一走 runtime 错误码 14 个，旧 <code>STORY_CTX_MISSING</code>/<code>REVISE_*</code>/<code>STYLE_NOT_IN_CATALOG</code> 退役；无 Key 显式报 <code>UPSTREAM_AUTH_MISSING</code>，不 mock 降级）；§5.2 工具族按磁盘实况定稿（已落地 11 个纯工具 canvas/file/asset/comfyui/gate + 目标族 project/media/engine/资产扩展/edit/harness/skill）。② §7.1「现存代码数据血缘（待反向补录重建）」改写为「<b>数据血缘、状态机与版本归档（最终设计）</b>」——删除旧 8 确认门与"待重建/不代表目标设计"框架；brief.json 由立项单.vN.json 取代；谱系小节并入 §8.3 口径；补充 §2.6.6/§2.6.7 影响评估字段落点。③ 旧通道快照 docs/SDG-OD-legacy/feature-010-ark对话IPC快照.md 有用内容并入本文后删除；平台全景图.html 引用改指 §5.1。</li>
 <li>镜像纪律：md 改动同步 docs/design/ 同名 html；原型（docs/design/短剧Agent平台-原型.html）同步迭代。</li>
 </ul>
 

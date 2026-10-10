@@ -196,7 +196,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <header class="hero" id="top">
   <div class="kicker">PROGRESS · ROADMAP</div>
   <h1>进度<em>看板</em>与路线图</h1>
-  <p class="lede">面向不读规格的人：<b>旧 10 个 Feature 已随 D-005 作废归档、八步闭环覆盖、测试质量与三期路线</b>，一眼看全局。现存代码整体基于旧模型，新包从 feature-001 反向补录重建。</p>
+  <p class="lede">面向不读规格的人：<b>旧 10 个 Feature 已随 D-005 作废归档、八步闭环覆盖、测试质量与三期路线</b>，一眼看全局。对话通道已按 D-012 定稿 runtime 单轨终态；业务层从 feature-001 反向补录重建。</p>
   <div class="verline">
     <span class="chip">旧包 <b>22 个已作废归档（D-005）</b></span>
     <span class="chip">新包 <b>0 个（从 feature-001 重建）</b></span>
@@ -212,7 +212,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   <div class="stats rv">
     <div class="stat"><div class="num"><span data-to="22">0</span><small> 个旧包</small></div><div class="lbl">已整体作废归档（D-005）；新包 0 个，从 feature-001 重建</div></div>
     <div class="stat"><div class="num"><span data-to="197">0</span><small> 通过</small></div><div class="lbl">单测通过（24 文件 · 1 跳过 · 0 失败）</div></div>
-    <div class="stat"><div class="num"><span data-to="0">0</span><small> /8 步</small></div><div class="lbl">新设计已落地步数；旧代码仅覆盖前 3 步形态，待反补认定</div></div>
+    <div class="stat"><div class="num"><span data-to="0">0</span><small> /8 步</small></div><div class="lbl">新设计已落地步数；旧代码覆盖前 3 步形态（对话通道已定稿终态），业务层待反补重建</div></div>
     <div class="stat"><div class="num"><span data-to="0">0</span><small> 个</small></div><div class="lbl">typecheck 待清错误</div></div>
   </div>
 </header>
@@ -220,13 +220,13 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 01 Feature 看板 ══════ -->
 <section id="features">
   <div class="sec-head rv"><span class="sec-no">01</span><h2>Feature 看板</h2></div>
-  <p class="sec-sub rv">下列 F-001~F-010（及 F-011~F-022）均为<b>已作废的旧任务包</b>，2026-10-08 整体归档（D-005）；卡片只保留历史事实，现存代码即这些旧包的产物，待反向补录认定。</p>
+  <p class="sec-sub rv">下列 F-001~F-010（及 F-011~F-022）均为<b>已作废的旧任务包</b>，2026-10-08 整体归档（D-005）；卡片只保留历史事实。对话通道经 D-012 定稿 runtime 单轨终态；其余业务层产物按 §5.2 目标族在 feature 包中对齐重建。</p>
 
   <div class="kanban">
     <div class="fcard arch rv">
       <div class="ftop"><span class="fid">旧 F-001</span><h4>立项</h4><span class="status st-arch">已作废归档</span></div>
       <p class="fdesc">旧立项门模型（4 节点 + 4 门 + 多 tab 立项单），已被设计 §2.6「2 节点 + 1 定案门」取代。</p>
-      <div class="fmeta"><span>docs/archive/features-pre-rebuild/</span><span>旧模型·待反补</span></div>
+      <div class="fmeta"><span>archive/README.md（旧包已删）</span><span>旧模型·按 feature 包重建</span></div>
       <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
     </div>
 
@@ -288,7 +288,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 
     <div class="fcard arch rv">
       <div class="ftop"><span class="fid">旧 F-010</span><h4>对话通道全量接入</h4><span class="status st-arch">已作废归档</span></div>
-      <p class="fdesc">ChatComposer ⇄ opencode runtime 流式单轨：正文/推理分轨、可停止；旧 8 个对话 IPC 已快照后删除。通道收口为旧包级决策，反补时按 v1.9 重新认定。</p>
+      <p class="fdesc">ChatComposer ⇄ opencode runtime 流式单轨：正文/推理分轨、可停止；旧 8 个对话 IPC 已删除（快照并入设计后删）。通道收口经 D-012 定稿为终态：runtime 单轨不回退、旧 IPC / shortdrama_* 生成工具不重建。</p>
       <div class="fmeta"><span>旧包 T1–T10</span><span>D-006~D-012（旧包级）</span></div>
       <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
     </div>
@@ -298,7 +298,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 02 八步闭环 ══════ -->
 <section id="steps">
   <div class="sec-head rv"><span class="sec-no">02</span><h2>八步生产闭环覆盖</h2></div>
-  <p class="sec-sub rv">红色 0/1/2 = 旧代码曾覆盖的形态（旧立项门模型与设计 §2.6 不符），<b>属旧代码现状、不计为新设计落地，待反向补录重建</b>；重建顺序为立项 → 故事 → 剧本分场，随后第 3 步「资产」接入 ComfyUI 统一媒体引擎。</p>
+  <p class="sec-sub rv">红色 0/1/2 = 旧代码曾覆盖的形态（旧立项门模型与设计 §2.6 不符），<b>属旧代码现状、不计为新设计落地，按 feature 包反向补录重建</b>；重建顺序为立项 → 故事 → 剧本分场，随后第 3 步「资产」接入 ComfyUI 统一媒体引擎。</p>
 
   <div class="steps rv">
     <div class="step legacy"><div class="dot">0</div><div class="sn">立项</div><div class="sd">诊断（含六要素草案）/ 故事前提 / 定案卡</div><div class="bar"></div></div>
@@ -316,7 +316,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 03 质量实况 ══════ -->
 <section id="quality">
   <div class="sec-head rv"><span class="sec-no">03</span><h2>质量实况（当日实测）</h2></div>
-  <p class="sec-sub rv">以下为 2026-10-09 当日复核的命令行真实结果，不做美化。注意：测试全绿只代表现存代码自洽，<b>不代表其符合设计 v1.9</b>——代码整体基于旧模型，待反向补录重建。</p>
+  <p class="sec-sub rv">以下为 2026-10-09 当日复核的命令行真实结果，不做美化。注意：测试全绿只代表现存代码自洽，<b>不代表其符合设计 v1.11</b>——业务层基于旧模型，按 feature 包反向补录重建（对话通道已定稿终态）。</p>
 
   <div class="alerts rv">
     <div class="alert">
@@ -336,8 +336,8 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="alert">
       <span class="alvl al-warn">文档-代码</span>
       <div>
-        <h4>现存代码与设计 v1.9 存在偏差（D-005）</h4>
-        <p>磁盘实况（2026-10-09 核对）：代码已是 feature-019/020/022 新壳——src/studio 三栏工作台 + canvas.json 数据驱动画布 + 11 个纯 MCP 工具 + 25 个 IPC；旧的立项门多 tab、style-catalog、9 节点画布等文件已不存在。但该形态仍属 D-005 前代码：业务口径基于旧立项模型，且 Agent 定义放行名（shortdrama_*）与实际工具名不符，仍须从 feature-001 按反向补录六步法对照 v1.9 重新认定。</p>
+        <h4>现存业务层与设计 v1.11 存在偏差（D-005 → D-012）</h4>
+        <p>磁盘实况（2026-10-09 核对）：代码已是 feature-019/020/022 新壳——src/studio 三栏工作台 + canvas.json 数据驱动画布 + 11 个纯 MCP 工具 + 25 个 IPC；旧的立项门多 tab、style-catalog、9 节点画布等文件已不存在。对话通道已按 D-012 定稿 runtime 单轨终态（不重建旧 IPC / shortdrama_* 生成工具）；业务口径仍基于旧立项模型，且 Agent 定义放行名（shortdrama_*）与 §5.2 目标族工具名不符，按反向补录六步法对照 v1.11 重建。</p>
       </div>
     </div>
   </div>
@@ -356,10 +356,10 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
         <span class="ph-state">重新启动（旧 10 Feature 已作废归档；先反向补录前 3 步）</span>
       </div>
       <ul>
-        <li class="done">应用骨架 + MCP 网关 + Agent 运行时（磁盘实况，待反补认定）</li>
-        <li class="done">三栏工作台 / 画布节点 / 状态着色（feature-020/022 形态，待按 v1.9 认定）</li>
-        <li class="done">编剧 → 剧本 / 分场 / 分镜文本（旧模型产物，待反补）</li>
-        <li class="done">runtime 对话单轨（旧包级收口，待按 v1.9 重新认定）</li>
+        <li class="done">应用骨架 + MCP 网关 + Agent 运行时（磁盘实况；对话通道已定稿终态）</li>
+        <li class="done">三栏工作台 / 画布节点 / 状态着色（feature-020/022 形态）</li>
+        <li class="done">编剧 → 剧本 / 分场 / 分镜文本（旧模型产物，按 feature 包重建）</li>
+        <li class="done">runtime 对话单轨（旧包级收口，经 D-012 定稿终态）</li>
         <li class="doing">feature-001 起：立项 → 故事 → 剧本分场反向补录重建</li>
         <li>第 3 步「资产」：美术 Agent + 定妆 / 场景图（排在文本侧反补之后）</li>
         <li>ComfyUI 统一媒体引擎（B0/B5/B8/B9）</li>
@@ -411,15 +411,15 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="src-grid">
       <div class="src-row">
         <span class="si-base">A · 规划</span>
-        <div><div class="si-ti">短剧Agent平台设计.md（v1.9）</div><div class="si-sub">§2.6 新立项模型 · §7.1 三阶段血缘 · §8.3 系统级外部数据源 · §11 三期路线</div></div>
+        <div><div class="si-ti">短剧Agent平台设计.md（v1.11）</div><div class="si-sub">§2.6 新立项模型 · §5.1 对话生成网关（runtime 单轨） · §7.1 数据血缘（最终设计） · §8.3 系统级外部数据源 · §11 三期路线</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 归档</span>
-        <div><div class="si-ti">docs/archive/features-pre-rebuild/ + archive/README.md</div><div class="si-sub">旧 22 包（含旧 feature-001~010 任务清单）已作废归档，勾选与 AC 状态随包冻结</div></div>
+        <div><div class="si-ti">docs/archive/README.md（旧包作废说明）</div><div class="si-sub">旧 22 包（feature-001~022）2026-10-08 作废、2026-10-10 已删除（历史见 git ef4a175）；卡片仅保留历史事实</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 决策</span>
-        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005）</div><div class="si-sub">立项模型重建 + 旧 22 包作废 + 谱系定位系统级外部数据源</div></div>
+        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005 / D-011 / D-012）</div><div class="si-sub">立项模型重建 + 旧 22 包作废 + 谱系定位系统级外部数据源 + 对话通道定稿 runtime 单轨终态</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 新包</span>
@@ -441,7 +441,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   </div>
 </details>
 
-<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准（设计 v1.9 / 决策台账 D-005）· 快照 2026-10-08 · 2026-10-09 复核修订</div>
+<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准（设计 v1.11 / 决策台账 D-005·D-012）· 2026-10-09 同步 v1.11 定稿</div>
 </main>
 </div>
 

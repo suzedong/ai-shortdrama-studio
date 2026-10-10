@@ -223,7 +223,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   <h1>架构与<em>模块关系图</em></h1>
   <p class="lede">一张图看清平台<b>四层运行边界、模块归属、runtime 单轨与数据血缘</b>：渲染层 → 主进程 → opencode 子进程 → 外部世界，媒体全部收敛于局域网 ComfyUI。</p>
   <div class="verline">
-    <span class="chip">设计基准 <b>设计 v1.9</b>（2026-10-08）</span>
+    <span class="chip">设计基准 <b>设计 v1.11</b>（2026-10-09 定稿）</span>
     <span class="chip">模块 / 通道口径 <b>磁盘实况</b>（2026-10-09 核对 · 197 passed · 1 skipped）</span>
     <span class="chip">技术栈 <b>Electron 33 · React 18 · TS 5.6 · Vite</b></span>
     <span class="chip">Agent 运行时 <b>opencode 1.18 + MCP</b></span>
@@ -238,7 +238,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 01 四层架构 ══════ -->
 <section id="layers">
   <div class="sec-head rv"><span class="sec-no">01</span><h2>四层运行架构</h2></div>
-  <p class="sec-sub rv">信任从左到右逐级收窄：renderer 不直连任何外部服务与 ComfyUI；媒体调用一律收敛于主进程 / MCP 引擎工具。<b>下图模块为 2026-10-09 磁盘实况</b>（feature-019/020/022 新壳形态，仍属 D-005 前代码，对照设计 v1.9 的反向补录尚未正式认定）。</p>
+  <p class="sec-sub rv">信任从左到右逐级收窄：renderer 不直连任何外部服务与 ComfyUI；媒体调用一律收敛于主进程 / MCP 引擎工具。<b>下图模块为 2026-10-09 磁盘实况</b>（对话通道已按台账 D-012 定稿 runtime 单轨终态；业务层按设计 v1.11 口径认定）。</p>
 
   <div class="diagram rv">
     <div class="legend">
@@ -290,7 +290,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       <p class="ldesc">开源同源 Agent 运行时；Agent 经 MCP 调用主进程暴露的纯工具，不直接写文件。</p>
       <div class="flowrow">
         <div class="node"><div class="nt">Director 等 5 Agent</div><div class="nd">showrunner / writer / media-director 等</div><span class="path">resources/opencode/agents/*.md</span></div>
-        <div class="node old"><div class="nt">MCP client</div><div class="nd">Agent 定义仍写 shortdrama_* 放行名，与现存 11 工具名（file.read 等）不符 · 待反补认定</div><span class="path">OPENCODE_MCP_URL/TOKEN</span></div>
+        <div class="node"><div class="nt">MCP client</div><div class="nd">Agent 定义放行名 shortdrama_* 与 §5.2 目标族工具名对齐，列入 feature 包实施</div><span class="path">OPENCODE_MCP_URL/TOKEN</span></div>
         <div class="node future"><div class="nt">多 Agent 分工</div><div class="nd">设计 §4 六角色终态</div><span class="path">设计 §4（终态）</span></div>
       </div>
     </div>
@@ -315,7 +315,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     </div>
     <div class="bcard b-ok">
       <h4><span class="dot"></span>绞杀者收口（磁盘实况）</h4>
-      <p>旧 ark 直连对话 IPC（8 个 agent:*）已删除；对话统一走 runtime 单轨。现存代码中 ark.ts 已无引用方，是否保留待反向补录时按设计 v1.9 认定。</p>
+      <p>旧 ark 直连对话 IPC（8 个 agent:*）已删除；对话统一走 runtime 单轨（D-012 定稿终态，不重建）。残留 ark.ts 已无引用方，随 §5.2 目标族对齐清理。</p>
     </div>
     <div class="bcard b-info">
       <h4><span class="dot"></span>renderer 零直连</h4>
@@ -327,24 +327,24 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 02 模块清单 ══════ -->
 <section id="modules">
   <div class="sec-head rv"><span class="sec-no">02</span><h2>模块清单与落地状态</h2></div>
-  <p class="sec-sub rv">模块按进程归属分组。<b>以下为 2026-10-09 磁盘实况</b>（feature-019/020/022 新壳形态，D-005 前代码，对照设计 v1.9 的反向补录认定尚未完成）；另区分：终态规划。</p>
+  <p class="sec-sub rv">模块按进程归属分组。<b>以下为 2026-10-09 磁盘实况</b>（对话通道已按 D-012 定稿终态；业务层按设计 v1.11 口径认定）；另区分：终态规划。</p>
 
   <table class="mtab rv">
     <thead><tr><th>模块</th><th>职责</th><th>状态</th></tr></thead>
     <tbody>
-      <tr><td><b>StudioApp 工作台</b><span class="mp">src/studio/StudioApp.tsx</span></td><td class="desc">三栏布局：ProjectNav / CanvasBoard(+StudioViewer) / ChatComposer(+GateCardView)</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
-      <tr><td><b>ChatComposer</b><span class="mp">src/studio/ChatComposer.tsx</span></td><td class="desc">对话输入、发送（runtime:prompt）、中断</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
-      <tr><td><b>CanvasBoard / StudioViewer</b><span class="mp">src/studio/CanvasBoard.tsx · StudioViewer.tsx</span></td><td class="desc">数据驱动多步画布；经 file:read 的只读产物查看器</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
-      <tr><td><b>GateCardView / ProjectNav</b><span class="mp">src/studio/GateCardView.tsx · ProjectNav.tsx</span></td><td class="desc">门裁决卡（渲染自 CanvasGate）；项目导航</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
-      <tr><td><b>chat-runtime</b><span class="mp">src/lib/chat-runtime.ts</span></td><td class="desc">StreamingTurn / ToolView、事件归约、消息转换</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
-      <tr><td><b>IPC 路由</b><span class="mp">electron/main.ts</span></td><td class="desc">25 个处理器：项目 / runtime / canvas / gate / asset / file / comfy 设置</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
-      <tr><td><b>RuntimeManager</b><span class="mp">electron/runtime/manager.ts</span></td><td class="desc">opencode 子进程启停、端口探活、环境注入</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
-      <tr><td><b>provider / client / projection</b><span class="mp">electron/runtime/</span></td><td class="desc">供给探测、事件流客户端、事件 → UI DTO 投影</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
-      <tr><td><b>MCP HTTP 服务</b><span class="mp">electron/mcp/server.ts</span></td><td class="desc">Streamable HTTP，/mcp，Bearer，仅 loopback（server: shortdrama-tools）</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
-      <tr><td><b>纯工具层</b><span class="mp">electron/mcp/tools.ts</span></td><td class="desc">11 个纯工具：file.read/list/write · canvas.get/update · gate.request · asset.register/list · comfyui.instances/queue/status</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
-      <tr><td><b>fs / project 套件</b><span class="mp">electron/fs/ · electron/project/</span></td><td class="desc">沙箱边界、写队列、归档；项目库与当前项目</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
-      <tr><td><b>canvas / gate / asset / comfy</b><span class="mp">electron/canvas · gate · asset · comfy/</span></td><td class="desc">画布存储与边、门桥、资产索引、ComfyUI 客户端与多实例设置</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
-      <tr><td><b>Agent 定义 5 个</b><span class="mp">resources/opencode/agents/</span></td><td class="desc">director / showrunner / writer / media-director / comfyui-operator（放行名仍写 shortdrama_*，与现存工具名不符）</td><td><span class="badge b-old">磁盘实况·待反补</span></td></tr>
+      <tr><td><b>StudioApp 工作台</b><span class="mp">src/studio/StudioApp.tsx</span></td><td class="desc">三栏布局：ProjectNav / CanvasBoard(+StudioViewer) / ChatComposer(+GateCardView)</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
+      <tr><td><b>ChatComposer</b><span class="mp">src/studio/ChatComposer.tsx</span></td><td class="desc">对话输入、发送（runtime:prompt）、中断</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
+      <tr><td><b>CanvasBoard / StudioViewer</b><span class="mp">src/studio/CanvasBoard.tsx · StudioViewer.tsx</span></td><td class="desc">数据驱动多步画布；经 file:read 的只读产物查看器</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
+      <tr><td><b>GateCardView / ProjectNav</b><span class="mp">src/studio/GateCardView.tsx · ProjectNav.tsx</span></td><td class="desc">门裁决卡（渲染自 CanvasGate）；项目导航</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
+      <tr><td><b>chat-runtime</b><span class="mp">src/lib/chat-runtime.ts</span></td><td class="desc">StreamingTurn / ToolView、事件归约、消息转换</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
+      <tr><td><b>IPC 路由</b><span class="mp">electron/main.ts</span></td><td class="desc">25 个处理器：项目 / runtime / canvas / gate / asset / file / comfy 设置</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
+      <tr><td><b>RuntimeManager</b><span class="mp">electron/runtime/manager.ts</span></td><td class="desc">opencode 子进程启停、端口探活、环境注入</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
+      <tr><td><b>provider / client / projection</b><span class="mp">electron/runtime/</span></td><td class="desc">供给探测、事件流客户端、事件 → UI DTO 投影</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
+      <tr><td><b>MCP HTTP 服务</b><span class="mp">electron/mcp/server.ts</span></td><td class="desc">Streamable HTTP，/mcp，Bearer，仅 loopback（server: shortdrama-tools）</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
+      <tr><td><b>纯工具层</b><span class="mp">electron/mcp/tools.ts</span></td><td class="desc">11 个纯工具：file.read/list/write · canvas.get/update · gate.request · asset.register/list · comfyui.instances/queue/status</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
+      <tr><td><b>fs / project 套件</b><span class="mp">electron/fs/ · electron/project/</span></td><td class="desc">沙箱边界、写队列、归档；项目库与当前项目</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
+      <tr><td><b>canvas / gate / asset / comfy</b><span class="mp">electron/canvas · gate · asset · comfy/</span></td><td class="desc">画布存储与边、门桥、资产索引、ComfyUI 客户端与多实例设置</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
+      <tr><td><b>Agent 定义 5 个</b><span class="mp">resources/opencode/agents/</span></td><td class="desc">director / showrunner / writer / media-director / comfyui-operator（放行名仍写 shortdrama_*，与现存工具名不符）</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
       <tr><td><b>多 Agent 六角色</b><span class="mp">设计 §4</span></td><td class="desc">编剧 / 美术 / 镜头 / 声音 / 引擎 / 剪辑</td><td><span class="badge b-plan">终态规划</span></td></tr>
       <tr><td><b>ComfyUI 引擎工具</b><span class="mp">设计 §5 / §8</span></td><td class="desc">媒体生成统一引擎（图像 / 视频 / 音乐，权重工作流推理）</td><td><span class="badge b-plan">终态规划</span></td></tr>
     </tbody>
@@ -354,7 +354,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 03 通道单轨 ══════ -->
 <section id="channels">
   <div class="sec-head rv"><span class="sec-no">03</span><h2>IPC / MCP 通道（2026-10-09 磁盘实况）</h2></div>
-  <p class="sec-sub rv">对话统一走 runtime 单轨；旧 8 个 ark 直连对话 IPC 已快照后删除。<b>以下为 main.ts 现存 25 个 invoke 处理器（均经 preload 白名单暴露），反向补录认定尚未完成。</b></p>
+  <p class="sec-sub rv">对话统一走 runtime 单轨；旧 8 个 ark 直连对话 IPC 已删除（快照并入设计 §5.1 后删除）。<b>以下为 main.ts 现存 25 个 invoke 处理器（均经 preload 白名单暴露），为现行通道实况（D-012 终态）。</b></p>
 
   <div class="chgrid rv">
     <div class="chcol new">
@@ -388,26 +388,26 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </ul>
     </div>
   </div>
-  <p class="mut rv" style="margin-top:16px">MCP 侧现存 <b>11 个纯工具</b>（<code>file.read</code> / <code>canvas.get</code> / <code>gate.request</code> / <code>asset.register</code> / <code>comfyui.instances</code> 等），由 <code>electron/mcp/tools.ts</code> 注册；注意 resources/opencode/agents/*.md 中的放行名仍写 <code>shortdrama_*</code>，与实际工具名不一致，待反向补录时一并认定。</p>
+  <p class="mut rv" style="margin-top:16px">MCP 侧现存 <b>11 个纯工具</b>（<code>file.read</code> / <code>canvas.get</code> / <code>gate.request</code> / <code>asset.register</code> / <code>comfyui.instances</code> 等），由 <code>electron/mcp/tools.ts</code> 注册；注意 resources/opencode/agents/*.md 中的放行名仍写 <code>shortdrama_*</code>，与实际工具名不一致，按 §5.2 目标族在 feature 包中对齐。</p>
 </section>
 
 <!-- ══════ 04 数据血缘 ══════ -->
 <section id="data">
   <div class="sec-head rv"><span class="sec-no">04</span><h2>会话目录与数据血缘</h2></div>
-  <p class="sec-sub rv">纯 JSON / Markdown 文件持久化，无数据库。<b>下列目录树为 2026-10-09 磁盘实况</b>（feature-017/022 形态；工作区位于「文稿/ai-shortdrama-studio/」）；三阶段血缘在设计 §7.1 定义，反向补录后将按 v1.9 模型重建。</p>
+  <p class="sec-sub rv">纯 JSON / Markdown 文件持久化，无数据库。<b>下列目录树为 2026-10-09 磁盘实况</b>（feature-017/022 形态；工作区位于「文稿/ai-shortdrama-studio/」）；数据血缘按设计 §7.1「最终设计」定稿（v1.11，立项单.vN.json 取代 brief.json）。</p>
 
   <div class="dltree rv"><span class="cmt"># 磁盘实况：项目工作区（2026-10-09 核对）</span>
 <span class="dir">~/Documents/ai-shortdrama-studio/</span>
 ├── <span class="dir">project-{时间戳}-{随机}/</span>   <span class="cmt"># 每个短剧项目一个目录</span>
-│   ├── <span class="key">manifest.json</span>      <span class="cmt"># 项目骨架：status / nodes（旧 10 节点状态机）/ 各门字段</span>
+│   ├── <span class="key">manifest.json</span>      <span class="cmt"># 项目骨架：status（7 态状态机，§7.1）/ nodes / 各门字段；画布节点以 canvas.json 为准（Stage 10 态）</span>
 │   ├── <span class="key">.session.json</span>      <span class="cmt"># 标题 / 创建 / 最近打开时间</span>
-│   ├── <span class="key">canvas.json</span>        <span class="cmt"># 画布真相：nodes（step/kind/ref.path）/ edges / pendingGate</span>
+│   ├── <span class="key">canvas.json</span>        <span class="cmt"># 画布真相：nodes（step/kind/ref.path；Stage 10 态）/ edges / pendingGate</span>
 │   └── <span class="dir">资产/</span>
 │       └── <span class="key">asset-index.json</span> <span class="cmt"># 资产登记索引</span>
 └── <span class="cmt"># userData/session-state.json：当前打开项目指针（主进程侧）</span>
 <span class="cmt"># 产物文件：由 MCP file.write 落盘（旧版自动归档至同级「版本/」），StudioViewer 经 file:read 只读打开</span></div>
 
-  <h3 class="rv">血缘主链（设计 v1.9 口径，随反补落地）</h3>
+  <h3 class="rv">血缘主链（设计 §7.1 · v1.11 最终设计定稿）</h3>
   <div class="keyflow rv">
     <span class="kbox">CharacterProfile.id</span><span class="ar">→</span>
     <span class="kbox">分场出场人物</span><span class="ar">→</span>
@@ -425,13 +425,13 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 05 Agent 与工具 ══════ -->
 <section id="agents">
   <div class="sec-head rv"><span class="sec-no">05</span><h2>Agent 编排与 MCP 工具</h2></div>
-  <p class="sec-sub rv">终态为「1 主控 + 6 专职」多 Agent，经消息总线协作、共享黑板、失败隔离，Agent 无删除权。<b>磁盘实况已安装 5 个 Agent 定义（director / showrunner / writer / media-director / comfyui-operator），其放行名口径与现存工具不符，待反向补录重建。</b></p>
+  <p class="sec-sub rv">终态为「1 主控 + 6 专职」多 Agent，经消息总线协作、共享黑板、失败隔离，Agent 无删除权。<b>磁盘实况已安装 5 个 Agent 定义（director / showrunner / writer / media-director / comfyui-operator）；放行名与 §5.2 目标族工具名对齐列入 feature 包实施，对话链路经 D-012 定稿不回退。</b></p>
 
   <div class="crew rv">
     <div class="director">
       <div class="role">PRIMARY · 主控导演</div>
       <div class="rn">Director Agent（+ showrunner）</div>
-      <div class="rd">理解意图 · 规划步骤 · 强制经 MCP 工具产出；定义中放行名仍写 shortdrama_*，待反补修正</div>
+      <div class="rd">理解意图 · 规划步骤 · 强制经 MCP 工具产出；放行名与 §5.2 目标族工具名对齐列入 feature 包</div>
     </div>
     <div class="bus">消息总线 · 共享黑板</div>
     <div class="agentgrid">
@@ -446,17 +446,17 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 
   <h3 class="rv">磁盘实况 · 11 个纯 MCP 工具（electron/mcp/tools.ts）</h3>
   <div class="toolgrid rv">
-    <div class="tcard"><span class="state badge b-old">file</span><h4><code>file.read</code></h4><p>沙箱内文件只读</p></div>
-    <div class="tcard"><span class="state badge b-old">file</span><h4><code>file.list</code></h4><p>目录枚举</p></div>
-    <div class="tcard"><span class="state badge b-old">file</span><h4><code>file.write</code></h4><p>写入（写队列 · 旧版自动归档）</p></div>
-    <div class="tcard"><span class="state badge b-old">canvas</span><h4><code>canvas.get</code></h4><p>读取画布</p></div>
-    <div class="tcard"><span class="state badge b-old">canvas</span><h4><code>canvas.update</code></h4><p>节点 / 边 / pendingGate 更新</p></div>
-    <div class="tcard"><span class="state badge b-old">gate</span><h4><code>gate.request</code></h4><p>发起门请求</p></div>
-    <div class="tcard"><span class="state badge b-old">asset</span><h4><code>asset.register</code></h4><p>登记资产入索引</p></div>
-    <div class="tcard"><span class="state badge b-old">asset</span><h4><code>asset.list</code></h4><p>资产枚举</p></div>
-    <div class="tcard"><span class="state badge b-old">comfyui</span><h4><code>comfyui.instances</code></h4><p>实例清单</p></div>
-    <div class="tcard"><span class="state badge b-old">comfyui</span><h4><code>comfyui.queue</code></h4><p>提交工作流</p></div>
-    <div class="tcard"><span class="state badge b-old">comfyui</span><h4><code>comfyui.status</code></h4><p>任务 / 实例状态</p></div>
+    <div class="tcard"><span class="state badge b-live">file</span><h4><code>file.read</code></h4><p>沙箱内文件只读</p></div>
+    <div class="tcard"><span class="state badge b-live">file</span><h4><code>file.list</code></h4><p>目录枚举</p></div>
+    <div class="tcard"><span class="state badge b-live">file</span><h4><code>file.write</code></h4><p>写入（写队列 · 旧版自动归档）</p></div>
+    <div class="tcard"><span class="state badge b-live">canvas</span><h4><code>canvas.get</code></h4><p>读取画布</p></div>
+    <div class="tcard"><span class="state badge b-live">canvas</span><h4><code>canvas.update</code></h4><p>节点 / 边 / pendingGate 更新</p></div>
+    <div class="tcard"><span class="state badge b-live">gate</span><h4><code>gate.request</code></h4><p>发起门请求</p></div>
+    <div class="tcard"><span class="state badge b-live">asset</span><h4><code>asset.register</code></h4><p>登记资产入索引</p></div>
+    <div class="tcard"><span class="state badge b-live">asset</span><h4><code>asset.list</code></h4><p>资产枚举</p></div>
+    <div class="tcard"><span class="state badge b-live">comfyui</span><h4><code>comfyui.instances</code></h4><p>实例清单</p></div>
+    <div class="tcard"><span class="state badge b-live">comfyui</span><h4><code>comfyui.queue</code></h4><p>提交工作流</p></div>
+    <div class="tcard"><span class="state badge b-live">comfyui</span><h4><code>comfyui.status</code></h4><p>任务 / 实例状态</p></div>
   </div>
 </section>
 
@@ -487,15 +487,15 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="src-grid">
       <div class="src-row">
         <span class="si-base">A · 架构</span>
-        <div><div class="si-ti">短剧Agent平台设计.md（v1.9）</div><div class="si-sub">§2.6 新立项模型 · §4 多 Agent 架构 · §5 MCP 工具层 · §7/§7.1 目录与实体 · §8/§8.3 引擎通道与系统级外部数据源 · §11 路线 · §13 版本记录</div></div>
+        <div><div class="si-ti">短剧Agent平台设计.md（v1.11）</div><div class="si-sub">§2.6 新立项模型 · §4 多 Agent 架构 · §5 MCP 工具层与对话生成网关（§5.1 runtime 单轨） · §7/§7.1 目录与实体（最终设计） · §8/§8.3 引擎通道与系统级外部数据源 · §11 路线 · §13 版本记录</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 归档</span>
-        <div><div class="si-ti">docs/archive/features-pre-rebuild/ + archive/README.md</div><div class="si-sub">旧 22 个 feature 包（含旧 feature-001~010 任务清单与 F-010 契约）已整体作废归档；其勾选与 AC 状态随包冻结，仅作历史核对</div></div>
+        <div><div class="si-ti">docs/archive/README.md（旧包作废说明）</div><div class="si-sub">旧 22 个 feature 包（feature-001~022）2026-10-08 作废、2026-10-10 已从工作区删除（历史见 git ef4a175）；不作任何实现依据</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 决策</span>
-        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005）</div><div class="si-sub">立项模型重建 + 旧 22 包作废归档 + 谱系定位系统级外部数据源；runtime/MCP 通道与旧契约须在反向补录时按 v1.9 重新认定</div></div>
+        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005 / D-011 / D-012）</div><div class="si-sub">立项模型重建 + 旧 22 包作废归档 + 谱系定位系统级外部数据源；对话通道经 D-012 定稿 runtime 单轨终态（不重建旧 IPC/工具）</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 治理</span>
@@ -513,7 +513,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   </div>
 </details>
 
-<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准（设计 v1.9 / 决策台账 D-005）· 2026-10-08 渲染 · 2026-10-09 按磁盘实况修订</div>
+<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准（设计 v1.11 / 决策台账 D-005·D-012）· 2026-10-09 同步 v1.11 定稿</div>
 </main>
 </div>
 

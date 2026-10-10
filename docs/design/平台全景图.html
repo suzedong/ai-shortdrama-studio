@@ -292,18 +292,18 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
   <h1>一块画布 = 一条生产线<br><em>一个指令</em> = 一支摄制组</h1>
   <p class="lede">这是一个 Agent 驱动的短剧内容生产桌面应用：用户只表达创作目标，<b>主控 Agent 像导演一样</b>把任务拆给虚拟摄制组——编剧、美术、镜头、声音、引擎在同一块画布上并行作业，从立项到成片全自动推进，人只在关键节点"拍板"。</p>
   <div class="verline">
-    <span class="chip">设计 <b>v1.9</b></span>
+    <span class="chip">设计 <b>v1.11</b>（2026-10-09 定稿）</span>
     <span class="chip">Electron + React 18 + TS</span>
     <span class="chip">opencode-ai <b>1.18.34</b></span>
     <span class="chip">纯 JSON 持久化 · 无数据库</span>
-    <span class="chip">更新于 2026-10-08</span>
+    <span class="chip">更新于 2026-10-09</span>
   </div>
 
   <div class="stats">
     <div class="stat"><div class="num">22<small> 个旧包</small></div><div class="lbl">已整体作废归档（D-005），新包从 feature-001 重建</div></div>
     <div class="stat"><div class="num" data-to="197">0</div><div class="lbl">测试通过（1 skipped；npm run test:run 实测）</div></div>
-    <div class="stat"><div class="num">0<small>/8 步</small></div><div class="lbl">新设计尚未反补落地；旧代码仅覆盖前 3 步形态</div></div>
-    <div class="stat"><div class="num">39<small> 个IPC</small></div><div class="lbl">旧代码现状（runtime 单轨），待反向补录对照</div></div>
+    <div class="stat"><div class="num">0<small>/8 步</small></div><div class="lbl">新设计尚未反补落地；旧代码覆盖前 3 步形态（对话通道已 D-012 定稿终态）</div></div>
+    <div class="stat"><div class="num">25<small> 个IPC</small></div><div class="lbl">现行通道实况（runtime 单轨 · D-012 终态）</div></div>
   </div>
 </header>
 
@@ -343,7 +343,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
         <span class="sr-files">
           <a href="../短剧Agent平台设计.md">短剧Agent平台设计.md</a><span class="sep">·</span>
           <a href="../../shared/types.ts">shared/types.ts</a><span class="sep">·</span>
-          <a href="../governance/SDG-AI-决策台账.md">决策台账 D-005</a>
+          <a href="../governance/SDG-AI-决策台账.md">决策台账 D-005 / D-011 / D-012</a>
         </span>
         <span class="sr-cap">四层架构 / 八步闭环 / 摄制组 / 数据血缘与主键</span>
       </div>
@@ -353,7 +353,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
         <span class="sr-files">
           <a href="../../AGENTS.md">AGENTS.md §1·§4</a><span class="sep">·</span>
           <a href="../governance/AI-SDG-AI工具执行指令.md">AI-SDG 执行指令.md</a><span class="sep">·</span>
-          <a href="../governance/SDG-AI-决策台账.md">决策台账（D-001~D-005）</a>
+          <a href="../governance/SDG-AI-决策台账.md">决策台账（D-001~D-012）</a>
         </span>
         <span class="sr-cap">三铁律 / K1–K10 / 绞杀者双轨 / 三期路线</span>
       </div>
@@ -361,17 +361,16 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
       <div class="src-row">
         <span class="sr-ch">04 进度</span>
         <span class="sr-files">
-          <a href="../archive/features-pre-rebuild/">archive/features-pre-rebuild/</a><span class="sep">·</span>
-          <a href="../archive/README.md">archive/README.md（作废声明）</a><span class="sep">·</span>
+          <a href="../archive/README.md">archive/README.md（旧包已删 · git 可恢复）</a><span class="sep">·</span>
           <a href="../features/">docs/features/（待重建）</a>
         </span>
-        <span class="sr-cap">旧 22 包 AC 状态已随包冻结归档；新包从 feature-001 按反补六步法重建</span>
+        <span class="sr-cap">旧 22 包 2026-10-10 已删除（历史见 git）；新包从 feature-001 按反补六步法重建</span>
       </div>
 
       <div class="src-row">
         <span class="sr-ch">05 问题</span>
         <span class="sr-files">
-          <a href="../governance/SDG-AI-决策台账.md">决策台账 D-005</a><span class="sep">·</span>
+          <a href="../governance/SDG-AI-决策台账.md">决策台账 D-005 · D-012</a><span class="sep">·</span>
           <a href="../../短剧Agent平台设计.md">设计 §5.1 对话网关（终态）</a><span class="sep">·</span>
           <a href="../../electron/preload.ts">electron/preload.ts</a>
         </span>
@@ -385,7 +384,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
       ·
       <a href="file:///Users/szd/Documents/WPS/Vibe%20Coding/AI-SDG-Trae-Vibe-Coding-%E5%9B%A2%E9%98%9F%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%B5%81%E7%A8%8B%E6%96%B9%E6%A1%88.md">团队架构与流程方案.md</a>
       （目录：/Users/szd/Documents/WPS/Vibe Coding，2026-10-05 v1.4）。项目内副本见
-      <a href="../governance/AI-SDG-AI工具执行指令.md">docs/governance/AI-SDG-AI工具执行指令.md</a>，AGENTS.md 在其基础上补充了本项目上下文；本页为 B 类可视化文档（v1.3 三层模型），v1.4 起按项目画像（本项目 <b>P2</b>）配置、Feature 闭环后直接重渲染；全局决策见 <a href="../governance/SDG-AI-决策台账.md">台账 D-001 ~ D-005</a>。<br>
+      <a href="../governance/AI-SDG-AI工具执行指令.md">docs/governance/AI-SDG-AI工具执行指令.md</a>，AGENTS.md 在其基础上补充了本项目上下文；本页为 B 类可视化文档（v1.3 三层模型），v1.4 起按项目画像（本项目 <b>P2</b>）配置、Feature 闭环后直接重渲染；全局决策见 <a href="../governance/SDG-AI-决策台账.md">台账 D-001 ~ D-012</a>。<br>
       <b>规格文件命名约定（每个 Feature 任务包）：</b>SDG-RE-需求规格.md（为什么做）· SDG-RE-契约.md（接口/字段/IPC）· SDG-RE-任务清单.md（原子任务与 AC）· SDG-OD-设计说明.md（视觉验收）· SDG-AI-变更记录.md（K1–K10 决策留痕）。目录：<a href="../features/">docs/features/</a>（当前为空，新包从 feature-001 重建）
     </div>
   </div>
@@ -420,80 +419,31 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
   <div class="sec-head"><span class="sec-no">02</span><h2>软件是怎么设计的</h2></div>
   <p class="sec-sub">四层关键设计：技术架构 → 八步生产闭环 → 多 Agent 摄制组 → 数据模型与血缘。</p>
 
-  <h3>2.1 技术架构（代码现状 · runtime 单轨，待反向补录对照）</h3>
-  <p class="mut" style="font-size:13px">实线/绿色 = 现存代码已建成；琥珀色 = 规划中（媒体侧）；下图描述的是 2026-10-05 旧代码状态，D-005 后须对照设计 v1.9 反向补录，不代表新设计已落地。旧 ark 对话 IPC 已随旧 feature-010 退役。</p>
-  <div class="diagram rv">
-    <div class="legend">
-      <span><i style="border-color:var(--green)"></i>已建成链路</span>
-      <span><i class="flowline" style="border-color:var(--amber)"></i>规划中（媒体侧）</span>
-      <span><i style="border-color:var(--cyan)"></i>出公网（仅文本）</span>
-    </div>
-
-    <div class="layer l-renderer">
-      <span class="ltag">RENDERER · 渲染进程</span>
-      <div class="flowrow">
-        <div class="node"><div class="nt">项目侧栏</div><div class="nd">项目库 / Skill / 资产（当前为静态占位）</div></div>
-        <div class="node"><div class="nt">中央画布</div><div class="nd">9 节点 + 自动连线 + 确认状态（旧门模型，待重建）</div></div>
-        <div class="node"><div class="nt">ChatPanel 对话面板</div><div class="nd">产物卡 / 确认门 / 消息流</div></div>
-        <div class="node"><div class="nt">流式 UI</div><div class="nd">流式正文 / 推理折叠 / 工具卡 / 停止生成</div></div>
-      </div>
-    </div>
-
-    <div class="conn">contextBridge 安全桥 · IPC（renderer 不直连任何外部服务）
-      <svg width="60" height="12"><line x1="0" y1="6" x2="60" y2="6" stroke="#46C98C" stroke-width="2"/><polygon points="54,2 60,6 54,10" fill="#46C98C"/></svg>
-    </div>
-
-    <div class="layer l-main">
-      <span class="ltag">MAIN · Electron 主进程（信任边界）</span>
-      <div class="flowrow">
-        <div class="node"><div class="nt">会话 / 持久化</div><div class="nd">JSON 文件读写 · 单写队列 · 三层数据治理</div></div>
-        <div class="node"><div class="nt">RuntimeManager</div><div class="nd">opencode 子进程生命周期 · 端口 4096 · 随机口令</div></div>
-        <div class="node"><div class="nt">MCP 工具服务</div><div class="nd">loopback · 随机口令鉴权 · 8 个文本业务工具（超时 180s）</div></div>
-        <div class="node"><div class="nt">ark.ts（工具内复用）</div><div class="nd">仅 MCP 工具非流式调用方舟；8 个对话 IPC 已删除</div></div>
-      </div>
-    </div>
-
-    <div class="conn">
-      <svg width="2" height="18"><line x1="1" y1="0" x2="1" y2="18" stroke="#46C98C" stroke-width="2"/></svg><br>
-      spawn（stdio ignore · 环境变量注入 URL/Token，不落盘）
-    </div>
-
-    <div class="layer l-child">
-      <span class="ltag">OPENCODE 子进程 · 127.0.0.1 only</span>
-      <div class="flowrow">
-        <div class="node" style="max-width:260px;flex:none"><div class="nt">Director 主控 Agent</div><div class="nd">意图理解 → 任务拆解 → 调工具 → 合流；经 8 个 shortdrama_* 工具产出</div></div>
-        <div class="node" style="max-width:260px;flex:none"><div class="nt">MCP 工具调用</div><div class="nd">director 经 shortdrama_* 工具产出业务产物（D-001/D-003）</div></div>
-      </div>
-    </div>
-
-    <div class="layer l-ext">
-      <span class="ltag">外部世界</span>
-      <div class="flowrow">
-        <div class="node" style="border-color:rgba(88,199,216,.4)"><div class="nt" style="color:var(--cyan)">火山方舟</div><div class="nd">文本 LLM · 平台唯一出公网通道</div></div>
-        <div class="node future"><div class="nt" style="color:var(--amber)">局域网 ComfyUI 池</div><div class="nd">qwen-image 图像 · H3 视频 · Music3 音乐（媒体零公网）</div></div>
-        <div class="node future"><div class="nt" style="color:var(--amber)">FFmpeg / MediaKit</div><div class="nd">后期剪辑（引擎不承担剪辑）</div></div>
-      </div>
-    </div>
+  <h3>2.1 技术架构（磁盘实况 · runtime 单轨，D-012 定稿终态）</h3>
+  <p class="mut" style="font-size:13px">实线/绿色 = 现存代码已建成；琥珀色 = 规划中（媒体侧）；对话通道已按 D-012 定稿 runtime 单轨终态（不回退、不重建旧 IPC/工具）；业务层按设计 v1.11 口径认定。</p>
+  <div class="grid g4 rv" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">
+    <div class="card"><h4>渲染进程</h4><p>项目库 / 中央画布（10 节点 Stage）/ ChatPanel / 流式 UI；经 contextBridge 安全桥走 IPC，不直连外部服务。</p></div>
+    <div class="card"><h4>主进程（信任边界）</h4><p>JSON 会话持久化（单写队列）、RuntimeManager（opencode 端口 4096 · 随机口令）、MCP 工具服务（11 纯工具）、ark.ts 工具内复用。</p></div>
+    <div class="card"><h4>opencode 子进程</h4><p>Director 主控：意图理解 → 拆解 → 调工具 → 合流；经 11 个纯 MCP 工具产出业务产物（§5.2 目标族）。</p></div>
+    <div class="card"><h4>外部世界</h4><p>火山方舟（唯一出公网文本 LLM）；局域网 ComfyUI 池（媒体零公网）+ FFmpeg/MediaKit 后期。</p></div>
   </div>
-
-  <p class="more"><a href="./短剧Agent平台设计.html#sec-5">详见设计书 §5 工具层</a><span class="sep">·</span><a href="./短剧Agent平台设计.html#sec-8">§8 引擎与生成通道 →</a></p>
+  <p class="more"><a href="./架构模块关系图.html">完整四层架构 → 架构模块关系图.html</a><span class="sep">·</span><a href="./短剧Agent平台设计.html#sec-5">§5 对话生成网关</a><span class="sep">·</span><a href="./短剧Agent平台设计.html#sec-8">§8 引擎与生成通道 →</a></p>
 
   <h3>2.2 八步生产闭环（业务验收基线，不可合并裁剪）</h3>
   <div class="diagram rv">
-    <div class="steps">
-      <div class="step legacy"><div class="bar"></div><div class="dot">0</div><div class="sn">立项</div><div class="sd">诊断（含六要素草案）/故事前提/定案卡</div></div>
-      <div class="step legacy"><div class="bar"></div><div class="dot">1</div><div class="sn">故事</div><div class="sd">大纲 / 人物小传</div></div>
-      <div class="step legacy"><div class="bar"></div><div class="dot">2</div><div class="sn">剧本分场</div><div class="sd">分场/台词/分镜文本</div></div>
-      <div class="step todo"><div class="bar"></div><div class="dot">3</div><div class="sn">资产</div><div class="sd">角色/场景/道具中心</div></div>
-      <div class="step todo"><div class="bar"></div><div class="dot">4</div><div class="sn">分镜</div><div class="sd">镜号/景别/运镜</div></div>
-      <div class="step todo"><div class="bar"></div><div class="dot">5</div><div class="sn">镜头</div><div class="sd">逐镜生成收片</div></div>
-      <div class="step todo"><div class="bar"></div><div class="dot">6</div><div class="sn">后期</div><div class="sd">剪辑/字幕/混音</div></div>
-      <div class="step todo"><div class="bar"></div><div class="dot">7</div><div class="sn">发布</div><div class="sd">成片/切片/交付</div></div>
+    <div class="steps" style="grid-template-columns:repeat(8,1fr);gap:8px">
+      <div class="step legacy"><div class="bar"></div><div class="dot">0</div><div class="sn">立项</div></div>
+      <div class="step legacy"><div class="bar"></div><div class="dot">1</div><div class="sn">故事</div></div>
+      <div class="step legacy"><div class="bar"></div><div class="dot">2</div><div class="sn">剧本分场</div></div>
+      <div class="step todo"><div class="bar"></div><div class="dot">3</div><div class="sn">资产</div></div>
+      <div class="step todo"><div class="bar"></div><div class="dot">4</div><div class="sn">分镜</div></div>
+      <div class="step todo"><div class="bar"></div><div class="dot">5</div><div class="sn">镜头</div></div>
+      <div class="step todo"><div class="bar"></div><div class="dot">6</div><div class="sn">后期</div></div>
+      <div class="step todo"><div class="bar"></div><div class="dot">7</div><div class="sn">发布</div></div>
     </div>
-    <p class="mut" style="font-size:12.5px;margin-top:20px">红色 0/1/2 = <b style="color:var(--red)">旧代码曾覆盖的形态</b>（旧立项门模型与新设计 §2.6 不符），D-005 后须按反向补录六步法对照设计 v1.9 重建，当前不计为新设计落地；重建推进顺序为立项 → 故事 → 剧本分场，随后第 3 步「资产」接入 ComfyUI 统一媒体引擎。</p>
+    <p class="mut" style="font-size:12.5px;margin-top:14px">红色 0/1/2 = <b style="color:var(--red)">旧代码曾覆盖的形态</b>（与 §2.6 新模型不符），按反向补录六步法对照设计 v1.11 重建（对话通道已定稿终态）；3-7 待建。各步产物明细见设计书 §2 与进度看板。</p>
   </div>
-
-  <p class="more"><a href="./短剧Agent平台设计.html#sec-0-1">详见设计书 §0.1 原则三 · 八步闭环完整性 →</a></p>
+  <p class="more"><a href="./进度看板与路线图.html">八步覆盖与落地进度 → 进度看板与路线图.html</a><span class="sep">·</span><a href="./短剧Agent平台设计.html#sec-0-1">§0.1 原则三 · 八步闭环完整性 →</a></p>
 
   <h3>2.3 多 Agent 摄制组</h3>
   <div class="grid g2 rv">
@@ -520,20 +470,10 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
 
   <h3>2.4 数据模型与血缘</h3>
   <div class="grid g2 rv">
-    <div>
-      <div class="dltree"><span class="cmt"># 现存代码会话目录（旧三层治理；代码现状，待反向补录重建）</span>
-project-xxx/
-├─ manifest.json        <span class="cmt"># 状态层：旧门状态机（initiating→…）</span>
-├─ brief.json           <span class="cmt"># 旧立项单定稿；新模型由 manifest + 立项单.vN.json 取代</span>
-├─ 故事背景档案.md       <span class="cmt"># 旧 0-c 锁定；新模型见设计 §2.6.3 故事前提</span>
-├─ chat.messages.json   <span class="cmt"># 对话展示层：可清空/可 replay</span>
-├─ <span class="dir">剧本/</span>
-│  ├─ 故事大纲.json/.md
-│  ├─ 人物小传.json/.md   <span class="key">← CharacterProfile.id</span>
-│  ├─ 分场.json/.md       <span class="key">← Scene.sceneNo</span>
-│  └─ 台词.json/.md
-└─ <span class="dir">分镜/</span>shotlist.json/.md</div>
-      <p class="mut" style="font-size:12px">JSON 源 + MD 镜像双写；无数据库；本树为旧代码现状（D-005 重新定性），新设计目录还将增加 立项单.vN.json / 资产 / 镜头 / 声音 / 时间线 / 成片。</p>
+    <div class="card">
+      <h4>会话目录（§7.1 定稿）</h4>
+      <p>manifest.json（status 7 态状态机 + 画布 10 节点 Stage）、立项单.vN.json、故事背景档案、chat.messages.json、故事/（大纲·小传）+ 剧本/（分场·台词）、分镜/shotlist；JSON 源 + MD 镜像双写，无数据库。资产 / 镜头 / 声音 / 时间线 / 成片随 feature 包扩展。</p>
+      <p class="mut" style="font-size:12px;margin-top:8px">manifest 状态机（§7.1 定稿，7 态）：initiating → story-outline → story-profiles → script-scenes → script-dialogue → script-storyboard → storyboard-done；下游只读已定稿上游，缺失报 runtime 错误（旧 STORY_CTX_MISSING 已退役）。</p>
     </div>
     <div class="card">
       <h4>两条主键贯穿全链路</h4>
@@ -548,11 +488,10 @@ project-xxx/
         <span class="kbox">台词归场</span><span class="ar">→</span>
         <span class="kbox">镜头 Shot.sceneNo</span>
       </div>
-      <p class="mut" style="font-size:12px;margin-top:14px">manifest 状态机（旧代码现状）：initiating → story-outline → story-profiles → script-scenes → script-dialogue → script-storyboard → storyboard-done。下游只读已定稿上游，缺失则 reject <code>STORY_CTX_MISSING</code>；新立项模型下状态机需随反补重建。</p>
     </div>
   </div>
 
-  <p class="more"><a href="./短剧Agent平台设计.html#sec-7">详见设计书 §7 数据模型 / §7.1 三阶段血缘 →</a></p>
+  <p class="more"><a href="./短剧Agent平台设计.html#sec-7">详见设计书 §7 数据模型 / §7.1 数据血缘（最终设计） →</a></p>
 </section>
 
 <!-- ══════════ PLAN ══════════ -->
@@ -577,14 +516,14 @@ project-xxx/
     </div>
   </div>
 
-  <h3>3.2 绞杀者模式（旧代码现状）：对话通道曾收敛为 runtime 单轨</h3>
+  <h3>3.2 对话通道收口（D-012 定稿终态）：runtime 单轨</h3>
   <div class="strangle rv">
     <div class="scol old" style="opacity:.6">
       <h4>旧世界 · Ark 对话 IPC <span class="sbadge" style="background:rgba(240,98,93,.15);color:var(--red)">已退役</span></h4>
       <ul>
         <li>agent:* 对话 ×8（整卡返回）— 已删除</li>
         <li>ark.ts 仅保留供 MCP 工具复用</li>
-        <li>删除前已快照 legacy/ark IPC 快照</li>
+        <li>删除前已快照，快照并入设计 §5.1 后删除</li>
       </ul>
     </div>
     <div style="text-align:center;font-family:var(--mono);font-size:22px;color:var(--green)">✓</div>
@@ -592,19 +531,19 @@ project-xxx/
       <h4>新世界 · Runtime 单轨 <span class="sbadge" style="background:rgba(70,201,140,.15);color:var(--green)">在用</span></h4>
       <ul>
         <li>runtime:start / stop / status</li>
-        <li>chat:load / append（仅持久化）</li>
-        <li>prompt 经 ChatPanel 流式发起</li>
-        <li>event:subscribe + SSE 推送</li>
+        <li>runtime:session:create / list / abort / delete</li>
+        <li>runtime:prompt / prompt:async 流式发起</li>
+        <li>runtime:event:subscribe + SSE 推送</li>
       </ul>
     </div>
   </div>
-  <p class="mut" style="font-size:13px;margin-top:12px">以下为旧代码现状：旧 feature-010 曾执行"最后一刀"，业务逻辑迁入主进程 MCP 工具后删除 8 个 agent:* 对话 IPC（先快照、旧包级决策二次签字）；旧包已随 D-005 整体作废归档，该通道结构在反补重建时需对照 v1.9 重新认定；ark.ts 保留 <code>chat</code> 方法仅供 MCP 工具非流式调用。</p>
+  <p class="mut" style="font-size:13px;margin-top:12px">对话通道经 D-012 定稿为终态：runtime 单轨不回退、旧 8 个 agent:* IPC 与 shortdrama_* 生成工具不重建；残留 ark.ts 按 §5.2 目标族对齐清理。旧 feature-010 曾执行"最后一刀"，业务逻辑迁入主进程 MCP 工具后删除 8 个对话 IPC（先快照、旧包级决策二次签字）；旧包已随 D-005 整体作废归档。</p>
 
   <h3>3.3 三期落地路线</h3>
   <div class="grid g3 rv">
     <div class="card">
-      <h4>一期 · MVP 单集闭环 <span class="src n">待反补重建</span></h4>
-      <p>旧代码已有骨架与 MCP、画布节点、文本三阶段、opencode 运行时、runtime 单轨对话的形态；D-005 后先按反补六步法重建立项 → 故事 → 剧本分场，再推进第 3 步「资产」→ ComfyUI 统一媒体引擎（qwen-image/H3/Music3）→ T2A 配音 → FFmpeg 产出第一集成片。</p>
+      <h4>一期 · MVP 单集闭环 <span class="src n">对话通道已定稿 · 业务层待反补</span></h4>
+      <p>按反补六步法重建立项 → 故事 → 剧本分场（对话通道已定稿终态），再推进第 3 步「资产」→ ComfyUI 统一媒体引擎（qwen-image/H3/Music3）→ T2A 配音 → FFmpeg 产出第一集成片。</p>
     </div>
     <div class="card" style="opacity:.75">
       <h4>二期 · 能力补全</h4>
@@ -618,46 +557,29 @@ project-xxx/
 
   <h3>3.4 推进时间线</h3>
   <div class="timeline rv">
-    <div class="tl" style="opacity:.6"><div class="date">2026-10-02</div><div class="tt">旧 feature-001 立项链路（已作废归档）</div><div class="td">旧模型 0-a/0-b/0-c 三门 + 画布立项节点；已被设计 v1.9 §2.6 取代</div></div>
+    <div class="tl" style="opacity:.6"><div class="date">2026-10-02</div><div class="tt">旧 feature-001 立项链路（已作废归档）</div><div class="td">旧模型 0-a/0-b/0-c 三门 + 画布立项节点；已被设计 §2.6（v1.11 现行）取代</div></div>
     <div class="tl" style="opacity:.6"><div class="date">2026-10-03</div><div class="tt">旧 feature-002 / 003 / 004（已归档）</div><div class="td">消息动态化持久化 · 编剧 Agent · 剧本分镜（台词/分镜文本）</div></div>
     <div class="tl" style="opacity:.6"><div class="date">2026-10-03 ~ 04</div><div class="tt">旧 feature-005 / 006 / 007（已归档）</div><div class="td">产物解锁重做 · 通用产物查看器 · 三层数据治理</div></div>
     <div class="tl" style="opacity:.6"><div class="date">2026-10-04</div><div class="tt">旧 feature-008 / 009（已归档）</div><div class="td">opencode 运行时集成（旧包级通道裁决）· 运行时调试抽屉</div></div>
     <div class="tl" style="opacity:.6"><div class="date">2026-10-05</div><div class="tt">旧 feature-010 对话通道全量接入（已归档）</div><div class="td">流式正文/推理分轨/工具卡/停止 · 删旧 8 对话 IPC</div></div>
-    <div class="tl cur"><div class="date">2026-10-08 · 现在</div><div class="tt">D-005：立项模型重建 + 旧 22 包整体作废归档</div><div class="td">新设计 v1.9：2 节点 + 1 定案门、谱系定位系统级外部数据源；下一步从 feature-001 反向补录重建，再接资产/媒体引擎</div></div>
+    <div class="tl cur"><div class="date">2026-10-09 · 现在</div><div class="tt">D-005：立项模型重建 + 旧 22 包整体作废归档；D-012：对话通道 runtime 单轨定稿终态</div><div class="td">新设计 v1.11：2 节点 + 1 定案门、谱系定位系统级外部数据源；下一步从 feature-001 反向补录重建，再接资产/媒体引擎</div></div>
   </div>
 </section>
 
 <!-- ══════════ PROGRESS ══════════ -->
 <section id="progress">
   <div class="sec-head"><span class="sec-no">04</span><h2>现在做到了哪一步</h2></div>
-  <p class="sec-sub">下列 F-001~F-010（及 F-011~F-022）均为<b style="color:var(--red)">已作废的旧任务包</b>，随 D-005 整体归档冻结；新任务包将从 feature-001 重新编号、按反向补录六步法重建。现存代码即这些旧包的产物。</p>
+  <p class="sec-sub">下列 F-001~F-010（及 F-011~F-022）均为<b style="color:var(--red)">已作废的旧任务包</b>，随 D-005 整体归档冻结；新任务包将从 feature-001 重新编号、按反向补录六步法重建。现存代码即这些旧包的产物（对话通道已按 D-012 定稿终态，不重建）。</p>
 
-  <div class="fgrid rv">
-    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-001</span></div><h4>立项链路</h4><p>旧模型：选题诊断 / 六要素 / 视觉风格三门（已被 §2.6 取代）</p>
-      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
-    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-002</span></div><h4>对话消息动态化</h4><p>去硬编码 / 持久化 / replay 恢复</p>
-      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
-    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-003</span></div><h4>编剧 Agent</h4><p>故事大纲 / 人物小传（旧 1-a / 1-b）</p>
-      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
-    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-004</span></div><h4>剧本分镜</h4><p>分场 / 台词 / 分镜文本（旧 2-a/b/c）</p>
-      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
-    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-005</span></div><h4>产物解锁重做</h4><p>8 源失效传播 / 画风谱系 4×18</p>
-      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
-    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-006</span></div><h4>通用产物查看</h4><p>ProductViewer 统一只读查看器</p>
-      <div class="progressbar"><i style="width:96%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
-    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-007</span></div><h4>数据治理</h4><p>产物层 / 状态层 / 对话层三层分离</p>
-      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
-    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-008</span></div><h4>Agent 运行时集成</h4><p>opencode 无头 serve + client/manager/projection</p>
-      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
-    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-009</span></div><h4>运行时界面接入</h4><p>420px 调试抽屉 / 会话 / 事件流</p>
-      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
-    <div class="fcard arch"><div class="fh"><span class="fid">旧 F-010</span></div><h4>对话通道全量接入</h4><p>ChatPanel ⇄ opencode runtime 流式单轨</p>
-      <div class="progressbar"><i style="width:100%"></i></div><div class="fmeta"><span>已归档</span><span class="fstate">已作废</span></div></div>
+  <div class="grid g3 rv" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+    <div class="card"><h4>旧 22 包已整体作废</h4><p>F-001~F-010（及 F-011~F-022）随 D-005 归档冻结：立项链路 / 对话动态化 / 编剧 Agent / 剧本分镜 / 产物解锁 / 查看器 / 数据治理 / 运行时集成 / 调试抽屉 / 对话通道接入。</p></div>
+    <div class="card"><h4>新任务包从 feature-001 重建</h4><p>按反向补录六步法对照设计 v1.11 重建（对话通道已 D-012 定稿终态）；逐卡验收以新包 AC 为准。</p></div>
+    <div class="card"><h4>详情见进度看板</h4><p>Feature 看板 / 八步覆盖 / 质量实测 / 三期路线均在进度看板与路线图.html 展开。</p></div>
   </div>
 
   <div class="grid g4 rv" style="margin-top:16px">
     <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--green)">24</div><div style="font-size:11.5px;color:var(--muted)">测试文件（实测 197 passed / 1 skipped）</div></div>
-    <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--violet)">9 / 9</div><div style="font-size:11.5px;color:var(--muted)">旧画布节点（旧代码现状，待重建）</div></div>
+    <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--violet)">10</div><div style="font-size:11.5px;color:var(--muted)">画布节点（Stage 枚举 · 现行实现）</div></div>
     <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--red)">1</div><div style="font-size:11.5px;color:var(--muted)">新立项定案门（取代旧 0-a…2-c 八道门）</div></div>
     <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--cyan)">0</div><div style="font-size:11.5px;color:var(--muted)">媒体能力接入度（ComfyUI 待建）</div></div>
   </div>
@@ -666,14 +588,14 @@ project-xxx/
 <!-- ══════════ PROBLEMS ══════════ -->
 <section id="problems">
   <div class="sec-head"><span class="sec-no">05</span><h2>有什么问题</h2></div>
-  <p class="sec-sub">当前首要风险是<b style="color:var(--red)">现存代码与设计 v1.9 的系统性偏差</b>，须反向补录重建；其余为工程债与远期关口。</p>
+  <p class="sec-sub">当前首要风险是<b style="color:var(--red)">现存业务层与设计 v1.11 的系统性偏差</b>（对话通道已 D-012 定稿终态），按 feature 包反向补录重建；其余为工程债与远期关口。</p>
 
   <div class="grid" style="gap:12px">
     <div class="pcard rv" style="border-color:rgba(240,98,93,.45)">
       <div class="plvl lvl-h">高</div>
       <div style="flex:1">
         <h4>现存代码整体基于旧模型，需反向补录重建（D-005）</h4>
-        <p>旧 22 包已作废归档，但其产物仍是现存代码全部：旧立项门（0-a~0-d 多 tab）、固化在 style-catalog 的谱系快照、9 节点旧画布、39 个 IPC 的 runtime 单轨。代码可运行，但与设计 v1.9 §2.6/§8.3 不符，不能当作新设计已落地。</p>
+        <p>旧 22 包已作废归档，但其产物仍是现存代码全部：旧立项门（0-a~0-d 多 tab）、固化在 style-catalog 的谱系快照、10 节点画布（Stage）、25 个 IPC 的 runtime 单轨。代码可运行，但与设计 v1.11 §2.6/§8.3 不符，不能当作新设计已落地（对话通道例外：经 D-012 定稿终态）。</p>
         <div class="fix" style="background:rgba(240,98,93,.08);color:var(--red)">从 feature-001 起按《AI-SDG 执行指令》§7 存量功能反向补录六步法，逐步对照设计重建、改一项核一项。</div>
       </div>
     </div>
@@ -682,17 +604,8 @@ project-xxx/
       <div class="plvl" style="background:rgba(139,124,246,.13);color:var(--violet)">旧包历史</div>
       <div style="flex:1">
         <h4>对话通道双轨割裂 —— 旧 feature-010 曾收敛为 runtime 单轨（已归档）</h4>
-        <p>旧代码中 ChatPanel 已切到 opencode runtime：流式正文、推理分轨折叠、工具调用卡、可中途停止；旧 8 个对话 IPC 已快照后删除。该事实随旧包归档冻结，反补重建时按 v1.9 重新认定。</p>
-        <div class="fix" style="background:rgba(139,124,246,.08);color:var(--violet)">旧包级决策留痕在归档包内；当前实测 197 passed / 1 skipped。</div>
-      </div>
-    </div>
-
-    <div class="pcard rv">
-      <div class="plvl lvl-m">中</div>
-      <div style="flex:1">
-        <h4>项目没有 Git 版本控制</h4>
-        <p>目录下只有 .gitignore、没有 .git，所有代码变更无历史、无回滚兜底——与"可追溯"的治理目标相悖。</p>
-        <div class="fix">建议尽快 git init 并做首次基线提交（需用户指示）。</div>
+        <p>旧代码中 ChatPanel 已切到 opencode runtime：流式正文、推理分轨折叠、工具调用卡、可中途停止；旧 8 个对话 IPC 已删除（快照并入设计后删）。该事实随旧包归档冻结；对话通道经 D-012 定稿终态，不回退。</p>
+        <div class="fix" style="background:rgba(139,124,246,.08);color:var(--violet)">决策留痕：归档包 + 台账 D-012；当前实测 197 passed / 1 skipped。</div>
       </div>
     </div>
 
@@ -744,8 +657,8 @@ project-xxx/
 </section>
 
 <footer>
-  <span>短剧 Agent 平台 · 全景图 · 2026-10-08（B 类人读文档）</span>
-  <span>事实源：设计 v1.9 / 决策台账 D-005 / docs/archive/ / vitest 实测 197 passed · 1 skipped</span>
+  <span>短剧 Agent 平台 · 全景图 · 2026-10-09（B 类人读文档）</span>
+  <span>事实源：设计 v1.11 / 决策台账 D-005 · D-011 · D-012 / docs/archive/ / vitest 实测 197 passed · 1 skipped</span>
 </footer>
 
 </main>

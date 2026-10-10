@@ -746,12 +746,12 @@ body.rx-on .rx-layer{display:flex;}
 .cmsg.agent .ma{background:linear-gradient(135deg,#B8AFFF,#6C5CE7);}
 .cmsg.user{flex-direction:row-reverse;}
 .cmsg.user .ma{background:linear-gradient(135deg,#8FA8E8,#5B7FD8);}
-.cmsg .bubble{max-width:88%;padding:8px 11px;font-size:11.5px;line-height:1.6;color:#3A3F57;background:#F4F5FA;border-radius:4px 12px 12px 12px;position:relative;}
+.cmsg .bubble{max-width:92%;padding:11px 11px 8px;font-size:11.5px;line-height:1.6;color:#3A3F57;background:#F4F5FA;border-radius:4px 12px 12px 12px;position:relative;}
 .cmsg.user .bubble{background:var(--violet);color:#fff;border-radius:12px 4px 12px 12px;}
 .cmsg .bubble b{color:var(--violet-d);}
 .cmsg.user .bubble b{color:#E8E4FD;}
 /* 来源色 chip（在气泡左上） */
-.cmsg .src{position:absolute;top:-7px;left:8px;font-size:8.5px;font-weight:800;padding:1px 6px;border-radius:5px;letter-spacing:.3px;background:#fff;border:1px solid var(--line);}
+.cmsg .src{position:absolute;top:-8px;left:8px;font-size:8.5px;font-weight:800;padding:1px 6px;border-radius:5px;letter-spacing:.3px;background:#fff;border:1px solid var(--line);}
 .cmsg .src.user{color:#3F6FCB;background:#E6EEFE;border-color:#C9D7F4;}
 .cmsg .src.ai{color:var(--violet-d);background:var(--violet-soft);border-color:#D9D3FB;}
 .cmsg .src.infer{color:#C0841D;background:#FFF4DE;border-color:#F6E6C4;}
@@ -1629,7 +1629,7 @@ body.rx-on .rx-layer{display:flex;}
           <!-- 2 · 风格选型气泡（嵌在对话中） -->
           <div class="cmsg agent">
             <div class="ma">AI</div>
-            <div class="bubble"><span class="src ai">风格选型</span>已按题材从《视觉风格谱系》匹配（不凭空自创画风）：
+            <div class="bubble"><span class="src ai">风格选型</span>按题材从《视觉风格谱系》匹配（不自创画风）：
               <div class="opts" id="askStyle" style="margin-top:7px">
                 <div class="opt" data-style="A7"><div class="oi" style="background:linear-gradient(135deg,#A8E6CF,#56C596);color:#fff">A7</div>千禧清新怀旧 · A7 @ v1.46 · <span class="s0-st-badge backup" style="margin-left:4px">备·未验证</span></div>
                 <div class="opt" data-style="A5"><div class="oi" style="background:linear-gradient(135deg,#FFD6A5,#E8855F);color:#fff">A5</div>年代胶片暖黄 · A5 @ v1.46</div>
@@ -1782,7 +1782,7 @@ body.rx-on .rx-layer{display:flex;}
             <div class="rx-state s-run"><div class="rh"><span class="sd"></span>V002</div><div class="rb"></div><div class="cap">进行中<small>violet</small></div></div>
             <div class="rx-state s-wait"><div class="rh"><span class="sd"></span>V003</div><div class="rb"></div><div class="cap">等待<small>gray</small></div></div>
             <div class="rx-state s-fail"><div class="rh"><span class="sd"></span>V006</div><div class="rb"></div><div class="cap">失败<small>red</small></div></div>
-            <div class="rx-state s-gate"><div class="rh"><span class="sd"></span>门 0-c</div><div class="rb"></div><div class="cap">待确认<small>amber 脉冲</small></div></div>
+            <div class="rx-state s-gate"><div class="rh"><span class="sd"></span>整集镜头确认</div><div class="rb"></div><div class="cap">待确认<small>amber 脉冲</small></div></div>
           </div>
         </div>
       </div>

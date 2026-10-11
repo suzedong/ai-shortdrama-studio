@@ -18,7 +18,7 @@ body{background:radial-gradient(1200px 700px at 70% -10%,#D9DBF2 0,#EDEEF3 55%);
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
 
 /* ── Window ─────────────────────────────── */
-.window{height:100%;background:var(--win);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.8);}
+.window{position:relative;height:100%;background:var(--win);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.8);}
 .titlebar{height:44px;flex:0 0 44px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 16px;gap:14px;}
 .dots{display:flex;gap:7px;}.dots i{width:11px;height:11px;border-radius:50%;display:block;}
 .dots i:nth-child(1){background:#FF5F57;}.dots i:nth-child(2){background:#FEBC2E;}.dots i:nth-child(3){background:#28C840;}
@@ -688,6 +688,76 @@ body.rx-on .rx-layer{display:flex;}
 .cmsg .opt.picked .oi svg{color:#fff;}
 .cmsg .opt.picked:hover{transform:none;}
 
+/* ══ 谱系人通道（v1.11 · 单源双通道：候选预览 / 谱系面板 / 辅助选择 / 版本） ══ */
+.opt-thumb{width:40px;height:40px;border-radius:7px;flex:0 0 40px;object-fit:cover;cursor:zoom-in;border:1px solid var(--line);background:#F3F4F9;}
+.s0-style-thumb.bg{background-size:cover;background-position:center;}
+.cat-entry{display:flex;align-items:center;gap:6px;font-size:12px;color:#5A4FD8;background:var(--violet-soft);border:1px solid #DED9FB;padding:6px 11px;border-radius:999px;font-weight:700;transition:.15s;}
+.cat-entry:hover{background:var(--violet);color:#fff;border-color:var(--violet);}
+.cat-ver-chip{font-size:10px;background:#fff;color:var(--violet-d);border-radius:999px;padding:1px 6px;font-weight:800;}
+
+/* 预览浮层 */
+.preview-overlay{position:absolute;inset:0;background:rgba(30,34,51,.5);backdrop-filter:blur(3px);display:none;place-items:center;z-index:60;animation:fadebg .25s ease;}
+.preview-overlay.show{display:grid;}
+.preview-card{background:#fff;border-radius:14px;box-shadow:var(--shadow);width:min(560px,90%);max-height:88%;overflow:auto;padding:16px;position:relative;}
+.preview-close{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:50%;background:#F1F2F8;color:#555B74;font-size:16px;line-height:1;display:grid;place-items:center;}
+.preview-close:hover{background:#E5E7F2;}
+.preview-img{width:auto;max-height:300px;object-fit:contain;margin:0 auto;border-radius:8px;background:#15161D;}
+.preview-stage{background:#15161D;border-radius:10px;overflow:hidden;display:grid;place-items:center;min-height:140px;}
+.preview-vid{width:100%;max-height:380px;object-fit:contain;display:block;}
+.preview-vids button.on{background:var(--violet);color:#fff;border-color:var(--violet);}
+.preview-vids button:disabled{opacity:.45;cursor:not-allowed;background:#F1F2F8;color:#9AA0B5;border-color:#E6E8F1;}
+.preview-name{font-size:14px;font-weight:800;margin-top:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.preview-id{font-size:10.5px;color:#A6ABC0;font-weight:600;}
+.preview-sec{font-size:11px;color:#6B7189;margin-top:8px;line-height:1.55;}
+.preview-sec b{color:#3A3F57;}
+.preview-recipe{background:#F8F9FC;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:10.5px;color:#4A4F68;margin-top:8px;line-height:1.5;}
+.preview-vids{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.preview-vids button{font-size:10.5px;font-weight:700;background:var(--violet-soft);color:var(--violet-d);border:1px solid #DED9FB;border-radius:8px;padding:5px 9px;}
+.preview-vids button:hover{background:var(--violet);color:#fff;}
+.preview-vids .hint{width:100%;font-size:10px;color:#9AA0B5;}
+
+/* 谱系抽屉 */
+.catalog-drawer{position:absolute;top:0;right:0;bottom:0;width:min(430px,92%);background:#FCFCFE;border-left:1px solid var(--line);box-shadow:-14px 0 40px rgba(40,42,80,.16);z-index:50;display:flex;flex-direction:column;transform:translateX(105%);transition:transform .28s ease;}
+.catalog-drawer.open{transform:translateX(0);}
+.cat-head{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line);background:#fff;}
+.cat-title{font-size:14px;font-weight:800;flex:1;}
+.cat-ver{font-size:10.5px;font-weight:800;color:var(--violet-d);background:var(--violet-soft);border:1px solid #DED9FB;border-radius:999px;padding:2px 8px;}
+.cat-close{width:26px;height:26px;border-radius:50%;background:#F1F2F8;color:#555B74;font-size:14px;}
+.cat-body{flex:1;overflow-y:auto;padding:10px 14px 14px;}
+.cat-actions{padding:10px 14px 0;}
+.cat-upg{width:100%;font-size:11px;font-weight:700;background:#FFF7E8;color:#B26A00;border:1px solid #F5E0B8;border-radius:9px;padding:7px 10px;text-align:left;}
+.cat-upg:hover{background:#FFF0D4;}
+.cat-diff{background:#FFFDF5;border:1.5px solid #F5E0B8;border-radius:10px;padding:9px 11px;margin-top:8px;font-size:11px;line-height:1.6;color:#7A5C1D;}
+.cat-diff .diff-title{font-weight:800;color:#B26A00;margin-bottom:4px;}
+.cat-diff .diff-item{padding:2px 0;}
+.cat-diff-actions{display:flex;gap:6px;margin-top:7px;}
+.cat-diff-actions button{font-size:10.5px;font-weight:700;border-radius:7px;padding:4px 10px;}
+.cat-diff-actions .adopt{background:var(--green);color:#fff;}
+.cat-diff-actions .ignore{background:#F1F2F8;color:#7A8098;}
+.cat-tabs{display:flex;gap:5px;flex-wrap:wrap;padding:10px 14px 0;}
+.cat-tabs button{font-size:10px;font-weight:700;background:#F3F4F9;color:#7A8098;border:1px solid #E6E8F1;border-radius:999px;padding:4px 9px;}
+.cat-tabs button.on{background:var(--violet);color:#fff;border-color:var(--violet);}
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px 14px;}
+.cat-item{background:#fff;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;transition:.15s;}
+.cat-item:hover{border-color:var(--violet);box-shadow:0 4px 12px rgba(108,92,231,.12);}
+.cat-item img{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:center 15%;background:#F3F4F9;cursor:zoom-in;}
+.cat-item .ci-body{padding:6px 8px 8px;}
+.cat-item .ci-name{font-size:10.5px;font-weight:800;color:#3A3F57;display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.cat-item .ci-meta{font-size:9px;color:#A6ABC0;margin-top:2px;}
+.cat-item .ci-adopt{margin-top:6px;width:100%;font-size:10px;font-weight:700;background:var(--violet-soft);color:var(--violet-d);border:1px solid #DED9FB;border-radius:7px;padding:4px 0;}
+.cat-item .ci-adopt:hover{background:var(--violet);color:#fff;}
+.cat-feat{font-size:9.5px;color:#1E9E66;font-weight:800;}
+.cat-foot{padding:10px 14px;border-top:1px solid var(--line);font-size:10px;color:#9AA0B5;line-height:1.6;background:#fff;}
+
+/* 辅助风格选择器 */
+.s0-aux-picker{margin-top:6px;background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:7px 8px;display:flex;flex-direction:column;gap:4px;}
+.s0-aux-picker .ap-t{font-size:9.5px;font-weight:800;color:var(--violet-d);margin-bottom:2px;}
+.s0-aux-picker button{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#4A4F68;background:#F8F9FC;border:1px solid #E9EBF4;border-radius:7px;padding:5px 7px;text-align:left;}
+.s0-aux-picker button:hover{border-color:var(--violet);background:var(--violet-soft);}
+.s0-aux-picker button.sel{background:var(--violet);color:#fff;border-color:var(--violet);}
+.s0-aux-picker button.sel .s0-st-badge{background:rgba(255,255,255,.2);color:#fff;}
+.s0-aux-picked{font-size:10px;font-weight:800;color:var(--violet-d);}
+
 /* 对话内 短链 行内 chip（v1.9 风格 quick-hint 在对话中） */
 .cmsg .qh{margin-top:7px;background:#FFF9EC;border:1px solid #F6E6C4;border-radius:8px;padding:6px 8px;font-size:10px;color:#9A7420;line-height:1.5;}
 .cmsg .qh .qh-t{font-weight:800;font-size:9.5px;margin-bottom:3px;display:flex;align-items:center;gap:4px;}
@@ -939,6 +1009,7 @@ body.rx-on .rx-layer{display:flex;}
       <span class="stp" title="STAGE 7 · 发布"><span class="dt"></span>7</span>
     </div>
     <div class="spacer"></div>
+    <button class="cat-entry" id="s0OpenCatalog">🎨 视觉风格谱系 <span class="cat-ver-chip">v1.46</span></button>
     <button class="model-chip"><span class="auto">自动</span>MiniMax H3 · 768P–2K</button>
     <button class="tb-btn">使用指南</button>
     <button class="tb-btn">导出</button>
@@ -1360,15 +1431,25 @@ body.rx-on .rx-layer{display:flex;}
                   </div>
 
                   <!-- 风格选型（v1.9 风格选择卡 + 辅助开关） -->
-                  <div class="s0-style-intro" style="margin-top:9px">🎨 Agent 已按题材从《视觉风格谱系》匹配（不凭空自创画风），可改：</div>
-                  <button class="s0-style-opt picked" data-style="A7" id="s0StyleA7">
-                    <div class="s0-style-thumb" style="background:linear-gradient(135deg,#A8E6CF,#56C596)">A7</div>
-                    <div style="flex:1"><div class="s0-style-name">千禧清新怀旧</div>
-                      <div class="s0-style-meta">A7 @ v1.46 · <span class="s0-st-badge backup">备·未验证</span></div>
+                  <div class="s0-style-intro" style="margin-top:9px">🎨 Agent 按题材从《视觉风格谱系》匹配（不自创画风），可改：</div>
+                  <button class="s0-style-opt picked" data-style="A7" id="s0StyleA7" title="点缩略图看预览 / 详情">
+                    <div class="s0-style-thumb bg" style="background-image:url('../../resources/H3-Style/_style_preview/A_写实影像/A7_拟真人仿真人动漫.png')"></div>
+                    <div style="flex:1"><div class="s0-style-name">拟真人·仿真人动漫</div>
+                      <div class="s0-style-meta">A7 @ v1.46 · <span class="s0-st-badge main">主·已验证</span></div>
                     </div>
+                    <span style="font-size:9px;color:#B8BDCE;flex:0 0 auto">ⓘ 预览</span>
                   </button>
                   <div class="s0-aux" id="s0AuxRow">
-                    <div class="s0-aux-sw" id="s0AuxSw"></div>挂 1 个辅助气氛（可选 · 候选域封闭 = B/D）
+                    <div class="s0-aux-sw" id="s0AuxSw"></div><span id="s0AuxTxt">挂 1 个辅助气氛（可选 · 候选域封闭 = B/D）</span>
+                  </div>
+                  <div class="s0-aux-picker" id="s0AuxPicker" style="display:none">
+                    <div class="ap-t">辅助气氛 · 候选域封闭（B 青春治愈 / D 类型氛围）· 谱系 v1.46</div>
+                    <button data-aux="B1">B1 清新生活流 <span class="s0-st-badge main">主</span></button>
+                    <button data-aux="D1">D1 冷调悬疑 <span class="s0-st-badge main">主</span></button>
+                    <button data-aux="D2">D2 赛博科幻 <span class="s0-st-badge main">主</span></button>
+                    <button data-aux="D5">D5 神话国风 <span class="s0-st-badge main">主</span></button>
+                    <button data-aux="D3">D3 奇幻童话 <span class="s0-st-badge backup">备</span></button>
+                    <button data-aux="D4">D4 暗黑哥特 <span class="s0-st-badge backup">备</span></button>
                   </div>
                 </div>
               </div>
@@ -1408,7 +1489,7 @@ body.rx-on .rx-layer{display:flex;}
                 </div>
                 <div class="door"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12.5 11.5 15 16 9.5"/><circle cx="12" cy="12" r="9.2"/></svg></div>
                 <div class="nb">就绪条件客观判定<br><span style="color:var(--ink-4);font-size:9.5px">六要素有值 · 前提达 5 项 · 1 主风格</span></div>
-                <div class="diff" id="s0Diff"><b>相对 v1 改动：</b><span id="s0DiffTxt">集数 8→10、风格 A7→A5、premise 第 2 句修订</span></div>
+                <div class="diff" id="s0Diff"><b>相对 v1 改动：</b><span id="s0DiffTxt">集数 8→10、风格 A3→A7、premise 第 2 句修订</span></div>
               </div>
 
             </div>
@@ -1446,12 +1527,18 @@ body.rx-on .rx-layer{display:flex;}
             </div>
             <div class="s0-gb">
               <div class="s0-gs2">
-                <div class="h">六要素口径</div>
+                <div class="h">立项六要素</div>
                 <div class="line"><span class="k">题材</span><span>青春/爱情·年代纪念</span></div>
-                <div class="line"><span class="k">风格</span><span>千禧清新怀旧</span></div>
+                <div class="line"><span class="k">风格基调</span><span>千禧清新怀旧 · 温馨（2002 年代氛围）</span></div>
                 <div class="line"><span class="k">平台</span><span>待定</span></div>
                 <div class="line"><span class="k">时长/集数</span><span>待定 / 10 集</span></div>
                 <div class="line"><span class="k">画幅</span><span>待定</span></div>
+              </div>
+              <div class="s0-gs2">
+                <div class="h">视觉风格设定（画面层 · 0-c 门）</div>
+                <div class="line"><span class="k">主风格</span><span>仿真人 · 拟真人·仿真人动漫 · <b>A7 @ v1.46</b></span></div>
+                <div class="line" id="s0ModalAuxRow"><span class="k">辅助风格</span><span>未挂（可选 · 候选域 B/D）</span></div>
+                <div class="line"><span class="k">谱系数据源</span><span>md 唯一源 / html 派生镜像 · 只消费不私改</span></div>
               </div>
               <div class="s0-gs2">
                 <div class="h">故事前提（已确认 · 达最低门槛）</div>
@@ -1471,6 +1558,60 @@ body.rx-on .rx-layer{display:flex;}
           </div>
         </div>
       </div><!-- /#viewStage0 .view-stage0 -->
+    </div>
+
+    <!-- 谱系面板（单源双通道 · 人读派生视图入口） -->
+    <div class="catalog-drawer" id="s0Catalog">
+      <div class="cat-head">
+        <div class="cat-title">🎨 视觉风格谱系</div>
+        <span class="cat-ver">v1.46 · 2026-10-08</span>
+        <button class="cat-close" id="s0CatClose">✕</button>
+      </div>
+      <div class="cat-actions">
+        <button class="cat-upg" id="s0CatUpg">🔔 查看谱系升级差异（v1.46 → v1.47 演示）</button>
+        <div class="cat-diff" id="s0CatDiff" style="display:none">
+          <div class="diff-title">谱系 v1.47 · 升级差异（人决定是否采纳）</div>
+          <div class="diff-item">① A7 拟真人·仿真人动漫：<b>备 → 主</b>（已由新项目验证）</div>
+          <div class="diff-item">② C6 扁平矢量·低多边形：锚点词新增「几何」变体</div>
+          <div class="diff-item">③ 版本：v1.46 → v1.47（2026-10-11）</div>
+          <div class="cat-diff-actions">
+            <button class="adopt" id="s0DiffAdopt">采纳（项目引用升 v1.47）</button>
+            <button class="ignore" id="s0DiffIgnore">忽略（保持 v1.46）</button>
+          </div>
+        </div>
+      </div>
+      <div class="cat-tabs" id="s0CatTabs">
+        <button data-family="all" class="on">全部 18</button>
+        <button data-family="A">A 写实影像 6</button>
+        <button data-family="B">B 青春治愈 1</button>
+        <button data-family="C">C 动画插画 5</button>
+        <button data-family="D">D 类型氛围 5</button>
+        <button data-family="E">E 材质工艺 1</button>
+      </div>
+      <div class="cat-body">
+        <div class="cat-grid" id="s0CatGrid"></div>
+      </div>
+      <div class="cat-foot">数据源：<b>md 唯一源</b>（AI 通道读结构化）/ <b>html 派生镜像</b>（人读预览墙）· 平台只消费不私改 · 改源走对话（AI 改 md → 同步 html → 升版 → 提示差异）</div>
+    </div>
+
+    <!-- 风格预览浮层（视频优先：三档实测 · 备画风仅图） -->
+    <div class="preview-overlay" id="s0Preview">
+      <div class="preview-card">
+        <button class="preview-close" id="s0PreviewClose">✕</button>
+        <div class="preview-stage">
+          <video class="preview-vid" id="s0PreviewVid" controls muted playsinline poster=""></video>
+          <img class="preview-img" id="s0PreviewImg" alt="风格预览" style="display:none">
+        </div>
+        <div class="preview-name" id="s0PreviewName"></div>
+        <div class="preview-sec" id="s0PreviewAnchors"></div>
+        <div class="preview-recipe" id="s0PreviewRecipe"></div>
+        <div class="preview-vids" id="s0PreviewVids">
+          <button data-vid="std">▶ 标准 20 步（成片基准）</button>
+          <button data-vid="turbo">▶ turbo 8 步（打样最快）</button>
+          <button data-vid="fast">▶ FastH3 8 步（快速出片）</button>
+          <div class="hint" id="s0PreviewVidHint"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Right chat -->
@@ -1617,7 +1758,7 @@ body.rx-on .rx-layer{display:flex;}
           <!-- 1 · AI 推断（待确认） -->
           <div class="cmsg agent">
             <div class="ma">AI</div>
-            <div class="bubble"><span class="src infer">AI 推断 · 待确认</span>根据商业短剧口径补全 2 个字段：<b>题材≈青春/爱情·年代纪念</b> · <b>风格≈千禧清新怀旧</b>。如有偏差请直接说，或点画布字段修改。</div>
+            <div class="bubble"><span class="src infer">AI 推断 · 待确认</span>根据商业短剧口径补全 3 个字段：<b>题材≈青春/爱情·年代纪念</b> · <b>风格基调≈千禧清新怀旧 · 温馨（2002 年代氛围）</b> · <b>视觉风格≈拟真人·仿真人动漫（A7）</b>。如有偏差请直接说，或点画布字段修改。</div>
           </div>
 
           <!-- 1 · AI 诊断就绪 -->
@@ -1631,9 +1772,9 @@ body.rx-on .rx-layer{display:flex;}
             <div class="ma">AI</div>
             <div class="bubble"><span class="src ai">风格选型</span>按题材从《视觉风格谱系》匹配（不自创画风）：
               <div class="opts" id="askStyle" style="margin-top:7px">
-                <div class="opt" data-style="A7"><div class="oi" style="background:linear-gradient(135deg,#A8E6CF,#56C596);color:#fff">A7</div>千禧清新怀旧 · A7 @ v1.46 · <span class="s0-st-badge backup" style="margin-left:4px">备·未验证</span></div>
-                <div class="opt" data-style="A5"><div class="oi" style="background:linear-gradient(135deg,#FFD6A5,#E8855F);color:#fff">A5</div>年代胶片暖黄 · A5 @ v1.46</div>
-                <div class="opt" data-style="B2"><div class="oi" style="background:linear-gradient(135deg,#C5B6F5,#8B7BD8);color:#fff">B2</div>青春校园柔和 · B2 @ v1.46</div>
+                <div class="opt" data-style="A7"><img class="opt-thumb" src="../../resources/H3-Style/_style_preview/A_写实影像/A7_拟真人仿真人动漫.png" alt="A7" title="点开看预览 / 详情">拟真人·仿真人动漫 · A7 @ v1.46 · <span class="s0-st-badge main" style="margin-left:4px">主·已验证</span></div>
+                <div class="opt" data-style="A3"><img class="opt-thumb" src="../../resources/H3-Style/_style_preview/A_写实影像/A3_年代胶片.png" alt="A3" title="点开看预览 / 详情">年代胶片（千禧·90s·80s） · A3 @ v1.46 · <span class="s0-st-badge backup" style="margin-left:4px">备·风险自担</span></div>
+                <div class="opt" data-style="B1"><img class="opt-thumb" src="../../resources/H3-Style/_style_preview/B_青春治愈/B1_清新生活流.png" alt="B1" title="点开看预览 / 详情">清新生活流 · B1 @ v1.46 · <span class="s0-st-badge main" style="margin-left:4px">主·已验证</span></div>
               </div>
             </div>
           </div>
@@ -2177,11 +2318,12 @@ function s0StepUp(which){
     s0N1St.textContent = '诊断就绪';
     s0N1Diag.innerHTML =
       '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0"><span style="width:52px;color:#9AA0B5;font-weight:600">题材</span><span style="font-weight:700">青春/爱情·年代纪念</span></div>'+
-      '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0"><span style="width:52px;color:#9AA0B5;font-weight:600">风格</span><span style="font-weight:700">千禧清新怀旧</span></div>'+
+      '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0"><span style="width:52px;color:#9AA0B5;font-weight:600">风格基调</span><span style="font-weight:700">千禧清新怀旧 · 温馨（2002 年代氛围）</span></div>'+
       '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0"><span style="width:52px;color:#9AA0B5;font-weight:600">平台</span><span style="color:#B8BDCE">待定</span></div>'+
       '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0"><span style="width:52px;color:#9AA0B5;font-weight:600">时长</span><span style="color:#B8BDCE">待定</span></div>'+
       '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0"><span style="width:52px;color:#9AA0B5;font-weight:600">集数</span><span style="color:#B8BDCE">待定</span></div>'+
-      '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0"><span style="width:52px;color:#9AA0B5;font-weight:600">画幅</span><span style="color:#B8BDCE">待定</span></div>';
+      '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0"><span style="width:52px;color:#9AA0B5;font-weight:600">画幅</span><span style="color:#B8BDCE">待定</span></div>'+
+      '<div style="display:flex;align-items:center;font-size:10px;padding:2px 0;color:#8B90A5"><span style="width:52px;color:#9AA0B5;font-weight:600">视觉风格</span><span>仿真人 · 拟真人·仿真人动漫（A7）→ 见下方选型</span></div>';
     s0N1Concl.style.display = 'flex';
     s0N1.querySelector('.s0-diag').classList.remove('weak');
     return;
@@ -2298,7 +2440,151 @@ s0DemoBtns.addEventListener('click', (e) => {
   if (btn) s0StepUp(btn.dataset.step);
 });
 
-s0AuxSw.addEventListener('click', () => s0AuxSw.classList.toggle('on'));
+/* ═══════════ 谱系人通道（v1.11 · 单源双通道） ═══════════ */
+const CATALOG_VER = 'v1.46';
+const CATALOG = { A:'写实影像·仿真人', B:'青春治愈·跨形态氛围', C:'动画插画·2D漫', D:'类型氛围·跨形态氛围', E:'材质工艺·3D漫' };
+const CATALOG_ITEMS = [
+  {id:'A1', fam:'A', name:'数字电影写实', st:'主', feat:'●高', img:'../../resources/H3-Style/_style_preview/A_写实影像/A1_数字电影写实.png', anchor:'现代院线片，干净锐利，浅景深 / cinematic still, anamorphic'},
+  {id:'A2', fam:'A', name:'胶片电影感', st:'主', feat:'●高', img:'../../resources/H3-Style/_style_preview/A_写实影像/A2_胶片电影感.png', anchor:'柯达/富士胶卷色调、颗粒、高光溢出 / Kodak Gold / Portra, film grain'},
+  {id:'A3', fam:'A', name:'年代胶片（千禧·90s·80s）', st:'备', feat:'●高', img:'../../resources/H3-Style/_style_preview/A_写实影像/A3_年代胶片.png', anchor:'时代滤镜、褪色、暖偏 / 2000s film still, faded, warm vintage'},
+  {id:'A4', fam:'A', name:'DV·CCD 数码复古', st:'备', feat:'●高', img:'../../resources/H3-Style/_style_preview/A_写实影像/A4_DV_CCD数码复古.png', anchor:'低清、噪点、数码色偏、回忆感 / old DV camcorder, CCD sensor'},
+  {id:'A5', fam:'A', name:'黑白电影', st:'备', feat:'●高', img:'../../resources/H3-Style/_style_preview/A_写实影像/A5_黑白电影.png', anchor:'去色、影调对比、经典叙事 / black and white, film noir'},
+  {id:'A7', fam:'A', name:'拟真人·仿真人动漫', st:'主', feat:'●高', img:'../../resources/H3-Style/_style_preview/A_写实影像/A7_拟真人仿真人动漫.png', anchor:'仿真人角色贴近真人神态微表情，角色/场景分两套锚点强度 / realistic human-like anime'},
+  {id:'B1', fam:'B', name:'清新生活流', st:'主', feat:'●高', img:'../../resources/H3-Style/_style_preview/B_青春治愈/B1_清新生活流.png', anchor:'明亮低饱和、柔光、干净 / bright, low saturation, soft light'},
+  {id:'C1', fam:'C', name:'日式动漫', st:'主', feat:'●高', img:'../../resources/H3-Style/_style_preview/C_动画插画/C1_日式动漫.png', anchor:'赛璐璐/新海诚/吉卜力 / anime, cel shading, Makoto Shinkai style'},
+  {id:'C2', fam:'C', name:'国漫·新中式插画', st:'主', feat:'●高', img:'../../resources/H3-Style/_style_preview/C_动画插画/C2_国漫新中式插画.png', anchor:'国风线条、淡雅设色 / Chinese animation, ink-wash accent'},
+  {id:'C5', fam:'C', name:'美式卡通', st:'备', feat:'●高', img:'../../resources/H3-Style/_style_preview/C_动画插画/C5_美式卡通.png', anchor:'夸张造型、厚涂 / American cartoon, bold line'},
+  {id:'C6', fam:'C', name:'扁平矢量·低多边形', st:'备', feat:'●高', img:'../../resources/H3-Style/_style_preview/C_动画插画/C6_扁平矢量低多边形.png', anchor:'几何色块、干净图形 / flat vector illustration, geometric'},
+  {id:'C7', fam:'C', name:'韩漫·精致美型', st:'主', feat:'●高', img:'../../resources/H3-Style/_style_preview/C_动画插画/C7_韩漫精致美型.png', anchor:'韩式动漫美学、五官精致高颜值、肤质通透 / Korean manhwa style'},
+  {id:'D1', fam:'D', name:'冷调悬疑', st:'主', feat:'●高', img:'../../resources/H3-Style/_style_preview/D_类型氛围/D1_冷调悬疑.png', anchor:'蓝灰冷调、阴影、紧张 / cold blue tone, moody shadows'},
+  {id:'D2', fam:'D', name:'赛博·科幻', st:'主', feat:'●高', img:'../../resources/H3-Style/_style_preview/D_类型氛围/D2_赛博科幻.png', anchor:'霓虹、高对比、未来 / cyberpunk, neon, sci-fi'},
+  {id:'D3', fam:'D', name:'奇幻童话', st:'备', feat:'●高', img:'../../resources/H3-Style/_style_preview/D_类型氛围/D3_奇幻童话.png', anchor:'梦幻光效、超现实 / fantasy, fairytale, magical light'},
+  {id:'D4', fam:'D', name:'暗黑·哥特', st:'备', feat:'●高', img:'../../resources/H3-Style/_style_preview/D_类型氛围/D4_暗黑哥特.png', anchor:'暗调、戏剧光、华丽 / gothic, dark, dramatic chiaroscuro'},
+  {id:'D5', fam:'D', name:'神话国风', st:'主', feat:'●高', img:'../../resources/H3-Style/_style_preview/D_类型氛围/D5_神话国风.png', anchor:'水墨韵、东方幻想 / Chinese mythology, oriental fantasy'},
+  {id:'E1', fam:'E', name:'3D CG', st:'主', feat:'●中', img:'../../resources/H3-Style/_style_preview/E_材质工艺/E1_3DCG.png', anchor:'皮克斯/游戏渲染、体积光 / 3D render, Pixar style'}
+];
+const recipeStd = 'euler / normal / 20 步 / CFG 2.5（标准档）；预览 Lightning 4 步 / turbo 8 / FastH3 8（不改变风格基调）';
+// 三档实测视频（仅 11 主画风有；备画风只图 = 未验证）
+const VID_FILES = {std:'标准20步', turbo:'turbo8步', fast:'FastH3'};
+function styleVids(it){
+  const dir = it.img.substring(0, it.img.lastIndexOf('/'));
+  const name = {A1:'A1_数字电影写实', A2:'A2_胶片电影感', A7:'A7_拟真人仿真人动漫', B1:'B1_清新生活流', C1:'C1_日式动漫', C2:'C2_国漫新中式插画', C7:'C7_韩漫精致美型', D1:'D1_冷调悬疑', D2:'D2_赛博科幻', D5:'D5_神话国风', E1:'E1_3DCG'}[it.id];
+  if (!name) return null;
+  return {std: dir + '/' + name + '_' + VID_FILES.std + '.mp4', turbo: dir + '/' + name + '_' + VID_FILES.turbo + '.mp4', fast: dir + '/' + name + '_' + VID_FILES.fast + '.mp4'};
+}
+
+// 预览浮层
+const s0Preview = $('s0Preview'), s0PreviewImg = $('s0PreviewImg'), s0PreviewVid = $('s0PreviewVid'),
+      s0PreviewName = $('s0PreviewName'), s0PreviewAnchors = $('s0PreviewAnchors'),
+      s0PreviewRecipe = $('s0PreviewRecipe'), s0PreviewVidHint = $('s0PreviewVidHint'),
+      s0PreviewVids = $('s0PreviewVids');
+let s0CurVid = 'std';
+function openStylePreview(id){
+  const it = CATALOG_ITEMS.find(x => x.id === id); if (!it) return;
+  const vids = styleVids(it);
+  s0PreviewName.innerHTML = it.name + ' <span class="s0-st-badge ' + (it.st==='主'?'main':'backup') + '">' + it.st + '·' + (it.st==='主'?'已验证':'风险自担') + '</span> <span class="preview-id">' + it.id + ' @ ' + CATALOG_VER + '</span>';
+  s0PreviewAnchors.innerHTML = '<b>提示词锚点：</b>' + it.anchor + '<br><b>形态：</b>' + CATALOG[it.fam];
+  s0PreviewRecipe.innerHTML = '🎛 <b>质感配方：</b>' + recipeStd;
+  if (vids) {
+    s0PreviewVid.style.display = 'block';
+    s0PreviewImg.style.display = 'none';
+    s0PreviewVid.poster = it.img;
+    s0PreviewVid.src = vids[s0CurVid];
+    s0PreviewVid.load();
+    s0PreviewVid.play().catch(()=>{});
+    s0PreviewVids.querySelectorAll('button').forEach(b => { b.disabled = false; b.classList.toggle('on', b.dataset.vid === s0CurVid); });
+    s0PreviewVidHint.textContent = '';
+  } else {
+    s0PreviewVid.style.display = 'none';
+    s0PreviewVid.pause();
+    s0PreviewImg.style.display = 'block';
+    s0PreviewImg.src = it.img;
+    s0PreviewVids.querySelectorAll('button').forEach(b => { b.disabled = true; b.classList.remove('on'); });
+    s0PreviewVidHint.textContent = '⚠ 备画风未入预览墙（无实测视频），仅参考图 · 选作主风格风险自担';
+  }
+  s0PreviewVidHint.style.display = 'block';
+  s0Preview.classList.add('show');
+}
+$('s0PreviewClose').addEventListener('click', () => { s0Preview.classList.remove('show'); s0PreviewVid.pause(); });
+s0Preview.addEventListener('click', (e) => { if (e.target === s0Preview) { s0Preview.classList.remove('show'); s0PreviewVid.pause(); } });
+s0PreviewVids.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+  if (b.disabled) return;
+  s0CurVid = b.dataset.vid;
+  s0PreviewVids.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  const cur = CATALOG_ITEMS.find(x => x.id === s0PreviewName.querySelector('.preview-id').textContent.split(' ')[0]);
+  const vids = cur && styleVids(cur);
+  if (vids) { s0PreviewVid.src = vids[s0CurVid]; s0PreviewVid.load(); s0PreviewVid.play().catch(()=>{}); }
+}));
+
+// 对话候选卡缩略图 → 预览（不触发选择）
+document.querySelectorAll('.cmsg .opt-thumb').forEach(th => th.addEventListener('click', (e) => {
+  e.stopPropagation(); const opt = th.closest('.opt'); if (opt) openStylePreview(opt.dataset.style);
+}));
+// 画布主风格卡 → 预览
+const s0StyleCard = $('s0StyleA7');
+if (s0StyleCard) s0StyleCard.addEventListener('click', () => openStylePreview('A7'));
+
+// 谱系面板
+const s0Catalog = $('s0Catalog'), s0CatGrid = $('s0CatGrid');
+$('s0OpenCatalog').addEventListener('click', () => { s0Catalog.classList.add('open'); });
+$('s0CatClose').addEventListener('click', () => s0Catalog.classList.remove('open'));
+function renderCatalog(fam){
+  s0CatGrid.innerHTML = '';
+  CATALOG_ITEMS.filter(x => fam==='all' || x.fam===fam).forEach(it => {
+    const el = document.createElement('div'); el.className = 'cat-item';
+    el.innerHTML = '<img src="' + it.img + '" alt="' + it.id + '"><div class="ci-body">' +
+      '<div class="ci-name">' + it.name + ' <span class="s0-st-badge ' + (it.st==='主'?'main':'backup') + '">' + it.st + '</span> <span class="cat-feat">' + it.feat + '</span></div>' +
+      '<div class="ci-meta">' + it.id + ' · ' + CATALOG[it.fam] + '</div>' +
+      '<button class="ci-adopt">采用为主风格</button></div>';
+    el.querySelector('img').addEventListener('click', () => openStylePreview(it.id));
+    el.querySelector('.ci-adopt').addEventListener('click', () => adoptStyle(it));
+    s0CatGrid.appendChild(el);
+  });
+}
+renderCatalog('all');
+$('s0CatTabs').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-family]'); if (!b) return;
+  s0CatTabs.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  renderCatalog(b.dataset.family);
+});
+// 采用回填
+function adoptStyle(it){
+  const card = $('s0StyleA7');
+  card.querySelector('.s0-style-thumb').style.backgroundImage = "url('" + it.img + "')";
+  card.querySelector('.s0-style-name').textContent = it.name;
+  card.querySelector('.s0-style-meta').innerHTML = it.id + ' @ ' + CATALOG_VER + ' · <span class="s0-st-badge ' + (it.st==='主'?'main':'backup') + '">' + it.st + '·' + (it.st==='主'?'已验证':'风险自担') + '</span>';
+  card.dataset.style = it.id;
+  cptAppend('user', '用户', 'user', '「我从谱系里选了 ' + it.id + '（' + it.name + '）」');
+  s0Catalog.classList.remove('open');
+}
+// 升级差异演示
+$('s0CatUpg').addEventListener('click', () => { $('s0CatDiff').style.display = 'block'; });
+$('s0DiffAdopt').addEventListener('click', () => { $('s0CatDiff').style.display = 'none'; cptAppend('agent', '主控 Agent', 'ai', '已采纳谱系 <b>v1.47</b>：项目风格引用升至 v1.47（A7 现为「主·已验证」），涉及提示词将按新口径重出。'); });
+$('s0DiffIgnore').addEventListener('click', () => { $('s0CatDiff').style.display = 'none'; cptAppend('agent', '主控 Agent', 'ai', '已忽略谱系 v1.47，项目保持引用 <b>v1.46</b>。'); });
+
+// 辅助风格选择器（展开 B/D 候选，替代原开关 toggle）
+const s0AuxPicker = $('s0AuxPicker'), s0AuxTxt = $('s0AuxTxt');
+let s0AuxSel = null;
+const AUX_MAP = {B1:'B1 清新生活流', D1:'D1 冷调悬疑', D2:'D2 赛博科幻', D5:'D5 神话国风', D3:'D3 奇幻童话', D4:'D4 暗黑哥特'};
+s0AuxSw.addEventListener('click', () => {
+  const open = s0AuxPicker.style.display !== 'none';
+  s0AuxPicker.style.display = open ? 'none' : 'block';
+  s0AuxSw.classList.toggle('on', !open);
+});
+document.querySelectorAll('.s0-aux-picker button').forEach(b => b.addEventListener('click', () => {
+  if (s0AuxSel === b.dataset.aux) {
+    s0AuxSel = null; b.classList.remove('sel'); s0AuxSw.classList.remove('on');
+    s0AuxTxt.innerHTML = '挂 1 个辅助气氛（可选 · 候选域封闭 = B/D）';
+    $('s0ModalAuxRow').innerHTML = '<span class="k">辅助风格</span><span>未挂（可选 · 候选域 B/D）</span>';
+  } else {
+    s0AuxSel = b.dataset.aux;
+    s0AuxPicker.querySelectorAll('button').forEach(x => x.classList.toggle('sel', x === b));
+    s0AuxTxt.innerHTML = '已挂 <span class="s0-aux-picked">' + AUX_MAP[b.dataset.aux] + ' @ ' + CATALOG_VER + '</span>（点开关改 / 取消）';
+    const row = $('s0ModalAuxRow');
+    if (row) row.innerHTML = '<span class="k">辅助风格</span><span>' + AUX_MAP[b.dataset.aux] + ' @ ' + CATALOG_VER + '</span>';
+  }
+  s0AuxPicker.style.display = 'none';
+}));
 
 s0N2Edge.addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-edge]');
@@ -2324,6 +2610,13 @@ s0Replay.addEventListener('click', () => {
   s0VerChip.textContent = '立项单 v1';
   s0Modal.classList.remove('show');
   s0AuxSw.classList.remove('on');
+  s0AuxPicker.style.display = 'none';
+  s0AuxSel = null;
+  s0AuxTxt.innerHTML = '挂 1 个辅助气氛（可选 · 候选域封闭 = B/D）';
+  document.querySelectorAll('.s0-aux-picker button').forEach(x => x.classList.remove('sel'));
+  $('s0ModalAuxRow').innerHTML = '<span class="k">辅助风格</span><span>未挂（可选 · 候选域 B/D）</span>';
+  s0Catalog.classList.remove('open');
+  s0Preview.classList.remove('show');
   document.querySelectorAll('.cmsg .opt.picked').forEach(x => x.classList.remove('picked'));
   document.querySelectorAll('.cmsg .cr .chip').forEach(x => { x.style.opacity=''; x.style.pointerEvents=''; x.style.background=''; x.style.color=''; });
   cptAppend('agent', 'AI 提取', 'ai', '已重置流程，<b>可重新演示</b>。');

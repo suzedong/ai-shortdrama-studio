@@ -316,9 +316,15 @@
   <tr><td>目标平台</td><td>抖音 / 小红书 / 红果，含定位（投流 / 种草 / 切片）</td><td>待定（纪念用途）</td></tr>
   <tr><td>单集时长</td><td>建议主力时长</td><td>待定</td></tr>
   <tr><td>集数</td><td>以内容定或设区间</td><td>待定</td></tr>
-  <tr><td>风格基调</td><td>故事氛围基调</td><td>千禧清新怀旧·温馨</td></tr>
+  <tr><td>风格基调</td><td>故事氛围基调（叙事层，进情绪 / 氛围类提示词）</td><td>千禧清新怀旧 · 温馨（2002 年年代氛围）</td></tr>
   <tr><td>画幅</td><td>按平台规则派生，必填</td><td>待定</td></tr>
   </table>
+  <p><b>风格是两个维度，互不替代、都影响下游提示词</b>：</p>
+  <ul>
+  <li><b>风格基调</b>（上表，叙事层）：故事氛围基调，Agent 按故事内容定（如「千禧清新怀旧 · 温馨」），进情绪 / 氛围类提示词（分镜情绪、场景氛围）；</li>
+  <li><b>视觉风格设定</b>（画面层，0-c 门产出，见 §2.6.4）：形态 × 主画风 × 质感配方 × L2 锚词，必须从《视觉风格谱系》选取，进概念稿 / 定妆 / 场景提示词 Base。</li>
+  </ul>
+  <p class="dim">对齐《安妮的夏天》立项单 v3 口径：v1 风格基调（千禧清新怀旧 · 温馨）保留为故事氛围基调；v2 新增视觉风格设定（仿真人 · 拟真人·仿真人动漫 + 质感配方 euler / normal 20 步 CFG 2.5 + 锚点词），两者并存。</p>
   <p>用户的处理方式是「看诊断 + 看草案，有倾向就让 AI 再调，具体要改什么直接说」——可以只改六要素，也可以只追故事前提，顺序自由。</p>
 
   <h4>2.6.3 节点②：故事前提（故事背景档案的形成方式）</h4>
@@ -338,8 +344,9 @@
   </table>
   <p class="dim">《安妮的夏天》实测事实即此形态：林夏 19 岁学金融不住校、陈默 22 岁父母离婚随父、单位距林家 2–3 公里、第一季 = 相识（01–11 集）。</p>
 
-  <h4>2.6.4 视觉风格选型：主风格 + 辅助气氛</h4>
-  <p>视觉风格必须从系统级外部数据库《AI短剧制作视觉风格谱系》中选取（见 §8.3），<b>Agent 不得凭印象自创画风</b>——谱系条目是经过 qwen-image + MiniMax H3 出图论证的视觉解决方案。Agent 先按题材匹配一个，人可以改，立项后也可以改；风格影响提示词生成，改风格触发全链路提示词重出。</p>
+  <h4>2.6.4 视觉风格设定：双维度中的画面层</h4>
+  <p><b>立项信息的风格由两个维度构成</b>（见 §2.6.2）：<b>风格基调</b>（叙事层，六要素之一，进情绪 / 氛围提示词）与<b>视觉风格设定</b>（画面层，本节）。本节只讲视觉风格设定；它和风格基调互不替代——基调决定"讲什么氛围"，视觉风格决定"画面长什么样"，两者都写入下游提示词（基调进情绪 / 场景氛围词，视觉风格进概念稿 / 定妆 / 场景提示词 Base）。</p>
+  <p>视觉风格设定必须从系统级外部数据库《AI短剧制作视觉风格谱系》中选取（见 §8.3），<b>Agent 不得凭印象自创画风</b>——谱系条目是经过 qwen-image + MiniMax H3 出图论证的视觉解决方案。Agent 先按题材匹配一个，人可以改，立项后也可以改；风格影响提示词生成，改风格触发全链路提示词重出。</p>
   <table>
   <tr><th>轴</th><th>取值</th><th>语义</th></tr>
   <tr><td><b>使用角色轴</b></td><td>主风格 ×1</td><td>全片唯一，= 家族 + 具体风格；任何时刻仅 1 个，后期可换但不能并存</td></tr>
@@ -362,12 +369,12 @@
   <div class="mock-card">
     <div class="mock-head"><span class="mock-dot"></span><span class="mock-title">主控 Agent · 立项定案卡</span><span class="mock-ver">v(N+1)</span></div>
     <div class="mock-body">
-      <div class="mock-row"><span class="k">六要素</span><span class="v"><span class="chip">青春爱情·纪念向</span><span class="chip tbd">平台待定</span><span class="chip tbd">时长待定</span><span class="chip tbd">集数待定</span><span class="chip">千禧清新怀旧</span><span class="chip tbd">画幅待定</span></span></div>
+      <div class="mock-row"><span class="k">六要素</span><span class="v"><span class="chip">青春爱情·纪念向</span><span class="chip tbd">平台待定</span><span class="chip tbd">时长待定</span><span class="chip tbd">集数待定</span><span class="chip">年代胶片（千禧·90s·80s）</span><span class="chip tbd">画幅待定</span></span></div>
       <div class="mock-row"><span class="k">故事前提</span><span class="v">2002 · 某城 · 男女主身份年龄 · 相遇方式</span></div>
-      <div class="mock-row"><span class="k">主风格</span><span class="v"><span class="chip sty">A7 ××× @ v1.46</span><span class="mock-sub">备：未经项目验证</span></span></div>
+      <div class="mock-row"><span class="k">主风格</span><span class="v"><span class="chip sty">A3 年代胶片（千禧·90s·80s） @ v1.46</span><span class="mock-sub">备：未经项目验证</span></span></div>
       <div class="mock-row"><span class="k">辅助风格</span><span class="v"><span class="chip dim2">D 冷调悬疑气氛</span><span class="mock-sub">可选</span></span></div>
     </div>
-    <div class="mock-changes">相对 vN 改动：<b>集数 8→10、风格 A7→A5</b>（影响评估见下）</div>
+    <div class="mock-changes">相对 vN 改动：<b>集数 8→10、风格 A7→A3</b>（影响评估见下）</div>
     <div class="mock-actions"><span class="btn pub">发布立项 v(N+1)</span><span class="btn ghost">再改改</span><span class="btn link">查看历史</span></div>
   </div>
   <div class="grid g2">
@@ -427,7 +434,7 @@
     <span class="c">⑤ 清单落盘</span>
   </div>
   <ul>
-    <li><b>diff 提取</b>：对比 <code>立项单.vN.json</code> 与 <code>立项单.v(N+1).json</code>，得到变更字段集合 Δ = {<code>集数: 8→10</code>, <code>主风格: A7→A5</code>, ...}。</li>
+    <li><b>diff 提取</b>：对比 <code>立项单.vN.json</code> 与 <code>立项单.v(N+1).json</code>，得到变更字段集合 Δ = {<code>集数: 8→10</code>, <code>主风格: A7→A3</code>, ...}。</li>
     <li><b>依赖图反向遍历</b>：从 <code>project.manifest.json</code> 的 <code>nodes[*].parentReference</code> 出发，遍历所有 <code>parentReference.briefVersion == vN</code> 的产物节点；不限于 STAGE 0 直接下游，覆盖全链路（剧本分场、角色、场景、道具、镜头、音乐、剪辑成片等）。</li>
     <li><b>影响字段命中</b>：对每个候选产物，比对其 <code>parentReference.fields[*]</code> 与 Δ 的交集；非空 = 受影响，加入"待对齐清单"。</li>
     <li><b>清单落盘</b>：写入 <code>立项/影响清单.vN→v(N+1).json</code>（含时间戳、改动字段、影响产物列表、分级、用户最终决策），供回溯与 Harness 校验。</li>
@@ -445,7 +452,7 @@
       <div class="mock-sect">改动字段（3 项）</div>
       <div class="mock-list">
         <div class="li"><span class="m">·</span><span class="t">集数 8 → 10</span><span class="lvl hi">高</span></div>
-        <div class="li"><span class="m">·</span><span class="t">主风格 A7 → A5</span><span class="lvl hi">高</span></div>
+        <div class="li"><span class="m">·</span><span class="t">主风格 A7 → A3</span><span class="lvl hi">高</span></div>
         <div class="li"><span class="m">·</span><span class="t">premise 第 2 句修订</span><span class="lvl mid">中</span></div>
       </div>
       <div class="mock-sect" style="margin-top:12px;">影响下游产物（7 个，按级别排序）</div>
@@ -715,10 +722,11 @@
   <p>视觉风格谱系与 ComfyUI 接入同级，是平台注册的<b>系统级外部数据库</b>，不是仓库内文档，也不是 Agent 可即兴生成的知识。</p>
   <table>
   <tr><th>项</th><th>约定</th></tr>
-  <tr><td>注册路径</td><td><code>~/Documents/Dufs/AI短剧工作流/AI短剧制作视觉风格谱系.html</code>（路径可配置，类似 ComfyUI 实例地址）</td></tr>
-  <tr><td>数据形态</td><td>人读 HTML：家族 / 风格 ID / 主·备验证状态 / 锚点词 / 质感配方 / 预览墙；配套《AI短剧制作流程规范.html》J.3 为选型规则权威版</td></tr>
+  <tr><td>注册路径</td><td>指向谱系数据源目录（当前实现：项目 <code>resources/H3-Style/</code>，含 md 源 + html 镜像 + <code>_style_preview/</code> 预览墙；生产环境可配置为外部路径，类似 ComfyUI 实例地址）</td></tr>
+  <tr><td>单一事实源</td><td><b>md 为唯一数据源</b>（<code>AI短剧制作视觉风格谱系.md</code>：风格 ID / 主·备验证状态 / 锚点词 / 质感配方 / 素材路径 / 版本号）；<b>html 为派生镜像</b>（<code>AI短剧制作视觉风格谱系.html</code>：预览墙 + 主/备标注的人读展示层），不是第二数据源，不独立改动</td></tr>
+  <tr><td>数据形态</td><td>AI 通道读 md 结构化数据（匹配候选 → 锚点词 / 配方 → 立项单）；人通道看 html 派生视图（视觉证据 + 状态 → 决策）；配套《AI短剧制作流程规范.html》J.3 为选型规则权威版</td></tr>
   <tr><td>版本跟踪</td><td>谱系自带版本号（当前 <b>v1.46，2026-10-08</b>；上一版 v1.45 / 2026-10-01）；平台记录注册版本，谱系升级后提示差异，由人决定是否采纳</td></tr>
-  <tr><td>查阅 / 维护</td><td>可在平台内查阅条目与预览图；维护在源文件处进行（加条目、主备状态变更），平台只消费不私改</td></tr>
+  <tr><td>查阅 / 维护</td><td>平台内可查阅（读 md 结构化 / 看 html 预览）；<b>维护 = 对话驱动单回路</b>：人对话提修改 → AI 只改 md（源）→ 同轮同步 html 镜像 → 版本号递增 → 平台对已引用旧版本的项目提示差异 → 人决定采纳。平台只消费不私改</td></tr>
   <tr><td>项目引用</td><td>每个项目记录「<b>风格 ID + 谱系版本</b>」（如 <code>A7 @ v1.46</code>）；主风格 1 个、辅助 0–1 个（候选域见 §2.6.4）</td></tr>
   <tr><td>使用边界</td><td>谱系只管画风；风格影响提示词生成，改风格 → 全链路提示词重出。年代 / 地域等事实进入提示词内容，不决定画风 ID</td></tr>
   </table>

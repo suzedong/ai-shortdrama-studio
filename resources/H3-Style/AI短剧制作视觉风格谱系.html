@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 短剧制作视觉风格谱系</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232E9E8A'/%3E%3Cpath d='M8 22V10l8 8 8-8v12' stroke='%23fff' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap">
+<style>
+  :root{
+    --ink:#17302b; --ink2:#41615b; --mut:#6b8580; --line:#dbeae6;
+    --bg:#f7faf8; --card:#ffffff; --ac:#2E9E8A; --ac-d:#237a6b; --ac-l:#e3f2ee;
+    --warn:#c98a3d; --warn-l:#fdf3e6;
+    --mono:"SF Mono","Cascadia Code",Consolas,"JetBrains Mono",monospace;
+    --serif:"Noto Serif SC","Songti SC",serif;
+    --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.75;font-size:15px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 28px}
+  .mono{font-family:var(--mono);font-size:.9em;background:var(--ac-l);color:var(--ac-d);padding:1px 5px;border-radius:4px;word-break:break-all}
+  a{color:var(--ac-d);text-decoration:none}
+  /* topbar */
+  .topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.93);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .topbar .wrap{display:flex;align-items:center;gap:18px;height:52px;font-size:13px}
+  .topbar .brand{font-weight:700;color:var(--ac-d);white-space:nowrap}
+  .topbar nav{display:flex;gap:16px;margin-left:auto;flex-wrap:wrap}
+  .topbar nav a{color:var(--mut);transition:color .15s}
+  .topbar nav a:hover{color:var(--ac)}
+  /* hero */
+  .hero{background:linear-gradient(160deg,#eef7f4 0%,#f7faf8 60%);border-bottom:1px solid var(--line);padding:52px 0 36px}
+  .hero .kicker{font-size:12px;letter-spacing:.14em;color:var(--ac);font-weight:600;margin-bottom:10px}
+  .hero h1{font-family:var(--serif);font-size:34px;font-weight:700;line-height:1.3}
+  .hero .sub{margin-top:14px;color:var(--ink2);max-width:840px;font-size:14.5px}
+  .hero .doclink{margin-top:16px;font-size:13px;color:var(--mut)}
+  .hero .doclink a{border-bottom:1px dotted var(--ac)}
+  .statrow{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:26px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat b{display:block;font-size:26px;font-family:var(--serif);color:var(--ac-d)}
+  .stat span{font-size:12px;color:var(--mut)}
+  /* sections */
+  section{padding:44px 0 10px}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;border-bottom:2px solid var(--ac);padding-bottom:10px}
+  .sec-head .num{font-family:var(--serif);font-size:22px;font-weight:700;color:var(--ac)}
+  .sec-head h2{font-family:var(--serif);font-size:22px;font-weight:700}
+  .sec-head .tag{margin-left:auto;font-size:12px;color:var(--mut);letter-spacing:.06em}
+  h3{font-size:17px;margin:28px 0 12px;color:var(--ac-d);font-weight:700;font-family:var(--serif)}
+  .small{font-size:13px;color:var(--mut)}
+  /* table */
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:10px 0 22px;table-layout:fixed}
+  th{background:var(--ac-l);color:var(--ac-d);font-size:13px;text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);font-weight:600}
+  td{padding:9px 12px;border-bottom:1px solid #eef4f2;font-size:13.5px;vertical-align:top;word-break:break-word}
+  tr:last-child td{border-bottom:none}
+  tr:nth-child(even) td{background:#fafdfc}
+  /* cards */
+  .cards{display:grid;gap:14px;margin:12px 0 20px}
+  .cards.cols2{grid-template-columns:1fr 1fr}
+  .cards.cols3{grid-template-columns:1fr 1fr 1fr}
+  .card{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--ac);border-radius:10px;padding:14px 16px}
+  .card.warn{border-left-color:var(--warn)}
+  .card .k{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--ac-d);background:var(--ac-l);padding:2px 8px;border-radius:10px;margin-bottom:6px}
+  .card.warn .k{color:var(--warn);background:var(--warn-l)}
+  .card p{font-size:13px;color:var(--ink2)}
+  /* note */
+  .note{background:var(--ac-l);border-left:3px solid var(--ac);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--ink2);margin:14px 0}
+  /* preview wall */
+  .wall-block{margin:20px 0 30px}
+  .wall-head{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .wall-head .wf{font-family:var(--serif);font-size:17px;font-weight:700;color:var(--ac-d)}
+  .wall-head .wd{font-size:12.5px;color:var(--mut)}
+  .style-row{display:grid;grid-template-columns:220px 1fr;gap:18px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;align-items:start}
+  .style-img{position:relative;cursor:zoom-in}
+  .style-img img{width:100%;display:block;border-radius:8px;border:1px solid var(--line);background:#f0f5f2}
+  .style-img .lbl{position:absolute;left:8px;bottom:8px;background:rgba(23,48,43,.78);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px}
+  .style-vids{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .vid{background:#f0f5f2;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .vid video{width:100%;display:block;aspect-ratio:16/9;object-fit:cover;background:#000}
+  .vid .vl{font-size:11.5px;color:var(--ink2);padding:5px 8px;text-align:center}
+  .vid .vl b{color:var(--ac-d)}
+  /* lightbox */
+  .lb{position:fixed;inset:0;background:rgba(10,25,20,.88);display:none;align-items:center;justify-content:center;z-index:100;cursor:zoom-out;padding:30px}
+  .lb.open{display:flex}
+  .lb img{max-width:min(92vw,520px);max-height:88vh;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  footer{border-top:1px solid var(--line);margin-top:48px;padding:22px 0;font-size:12.5px;color:var(--mut);background:#fff}
+  @media(max-width:860px){
+    .statrow{grid-template-columns:repeat(3,1fr)}
+    .cards.cols2,.cards.cols3{grid-template-columns:1fr}
+    .style-row{grid-template-columns:1fr}
+    .style-img img{max-width:300px}
+    .topbar nav{display:none}
+    .sec-head{flex-wrap:wrap}
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="wrap">
+    <span class="brand">AI 短剧 · 视觉风格谱系</span>
+    <nav>
+      <a href="#j0">J.0 说明</a>
+      <a href="#j1">J.1 总览</a>
+      <a href="#j2">J.2 明细</a>
+      <a href="#j3">J.3 规则</a>
+      <a href="#j4">J.4 预览墙</a>
+    </nav>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="kicker">《AI 短剧制作流程规范》附录 J · 独立文档</div>
+    <h1>视觉风格谱系，立项预选。</h1>
+    <p class="sub">风格目录数据 + 实测预览墙：形态 × 画风两层组织（4 形态 × 18 画风），含视觉特征 / 锚点词 / 质感配方 / 可行度明细，各主画风用本套技术栈实际跑出的样张与三档采样视频。"怎么选"的规则在规范附录 J·J.3，本文不重复。</p>
+    <p class="doclink">配套阅读：<a href="AI短剧制作流程规范.html">规范附录 J（规则版）</a> · <a href="AI短剧制作工具方法论.html">工具方法论（怎么干）</a> · <a href="AI短剧制作体系分析.html">体系分析（为什么）</a></p>
+    <div class="statrow">
+      <div class="stat"><b>4</b><span>制作形态</span></div>
+      <div class="stat"><b>18</b><span>主用画风</span></div>
+      <div class="stat"><b>11</b><span>主画风</span></div>
+      <div class="stat"><b>7</b><span>备画风</span></div>
+      <div class="stat"><b>3</b><span>视觉决定层</span></div>
+    </div>
+  </div>
+</div>
+
+<section id="j0">
+  <div class="wrap">
+    <div class="sec-head"><span class="num">J.0</span><h2>说明</h2><span class="tag">谱系怎么用</span></div>
+    <div class="cards cols3">
+      <div class="card"><span class="k">本文版本</span><p>谱系 v1.46（2026-10-08；措辞修订：厘清主/备验证轴与主/辅角色轴，v1.45 见下）。演进只改本文 + 自版本号递增（v1.x），不动规范版本号（规范附录 J 定位与 J.3 权威不变）；承载 J.1/J.2/J.4 完整内容，编号沿用 J.0–J.4 防查找漂移。</p></div>
+      <div class="card"><span class="k">谱系定位</span><p>服务 AI 漫剧（竖屏短剧）有效视觉范围，按 <b>形态 × 画风两层</b>组织：形态层 = 四大制作形态（仿真人 / 2D 漫 / 3D 漫 / 沙雕漫）；画风层 = 各形态内主用画风（18 项）。2026-09-19 对照 2026 漫剧百强榜生态重构，移除无市场美术向风格 14 项。</p></div>
+      <div class="card"><span class="k">主备标注（验证状态轴）</span><p><b>「主」</b>= 已被真实项目（《安妮的夏天》）验证跑通的画风（11 项）；<b>「备」</b>= 已登记入谱、但<b>尚未经项目验证的主风格候选</b>（7 项：A 系年代胶片 / DV·CCD / 黑白电影、C 系美式卡通 / 扁平矢量、D 系奇幻童话 / 暗黑·哥特）——选「备」作主风格风险自担。注意：主 / 备是<b>验证状态</b>，与「主风格 / 辅助风格」的使用角色无关，「备」≠ 辅助画风。</p></div>
+      <div class="card"><span class="k">视觉三层决定</span><p>① 提示词锚点 / 模型先验（主导，占 70%+）；② 采样参数（质感档：采样器 × 调度器 × 步数 × CFG）；③ 参考锁风格（H3 Ref2VA 以概念图锁动态一致性，或挂风格 LoRA）。</p></div>
+      <div class="card"><span class="k">可行度图例</span><p><b>● 高（原生）</b>＝ Qwen-Image 直出即达、无需额外资源；<b>● 中（需 LoRA/后期）</b>＝ 需社区 LoRA、ControlNet 或后期校色 / 排版辅助；<b>● 低（探索）</b>＝ 实验性质、效果波动，立项慎选。</p></div>
+      <div class="card"><span class="k">双档策略</span><p>风格预览 / 立项确认一律走<b>预览档</b>（出图 Lightning 4 步、视频 H3 turbo 8 步或 FastH3 蒸馏 8 步——不改变风格基调）；确认后正式产出走<b>标准档</b>（出图 euler/normal/20步/CFG 2.5、视频 20 步）。</p></div>
+      <div class="card"><span class="k">立项选择（使用角色轴）</span><p>选定 <b>1 个主风格</b>（家族 + 具体风格，全片唯一、任何时刻仅 1 个；候选含全部「主」「备」条目）＋ 可选 <b>1 个辅助风格</b>挂气氛（按剧情需要，如都市剧挂冷调悬疑气氛）。<b>辅助候选域封闭：仅 B 青春治愈系（清新生活流）与 D 类型氛围系（冷调悬疑 / 赛博科幻 / 神话国风 / 奇幻童话 / 暗黑哥特）</b>，从 J.1 跨形态氛围档中选，按规范 J.3 固化。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="j1">
+  <div class="wrap">
+    <div class="sec-head"><span class="num">J.1</span><h2>总览（4 形态 × 18 画风）</h2><span class="tag">立项先选形态</span></div>
+
+    <h3>形态层（题材 + 平台决定）</h3>
+    <table>
+      <colgroup><col style="width:16%"><col style="width:22%"><col style="width:30%"><col style="width:32%"></colgroup>
+      <thead><tr><th>形态</th><th>对应画风</th><th>适配题材</th><th>技术要点</th></tr></thead>
+      <tbody>
+        <tr><td><b>仿真人</b></td><td>A 写实影像系（6）</td><td>都市 / 情感 / 霸总 / 年代</td><td>Qwen + H3 最稳；R2V 锁音色与画风</td></tr>
+        <tr><td><b>2D 漫</b></td><td>C 动画插画系（5）</td><td>甜宠 / 古风 / 玄幻 / 规则怪谈</td><td>R2V 锁画风；五官偶有偏移需多抽卡</td></tr>
+        <tr><td><b>3D 漫</b></td><td>E·3D CG（1）</td><td>玄幻 / 仙侠 / 末世 / 逆袭</td><td>2026 红果热榜主流形态；2026-09-19 实测：H3 三档稳定，Qwen 直出偏写实 / 仿真人，需 3D 质感 LoRA 或后期</td></tr>
+        <tr><td><b>沙雕漫</b></td><td>C·美式卡通 / 扁平矢量（Q 版表情包）</td><td>喜剧 / 脑洞</td><td>复用 2D 漫画风；微动、表情包节奏</td></tr>
+        <tr><td>跨形态氛围档</td><td>B 青春治愈系（1）＋ D 类型氛围系（5）</td><td>甜宠 / 悬疑 / 科幻 / 古风</td><td>在选定画风上叠加氛围配方（J.2 质感档）</td></tr>
+      </tbody>
+    </table>
+
+    <h3>画风层（主风格选 1：候选含主/备全部；辅助风格 0–1：仅从上方跨形态氛围档 B/D 选）</h3>
+    <table>
+      <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+      <thead><tr><th>家族</th><th>风格（可行度）</th></tr></thead>
+      <tbody>
+        <tr><td><b>A 写实影像系</b>（仿真人形态 · 主3备3）</td><td>拟真人·仿真人动漫「主」●高 / 数字电影写实「主」●高 / 胶片电影感「主」●高 / 年代胶片（千禧·90s·80s）「备」●高 / DV·CCD 数码复古「备」●高 / 黑白电影「备」●高</td></tr>
+        <tr><td><b>B 青春治愈系</b>（跨形态氛围档 · 主1）</td><td>清新生活流「主」●高</td></tr>
+        <tr><td><b>C 动画插画系</b>（2D 漫形态 · 主3备2）</td><td>日式动漫（赛璐璐·新海诚·吉卜力）「主」●高 / 韩漫·精致美型「主」●高 / 国漫·新中式插画「主」●高 / 美式卡通「备」●高 / 扁平矢量·低多边形「备」●高</td></tr>
+        <tr><td><b>D 类型氛围系</b>（跨形态氛围档 · 主3备2）</td><td>冷调悬疑「主」●高 / 赛博·科幻「主」●高 / 神话国风「主」●高 / 奇幻童话「备」●高 / 暗黑·哥特「备」●高</td></tr>
+        <tr><td><b>E 材质工艺系</b>（3D 漫形态 · 主1）</td><td>3D CG「主」●中</td></tr>
+      </tbody>
+    </table>
+
+    <p class="note">注（v1.43 谱系重构）：2026-09-19 按 AI 漫剧有效范围移除 14 项、不再列示——F 艺术绘画系全部（印象派·油画 / 水彩·水墨 / 版画·木刻 / 拼贴混合媒材）、E 系黏土·定格动画 / 像素·8bit / VHS·CRT 低保真 / 拼贴·图形设计、A 系纪实·街拍、B 系奶油糖果色 / 日系青春写真 / 暖调治愈（并入清新生活流变体）、C 系水彩绘本 / 手绘速写·素描；预览墙同步删除展示。</p>
+  </div>
+</section>
+
+<section id="j2">
+  <div class="wrap">
+    <div class="sec-head"><span class="num">J.2</span><h2>明细（视觉特征 / 锚点词示例 / 质感配方 / 可行度）</h2><span class="tag">18 风格全目录</span></div>
+
+    <h3>A 写实影像系（仿真人形态 · 人像真实感最强：Qwen-Image-2512 主打，适合真人剧感）</h3>
+    <table>
+      <colgroup><col style="width:17%"><col style="width:32%"><col style="width:29%"><col style="width:14%"><col style="width:8%"></colgroup>
+      <thead><tr><th>风格</th><th>视觉特征</th><th>锚点词示例</th><th>质感配方</th><th>可行度</th></tr></thead>
+      <tbody>
+        <tr><td><b>拟真人·仿真人动漫</b>「主」</td><td>仿真人角色、贴近真人神态 / 微表情、立体感强、保留动漫美感；红果漫剧平台主推画风。<b>角色与场景/道具分两套锚点强度</b>（2026-09-19 安妮的夏天实测）：角色 Base 加动漫化锚点（动漫渲染、非真人照片、2D 动漫质感、二次元插画质感），场景/道具 Base 不加动漫化词、保持写实——角色是"动漫里的人"、场景是"真实环境"</td><td><span class="mono">realistic human-like anime, lifelike expression, cinematic</span>（中文直译：仿真人动漫 / 拟真人）</td><td>预览档 Lightning 4步 / euler / normal / CFG 2.0<br>标准档 euler / normal / 20步 / CFG 2.5</td><td>●高</td></tr>
+        <tr><td><b>数字电影写实</b>「主」</td><td>现代院线片、干净锐利、浅景深</td><td><span class="mono">cinematic still, anamorphic, shallow depth of field</span></td><td>同上</td><td>●高</td></tr>
+        <tr><td><b>胶片电影感</b>「主」</td><td>柯达/富士胶卷色调、颗粒、高光溢出</td><td><span class="mono">Kodak Gold / Portra, film grain, halation</span></td><td>同上</td><td>●高</td></tr>
+        <tr><td><b>年代胶片</b>（千禧·90s·80s）「备」</td><td>时代滤镜、褪色、暖偏</td><td><span class="mono">2000s film still, faded, warm vintage</span></td><td>同上</td><td>●高</td></tr>
+        <tr><td><b>DV·CCD 数码复古</b>「备」</td><td>低清、噪点、数码色偏、回忆感</td><td><span class="mono">old DV camcorder, CCD sensor, video noise</span></td><td>同上</td><td>●高</td></tr>
+        <tr><td><b>黑白电影</b>「备」</td><td>去色、影调对比、经典叙事</td><td><span class="mono">black and white, high contrast, film noir</span></td><td>同上</td><td>●高</td></tr>
+      </tbody>
+    </table>
+
+    <h3>B 青春治愈系（跨形态氛围档 · 甜宠日常清新质感，作画风 Base 叠加）</h3>
+    <table>
+      <colgroup><col style="width:17%"><col style="width:32%"><col style="width:29%"><col style="width:14%"><col style="width:8%"></colgroup>
+      <thead><tr><th>风格</th><th>视觉特征</th><th>锚点词示例</th><th>质感配方</th><th>可行度</th></tr></thead>
+      <tbody>
+        <tr><td><b>清新生活流</b>「主」</td><td>明亮低饱和、柔光、干净</td><td><span class="mono">bright, low saturation, soft light, airy</span></td><td>预览档 Lightning 4步 / euler / normal / CFG 2.0<br>标准档 euler / normal / 20步 / CFG 2.5</td><td>●高</td></tr>
+      </tbody>
+    </table>
+
+    <h3>C 动画插画系（2D 漫形态 · 美式卡通 / 扁平矢量兼作沙雕漫）</h3>
+    <table>
+      <colgroup><col style="width:17%"><col style="width:32%"><col style="width:29%"><col style="width:14%"><col style="width:8%"></colgroup>
+      <thead><tr><th>风格</th><th>视觉特征</th><th>锚点词示例</th><th>质感配方</th><th>可行度</th></tr></thead>
+      <tbody>
+        <tr><td><b>日式动漫</b>「主」</td><td>赛璐璐 / 新海诚 / 吉卜力</td><td><span class="mono">anime, cel shading, Makoto Shinkai style / Ghibli</span></td><td>预览档 Lightning 4步 / euler / normal / CFG 2.0<br>标准档 euler / normal / 20步 / CFG 2.5</td><td>●高</td></tr>
+        <tr><td><b>韩漫·精致美型</b>「主」</td><td>韩式动漫美学、五官精致高颜值、肤质通透、明快上色；红果甜宠 / 都市题材主流</td><td><span class="mono">Korean manhwa style, refined beautiful face, glossy clean skin, webtoon</span>（中文直译：韩漫 / 精致美型）</td><td>同上</td><td>●高</td></tr>
+        <tr><td><b>国漫·新中式插画</b>「主」</td><td>国风线条、淡雅设色</td><td><span class="mono">Chinese animation, ink-wash accent</span></td><td>同上</td><td>●高</td></tr>
+        <tr><td><b>美式卡通</b>「备」</td><td>夸张造型、厚涂</td><td><span class="mono">American cartoon, bold line, vibrant</span></td><td>同上</td><td>●高</td></tr>
+        <tr><td><b>扁平矢量·低多边形</b>「备」</td><td>几何色块、干净图形</td><td><span class="mono">flat vector illustration, geometric, minimal</span></td><td>同上</td><td>●高</td></tr>
+      </tbody>
+    </table>
+
+    <h3>D 类型氛围系（跨形态氛围档 · 在选定画风上叠加氛围配方）</h3>
+    <table>
+      <colgroup><col style="width:17%"><col style="width:32%"><col style="width:29%"><col style="width:14%"><col style="width:8%"></colgroup>
+      <thead><tr><th>风格</th><th>视觉特征</th><th>锚点词示例</th><th>质感配方</th><th>可行度</th></tr></thead>
+      <tbody>
+        <tr><td><b>冷调悬疑</b>「主」</td><td>蓝灰冷调、阴影、紧张</td><td><span class="mono">cold blue tone, moody shadows, thriller</span></td><td>预览档 Lightning 4步 / euler / normal / CFG 2.0<br>标准档 euler / normal / 20步 / CFG 2.5</td><td>●高</td></tr>
+        <tr><td><b>赛博·科幻</b>「主」</td><td>霓虹、高对比、未来</td><td><span class="mono">cyberpunk, neon, sci-fi, high contrast</span></td><td>同上</td><td>●高</td></tr>
+        <tr><td><b>神话国风</b>「主」</td><td>水墨韵、东方幻想</td><td><span class="mono">Chinese mythology, oriental fantasy, ink</span></td><td>同上</td><td>●高</td></tr>
+        <tr><td><b>奇幻童话</b>「备」</td><td>梦幻光效、超现实</td><td><span class="mono">fantasy, fairytale, magical light</span></td><td>同上</td><td>●高</td></tr>
+        <tr><td><b>暗黑·哥特</b>「备」</td><td>暗调、戏剧光、华丽</td><td><span class="mono">gothic, dark, dramatic chiaroscuro</span></td><td>同上</td><td>●高</td></tr>
+      </tbody>
+    </table>
+
+    <h3>E 材质工艺系（3D 漫形态 · 2026 红果热榜主流形态）</h3>
+    <table>
+      <colgroup><col style="width:17%"><col style="width:32%"><col style="width:29%"><col style="width:14%"><col style="width:8%"></colgroup>
+      <thead><tr><th>风格</th><th>视觉特征</th><th>锚点词示例</th><th>质感配方</th><th>可行度</th></tr></thead>
+      <tbody>
+        <tr><td><b>3D CG</b>「主」</td><td>皮克斯 / 游戏渲染、体积光。2026-09-19 实测：H3 三档稳定，Qwen 直出偏写实 / 仿真人，需 3D 质感 LoRA 或后期</td><td><span class="mono">3D render, Pixar style, game CG, subsurface</span></td><td>预览档 Lightning 4步 / euler / normal / CFG 2.0<br>标准档 euler / normal / 20步 / CFG 2.5</td><td>●中</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="j3">
+  <div class="wrap">
+    <div class="sec-head"><span class="num">J.3</span><h2>立项选择规则（权威在规范）</h2><span class="tag">规则不重复</span></div>
+    <div class="note">
+      规则全文见《AI短剧制作流程规范》附录 J·J.3（<b>先选形态 → 选主/辅画风 → 定质感档 → 固化锚点词 → 定案全链路同步 R10</b>），本文不重复——防双份漂移，改规则只改规范。
+      <a href="AI短剧制作流程规范.html#aJ" style="border-bottom:1px dotted var(--ac)">打开规则版 →</a>
+    </div>
+  </div>
+</section>
+
+<section id="j4">
+  <div class="wrap">
+    <div class="sec-head"><span class="num">J.4</span><h2>风格预览墙（实际生成效果 · 主画风）</h2><span class="tag">点图放大 · 视频可播</span></div>
+    <p class="small" style="margin-bottom:6px">各主画风用本套技术栈实际跑出的样张：左侧竖图 = 概念预览（点击放大）；右侧三段视频 = 同一镜头的三档采样结果——<b>标准 20 步</b>（成片基准）/ <b>turbo 8 步</b>（打样最快）/ <b>FastH3</b>（快速出片带原生音频）。素材位于项目 <span class="mono">resources/H3-Style/_style_preview/</span>（随应用资源打包/迁移）。</p>
+
+    <div class="wall-block" id="wA">
+      <div class="wall-head"><span class="wf">A 写实影像系 · 仿真人形态</span><span class="wd">人像真实感最强，都市 / 情感 / 霸总 / 年代题材首选</span></div>
+      <div class="style-row">
+        <div class="style-img" onclick="openLB('_style_preview/A_写实影像/A1_数字电影写实.png')"><img src="_style_preview/A_写实影像/A1_数字电影写实.png" alt="A1 数字电影写实"><span class="lbl">A1 数字电影写实</span></div>
+        <div class="style-vids">
+          <div class="vid"><video controls preload="none"><source src="_style_preview/A_写实影像/A1_数字电影写实_标准20步.mp4" type="video/mp4"></video><div class="vl"><b>标准 20 步</b> · 成片基准</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/A_写实影像/A1_数字电影写实_turbo8步.mp4" type="video/mp4"></video><div class="vl"><b>turbo 8 步</b> · 打样最快</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/A_写实影像/A1_数字电影写实_FastH3.mp4" type="video/mp4"></video><div class="vl"><b>FastH3</b> · 带原生音频</div></div>
+        </div>
+      </div>
+      <div class="style-row">
+        <div class="style-img" onclick="openLB('_style_preview/A_写实影像/A2_胶片电影感.png')"><img src="_style_preview/A_写实影像/A2_胶片电影感.png" alt="A2 胶片电影感"><span class="lbl">A2 胶片电影感</span></div>
+        <div class="style-vids">
+          <div class="vid"><video controls preload="none"><source src="_style_preview/A_写实影像/A2_胶片电影感_标准20步.mp4" type="video/mp4"></video><div class="vl"><b>标准 20 步</b> · 成片基准</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/A_写实影像/A2_胶片电影感_turbo8步.mp4" type="video/mp4"></video><div class="vl"><b>turbo 8 步</b> · 打样最快</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/A_写实影像/A2_胶片电影感_FastH3.mp4" type="video/mp4"></video><div class="vl"><b>FastH3</b> · 带原生音频</div></div>
+        </div>
+      </div>
+      <div class="style-row">
+        <div class="style-img" onclick="openLB('_style_preview/A_写实影像/A7_拟真人仿真人动漫.png')"><img src="_style_preview/A_写实影像/A7_拟真人仿真人动漫.png" alt="A7 拟真人仿真人动漫"><span class="lbl">A7 拟真人·仿真人动漫</span></div>
+        <div class="style-vids">
+          <div class="vid"><video controls preload="none"><source src="_style_preview/A_写实影像/A7_拟真人仿真人动漫_标准20步.mp4" type="video/mp4"></video><div class="vl"><b>标准 20 步</b> · 成片基准</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/A_写实影像/A7_拟真人仿真人动漫_turbo8步.mp4" type="video/mp4"></video><div class="vl"><b>turbo 8 步</b> · 打样最快</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/A_写实影像/A7_拟真人仿真人动漫_FastH3.mp4" type="video/mp4"></video><div class="vl"><b>FastH3</b> · 带原生音频</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wall-block" id="wB">
+      <div class="wall-head"><span class="wf">B 青春治愈系 · 跨形态氛围档</span><span class="wd">甜宠日常清新质感，在选定画风上叠加</span></div>
+      <div class="style-row">
+        <div class="style-img" onclick="openLB('_style_preview/B_青春治愈/B1_清新生活流.png')"><img src="_style_preview/B_青春治愈/B1_清新生活流.png" alt="B1 清新生活流"><span class="lbl">B1 清新生活流</span></div>
+        <div class="style-vids">
+          <div class="vid"><video controls preload="none"><source src="_style_preview/B_青春治愈/B1_清新生活流_标准20步.mp4" type="video/mp4"></video><div class="vl"><b>标准 20 步</b> · 成片基准</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/B_青春治愈/B1_清新生活流_turbo8步.mp4" type="video/mp4"></video><div class="vl"><b>turbo 8 步</b> · 打样最快</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/B_青春治愈/B1_清新生活流_FastH3.mp4" type="video/mp4"></video><div class="vl"><b>FastH3</b> · 带原生音频</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wall-block" id="wC">
+      <div class="wall-head"><span class="wf">C 动画插画系 · 2D 漫形态</span><span class="wd">甜宠 / 古风 / 玄幻 / 规则怪谈；美式卡通 / 扁平矢量兼作沙雕漫</span></div>
+      <div class="style-row">
+        <div class="style-img" onclick="openLB('_style_preview/C_动画插画/C1_日式动漫.png')"><img src="_style_preview/C_动画插画/C1_日式动漫.png" alt="C1 日式动漫"><span class="lbl">C1 日式动漫</span></div>
+        <div class="style-vids">
+          <div class="vid"><video controls preload="none"><source src="_style_preview/C_动画插画/C1_日式动漫_标准20步.mp4" type="video/mp4"></video><div class="vl"><b>标准 20 步</b> · 成片基准</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/C_动画插画/C1_日式动漫_turbo8步.mp4" type="video/mp4"></video><div class="vl"><b>turbo 8 步</b> · 打样最快</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/C_动画插画/C1_日式动漫_FastH3.mp4" type="video/mp4"></video><div class="vl"><b>FastH3</b> · 带原生音频</div></div>
+        </div>
+      </div>
+      <div class="style-row">
+        <div class="style-img" onclick="openLB('_style_preview/C_动画插画/C2_国漫新中式插画.png')"><img src="_style_preview/C_动画插画/C2_国漫新中式插画.png" alt="C2 国漫新中式插画"><span class="lbl">C2 国漫·新中式插画</span></div>
+        <div class="style-vids">
+          <div class="vid"><video controls preload="none"><source src="_style_preview/C_动画插画/C2_国漫新中式插画_标准20步.mp4" type="video/mp4"></video><div class="vl"><b>标准 20 步</b> · 成片基准</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/C_动画插画/C2_国漫新中式插画_turbo8步.mp4" type="video/mp4"></video><div class="vl"><b>turbo 8 步</b> · 打样最快</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/C_动画插画/C2_国漫新中式插画_FastH3.mp4" type="video/mp4"></video><div class="vl"><b>FastH3</b> · 带原生音频</div></div>
+        </div>
+      </div>
+      <div class="style-row">
+        <div class="style-img" onclick="openLB('_style_preview/C_动画插画/C7_韩漫精致美型.png')"><img src="_style_preview/C_动画插画/C7_韩漫精致美型.png" alt="C7 韩漫精致美型"><span class="lbl">C7 韩漫·精致美型</span></div>
+        <div class="style-vids">
+          <div class="vid"><video controls preload="none"><source src="_style_preview/C_动画插画/C7_韩漫精致美型_标准20步.mp4" type="video/mp4"></video><div class="vl"><b>标准 20 步</b> · 成片基准</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/C_动画插画/C7_韩漫精致美型_turbo8步.mp4" type="video/mp4"></video><div class="vl"><b>turbo 8 步</b> · 打样最快</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/C_动画插画/C7_韩漫精致美型_FastH3.mp4" type="video/mp4"></video><div class="vl"><b>FastH3</b> · 带原生音频</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wall-block" id="wD">
+      <div class="wall-head"><span class="wf">D 类型氛围系 · 跨形态氛围档</span><span class="wd">在选定画风上叠加氛围配方（悬疑 / 科幻 / 国风）</span></div>
+      <div class="style-row">
+        <div class="style-img" onclick="openLB('_style_preview/D_类型氛围/D1_冷调悬疑.png')"><img src="_style_preview/D_类型氛围/D1_冷调悬疑.png" alt="D1 冷调悬疑"><span class="lbl">D1 冷调悬疑</span></div>
+        <div class="style-vids">
+          <div class="vid"><video controls preload="none"><source src="_style_preview/D_类型氛围/D1_冷调悬疑_标准20步.mp4" type="video/mp4"></video><div class="vl"><b>标准 20 步</b> · 成片基准</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/D_类型氛围/D1_冷调悬疑_turbo8步.mp4" type="video/mp4"></video><div class="vl"><b>turbo 8 步</b> · 打样最快</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/D_类型氛围/D1_冷调悬疑_FastH3.mp4" type="video/mp4"></video><div class="vl"><b>FastH3</b> · 带原生音频</div></div>
+        </div>
+      </div>
+      <div class="style-row">
+        <div class="style-img" onclick="openLB('_style_preview/D_类型氛围/D2_赛博科幻.png')"><img src="_style_preview/D_类型氛围/D2_赛博科幻.png" alt="D2 赛博科幻"><span class="lbl">D2 赛博·科幻</span></div>
+        <div class="style-vids">
+          <div class="vid"><video controls preload="none"><source src="_style_preview/D_类型氛围/D2_赛博科幻_标准20步.mp4" type="video/mp4"></video><div class="vl"><b>标准 20 步</b> · 成片基准</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/D_类型氛围/D2_赛博科幻_turbo8步.mp4" type="video/mp4"></video><div class="vl"><b>turbo 8 步</b> · 打样最快</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/D_类型氛围/D2_赛博科幻_FastH3.mp4" type="video/mp4"></video><div class="vl"><b>FastH3</b> · 带原生音频</div></div>
+        </div>
+      </div>
+      <div class="style-row">
+        <div class="style-img" onclick="openLB('_style_preview/D_类型氛围/D5_神话国风.png')"><img src="_style_preview/D_类型氛围/D5_神话国风.png" alt="D5 神话国风"><span class="lbl">D5 神话国风</span></div>
+        <div class="style-vids">
+          <div class="vid"><video controls preload="none"><source src="_style_preview/D_类型氛围/D5_神话国风_标准20步.mp4" type="video/mp4"></video><div class="vl"><b>标准 20 步</b> · 成片基准</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/D_类型氛围/D5_神话国风_turbo8步.mp4" type="video/mp4"></video><div class="vl"><b>turbo 8 步</b> · 打样最快</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/D_类型氛围/D5_神话国风_FastH3.mp4" type="video/mp4"></video><div class="vl"><b>FastH3</b> · 带原生音频</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wall-block" id="wE">
+      <div class="wall-head"><span class="wf">E 材质工艺系 · 3D 漫形态</span><span class="wd">2026 红果热榜主流形态；Qwen 直出偏写实，需 3D 质感 LoRA 或后期</span></div>
+      <div class="style-row">
+        <div class="style-img" onclick="openLB('_style_preview/E_材质工艺/E1_3DCG.png')"><img src="_style_preview/E_材质工艺/E1_3DCG.png" alt="E1 3D CG"><span class="lbl">E1 3D CG</span></div>
+        <div class="style-vids">
+          <div class="vid"><video controls preload="none"><source src="_style_preview/E_材质工艺/E1_3DCG_标准20步.mp4" type="video/mp4"></video><div class="vl"><b>标准 20 步</b> · 成片基准</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/E_材质工艺/E1_3DCG_turbo8步.mp4" type="video/mp4"></video><div class="vl"><b>turbo 8 步</b> · 打样最快</div></div>
+          <div class="vid"><video controls preload="none"><source src="_style_preview/E_材质工艺/E1_3DCG_FastH3.mp4" type="video/mp4"></video><div class="vl"><b>FastH3</b> · 带原生音频</div></div>
+        </div>
+      </div>
+    </div>
+
+    <h3>各主画风实测参数（从 PNG 元数据提取，2026-09-21）</h3>
+    <table>
+      <colgroup><col style="width:16%"><col style="width:10%"><col style="width:10%"><col style="width:8%"><col style="width:8%"><col style="width:40%"><col style="width:8%"></colgroup>
+      <thead><tr><th>风格</th><th>采样器</th><th>调度器</th><th>步数</th><th>CFG</th><th>提示词锚点</th><th>参数版本</th></tr></thead>
+      <tbody>
+        <tr><td>A1 数字电影写实</td><td>euler</td><td>normal</td><td>20</td><td>2.5</td><td>现代院线片质感，干净锐利，浅景深，cinematic still, anamorphic, shallow depth of field</td><td>标准档</td></tr>
+        <tr><td>A2 胶片电影感</td><td>euler</td><td>normal</td><td>20</td><td>2.5</td><td>柯达/富士胶卷色调，细腻颗粒，高光溢出，Kodak Gold / Portra, film grain, halation</td><td>标准档</td></tr>
+        <tr><td>A7 拟真人仿真人动漫</td><td>euler</td><td>normal</td><td>20</td><td>2.5</td><td>仿真人动漫/拟真人，贴近真人神态微表情，立体感强，保留动漫美感，realistic human-like anime</td><td>标准档</td></tr>
+        <tr><td>B1 清新生活流</td><td>euler</td><td>normal</td><td>20</td><td>2.5</td><td>明亮低饱和，柔光，干净通透，bright, low saturation, soft light, airy</td><td>标准档</td></tr>
+        <tr><td>C1 日式动漫</td><td>euler</td><td>normal</td><td>20</td><td>2.5</td><td>赛璐璐动漫风，新海诚/吉卜力动画电影质感，anime, cel shading, Makoto Shinkai style</td><td>标准档</td></tr>
+        <tr><td>C2 国漫新中式插画</td><td>euler</td><td>normal</td><td>20</td><td>2.5</td><td>国漫新中式插画，水墨点缀，东方线条，Chinese animation, ink-wash accent, guofeng</td><td>标准档</td></tr>
+        <tr><td>C7 韩漫精致美型</td><td>euler</td><td>normal</td><td>20</td><td>2.5</td><td>韩漫/精致美型，韩式动漫美学，五官精致高颜值，肤质通透，Korean manhwa style</td><td>标准档</td></tr>
+        <tr><td>D1 冷调悬疑</td><td>euler</td><td>normal</td><td>20</td><td>2.5</td><td>冷调悬疑氛围，蓝灰冷色调，阴影厚重，紧张感，cold blue tone, moody shadows</td><td>标准档</td></tr>
+        <tr><td>D2 赛博科幻</td><td>euler</td><td>normal</td><td>20</td><td>2.5</td><td>赛博科幻氛围，霓虹光效，高对比，窗外未来都市，cyberpunk, neon lights, futuristic</td><td>标准档</td></tr>
+        <tr><td>D5 神话国风</td><td>euler</td><td>normal</td><td>20</td><td>2.5</td><td>神话国风氛围，东方幻想意境，水墨晕染，缥缈仙气，Chinese mythology, oriental fantasy</td><td>标准档</td></tr>
+        <tr><td>E1 3DCG</td><td>euler</td><td>normal</td><td>20</td><td>2.5</td><td>3D CG 渲染质感，皮克斯/游戏 CG 风，次表面散射，细腻光滑，3D render, Pixar style</td><td>标准档</td></tr>
+      </tbody>
+    </table>
+    <p class="note">所有风格预览图已用标准档（euler/normal/20步/2.5，Qwen-Image 官方推荐）重新生成（2026-09-21）。STAGE3 记录页里的每张图都要显示生成参数（采样器、步数、CFG、seed），参数从 PNG 元数据里自动提取，不要手写。</p>
+
+    <h3>常见坑（2026-09-21 实测）</h3>
+    <div class="cards cols2">
+      <div class="card warn"><span class="k">坑 1 · 采样器</span><p>Qwen-Image 只支持 <span class="mono">euler</span>，不要混用 SDXL 采样器（<span class="mono">dpmpp_2m_sde</span>、<span class="mono">euler_ancestral</span> 等），否则头发乱、脸变形。</p></div>
+      <div class="card warn"><span class="k">坑 2 · 锚点词强度</span><p>提示词锚点词要够强（如"拟真人仿真人动漫"要写全"动漫渲染、非真人照片、2D 动漫质感、二次元插画质感"）。<b>不要写"赛璐璐上色"</b>——它是 2D 平涂 + 粗黑线、轮廓线过粗的主因（2026-09-21 实测：去掉后粗黑轮廓变细、皮肤质感真实化、光影立体），保留"写实光影"即可。</p></div>
+      <div class="card warn"><span class="k">坑 3 · 改脚本参数</span><p>用 sed 替换时容易把脚本代码里的关键词（<span class="mono">steps</span>、<span class="mono">cfg</span>）也替换了，改完要检查。</p></div>
+      <div class="card warn"><span class="k">坑 4 · 参数统一</span><p>所有风格预览图统一用标准档（euler/normal/20步/2.5），不要有的用 Lightning 4步/2.0、有的用标准档。</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">AI 短剧制作视觉风格谱系 · 2026-09-23 从《AI 短剧制作流程规范》附录 J 拆分（规范保留规则版）｜ 谱系小节沿用 J.0–J.4 编号 ｜ 素材 <span class="mono">_style_preview/</span>（随整库迁移）</div>
+</footer>
+
+<div class="lb" id="lb" onclick="this.classList.remove('open')"><img id="lbImg" src="" alt="预览大图"></div>
+
+<script>
+  function openLB(src){
+    document.getElementById('lbImg').src=src;
+    document.getElementById('lb').classList.add('open');
+  }
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ document.getElementById('lb').classList.remove('open'); } });
+</script>
+</body>
+</html>

@@ -294,20 +294,17 @@ export default function StudioApp() {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-win shadow-[0_18px_50px_rgba(40,42,80,0.18)]">
       {/* ═══ 顶栏 ═══ */}
-      <header className="flex h-11 shrink-0 items-center gap-3 border-b border-line bg-white px-4">
-        {/* 窗口控制点 */}
-        <div className="flex gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F57]" />
-          <span className="h-2.5 w-2.5 rounded-full bg-[#FEBC2E]" />
-          <span className="h-2.5 w-2.5 rounded-full bg-[#28C840]" />
-        </div>
-        {/* 标题 */}
+      <header
+        className="flex h-11 shrink-0 items-center gap-3 border-b border-line bg-white pl-20 pr-4"
+        style={{ WebkitAppRegion: 'drag' }}
+      >
+        {/* 标题（左上角红绿灯由 macOS 原生渲染，无需自绘） */}
         <div className="flex items-center gap-2">
           <span className="grid h-[18px] w-[18px] place-items-center rounded-[5px] bg-violet text-[10px] font-extrabold text-white">剧</span>
           <span className="text-[13px] font-semibold text-ink">短剧 Agent · {projectTitle}</span>
         </div>
         {/* 顶栏 stage-track（原型 L77-84 .stage-track · L994-1010 八步进度） */}
-        <div className="ml-1 flex items-center gap-0.5 rounded-full border border-line bg-white px-1.5 py-[3px]" title="八步闭环进度">
+        <div className="ml-1 flex items-center gap-0.5 rounded-full border border-line bg-white px-1.5 py-[3px]" title="八步闭环进度" style={{ WebkitAppRegion: 'no-drag' }}>
           {stageTrack.map((s, i) => (
             <span key={s.step} className="flex items-center">
               <button
@@ -344,6 +341,8 @@ export default function StudioApp() {
           ))}
         </div>
         <div className="flex-1" />
+        {/* 右侧交互控件组（不参与窗口拖拽） */}
+        <div className="flex items-center gap-3" style={{ WebkitAppRegion: 'no-drag' }}>
         {/* 视觉风格谱系入口（原型 L1012 .cat-entry） */}
         <button
           type="button"
@@ -364,6 +363,7 @@ export default function StudioApp() {
         <button className="rounded-lg px-2.5 py-1.5 text-[12.5px] text-muted hover:bg-canvas">使用指南</button>
         <button className="rounded-lg px-2.5 py-1.5 text-[12.5px] text-muted hover:bg-canvas">导出</button>
         <div className="grid h-[26px] w-[26px] place-items-center rounded-full bg-gradient-to-br from-[#B8AFFF] to-violet text-[11px] font-bold text-white">SZ</div>
+        </div>
       </header>
 
       {/* ═══ 主体：四栏（图标轨 ｜ 左栏双视图 ｜ 中栏 ｜ 右栏）═══ */}

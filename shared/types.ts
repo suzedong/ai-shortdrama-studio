@@ -1,5 +1,7 @@
 // 共享类型定义 —— 前后端共用的立项阶段数据结构
 
+// 历史 10 节点线性模型（feature-001：仅 library.ts initialNodes() 的历史 manifest.nodes 骨架在用；
+// 新立项模型为「1 入口 + 2 节点 + 0-final 一道门」；B-04 随 manifest 7 态状态机整体清退，勿再扩散消费）
 export type Stage =
   | 'idea' | 'diagnosis' | 'brief' | 'background' | 'story'
   | 'outline' | 'profiles'
@@ -28,15 +30,7 @@ export interface VisualStyle {
   feasibility?: string   // 可行度（●高/●中/●低，照抄谱系目录 · feature-005 D-022）
 }
 
-// 生产级预检清单
-export interface PreflightCheck {
-  id: number
-  name: string
-  value: string
-  locked: boolean
-}
-
-// 选题诊断
+// 选题诊断（对话流 diagnosis 消息载荷；明细不落独立产物文件）
 export interface TopicDiagnosis {
   benchmarkCases: { name: string; platform: string; score: string; play: string; insight: string }[]
   userInsight: string
@@ -45,14 +39,85 @@ export interface TopicDiagnosis {
   conclusion: string
 }
 
-// 立项单
+// ===== 立项单 v2（feature-001 立项模型重建；设计书 §2.6 / §7.1）=====
+
+// 立项项目性质（入口反问第一问）
+export type ProjectKind = 'commercial' | 'memorial'
+
+// 故事前提（5 项最低门槛，§2.6.3；五项均为非空字符串，'待定' 显式表达）
+export interface StoryPremise {
+  leads: string           // 人物：主角身份/年龄（双方）
+  time: string            // 时间：故事发生时间（如「2002 年」）
+  place: string           // 地点：城市/环境
+  coreEvent: string       // 核心事件：相遇/缘起方式一句话
+  seasonBoundary: string  // 边界：本季讲到哪（如「第一季只讲相识」）
+}
+
+// 视觉风格引用：只存「风格 ID + 谱系版本」（§2.6.4；谱系实现与 ID 校验属 B-05）
+export interface BriefStyle {
+  mainStyleId: string          // 主风格谱系 ID，如 'A7'；就绪判定必填非空
+  catalogVersion: string       // 谱系版本，如 'v1.46'；与 mainStyleId 成对
+  auxiliaryStyleId?: string    // 辅助气氛 ID（0–1 个，可选）
+}
+
+// 拍板记录（一键拍板 / 口头拍板等价，§2.6.5）
+export interface BriefApprove {
+  at: string                   // ISO 时间戳
+  by: 'gate' | 'verbal'        // gate=点定案卡按钮；verbal=对话口头确认
+  verbal?: { quote: string }   // by==='verbal' 时必填：用户原话
+  note?: string                // 门裁决备注（gate 路径可选）
+}
+
+// 相对上一版的字段改动（v1 时为空数组）
+export interface BriefChange {
+  field: string                // 点分字段路径，如 'fiveElements.episodeCount'
+  from: string                 // 旧值（v1 无旧值时为 ''）
+  to: string                   // 新值
+}
+
+// 立项单（立项单.vN.json 事实源；项目根目录版本化全量保留）
 export interface ProjectBrief {
-  version: number
+  schemaVersion: 2
+  version: number              // N，从 1 起单调递增
+  kind: ProjectKind
   fiveElements: FiveElements
-  visualStyle: VisualStyle
-  preflight: PreflightCheck[]
-  benchmarkSummary: string
-  conclusion: string
+  premise: StoryPremise
+  style: BriefStyle
+  diagnosisSummary?: string    // 选题诊断结论摘要（明细留在对话流）
+  approve: BriefApprove
+  changesFromPrevious: BriefChange[]
+  publishedAt: string          // ISO
+}
+
+// brief.plan 就绪检查结果（内存态，不落盘）
+export type BriefMissingCode =
+  | 'KIND_MISSING'            // 未回答商业/纪念反问
+  | 'ELEMENT_MISSING'         // 六要素存在空值（不含「待定」）
+  | 'PREMISE_MISSING'         // 故事前提 5 项存在空串
+  | 'MAIN_STYLE_MISSING'      // style.mainStyleId 或 catalogVersion 为空
+
+export interface BriefMissing {
+  code: BriefMissingCode
+  field: string               // 点分字段路径，如 'premise.seasonBoundary'
+  message: string             // 人读缺失原因
+}
+
+export interface BriefPlan {
+  ready: boolean
+  missing: BriefMissing[]
+  pendingMarks: string[]      // 值为「待定」的字段路径（不阻塞就绪，定案卡须明示）
+  nextVersion: number         // 若发布将分配的版本号（最新 + 1；无历史时为 1）
+  changesFromPrevious: BriefChange[]
+  latestVersion: number | null
+}
+
+// brief.plan / brief.publish 入参草案形态（字段可部分缺失参与校验）
+export interface BriefDraft {
+  kind: ProjectKind | null
+  fiveElements: Partial<FiveElements>
+  premise: Partial<StoryPremise>
+  style: Partial<BriefStyle>
+  diagnosisSummary?: string  // 参与字段级 diff（契约 §5），可选
 }
 
 // 故事大纲（编剧 Agent）
@@ -137,18 +202,8 @@ export interface Shot {
 }
 export type ShotList = Shot[]
 
-// 确认门
-export interface GateCard {
-  id: GateId
-  title: string
-  stage: Stage
-  summary: string
-  harness: { label: string; pass: boolean; critical?: boolean }[]
-  actions: ('confirm' | 'partial' | 'reject')[]
-}
-
-// 确认门 id（feature-005 D-016 自 replay.ts 提升至共享层；feature-011 加 '0-d' 生产预检）
-export type GateId = '0-a' | '0-b' | '0-c' | '0-d' | '1-a' | '1-b' | '2-a' | '2-b' | '2-c'
+// 确认门 id（feature-001 立项模型重建：STAGE 0 收敛为唯一一道 0-final 定案门）
+export type GateId = '0-final' | '1-a' | '1-b' | '2-a' | '2-b' | '2-c'
 
 // 画布节点状态（feature-005 D-016 追加 invalidated：上游变更导致需重新生成）
 export type NodeStatus = 'done' | 'active' | 'pending' | 'invalidated'
@@ -159,7 +214,6 @@ export type MessageKind =
   | 'brief'        // 创意简报卡
   | 'diagnosis'    // 选题诊断结果
   | 'visual-style' // 视觉风格结果
-  | 'preflight'    // 生产预检清单（feature-011 D-011）
   | 'progress'     // 进度提示
   | 'error'        // 失败（可重试）
   | 'gate'         // 确认门待处理
@@ -185,17 +239,17 @@ export interface ChatMessage {
   status?: MessageStatus        // progress 类消息必填
   data?: unknown                // kind 对应的结构化载荷
   toolCall?: { name: string; args: string; result: string }
-  gate?: GateCard
   candidate?: boolean    // true=AI 产物未定稿候选（同 kind 同 data；replay 不计入有效态 · feature-005 D-016）
   ts: number
 }
 
 // ===== 产物变更传播（feature-005 D-016）=====
 
-// 变更发起源：idea/background（人工事实）+ 7 个 AI 产物源（gate id 命名；feature-011 加 '0-d'）
+// 变更发起源：idea/background（人工事实）+ AI 产物源（gate id 命名）
+// feature-001：删除旧立项门 0-c/0-d；立项后变更解锁（0-final）属 B-03/P1，暂不加入
 export type RevisionSource =
   | 'idea' | 'background'
-  | '0-c' | '0-d' | '1-a' | '1-b' | '2-a' | '2-b' | '2-c'
+  | '1-a' | '1-b' | '2-a' | '2-b' | '2-c'
 
 // unlock 消息载荷：变更定稿事实，downstream 全部失效
 export interface UnlockData {
@@ -256,7 +310,7 @@ export interface CanvasEdge {
 
 /** 画布裁决门 */
 export interface CanvasGate {
-  gateId: string                     // 沿用 0-a/0-b/... 语义编号
+  gateId: string                     // 动态门 id（STAGE 0 为 0-final；由 Agent 经 gate.request 提交）
   status: 'pending' | 'approved' | 'rejected'
   question: string
   options: string[]

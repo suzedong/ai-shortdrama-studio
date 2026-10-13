@@ -49,8 +49,9 @@ export function isDirectorDeclaredTool(tool: string): boolean {
 export const SHOWRUNNER_AGENT = 'showrunner'
 
 /**
- * showrunner 请求级工具白名单（6 个纯工具物理 ID）。
+ * showrunner 请求级工具白名单（9 个纯工具物理 ID）。
  * `task` 由 profile 常驻（permission.task 白名单），不随请求 tools 传递。
+ * feature-001：立项三工具 brief.plan/publish/list 随立项模型重建放行。
  */
 export const SHOWRUNNER_DECLARED_TOOLS = [
   'shortdrama_file_read',
@@ -59,6 +60,9 @@ export const SHOWRUNNER_DECLARED_TOOLS = [
   'shortdrama_canvas_get',
   'shortdrama_canvas_update',
   'shortdrama_gate_request',
+  'shortdrama_brief.plan',
+  'shortdrama_brief.publish',
+  'shortdrama_brief.list',
 ] as const
 
 /** showrunner 工具放行判定：仅白名单 6 个物理 ID */

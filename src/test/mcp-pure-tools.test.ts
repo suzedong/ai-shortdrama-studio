@@ -8,24 +8,26 @@ const toolsSrc = fs.readFileSync(path.join(here, '../../electron/mcp/tools.ts'),
 
 describe('T8 mcp/tools.ts 静态护栏', () => {
   it('不含 ark / prompts / style-catalog / session 依赖与对话调用', () => {
-    expect(toolsSrc).not.toMatch(/ark/)
+    // \b 词边界：pendingMarks 等合法标识符不应误伤（feature-001）
+    expect(toolsSrc).not.toMatch(/\bark\b/)
     expect(toolsSrc).not.toMatch(/prompts/)
     expect(toolsSrc).not.toMatch(/style-catalog/)
     expect(toolsSrc).not.toMatch(/chat\(/)
   })
 
-  it('注册 11 个工具', () => {
+  it('注册 14 个工具（含 feature-001 brief 三件套）', () => {
     const names = [
       'file.read', 'file.list', 'file.write',
       'canvas.get', 'canvas.update',
       'gate.request',
       'asset.register', 'asset.list',
       'comfyui.instances', 'comfyui.queue', 'comfyui.status',
+      'brief.plan', 'brief.publish', 'brief.list',
     ]
     for (const n of names) {
       expect(toolsSrc).toContain(`'${n}'`)
     }
-    expect((toolsSrc.match(/server\.tool\(/g) ?? []).length).toBe(11)
+    expect((toolsSrc.match(/server\.tool\(/g) ?? []).length).toBe(14)
   })
 
   it('统一 { ok } 结构：无旧信封字段', () => {

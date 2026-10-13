@@ -239,17 +239,14 @@ export default function StudioApp() {
     return () => clearTimeout(t)
   }, [toast])
 
-  // ---- 节点拖拽松手反馈（feature-027 补）----
-  const handleDropped = useCallback((info: { nodeId: string; fromStep: string; toStep: string; changed: boolean }) => {
+  // ---- 节点拖拽松手反馈（feature-027）----
+  // 业务约束：产物 kind 固定归属步骤，节点只能在本列内会话态摆位，不写盘；
+  // 越界松手画布自行回弹，仅在此时由上层补一条警告 toast。
+  const handleDropped = useCallback((info: { nodeId: string; illegal: boolean }) => {
+    if (!info.illegal) return
     const node = canvas.nodes.find(n => n.id === info.nodeId)
     const title = node?.title ?? info.nodeId
-    if (info.changed) {
-      setToast({ tone: 'info', text: `已移至 STAGE ${info.toStep}（${STEP_LABELS[info.toStep as StepId] ?? '?'}）· ${title}` })
-    } else {
-      setToast({ tone: 'ok', text: `位置已更新 · ${title}` })
-    }
-    // eslint-disable-next-line no-console
-    console.info('[node dropped]', info)
+    setToast({ tone: 'bad', text: `产物不可跨步骤移动，已回到原步骤 · ${title}` })
   }, [canvas.nodes])
 
   const projectTitle = canvas.title || '未命名项目'

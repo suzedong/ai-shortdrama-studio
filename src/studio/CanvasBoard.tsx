@@ -5,13 +5,15 @@
 // feature-022 · 有 ref.path 的节点可点击打开只读查看器（契约 §3）
 // feature-023 · 流程导航 STAGE 高亮（命中 step 的列染色 + 列标签加粗 + 节点描边）
 // feature-026 · 节点卡底部操作行（hover/selected 可见）：查看 / 重新生成 / 复制 / 标记失效
-// feature-027 · 节点可拖拽改位（自由位置 / 跨 step 自动改 step）
+// feature-027 · 节点可拖拽改位（仅本列内会话态摆位，不写盘；越界警告并回弹）
+// feature-027 补 · 右键上下文菜单（节点：查看/重新生成/复制路径/标记失效；空白：适应画布）
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Canvas, CanvasEdge, CanvasNode, StepId } from '@shared/types'
 
 export type NodeAction = 'view' | 'regen' | 'copy' | 'invalidate'
 
-interface NodeOverride { step: StepId; x: number; y: number }
+// 节点只能在所属 step 列内会话态摆位，override 不携带 step（业务禁止跨步骤）
+interface NodeOverride { x: number; y: number }
 
 // ── 布局常量（世界坐标 px） ────────────────────────────────
 const NODE_W = 168
@@ -20,6 +22,140 @@ const COL_GAP = 56 // 列间距（边的走向空间）
 const ROW_GAP = 26 // 同列节点纵向间距
 const PAD_X = 28
 const PAD_Y = 28
+
+// feature-027 补 · 对齐参考线 + 自动吸附（对齐原型 rx-card ③ [改编]）
+// axis：v/h 为竖向/横向对齐线（pos 为线的世界坐标）；
+// ev/eh 为垂直/水平等距分布参考（两条间隙线 posA/posB + 跨距 spanA/spanB）
+interface SnapGuide {
+  axis: 'v' | 'h' | 'ev' | 'eh'
+  pos: number
+  label: string
+  posB?: number
+  spanA?: number
+  spanB?: number
+}
+interface SnapResult { x: number; y: number; guides: SnapGuide[]; snapped: boolean }
+
+const ALIGN_THRESHOLD = 8 // 对齐吸附阈值
+const SPACE_THRESHOLD = 16 // 等距吸附阈值（原型 rx-card：垂直等距 16px）
+
+// 候选线：其他节点的 左/中/右（x 轴）与 上/中/下（y 轴），逐轴取最近且在阈值内的一条
+export function snapNode(
+  x: number, y: number, others: { x: number; y: number }[],
+  threshold = ALIGN_THRESHOLD,
+): SnapResult {
+  const guides: SnapGuide[] = []
+  const tryAxis = (axis: 'v' | 'h', raw: number): number => {
+    let best = Infinity
+    let bestPos = raw
+    let bestLine = raw
+    let bestLabel = ''
+    for (const o of others) {
+      const cand = axis === 'v'
+        ? [
+            { p: o.x, l: '左对齐' },
+            { p: o.x + NODE_W / 2, l: '中线对齐' },
+            { p: o.x + NODE_W, l: '右对齐' },
+          ]
+        : [
+            { p: o.y, l: '上对齐' },
+            { p: o.y + NODE_H / 2, l: '中线对齐' },
+            { p: o.y + NODE_H, l: '下对齐' },
+          ]
+      const dragC = axis === 'v'
+        ? [{ p: raw, off: 0 }, { p: raw + NODE_W / 2, off: -NODE_W / 2 }, { p: raw + NODE_W, off: -NODE_W }]
+        : [{ p: raw, off: 0 }, { p: raw + NODE_H / 2, off: -NODE_H / 2 }, { p: raw + NODE_H, off: -NODE_H }]
+      for (const c of cand) {
+        for (const d of dragC) {
+          const dist = Math.abs(d.p - c.p)
+          if (dist < best && dist <= threshold) {
+            best = dist
+            bestPos = c.p + d.off
+            bestLine = c.p
+            bestLabel = c.l
+          }
+        }
+      }
+    }
+    if (best <= threshold) {
+      guides.push({ axis, pos: bestLine, label: bestLabel })
+      return bestPos
+    }
+    return raw
+  }
+  const sx = tryAxis('v', x)
+  const sy = tryAxis('h', y)
+  // 等距分布（三节点）：被拖节点 + 两个同走向参考节点，拖到两间隙相等时吸附
+  const ev = equalSpace('ev', sy, sx, others)
+  const eh = ev ? null : equalSpace('eh', sx, sy, others)
+  const fx = eh ? eh.pos : sx
+  const fy = ev ? ev.pos : sy
+  if (ev) guides.push(ev.guide)
+  if (eh) guides.push(eh.guide)
+  return { x: fx, y: fy, guides, snapped: guides.length > 0 }
+}
+
+// 等距分布吸附。dir='ev' 求被拖节点的理想 y（间隙沿纵向，要求 x 同列相近）；
+// dir='eh' 求理想 x（间隙沿横向，要求 y 相近）。仅在 SPACE_THRESHOLD 内吸附。
+// 设两个参考节点顶边为 a < b、同走向尺寸 size，节距 d = b - a。
+// 被拖节点延续节距 d 位于参考对 外侧（上 a-d / 下 b+d）时等间隙 gap = d - size；
+// 位于两参考之间（a + d/2）时两半各留间隙 gap = d/2 - size。
+function equalSpace(
+  dir: 'ev' | 'eh',
+  rawAlong: number,
+  rawCross: number,
+  others: { x: number; y: number }[],
+): { pos: number; guide: SnapGuide } | null {
+  const size = dir === 'ev' ? NODE_H : NODE_W
+  // 垂直等距仅在同列节点间触发（x 中线间距 ≤ COL_GAP），水平等距放宽到行高
+  const crossNear = dir === 'ev' ? COL_GAP : NODE_H
+  const near = others.filter(o => {
+    const crossA = dir === 'ev' ? o.x + NODE_W / 2 : o.y + NODE_H / 2
+    const crossD = dir === 'ev' ? rawCross + NODE_W / 2 : rawCross + NODE_H / 2
+    return Math.abs(crossA - crossD) <= crossNear
+  })
+  let best = Infinity
+  let ideal = rawAlong
+  let bestA = 0
+  let bestB = 0
+  let bestGap = 0
+  for (let i = 0; i < near.length; i++) {
+    for (let j = i + 1; j < near.length; j++) {
+      const p1 = dir === 'ev' ? near[i].y : near[i].x
+      const p2 = dir === 'ev' ? near[j].y : near[j].x
+      const a = Math.min(p1, p2)
+      const b = Math.max(p1, p2)
+      const d = b - a
+      if (d < size) continue // 参考对重叠，不构成等距
+      // 被拖节点位于参考对 上方 / 下方（延续节距 d）/ 中间（节距 d/2）
+      const cands: { c: number; gap: number }[] = [
+        { c: a - d, gap: d - size },
+        { c: b + d, gap: d - size },
+      ]
+      if (d >= 2 * size) cands.push({ c: a + d / 2, gap: d / 2 - size })
+      for (const { c, gap } of cands) {
+        const dist = Math.abs(c - rawAlong)
+        if (dist < best && dist <= SPACE_THRESHOLD) {
+          best = dist
+          ideal = c
+          bestA = a
+          bestB = b
+          bestGap = gap
+        }
+      }
+    }
+  }
+  if (best > SPACE_THRESHOLD) return null
+  // 三节点等距，参考线画在两条间隙的中点（pos/posB）
+  const sorted = [ideal, bestA, bestB].sort((u, v) => u - v)
+  const mid1 = (sorted[0] + size + sorted[1]) / 2
+  const mid2 = (sorted[1] + size + sorted[2]) / 2
+  const gap = Math.round(bestGap)
+  const guide: SnapGuide = dir === 'ev'
+    ? { axis: 'ev', pos: mid1, posB: mid2, spanA: NODE_W, label: `垂直等距 ${gap}px` }
+    : { axis: 'eh', pos: mid1, posB: mid2, spanA: NODE_H, label: `水平等距 ${gap}px` }
+  return { pos: ideal, guide }
+}
 
 // ── 视觉元数据 ────────────────────────────────────────────
 const STATUS_META: Record<CanvasNode['status'], { label: string; dot: string }> = {
@@ -78,17 +214,15 @@ interface LaidOut {
 }
 
 // 按 step 首次出现顺序分列，列内节点纵向排布，列相对于最高列垂直居中
-// feature-027 · overrides 优先于自动布局（拖拽后用用户指定的位置 / step）
+// feature-027 · overrides 仅覆盖本列内摆位（会话态，不改变 step；越界由拖拽层判非法）
 function layout(nodes: CanvasNode[], overrides: Map<string, NodeOverride>): LaidOut {
   // 收集所有出现过的 step（按首次出现顺序）
-  const effectiveStep = (n: CanvasNode): StepId => overrides.get(n.id)?.step ?? n.step
   const steps: StepId[] = []
   for (const n of nodes) {
-    const s = effectiveStep(n)
-    if (!steps.includes(s)) steps.push(s)
+    if (!steps.includes(n.step)) steps.push(n.step)
   }
   const colHeights = steps.map(s => {
-    const count = nodes.filter(n => effectiveStep(n) === s && !overrides.has(n.id)).length
+    const count = nodes.filter(n => n.step === s && !overrides.has(n.id)).length
     return { step: s, count, height: count * NODE_H + (count - 1) * ROW_GAP }
   })
   const maxHeight = Math.max(0, ...colHeights.map(c => c.height))
@@ -99,7 +233,7 @@ function layout(nodes: CanvasNode[], overrides: Map<string, NodeOverride>): Laid
   const cols = colHeights.map((c, i) => {
     const x = PAD_X + i * (NODE_W + COL_GAP)
     const top = PAD_Y + (maxHeight - c.height) / 2
-    nodes.filter(n => effectiveStep(n) === c.step && !overrides.has(n.id)).forEach((node, j) => {
+    nodes.filter(n => n.step === c.step && !overrides.has(n.id)).forEach((node, j) => {
       items.push({ node, x, y: top + j * (NODE_H + ROW_GAP) })
     })
     return { step: c.step, x, top, height: c.height, count: c.count }
@@ -149,8 +283,8 @@ interface Props {
   activeStep?: string | null
   // feature-026：节点卡底部操作行（查看/重新生成/复制/标记失效）；不传则不渲染
   onNodeAction?: (action: NodeAction, node: CanvasNode) => void
-  // feature-027 补：拖拽松手回调（fromStep/toStep/changed）让上层弹 toast
-  onDropped?: (info: { nodeId: string; fromStep: StepId; toStep: StepId; changed: boolean }) => void
+  // feature-027：拖拽松手回调。illegal=true 表示曾拖出本列，画布已回弹，上层补警告 toast
+  onDropped?: (info: { nodeId: string; illegal: boolean }) => void
 }
 
 export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeAction, onDropped }: Props) {
@@ -161,10 +295,14 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
   const [pan, setPan] = useState({ x: PAD_X, y: PAD_Y })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [vp, setVp] = useState({ w: 0, h: 0 })
-  // feature-027 · 拖拽 override（位置 / 跨 step 调整；不持久化，dev-mock 未接写回 IPC）
+  // feature-027 · 拖拽 override（仅本列内摆位，会话态不写盘；拖出本列松手即清除回弹）
   const [overrides, setOverrides] = useState<Map<string, NodeOverride>>(() => new Map())
   const [dragId, setDragId] = useState<string | null>(null)
+  // feature-027 补 · 拖拽中的吸附参考线（世界坐标，最多每轴一条）
+  const [guides, setGuides] = useState<SnapGuide[]>([])
   const isDragging = dragId != null
+  // feature-027 补 · 右键上下文菜单（节点菜单 / 空白菜单），坐标为视口 client
+  const [menu, setMenu] = useState<{ x: number; y: number; node: CanvasNode | null } | null>(null)
 
   const laid = useMemo(() => layout(nodes, overrides), [nodes, overrides])
 
@@ -247,10 +385,47 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
   }
   const onPointerUp = () => { drag.current = null }
 
-  // feature-027 · 节点拖拽（位置 / 跨 step 自动改 step）
-  const dragInfoRef = useRef<{ offsetX: number; offsetY: number; startStep: StepId } | null>(null)
+  // feature-027 补 · 右键菜单：节点上 → 节点菜单；画布空白（data-canvas-bg）→ 空白菜单
+  const onViewportContextMenu = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement
+    const nodeEl = target.closest<HTMLElement>('[data-node-id]')
+    if (nodeEl) {
+      const node = nodes.find(n => n.id === nodeEl.dataset.nodeId)
+      if (!node) return
+      setSelectedId(node.id)
+      setMenu({ x: e.clientX, y: e.clientY, node })
+      e.preventDefault()
+      return
+    }
+    if (target.dataset.canvasBg === '1') {
+      setMenu({ x: e.clientX, y: e.clientY, node: null })
+      e.preventDefault()
+    }
+  }
+
+  // Esc 关闭右键菜单
+  useEffect(() => {
+    if (!menu) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenu(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [menu])
+
+  // feature-027 · 节点拖拽（仅本列内会话态摆位；产物归属固定步骤，禁止跨列）
+  // movedRef：真拖过（>3px）才抑制随后的 click，避免松手误开查看器
+  const DRAG_CLICK_THRESHOLD = 3
+  const dragInfoRef = useRef<{
+    offsetX: number; offsetY: number; slotX: number; startStep: StepId
+    startClientX: number; startClientY: number
+  } | null>(null)
+  const movedRef = useRef(false)
+  const illegalRef = useRef(false)
   const onNodeMouseDown = (e: React.MouseEvent, node: CanvasNode) => {
     if (e.button !== 0) return
+    // 操作行按钮不发起拖拽（stopPropagation 之外双保险）
+    if ((e.target as HTMLElement).closest('[data-node-actions]')) return
+    // 业务约束：进行中的产物正在生成，锁定不可拖动（单击仍可选中/查看）
+    if (node.status === 'active') return
     const el = viewportRef.current
     if (!el) return
     const pos = laid.byId.get(node.id)
@@ -258,11 +433,18 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
     const r = el.getBoundingClientRect()
     const mouseWX = (e.clientX - r.left - pan.x) / zoom
     const mouseWY = (e.clientY - r.top - pan.y) / zoom
+    const col = laid.cols.find(c => c.step === pos.node.step)
     dragInfoRef.current = {
       offsetX: mouseWX - pos.x,
       offsetY: mouseWY - pos.y,
+      slotX: col?.x ?? pos.x,
       startStep: pos.node.step,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
     }
+    movedRef.current = false
+    illegalRef.current = false
+    setMenu(null)
     setDragId(node.id)
     setSelectedId(node.id)
     e.stopPropagation()
@@ -272,34 +454,49 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
     if (!dragId || !dragInfoRef.current) return
     const el = viewportRef.current
     if (!el) return
+    if (Math.hypot(e.clientX - dragInfoRef.current.startClientX, e.clientY - dragInfoRef.current.startClientY) > DRAG_CLICK_THRESHOLD) {
+      movedRef.current = true
+    }
     const r = el.getBoundingClientRect()
     const mouseWX = (e.clientX - r.left - pan.x) / zoom
     const mouseWY = (e.clientY - r.top - pan.y) / zoom
-    const newX = mouseWX - dragInfoRef.current.offsetX
-    const newY = mouseWY - dragInfoRef.current.offsetY
-    // 找最近的 step 列（按 x 中点距离）
-    let bestStep: StepId = dragInfoRef.current.startStep
-    let bestDist = Infinity
-    for (const col of laid.cols) {
-      const colCenterX = col.x + NODE_W / 2
-      const d = Math.abs((newX + NODE_W / 2) - colCenterX)
-      if (d < bestDist) { bestDist = d; bestStep = col.step }
-    }
+    const rawX = mouseWX - dragInfoRef.current.offsetX
+    const rawY = mouseWY - dragInfoRef.current.offsetY
+    // 越界判定：节点中点越过本列槽位半宽（半个列距）即视为跨步骤
+    const slotX = dragInfoRef.current.slotX
+    const illegal = Math.abs((rawX + NODE_W / 2) - (slotX + NODE_W / 2)) > (NODE_W + COL_GAP) / 2
+    illegalRef.current = illegal
+    // 吸附：合法时横纵都吸附；越界时 x 不吸附（如实跟随指针），仅保留纵向对齐/等距
+    const others = laid.items
+      .filter(p => p.node.id !== dragId)
+      .map(p => ({ x: p.x, y: p.y }))
+    const snap = snapNode(rawX, rawY, others)
+    setGuides(illegal ? snap.guides.filter(g => g.axis === 'h' || g.axis === 'ev') : snap.guides)
+    const x = illegal ? rawX : snap.x
     setOverrides(prev => {
       const next = new Map(prev)
-      next.set(dragId, { step: bestStep, x: Math.max(PAD_X, newX), y: Math.max(PAD_Y, newY) })
+      next.set(dragId, { x: Math.max(PAD_X, x), y: Math.max(PAD_Y, snap.y) })
       return next
     })
   }
   const onViewportMouseUp = () => {
     if (dragId && dragInfoRef.current) {
-      const fromStep = dragInfoRef.current.startStep
-      const ov = overrides.get(dragId)
-      const toStep = ov?.step ?? fromStep
-      const changed = fromStep !== toStep
-      onDropped?.({ nodeId: dragId, fromStep, toStep, changed })
+      const nodeId = dragId
+      const illegal = illegalRef.current
+      setGuides([])
       dragInfoRef.current = null
       setDragId(null)
+      if (illegal) {
+        // 跨步骤非法：丢弃会话态摆位，节点回弹自动布局，不写盘；上层补警告 toast
+        setOverrides(prev => {
+          const n = new Map(prev)
+          n.delete(nodeId)
+          return n
+        })
+        onDropped?.({ nodeId, illegal: true })
+      } else {
+        onDropped?.({ nodeId, illegal: false })
+      }
     }
   }
 
@@ -344,6 +541,7 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
       onMouseMove={onViewportMouseMove}
       onMouseUp={onViewportMouseUp}
       onMouseLeave={onViewportMouseUp}
+      onContextMenu={onViewportContextMenu}
     >
       {/* 世界 */}
       <div
@@ -382,6 +580,7 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
             return (
               <path
                 key={edge.id}
+                data-edge={edge.id}
                 d={d}
                 fill="none"
                 stroke={st.stroke}
@@ -392,6 +591,34 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
             )
           })}
         </svg>
+
+        {/* feature-027 补 · 对齐/等距参考线（世界层，随缩放/平移；仅拖拽中渲染） */}
+        {isDragging && guides.flatMap((g, i) => {
+          if (g.axis === 'ev' || g.axis === 'eh') {
+            // 等距：两条间隙参考线（v 为纵向排布 → 水平线；eh 反之），线长取节点尺寸
+            const line = (p: number, k: number) => (
+              <div
+                key={`guide-${g.axis}-${i}-${k}`}
+                data-drag-guide={g.axis}
+                className="pointer-events-none absolute z-[1] bg-violet/70"
+                style={g.axis === 'ev'
+                  ? { left: 0, top: p, width: laid.width, height: 1 }
+                  : { left: p, top: 0, width: 1, height: laid.height }}
+              />
+            )
+            return [line(g.pos, 0), line(g.posB ?? g.pos, 1)]
+          }
+          return [(
+            <div
+              key={`guide-${g.axis}-${i}`}
+              data-drag-guide={g.axis}
+              className="pointer-events-none absolute z-[1] bg-violet/70"
+              style={g.axis === 'v'
+                ? { left: g.pos, top: 0, width: 1, height: laid.height }
+                : { left: 0, top: g.pos, width: laid.width, height: 1 }}
+            />
+          )]
+        })}
 
         {/* 步骤列标签 */}
         {laid.cols.map(col => {
@@ -418,9 +645,10 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
           return (
             <div
               key={node.id}
+              data-node-id={node.id}
               role={openable ? 'button' : undefined}
               tabIndex={openable ? 0 : undefined}
-              className={`group node-in absolute flex cursor-grab flex-col overflow-hidden rounded-[11px] border bg-white transition-shadow hover:shadow-[0_10px_24px_rgba(45,48,90,0.12)] ${
+              className={`group node-in absolute flex ${node.status === 'active' ? 'cursor-default' : 'cursor-grab'} flex-col overflow-hidden rounded-[11px] border bg-white transition-shadow hover:shadow-[0_10px_24px_rgba(45,48,90,0.12)] ${
                 selected || dragId === node.id
                   ? 'z-[2] border-2 border-violet shadow-[0_12px_28px_rgba(108,92,231,0.22)]'
                   : 'border-line hover:border-[#CBCEE0]'
@@ -437,7 +665,8 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
                   : {}),
               }}
               onClick={e => {
-                if (dragId) return // feature-027 · 拖拽中不触发 click
+                // feature-027 · 真拖过（>3px）松手后的合成 click 不打开查看器
+                if (movedRef.current) return
                 e.stopPropagation()
                 setSelectedId(node.id)
                 if (openable) onOpenNode!(node)
@@ -519,27 +748,104 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
         </div>
       </div>
 
-      {/* feature-027 · 拖拽期"目标 STAGE"提示气泡 */}
+      {/* feature-027 · 拖拽期提示气泡：合法时显示 STAGE 与吸附态；越界转红色警告 */}
       {isDragging && (() => {
-        const ov = overrides.get(dragId!)
-        const targetStep = ov?.step
         const startStep = dragInfoRef.current?.startStep
-        const stepLabel = STEP_LABEL[targetStep as StepId] ?? targetStep ?? '?'
-        const stepChanged = targetStep && startStep && targetStep !== startStep
+        const stageText = startStep != null
+          ? `STAGE ${startStep} · ${STEP_LABEL[startStep] ?? startStep}`
+          : '移动节点'
+        const illegal = illegalRef.current
         return (
           <div
-            className="pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2 rounded-full bg-violet/95 px-3.5 py-1.5 text-[11.5px] font-extrabold text-white shadow-[0_8px_20px_rgba(108,92,231,0.4)] backdrop-blur"
+            className={`pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2 rounded-full px-3.5 py-1.5 text-[11.5px] font-extrabold text-white shadow-[0_8px_20px_rgba(108,92,231,0.4)] backdrop-blur ${
+              illegal ? 'bg-bad/95 shadow-[0_8px_20px_rgba(224,76,92,0.35)]' : 'bg-violet/95'
+            }`}
             data-drag-hint
+            data-illegal={illegal ? '1' : '0'}
           >
-            <span className="opacity-80">正在拖拽 ·</span>{' '}
-            <span>{targetStep ? `STAGE ${targetStep} · ${stepLabel}` : '移动节点'}</span>
-            {stepChanged && (
-              <span className="ml-2 rounded-full bg-white/25 px-1.5 py-px text-[10px]">步骤变更</span>
+            {illegal ? (
+              <span>产物不可跨步骤移动 · 松手回到 {stageText}</span>
+            ) : (
+              <>
+                <span className="opacity-80">正在拖拽 ·</span> <span>{stageText}</span>
+              </>
+            )}
+            {!illegal && guides.length > 0 && (
+              <span className="ml-2 rounded-full bg-white/25 px-1.5 py-px text-[10px]" data-snap-hint>
+                ● 已吸附：{guides.map(g => g.label).join(' / ')}
+              </span>
             )}
           </div>
         )
       })()}
+
+      {/* feature-027 补 · 右键上下文菜单 */}
+      {menu && <ContextMenu
+        menu={menu}
+        openable={Boolean(menu.node?.ref?.path) && Boolean(onOpenNode)}
+        onAction={(act, node) => {
+          if (act === 'fit') fitView()
+          else if (act === 'view' && node.ref?.path && onOpenNode) onOpenNode(node)
+          else if (node && onNodeAction) onNodeAction(act, node)
+          setMenu(null)
+        }}
+        onClose={() => setMenu(null)}
+      />}
     </div>
+  )
+}
+
+// 节点右键菜单：查看（有 ref.path）/ 重新生成（非 active）/ 复制路径（有 ref.path）/ 标记失效（done）/ 适应画布
+// 空白右键菜单：仅适应画布
+function ContextMenu({
+  menu, openable, onAction, onClose,
+}: {
+  menu: { x: number; y: number; node: CanvasNode | null }
+  openable: boolean
+  onAction: (act: NodeAction | 'fit', node: CanvasNode | null) => void
+  onClose: () => void
+}) {
+  const node = menu.node
+  // 简单视口防溢出（菜单约 168×200）
+  const left = Math.min(menu.x, window.innerWidth - 184)
+  const top = Math.min(menu.y, window.innerHeight - 216)
+  const Item = ({ act, label, show = true }: { act: NodeAction | 'fit'; label: string; show?: boolean }) => {
+    if (!show) return null
+    return (
+      <button
+        type="button"
+        data-ctx-item={act}
+        onClick={() => onAction(act, node)}
+        className="block w-full rounded-md px-2.5 py-1.5 text-left text-[12px] font-medium text-[#4A4F68] hover:bg-violet-soft hover:text-violet"
+      >
+        {label}
+      </button>
+    )
+  }
+  return (
+    <>
+      {/* 全屏透明拦截层：点击外部 / 右键其他处关闭 */}
+      <div className="fixed inset-0 z-30" data-ctx-backdrop onContextMenu={e => { e.preventDefault(); onClose() }} onClick={onClose} />
+      <div
+        className="fixed z-40 w-40 rounded-[10px] border border-line bg-white p-1 shadow-[0_12px_32px_rgba(40,42,80,0.18)]"
+        style={{ left, top }}
+        data-ctx-menu={node ? 'node' : 'canvas'}
+        data-node-id={node?.id ?? undefined}
+      >
+        {node ? (
+          <>
+            <Item act="view" label="查看产物" show={openable} />
+            <Item act="regen" label="重新生成" show={node.status !== 'active'} />
+            <Item act="copy" label="复制路径 / 参数" show={Boolean(node.ref?.path)} />
+            <Item act="invalidate" label="标记失效" show={node.status === 'done'} />
+            <div className="mx-1 my-1 h-px bg-line" />
+            <Item act="fit" label="适应画布" />
+          </>
+        ) : (
+          <Item act="fit" label="适应画布" />
+        )}
+      </div>
+    </>
   )
 }
 

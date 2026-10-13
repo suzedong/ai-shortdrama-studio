@@ -59,6 +59,15 @@ function demoCanvas(): Canvas {
   }
 }
 
+// dev-mock 画布单例 + 订阅广播（模拟主进程 canvasStore 的 canvas:changed）
+let demoState: Canvas | null = null
+const demoCanvasListeners = new Set<(c: Canvas) => void>()
+
+function getDemoCanvas(): Canvas {
+  if (!demoState) demoState = demoCanvas()
+  return structuredClone(demoState)
+}
+
 // ── file:read 演示产物（仅浏览器 mock 通道；真实 Electron 走主进程文件读取）──
 function demoBrief() {
   return {
@@ -303,10 +312,13 @@ export function installDevMockApi(): void {
     },
 
     canvas: {
-      get: () => resolve(demoCanvas()),
+      get: () => resolve(getDemoCanvas()),
       subscribe: () => resolve({ ok: true as const }),
       unsubscribe: () => resolve({ ok: true as const }),
-      onChange: () => noop,
+      onChange: (cb: (c: Canvas) => void) => {
+        demoCanvasListeners.add(cb)
+        return () => { demoCanvasListeners.delete(cb) }
+      },
     },
 
     gate: {

@@ -317,6 +317,8 @@ function VisualStyleView({ data }: { data: VisualStyle }) {
 // shot 节点：媒体成片，JSON 为生成档案（路径 / seed / 档位 / 状态）
 interface ShotMediaRecord {
   video?: string
+  /** dev-mock 媒体通道：可直接加载的视频 URL（真实 Electron 侧将由 media:// 协议提供） */
+  videoUrl?: string
   status?: string
   model?: string
   tier?: string
@@ -326,23 +328,34 @@ interface ShotMediaRecord {
 }
 
 function ShotMediaView({ data, node }: { data: ShotMediaRecord; node: CanvasNode }) {
-  // 媒体本地播放通道尚未接入（file:read 仅支持 json/md），统一深色舞台占位，
-  // 不渲染 <video> 指向 mock 假路径；文件路径在下方生成档案中呈现。
+  // videoUrl 存在 → 本地播放（dev-mock 已映射真实 H3 演示片）；否则深色舞台占位。
+  // 未接通道的真实落盘路径 data.video 不直接喂给 <video>，只在下方生成档案中呈现。
   const fileName = data.video ? data.video.split('/').pop() : ''
-  const hint = node.status === 'active' ? '镜头生成中…' : data.video ? '正片已生成，媒体预览通道接入后可播放' : '正片文件未就绪'
+  const generating = node.status === 'active'
+  const hint = generating ? '镜头生成中…' : data.video ? '正片已生成，媒体预览通道接入后可播放' : '正片文件未就绪'
   return (
     <div className="flex flex-col gap-3">
       <Section>
         <div className="grid min-h-[220px] place-items-center overflow-hidden rounded-[10px] bg-[#15161D]">
-          <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-9 w-9 text-white/30">
-              <rect x="2" y="5" width="20" height="14" rx="2" /><path d="m10 9 5 3-5 3z" fill="currentColor" stroke="none" />
-            </svg>
-            <span className="text-[11px] text-white/40">{hint}</span>
-            {fileName && node.status !== 'active' && (
-              <span className="max-w-full truncate font-mono text-[10.5px] text-white/25">{fileName}</span>
-            )}
-          </div>
+          {data.videoUrl && !generating ? (
+            <video
+              src={data.videoUrl}
+              controls
+              playsInline
+              data-shot-video
+              className="max-h-[420px] w-full bg-[#15161D] object-contain"
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-9 w-9 text-white/30">
+                <rect x="2" y="5" width="20" height="14" rx="2" /><path d="m10 9 5 3-5 3z" fill="currentColor" stroke="none" />
+              </svg>
+              <span className="text-[11px] text-white/40">{hint}</span>
+              {fileName && !generating && (
+                <span className="max-w-full truncate font-mono text-[10.5px] text-white/25">{fileName}</span>
+              )}
+            </div>
+          )}
         </div>
         <div className="mt-2 flex items-center gap-1.5">
           <span className="text-[13px] font-extrabold text-ink">{node.title}</span>

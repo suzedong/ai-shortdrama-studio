@@ -10,6 +10,7 @@ export default {
         muted: '#8A8FA3',
         line: '#E8E9F0',
         canvas: '#FAFAFE',
+        win: '#FBFBFE',
         ok: '#2BB673',
         warn: '#E8A93C',
         bad: '#E05A52',

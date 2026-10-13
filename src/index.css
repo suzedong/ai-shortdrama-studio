@@ -34,3 +34,16 @@ body {
   100% { box-shadow: 0 0 0 0 rgba(108,92,231,0); }
 }
 .pulse { animation: pulse-ring 1.6s infinite; }
+
+/* DAG：进行中边（紫色虚线流动） */
+@keyframes dag-dash { to { stroke-dashoffset: -11; } }
+.dag-edge-active {
+  stroke-dasharray: 6 5;
+  animation: dag-dash 1s linear infinite;
+}
+/* DAG：选中节点外层虚线框 */
+.dag-selected-ring {
+  border: 1.5px dashed rgba(108, 92, 231, .45);
+  animation: dag-dash 8s linear infinite;
+  z-index: 2;
+}

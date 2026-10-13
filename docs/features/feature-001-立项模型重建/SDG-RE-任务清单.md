@@ -84,14 +84,14 @@
 
 | 产出 | 位置 | 状态 |
 |---|---|---|
-| 立项 diff/校验/扫描 | `electron/brief/diff.ts`、`electron/brief/plan.ts` | ⬜ |
-| 立项单 MD 渲染 | `electron/brief/render-md.ts` | ⬜ |
-| MCP 工具 ×3 | `electron/mcp/tools.ts`（brief.plan/publish/list） | ⬜ |
-| 共享类型 v2 | `shared/types.ts` | ⬜ |
-| Agent 提示词 | `resources/opencode/agents/showrunner.md` | ⬜ |
-| 渲染端适配 | StudioViewer / CanvasBoard / StageNavPanel / dev-mock-api | ⬜ |
-| 测试 | brief 单测（新增）+ orchestration/studio-flow 改写 | ⬜ |
-| 治理文档 | 偏差清单 B-01/B-02、features/README、变更记录 | ⬜ |
+| 立项 diff/校验/扫描 | `electron/brief/diff.ts`、`electron/brief/plan.ts` | ✅ |
+| 立项单 MD 渲染 | `electron/brief/render-md.ts` | ✅ |
+| MCP 工具 ×3 | `electron/mcp/tools.ts`（brief.plan/publish/list） | ✅ |
+| 共享类型 v2 | `shared/types.ts` | ✅ |
+| Agent 提示词 | `resources/opencode/agents/showrunner.md` | ✅ |
+| 渲染端适配 | StudioViewer / CanvasBoard / StageNavPanel / dev-mock-api | ✅ |
+| 测试 | brief 单测（新增）+ orchestration/studio-flow 改写 | ✅（studio-flow 10 例基线故障另挂账，见变更记录 T7） |
+| 治理文档 | 偏差清单 B-01/B-02、features/README、变更记录 | ✅ |
 
 ## 3. 不做（防止越界）
 

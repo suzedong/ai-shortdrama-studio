@@ -18,7 +18,7 @@ interface StageDef {
 }
 
 const STAGES: StageDef[] = [
-  { step: '0', title: '立项',     desc: '创意简报 + 视觉风格',           kinds: ['brief'] },
+  { step: '0', title: '立项',     desc: '立项单 + 视觉风格',             kinds: ['brief'] },
   { step: '1', title: '故事',     desc: '三幕结构 + 钩子工程',           kinds: ['outline'] },
   { step: '2', title: '剧本分场', desc: '分场 + 台词',                   kinds: ['scenes', 'dialogue'] },
   { step: '3', title: '资产',     desc: '角色定妆 + 场景概念',           kinds: ['profiles', 'visual-style'] },

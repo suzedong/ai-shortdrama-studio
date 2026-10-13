@@ -73,10 +73,27 @@ function RecipeBox({ label, children }: { label?: string; children: ReactNode })
 
 function BriefView({ data }: { data: ProjectBrief }) {
   const fe = data.fiveElements
-  const vs = data.visualStyle
+  const p = data.premise
+  const s = data.style
+  const changes = data.changesFromPrevious
+  const approveLabel =
+    data.approve.by === 'verbal'
+      ? `口头拍板${data.approve.verbal?.quote ? `：“${data.approve.verbal.quote}”` : ''}`
+      : '门内拍板'
   return (
     <div className="flex flex-col gap-3">
-      <Section title="立项六要素" extra={<Tag tone="violet">v{data.version}</Tag>}>
+      <Section
+        title="项目性质"
+        extra={<Tag tone="violet">立项单 v{data.version}</Tag>}
+      >
+        <div className="rounded-lg border border-line">
+          <KV k="性质" v={data.kind === 'commercial' ? '商业短剧' : '个人纪念'} />
+          <KV k="发布时间" v={data.publishedAt} />
+          <KV k="拍板方式" v={approveLabel} />
+          {data.approve.note && <KV k="裁决备注" v={data.approve.note} />}
+        </div>
+      </Section>
+      <Section title="立项六要素">
         <div className="rounded-lg border border-line">
           <KV k="题材赛道" v={fe.genre} />
           <KV k="目标平台" v={fe.platforms.join('、')} />
@@ -86,35 +103,38 @@ function BriefView({ data }: { data: ProjectBrief }) {
           <KV k="画幅" v={fe.aspectRatio} />
         </div>
       </Section>
-      <Section title="视觉风格">
-        <KV k="形态" v={vs.form} />
-        <KV k="主画风" v={vs.mainStyle} />
-        {vs.family && <KV k="家族" v={vs.family} />}
-        <KV k="世界观锚" v={vs.l1World} />
-        <KV k="风格锚词" v={vs.l2Anchor} />
-        <KV k="锚点词" v={vs.anchorWords} />
-        {vs.auxiliaryStyle && <KV k="辅助画风" v={vs.auxiliaryStyle} />}
-        {vs.feasibility && <KV k="可行度" v={vs.feasibility} />}
-        <RecipeBox label="质感配方">{vs.qualityRecipe}</RecipeBox>
+      <Section title="故事前提">
+        <div className="rounded-lg border border-line">
+          <KV k="人物" v={p.leads} />
+          <KV k="时间" v={p.time} />
+          <KV k="地点" v={p.place} />
+          <KV k="核心事件" v={p.coreEvent} />
+          <KV k="本季边界" v={p.seasonBoundary} />
+        </div>
       </Section>
-      {data.preflight.length > 0 && (
-        <Section title={`生产预检 · ${data.preflight.length} 项`}>
-          <div className="flex flex-col gap-1.5">
-            {data.preflight.map(p => (
-              <div key={p.id} className="flex items-center gap-2 rounded-lg border border-line px-2.5 py-1.5 text-[11px]">
-                <span className={p.locked ? 'text-ok' : 'text-muted'}>{p.locked ? '✓' : '○'}</span>
-                <span className="flex-1 truncate text-ink">{p.name}</span>
-                <span className="text-muted">{p.value}</span>
-              </div>
+      <Section title="视觉风格">
+        <div className="rounded-lg border border-line">
+          <KV k="主风格" v={`${s.mainStyleId} @ ${s.catalogVersion}`} />
+          <KV k="辅助气氛" v={s.auxiliaryStyleId || '无'} />
+        </div>
+      </Section>
+      <Section title="选题诊断结论">
+        <p className="text-[11.5px] leading-[1.7] text-[#4A4F68]">{data.diagnosisSummary || '（无）'}</p>
+      </Section>
+      <Section title={`相对上一版改动 · ${changes.length} 项`}>
+        {data.version === 1 || changes.length === 0 ? (
+          <p className="text-[11.5px] leading-[1.7] text-[#4A4F68]">首版立项。</p>
+        ) : (
+          <div className="rounded-lg border border-line">
+            {changes.map((c, i) => (
+              <KV
+                key={`${c.field}-${i}`}
+                k={c.field}
+                v={`${c.from || '（空）'} → ${c.to || '（空）'}`}
+              />
             ))}
           </div>
-        </Section>
-      )}
-      <Section title="立项结论">
-        <p className="text-[11.5px] leading-[1.7] text-[#4A4F68]">{data.benchmarkSummary}</p>
-        <p className="mt-2 rounded-lg bg-violet-soft/60 px-2.5 py-2 text-[11.5px] font-semibold leading-[1.7] text-violet">
-          {data.conclusion}
-        </p>
+        )}
       </Section>
     </div>
   )

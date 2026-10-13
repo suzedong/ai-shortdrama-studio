@@ -291,6 +291,24 @@ describe('prompt / promptAsync 边界与透传', () => {
     })
   })
 
+  it('feature-001 · showrunner 立项三工具（brief.plan/publish/list）放行', async () => {
+    const { client, state } = makeFakeClient()
+    const tools = [
+      'shortdrama_brief.plan',
+      'shortdrama_brief.publish',
+      'shortdrama_brief.list',
+    ]
+    const r = await client.promptAsync({ ...baseReq, agent: 'showrunner', tools })
+    expect(r.accepted).toBe(true)
+    const body = state.calls['session.promptAsync']!.at(-1).body
+    expect(body.agent).toBe('showrunner')
+    expect(body.tools).toEqual({
+      'shortdrama_brief.plan': true,
+      'shortdrama_brief.publish': true,
+      'shortdrama_brief.list': true,
+    })
+  })
+
   it('feature-018 · subagent 名作 agent → INVALID_ARGUMENT', async () => {
     const { client } = makeFakeClient()
     for (const agent of ['writer', 'media-director', 'comfyui-operator']) {

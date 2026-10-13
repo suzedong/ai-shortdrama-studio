@@ -168,7 +168,7 @@ const STATUS_META: Record<CanvasNode['status'], { label: string; dot: string }> 
 const KIND_LABEL: Record<string, string> = {
   diagnosis: '选题诊断',
   'visual-style': '视觉风格',
-  brief: '创意简报',
+  brief: '立项单',
   outline: '故事大纲',
   profiles: '人物小传',
   scenes: '第一集分场',
@@ -187,6 +187,7 @@ const STEP_LABEL: Record<string, string> = {
   '4': '镜头',
   '5': '后期',
   '6': '发布',
+  '7': '发布',
 }
 
 function kindLabel(kind: string): string {

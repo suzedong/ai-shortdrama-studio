@@ -67,11 +67,11 @@ function installApi(initial: Canvas): Harness {
   }
 }
 
-function gate0a(status: CanvasGate['status'] = 'pending'): CanvasGate {
+function gate0final(status: CanvasGate['status'] = 'pending'): CanvasGate {
   return {
-    gateId: '0-a', status,
-    question: '是否认可这份选题诊断？',
-    options: ['结论与对标合理', '钩子模式成立'],
+    gateId: '0-final', status,
+    question: '立项单 v1 是否可以拍板发布？',
+    options: ['发布立项 v1', '再改改'],
   }
 }
 
@@ -118,11 +118,11 @@ describe('C7 · StudioApp 立项驱动', () => {
     })
     expect(screen.getByText('我已完成选题诊断。')).toBeInTheDocument()
 
-    h.emitGate(gate0a('pending'))
-    expect(screen.getByText('是否认可这份选题诊断？')).toBeInTheDocument()
+    h.emitGate(gate0final('pending'))
+    expect(screen.getByText('立项单 v1 是否可以拍板发布？')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: '确认放行' }))
-    expect(h.decide).toHaveBeenCalledWith({ gateId: '0-a', decision: 'approved' })
+    expect(h.decide).toHaveBeenCalledWith({ gateId: '0-final', decision: 'approved' })
 
     h.emitCanvas(canvasWithDiagnosis())
     expect(screen.getByText('重生复仇：选题诊断')).toBeInTheDocument()
@@ -137,13 +137,13 @@ describe('C7 · StudioApp 立项驱动', () => {
     render(<StudioApp />)
     await screen.findByText('未命名项目')
 
-    h.emitGate(gate0a('pending'))
+    h.emitGate(gate0final('pending'))
     await user.click(screen.getByRole('button', { name: '否决 / 重做' }))
     await user.type(screen.getByPlaceholderText(/填写修改意见/), '对标案例不够贴近女频')
     await user.click(screen.getByRole('button', { name: '提交否决' }))
 
     expect(h.decide).toHaveBeenCalledWith({
-      gateId: '0-a', decision: 'rejected', note: '对标案例不够贴近女频',
+      gateId: '0-final', decision: 'rejected', note: '对标案例不够贴近女频',
     })
   })
 

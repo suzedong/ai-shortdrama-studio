@@ -1,5 +1,5 @@
 // feature-019 · 对话驱动区（契约 §3.3 / §4）
-// 多 Agent 结构化对话：用户气泡 + Agent 气泡（文本 / 创意简报卡 / 工具轨迹卡）+ 内嵌 GateCard。
+// 多 Agent 结构化对话：用户气泡 + Agent 气泡（文本 / 立项单卡 / 工具轨迹卡）+ 内嵌 GateCard。
 // 视觉对齐原型 #rightChat：28px 头像、#F4F5FA 气泡、brief-card / trace / gate 卡。
 import { useEffect, useRef, useState } from 'react'
 
@@ -41,7 +41,7 @@ export interface ChatItem {
   role: 'user' | 'agent'
   text?: string
   agent?: AgentId // agent 消息的发言身份，默认 showrunner
-  brief?: BriefRow[] // 创意简报卡（kv）
+  brief?: BriefRow[] // 立项单卡（kv）
   trace?: TraceData // 工具轨迹卡
 }
 
@@ -68,7 +68,7 @@ export function demoChatItems(): ChatItem[] {
       id: 'd2',
       role: 'agent',
       agent: 'showrunner',
-      text: '已理解你的创作目标，先给出创意简报，确认后我就拆任务开工。',
+      text: '已理解你的创作目标，先把立项单要素跟你对齐，确认后我就拆任务开工。',
       brief: [
         { k: '类型', v: '校园 / 恋爱 / 夏日' },
         { k: '集数', v: '第一季 8 集（先做 E01）' },

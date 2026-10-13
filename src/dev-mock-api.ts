@@ -8,7 +8,7 @@ import type { RuntimeStatus } from './lib/runtime-types'
 function demoCanvas(): Canvas {
   const now = new Date().toISOString()
   const nodes = [
-    { id: 'n-brief', step: '0', kind: 'brief', title: '校园恋爱短剧，大一新生安妮在海边小城的夏天', status: 'done', ref: { path: '/demo/anni/brief.json', format: 'json' }, meta: { version: 'v3' }, updatedAt: now },
+    { id: 'n-brief', step: '0', kind: 'brief', title: '立项单 · 安妮的夏天', status: 'done', ref: { path: '/demo/anni/立项单.v3.json', format: 'json' }, meta: { version: 'v3' }, updatedAt: now },
     { id: 'n-outline', step: '1', kind: 'outline', title: '故事大纲 · 钩子 → 相遇 → 心动', status: 'done', ref: { path: '/demo/anni/outline.json', format: 'json' }, meta: { version: 'v6' }, updatedAt: now },
     { id: 'n-scenes', step: '2', kind: 'scenes', title: '第一集分场 · 5 场 42 句台词', status: 'done', ref: { path: '/demo/anni/scenes.json', format: 'json' }, meta: { version: 'v6' }, updatedAt: now },
     { id: 'n-char-anni', step: '3', kind: 'profiles', title: '安妮 · 女主定妆（配方已锁定）', status: 'active', ref: { path: '/demo/anni/char-anni.json', format: 'json' }, meta: { version: 'v4' }, updatedAt: now },
@@ -32,29 +32,13 @@ function demoCanvas(): Canvas {
     { id: 'e9', from: 'n-shot-v001', to: 'n-edit', auto: true },
     { id: 'e10', from: 'n-edit', to: 'n-final', auto: true },
   ]
-  const gates = [
-    {
-      gateId: '整集镜头确认',
-      status: 'pending' as const,
-      question: '整集镜头确认',
-      options: [] as string[],
-      payload: {
-        stage: 'STAGE · 镜头',
-        checks: [
-          { label: '角色一致性', result: '18/18 通过', level: 'pass' as const },
-          { label: '画幅与规格', result: '9:16 · 档位合规', level: 'pass' as const },
-          { label: 'V006 口型轻微偏差', result: '建议人工复核', level: 'warn' as const },
-        ],
-      },
-    },
-  ]
   return {
     schemaVersion: 2,
     projectId: 'anni',
     title: '安妮的夏天',
     nodes: nodes as Canvas['nodes'],
     edges,
-    gates: gates as Canvas['gates'],
+    gates: [],
     updatedAt: now,
   }
 }
@@ -71,7 +55,9 @@ function getDemoCanvas(): Canvas {
 // ── file:read 演示产物（仅浏览器 mock 通道；真实 Electron 走主进程文件读取）──
 function demoBrief() {
   return {
+    schemaVersion: 2 as const,
     version: 3,
+    kind: 'commercial' as const,
     fiveElements: {
       genre: '校园 / 恋爱 / 夏日',
       platforms: ['抖音', '快手', '红果短剧'],
@@ -80,25 +66,29 @@ function demoBrief() {
       tone: '清新治愈 · 暗恋心动 · 轻喜剧节奏',
       aspectRatio: '竖屏 9:16',
     },
-    visualStyle: {
-      form: '日系动画写实',
-      mainStyle: '京都动画系清新柔光',
-      l2Anchor: '高饱和天蓝 / 柠檬黄 / 粉白肤色',
-      l1World: '海边小城 · 夏日校园',
-      qualityRecipe: '柔和逆光 + 空气透视；肤色粉白通透，发丝高光；海景色偏青蓝，黄昏暖橙；胶片颗粒 8%，边缘暗角 12%',
-      anchorWords: '蝉鸣, 海风, 白衬衫, 冰柠檬水, 自行车',
-      family: 'A 写实影像系',
-      feasibility: '●高',
+    premise: {
+      leads: '安妮（18，大一新生）× 林屿（19，本地摄影社少年）',
+      time: '现代 · 某个盛夏暑假',
+      place: '海边小城（校园 / 海堤 / 废弃灯塔）',
+      coreEvent: '安妮骑车迷路撞翻林屿的相机，因一张老灯塔照片结缘',
+      seasonBoundary: '第一季只讲两人相识到夏日祭确认心意，灯塔悬念留待第二季',
     },
-    preflight: [
-      { id: 1, name: '竖屏 9:16 合规', value: '768P–2K', locked: true },
-      { id: 2, name: '单集时长区间', value: '85–95″', locked: true },
-      { id: 3, name: '主角一致性配方', value: '已锁定 v4', locked: true },
-      { id: 4, name: '场景资产齐备度', value: '5/5', locked: true },
-      { id: 5, name: 'BGM 版权通道', value: 'Music3 直出', locked: false },
+    style: {
+      mainStyleId: 'A7',
+      catalogVersion: 'v1.46',
+      auxiliaryStyleId: undefined,
+    },
+    diagnosisSummary: '同类校园恋爱短剧近 90 天头部 12 部平均完播率 38%，前 3 秒「初遇事故」钩子占比 67%；本项目以「误会式开场 + 集尾老照片悬念」切入，A7 拟真人风格与清新治愈基调产能可行，建议立项并先交付 E01 验证钩子。',
+    approve: {
+      at: '2026-09-12T10:24:00+08:00',
+      by: 'gate' as const,
+      note: '六要素齐备，按 E01 试播集推进。',
+    },
+    changesFromPrevious: [
+      { field: 'fiveElements.episodeCount', from: '第一季 12 集', to: '第一季 8 集（先做 E01）' },
+      { field: 'premise.seasonBoundary', from: '', to: '第一季只讲两人相识到夏日祭确认心意，灯塔悬念留待第二季' },
     ],
-    benchmarkSummary: '同类校园恋爱短剧近 90 天头部 12 部，平均完播率 38%，前 3 秒「海边初遇」钩子占比 67%；本项目采用「误会式开场 + 集尾悬念」结构。',
-    conclusion: '题材、视觉、产能三端均可行，建议立项并先交付 E01 试播集验证钩子。',
+    publishedAt: '2026-09-12T10:24:00+08:00',
   }
 }
 
@@ -258,7 +248,7 @@ function demoShotV002() {
 
 // path → JSON 字符串
 const DEMO_FILES: Record<string, () => unknown> = {
-  '/demo/anni/brief.json': demoBrief,
+  '/demo/anni/立项单.v3.json': demoBrief,
   '/demo/anni/outline.json': demoOutline,
   '/demo/anni/scenes.json': demoScenes,
   '/demo/anni/storyboard.json': demoStoryboard,

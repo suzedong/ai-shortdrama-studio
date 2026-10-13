@@ -28,7 +28,7 @@ const PICKED_STYLE = {
   anchor: 'anime, cel shading, Makoto Shinkai style / Ghibli',
 }
 
-const GATE_DIFF = '集数 8→8（v3 锁定）、premise 第 1 句修订、preflight 锁定 4/5、视觉风格确认 C1'
+const GATE_DIFF = '集数 12→8（v3 锁定）、premise.seasonBoundary 补齐、主风格引用 A7 @ v1.46'
 
 export default function Stage0View({ projectTitle, briefVer, onBackToDag }: Props) {
   // 节点状态（演示用，可点 demo 按钮推进）

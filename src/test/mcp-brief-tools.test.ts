@@ -178,7 +178,7 @@ describe('feature-001 brief MCP 工具（契约 §3）', () => {
   it('brief.plan 就绪草案：ready=true、nextVersion=4、diff 相对 v3', async () => {
     const r = await call<{ plan: { ready: boolean; nextVersion: number; changesFromPrevious: unknown[] } }>(
       'brief.plan',
-      draft,
+      { ...draft },
     )
     expect(r.plan.ready).toBe(true)
     expect(r.plan.nextVersion).toBe(4)

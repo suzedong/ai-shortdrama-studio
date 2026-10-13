@@ -63,7 +63,7 @@ function runStep1(
   // 1-a：task 委派 writer 写大纲（writer 负责落盘 + upsert 节点）
   t.task({
     agent: 'writer',
-    input: '立项/brief.json',
+    input: '立项单.v1.json',
     output: '故事/故事大纲.json',
     mirror: '故事/故事大纲.md',
     nodeId: 'step-1-outline',
@@ -89,7 +89,7 @@ function runStep1(
   // 1-b：task 委派 writer 写小传
   t.task({
     agent: 'writer',
-    input: ['立项/brief.json', '故事/故事大纲.json'],
+    input: ['立项单.v1.json', '故事/故事大纲.json'],
     output: '故事/人物小传.json',
     mirror: '故事/人物小传.md',
     nodeId: 'step-1-profiles',

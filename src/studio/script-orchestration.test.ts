@@ -118,7 +118,7 @@ function runStep2(
   // 2-a：task 委派 writer 写第一集分场；writer 落盘 + upsert active（不带 linksTo）
   t.task({
     agent: 'writer',
-    input: ['立项/brief.json', '故事/故事大纲.json', '故事/人物小传.json'],
+    input: ['立项单.v1.json', '故事/故事大纲.json', '故事/人物小传.json'],
     output: '剧本/分场.json', mirror: '剧本/分场.md',
     nodeId: 'step-2-scenes', schema: 'SceneBreakdown', ep: 1,
   })

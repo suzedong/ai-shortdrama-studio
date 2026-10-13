@@ -30,6 +30,10 @@ const TOOLS_TRUE: Record<string, string[]> = {
     'shortdrama_canvas_get',
     'shortdrama_canvas_update',
     'shortdrama_gate_request',
+    // feature-001：立项三工具物理 ID 保留点号（契约 §3）
+    'shortdrama_brief.plan',
+    'shortdrama_brief.publish',
+    'shortdrama_brief.list',
   ],
   'writer.md': [
     'shortdrama_file_read',
@@ -69,7 +73,7 @@ describe('T1 · profile frontmatter 静态契约', () => {
     }
   })
 
-  it('showrunner：primary + 6 物理工具 + task 常驻 + 占位符 model', async () => {
+  it('showrunner：primary + 9 物理工具 + task 常驻 + 占位符 model', async () => {
     const { fm } = splitFrontmatter(await readProfile('showrunner.md'))
     expect(fm).toMatch(/^mode: primary$/m)
     expect(fm).toMatch(/^model: ark\/__ARK_MODEL_ID__$/m)
@@ -107,10 +111,15 @@ describe('T1 · profile frontmatter 静态契约', () => {
     }
   })
 
-  it('frontmatter 无点号工具键（物理 ID 全部下划线归一）', async () => {
+  it('frontmatter 点号工具键仅允许 feature-001 立项三工具（brief.plan/publish/list）', async () => {
     for (const file of PROFILE_FILES) {
       const { fm } = splitFrontmatter(await readProfile(file))
-      expect(fm).not.toMatch(/^\s+shortdrama_\S*\.\S*:/m)
+      const dottedKeys = [...fm.matchAll(/^\s+(shortdrama_\S*\.\S*):/gm)].map(m => m[1])
+      for (const key of dottedKeys) {
+        expect(['shortdrama_brief.plan', 'shortdrama_brief.publish', 'shortdrama_brief.list']).toContain(key)
+      }
+      // 点号键只可能出现在 showrunner profile
+      if (dottedKeys.length > 0) expect(file).toBe('showrunner.md')
     }
   })
 })

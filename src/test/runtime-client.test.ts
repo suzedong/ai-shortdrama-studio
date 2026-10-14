@@ -162,11 +162,11 @@ describe('会话类封装', () => {
 describe('prompt / promptAsync 边界与透传', () => {
   const baseReq: RuntimePromptRequest = { sessionId: 'ses_9', text: '你好' }
 
-  it('默认 agent=director；messageID 满足 ^msg；parts/tools/format 正确组装', async () => {
+  it('默认 agent=showrunner；messageID 满足 ^msg；parts/tools/format 正确组装', async () => {
     const { client, state } = makeFakeClient()
     const req: RuntimePromptRequest = {
       ...baseReq,
-      tools: ['read', 'glob', 'read'],
+      tools: ['shortdrama_file_read', 'shortdrama_file_list', 'shortdrama_file_read'],
       format: { type: 'json_schema', schema: { type: 'object' }, retryCount: 2 },
     }
     const r = await client.promptAsync(req)
@@ -174,9 +174,9 @@ describe('prompt / promptAsync 边界与透传', () => {
     expect(r.messageId).toMatch(/^msg_/)
     const body = state.calls['session.promptAsync']![0].body
     expect(body.messageID).toBe(r.messageId)
-    expect(body.parts).toEqual([{ type: 'text', text: '你好' }])
-    expect(body.agent).toBe('director')
-    expect(body.tools).toEqual({ read: true, glob: true }) // 去重 + map 化
+    expect(body.parts).toEqual([{ type: 'text', 'text': '你好' }])
+    expect(body.agent).toBe('showrunner')
+    expect(body.tools).toEqual({ shortdrama_file_read: true, shortdrama_file_list: true }) // 去重 + map 化
     expect(body.format).toEqual({ type: 'json_schema', schema: { type: 'object' }, retryCount: 2 })
   })
 
@@ -193,14 +193,16 @@ describe('prompt / promptAsync 边界与透传', () => {
     })
   })
 
-  it('agent 只能 director/showrunner（内置 agent 诱导被拦截）', async () => {
+  it('agent 只能 showrunner（内置 agent / 旧 director 诱导被拦截）', async () => {
     const { client } = makeFakeClient()
-    await expect(
-      client.promptAsync({ ...baseReq, agent: 'general' }),
-    ).rejects.toMatchObject({ name: 'INVALID_ARGUMENT' })
+    for (const agent of ['general', 'director']) {
+      await expect(
+        client.promptAsync({ ...baseReq, agent }),
+      ).rejects.toMatchObject({ name: 'INVALID_ARGUMENT' })
+    }
   })
 
-  it('tools 只能取 director 已声明集合子集（bash/write 越界拦截）', async () => {
+  it('tools 只能取 showrunner 已声明集合子集（read/bash 越界拦截）', async () => {
     const { client } = makeFakeClient()
     await expect(
       client.promptAsync({ ...baseReq, tools: ['bash'] }),
@@ -213,17 +215,13 @@ describe('prompt / promptAsync 边界与透传', () => {
     ).rejects.toMatchObject({ name: 'INVALID_ARGUMENT' })
   })
 
-  it('shortdrama_ 前缀 MCP 业务工具放行；近似前缀不得蒙混', async () => {
-    const { client, state } = makeFakeClient()
-    const tools = ['shortdrama_diagnose', 'shortdrama_storyboard']
-    const r = await client.promptAsync({ ...baseReq, tools })
-    expect(r.accepted).toBe(true)
-    const body = state.calls['session.promptAsync']![0].body
-    expect(body.tools).toEqual({ shortdrama_diagnose: true, shortdrama_storyboard: true })
-
-    await expect(
-      client.promptAsync({ ...baseReq, tools: ['shortdramaevil_x'] }),
-    ).rejects.toMatchObject({ name: 'INVALID_ARGUMENT' })
+  it('shortdrama_ 前缀不再整体放行：幽灵工具（diagnose/storyboard）必须被拦截', async () => {
+    const { client } = makeFakeClient()
+    for (const tools of [['shortdrama_diagnose'], ['shortdrama_storyboard'], ['shortdramaevil_x']]) {
+      await expect(
+        client.promptAsync({ ...baseReq, tools }),
+      ).rejects.toMatchObject({ name: 'INVALID_ARGUMENT' })
+    }
   })
 
   it('model 白名单：ark 只能用已配置 modelID；mock 只能 mock-1；其余 provider 拒绝', async () => {
@@ -451,7 +449,7 @@ describe('prompt 同步结果与业务失败', () => {
 })
 
 describe('listAgents 与连接缓存', () => {
-  it('仅暴露 director/showrunner 两个 primary；tools 只取 true 键；director 省略 tools map 时兜底', async () => {
+  it('仅暴露 showrunner 唯一 primary；director 已退役不再暴露；tools 只取 true 键', async () => {
     const { client, state } = makeFakeClient()
     state.next.agents = [
       {
@@ -465,7 +463,7 @@ describe('listAgents 与连接缓存', () => {
       },
       {
         name: 'director',
-        description: '主控',
+        description: '已退役旧主控',
         mode: 'primary',
         builtIn: false,
         model: { providerID: 'ark', modelID: 'ep-allowed' },
@@ -501,15 +499,9 @@ describe('listAgents 与连接缓存', () => {
       },
     ]
     const agents = await client.listAgents()
-    expect(agents).toHaveLength(2)
-    expect(agents.map(a => a.name)).toEqual(['director', 'showrunner'])
+    expect(agents).toHaveLength(1)
+    expect(agents.map(a => a.name)).toEqual(['showrunner'])
     expect(agents[0]).toEqual({
-      name: 'director',
-      description: '主控',
-      model: { providerID: 'ark', modelID: 'ep-allowed' },
-      tools: ['read', 'glob', 'grep'],
-    })
-    expect(agents[1]).toEqual({
       name: 'showrunner',
       description: '主创',
       model: { providerID: 'ark', modelID: 'ep-allowed' },
@@ -523,14 +515,17 @@ describe('listAgents 与连接缓存', () => {
       ],
     })
 
-    // 省略 tools map（实测 REST 行为）→ director 兜底声明常量
+    // 省略 tools map（实测 REST 行为）→ showrunner 兜底声明常量（17 个物理 ID）
     state.next.agents = [
+      { name: 'showrunner', description: 's', mode: 'primary', permission: {}, options: {} },
       { name: 'director', description: 'd', mode: 'primary', permission: {}, options: {} },
     ]
     const agents2 = await client.listAgents()
     expect(agents2).toHaveLength(1)
+    expect(agents2[0]!.name).toBe('showrunner')
     expect(agents2[0]!.model).toBeNull()
-    expect(agents2[0]!.tools).toEqual(['read', 'glob', 'grep'])
+    expect(agents2[0]!.tools).toHaveLength(17)
+    expect(agents2[0]!.tools).toContain('shortdrama_canvas.align')
   })
 
   it('连接信息变化（每次重启新口令）→ 重新经工厂创建句柄；口令不进任何结果', async () => {

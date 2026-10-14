@@ -18,8 +18,7 @@
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["shared/*"],
-      "@components/*": ["src/components/*"],
-      "@mcp/*": ["mcp/*"]
+      "@components/*": ["src/components/*"]
     }
   },
   "include": ["src", "shared"],

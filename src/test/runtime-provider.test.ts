@@ -15,11 +15,12 @@ import {
   MOCK_BASE_URL_DEFAULT,
   MOCK_API_KEY,
   ENABLED_PROVIDERS,
-  DIRECTOR_DECLARED_TOOLS,
+  AGENT_PROFILES,
+  SHOWRUNNER_AGENT,
   generateRuntimeConfig,
-  installDirectorAgent,
+  installAgentProfiles,
   setupRuntimeFiles,
-  resolveDefaultDirectorTemplatePath,
+  resolveAgentTemplatePath,
   runtimeConfigDir,
 } from '../../electron/runtime/provider'
 
@@ -84,16 +85,6 @@ describe('generateRuntimeConfig · opencode.json 结构契约', () => {
     expect(raw).not.toContain('mcp-token')
   })
 
-  it('isDirectorDeclaredTool：只读三件 + shortdrama_ 前缀放行，其余拒绝', async () => {
-    const { isDirectorDeclaredTool } = await import('../../electron/runtime/provider')
-    for (const t of [...DIRECTOR_DECLARED_TOOLS, 'shortdrama_diagnose', 'shortdrama_storyboard']) {
-      expect(isDirectorDeclaredTool(t)).toBe(true)
-    }
-    for (const t of ['bash', 'write', 'shortdrama', 'shortdramaevil_x']) {
-      expect(isDirectorDeclaredTool(t)).toBe(false)
-    }
-  })
-
   it('安全：json 中不出现 ARK_API_KEY 的值与 server 口令，只允许出现环境变量名声明', async () => {
     await generateRuntimeConfig({ userDataDir, arkModel: ARK_MODEL })
     const raw = await fsp.readFile(path.join(runtimeConfigDir(userDataDir), 'opencode.json'), 'utf-8')
@@ -139,50 +130,43 @@ describe('generateRuntimeConfig · opencode.json 结构契约', () => {
   })
 })
 
-describe('installDirectorAgent · 主控 profile 生成', () => {
-  it('ARK_MODEL 注入 frontmatter：model 为 ark/<modelID>，模板占位符不入库', async () => {
-    const target = await installDirectorAgent({ userDataDir, arkModel: ARK_MODEL })
-    expect(target).toBe(path.join(runtimeConfigDir(userDataDir), 'agents', 'director.md'))
-    const md = await fsp.readFile(target, 'utf-8')
-
-    expect(md).toContain(`model: ark/${ARK_MODEL}`)
-    expect(md).not.toContain('__ARK_MODEL_ID__')
-    expect(md).not.toContain(ARK_KEY_SENTINEL)
+describe('installAgentProfiles · 摄制组 profiles 安装（director 已退役）', () => {
+  it('AGENT_PROFILES 为 4 项：showrunner + writer/media-director/comfyui-operator，不含 director', () => {
+    expect(AGENT_PROFILES.map((p) => p.name)).toEqual([
+      SHOWRUNNER_AGENT,
+      'writer',
+      'media-director',
+      'comfyui-operator',
+    ])
+    expect(AGENT_PROFILES.some((p) => p.name === 'director')).toBe(false)
   })
 
-  it('frontmatter 工具最小集：read/glob/grep 启用，write/edit/bash/webfetch/task/todowrite 禁用', async () => {
-    const target = await installDirectorAgent({ userDataDir, arkModel: ARK_MODEL })
-    const md = await fsp.readFile(target, 'utf-8')
-    for (const t of DIRECTOR_DECLARED_TOOLS) {
-      expect(md).toMatch(new RegExp(`^\\s{2}${t}: true$`, 'm'))
+  it('ARK_MODEL 注入全部 frontmatter：model 为 ark/<modelID>，模板占位符不入库', async () => {
+    const installed = await installAgentProfiles({ userDataDir, arkModel: ARK_MODEL })
+    expect(installed).toHaveLength(4)
+    for (const { path: target } of installed) {
+      const md = await fsp.readFile(target, 'utf-8')
+      expect(md).toContain(`model: ark/${ARK_MODEL}`)
+      expect(md).not.toContain('__ARK_MODEL_ID__')
+      expect(md).not.toContain(ARK_KEY_SENTINEL)
     }
-    for (const t of ['write', 'edit', 'bash', 'webfetch', 'task', 'todowrite']) {
-      expect(md).toMatch(new RegExp(`^\\s{2}${t}: false$`, 'm'))
-    }
-  })
-
-  it('描述写明八步闭环职责边界，且不声称媒体生成能力', async () => {
-    const target = await installDirectorAgent({ userDataDir, arkModel: ARK_MODEL })
-    const md = await fsp.readFile(target, 'utf-8')
-    expect(md).toContain('八步闭环')
-    expect(md).toMatch(/0 立项[\s\S]*7 发布/)
-    expect(md).toMatch(/不具备[\s\S]*(图像|视频|音乐)/)
-  })
-
-  it('ARK_MODEL 缺失 / 空白：抛 UPSTREAM_AUTH_MISSING，不写 director.md，不静默回退 mock', async () => {
-    await expect(installDirectorAgent({ userDataDir, arkModel: '' })).rejects.toMatchObject({
-      name: 'UPSTREAM_AUTH_MISSING',
-    })
-    await expect(installDirectorAgent({ userDataDir, arkModel: '   ' })).rejects.toMatchObject({
-      name: 'UPSTREAM_AUTH_MISSING',
-    })
+    // director.md 必须不存在
     await expect(
       fsp.access(path.join(runtimeConfigDir(userDataDir), 'agents', 'director.md')),
     ).rejects.toThrow()
   })
 
+  it('ARK_MODEL 缺失 / 空白：抛 UPSTREAM_AUTH_MISSING，不静默回退 mock', async () => {
+    await expect(installAgentProfiles({ userDataDir, arkModel: '' })).rejects.toMatchObject({
+      name: 'UPSTREAM_AUTH_MISSING',
+    })
+    await expect(installAgentProfiles({ userDataDir, arkModel: '   ' })).rejects.toMatchObject({
+      name: 'UPSTREAM_AUTH_MISSING',
+    })
+  })
+
   it('仓库模板可被默认解析器定位（开发态 resources/ 布局）', async () => {
-    const tpl = await resolveDefaultDirectorTemplatePath()
+    const tpl = await resolveAgentTemplatePath('showrunner.md')
     await expect(fsp.access(tpl)).resolves.toBeUndefined()
     const raw = await fsp.readFile(tpl, 'utf-8')
     expect(raw).toContain('__ARK_MODEL_ID__')
@@ -196,15 +180,15 @@ describe('installDirectorAgent · 主控 profile 生成', () => {
     })
     electronMock.isPackaged = false
 
-    const tpl = await resolveDefaultDirectorTemplatePath()
+    const tpl = await resolveAgentTemplatePath('showrunner.md')
     await expect(fsp.access(tpl)).resolves.toBeUndefined()
     expect(tpl).toBe(
-      path.join(process.cwd(), 'resources', 'opencode', 'agents', 'director.md'),
+      path.join(process.cwd(), 'resources', 'opencode', 'agents', 'showrunner.md'),
     )
     expect(tpl).not.toContain('Electron.app')
   })
 
-  it('打包态：取 process.resourcesPath/opencode/agents/director.md', async () => {
+  it('打包态：取 process.resourcesPath/opencode/agents/<file>', async () => {
     const fakeResources = await fsp.mkdtemp(path.join(tmpRoot, 'packed-resources-'))
     Object.defineProperty(process, 'resourcesPath', {
       value: fakeResources,
@@ -212,29 +196,31 @@ describe('installDirectorAgent · 主控 profile 生成', () => {
     })
     electronMock.isPackaged = true
 
-    const expected = path.join(fakeResources, 'opencode', 'agents', 'director.md')
-    await expect(resolveDefaultDirectorTemplatePath()).resolves.toBe(expected)
+    const expected = path.join(fakeResources, 'opencode', 'agents', 'showrunner.md')
+    await expect(resolveAgentTemplatePath('showrunner.md')).resolves.toBe(expected)
   })
 })
 
 describe('setupRuntimeFiles · 启动编排', () => {
-  it('ARK_MODEL 齐全：配置与 director 均就位，directorError=null', async () => {
+  it('ARK_MODEL 齐全：配置与全部 4 个 profile 均就位，profileError=null', async () => {
     const r = await setupRuntimeFiles({ userDataDir, arkModel: ARK_MODEL })
     expect(r.config.arkActive).toBe(true)
-    expect(r.directorPath).not.toBeNull()
-    expect(r.directorError).toBeNull()
-    const md = await fsp.readFile(r.directorPath!, 'utf-8')
+    expect(r.profiles).toHaveLength(4)
+    expect(r.profileError).toBeNull()
+    const showrunner = r.profiles.find((p) => p.name === SHOWRUNNER_AGENT)
+    expect(showrunner).toBeDefined()
+    const md = await fsp.readFile(showrunner!.path, 'utf-8')
     expect(md).toContain(`model: ark/${ARK_MODEL}`)
   })
 
-  it('ARK_MODEL 缺失：运行时配置照常生成，director 不安装并带结构化 UPSTREAM_AUTH_MISSING', async () => {
+  it('ARK_MODEL 缺失：运行时配置照常生成，profile 不安装并带结构化 UPSTREAM_AUTH_MISSING', async () => {
     const r = await setupRuntimeFiles({ userDataDir })
     expect(r.config.arkActive).toBe(false)
-    expect(r.directorPath).toBeNull()
-    expect(r.directorError?.code).toBe('UPSTREAM_AUTH_MISSING')
+    expect(r.profiles).toEqual([])
+    expect(r.profileError?.code).toBe('UPSTREAM_AUTH_MISSING')
     // 配置文件确实存在（mock 仍可启动）
     await expect(fsp.access(r.config.configPath)).resolves.toBeUndefined()
-    // agents 目录存在但无 director.md
+    // agents 目录存在但为空
     const agents = await fsp.readdir(path.join(r.config.configDir, 'agents'))
     expect(agents).toEqual([])
   })

@@ -14,11 +14,11 @@
 | 原型 | [design/短剧Agent平台-原型.html](./design/短剧Agent平台-原型.html) | 高保真界面原型（主原型，v1.10 终版；旧 v1.9 / STAGE0 原型已删除） | 现行 |
 | 研究 | [research/MiniMax Design功能与架构参考.md](./research/MiniMax Design功能与架构参考.md)（+ .html 镜像 + 架构逆向图.svg） | MiniMax Design 情报参考（功能全景 / 架构实测 / 对照），设计书的功能溯源依据 | 现行，v1.1 |
 | **治理** | [governance/AI-SDG-AI工具执行指令.md](./governance/AI-SDG-AI工具执行指令.md) | AI 编程工具通用执行规则（铁律 / 任务包 / 卡口 / 安全纪律），仓库内唯一事实源 | 现行 |
-| 治理 | [governance/SDG-AI-决策台账.md](./governance/SDG-AI-决策台账.md) | 立项级决策记录（D-001 ~ D-012），永久保留、只增不改 | 现行 |
+| 治理 | [governance/SDG-AI-决策台账.md](./governance/SDG-AI-决策台账.md) | 立项级决策记录（编号 D-001 ~ D-005、D-011 ~ D-014，最新 D-014），永久保留、只增不改 | 现行 |
 | 治理 | [../AGENTS.md](../AGENTS.md) | 项目特化执行指令（引用通用规则，只保留特化条款） | 现行，v1.5 |
 | 编年史 | [../版本记录.md](../版本记录.md) | 项目级变更编年史（AI 可读），最新在上，条目被反转时加注记不删除 | 现行 |
 | **开发导航** | [设计现状与偏差清单.md](./设计现状与偏差清单.md) | 磁盘实况 ↔ 设计偏差清单 + 反向补录路线 | 现行（持续更新） |
-| 任务包 | [features/](./features/) | 现行 feature 任务包（每个包 5 文件：需求规格 / 契约 / 任务清单 / 设计说明 / 变更记录） | **当前为空**（重建中） |
+| 任务包 | [features/](./features/) | 现行 feature 任务包（每个包 5 文件：需求规格 / 契约 / 任务清单 / 设计说明 / 变更记录） | **5 个已落地**（001 / 002 / 801 / 802 / 804，总表见 [features/README](./features/README.md)） |
 | 归档区 | [archive/README.md](./archive/README.md) | 旧 22 个 feature 包作废说明（2026-10-08 作废、2026-10-10 已删除，历史见 git `ef4a175`），不作为实现依据 | 冻结 |
 
 ## 阅读顺序（按角色）

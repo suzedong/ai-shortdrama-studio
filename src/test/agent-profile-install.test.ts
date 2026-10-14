@@ -31,7 +31,7 @@ beforeEach(async () => {
 const ARK_MODEL = 'ep-2026-test-model'
 
 describe('T3 · Agent profile 安装', () => {
-  it('ARK_MODEL 存在：5 个 profile 全部落盘，model 已替换、占位符不残留', async () => {
+  it('ARK_MODEL 存在：4 个 profile 全部落盘，model 已替换、占位符不残留（director 已退役）', async () => {
     const installed = await installAgentProfiles({ userDataDir, arkModel: ARK_MODEL })
     expect(installed.map(p => p.name)).toEqual(AGENT_PROFILES.map(p => p.name))
 
@@ -60,16 +60,15 @@ describe('T3 · Agent profile 安装', () => {
     await expect(fsp.readdir(agentsDir)).rejects.toThrow()
   })
 
-  it('setupRuntimeFiles：有 model 时 profiles 为 5 项；缺 model 时为空数组 + UPSTREAM_AUTH_MISSING', async () => {
+  it('setupRuntimeFiles：有 model 时 profiles 为 4 项；缺 model 时为空数组 + UPSTREAM_AUTH_MISSING', async () => {
     const ok = await setupRuntimeFiles({ userDataDir, arkModel: ARK_MODEL })
-    expect(ok.profiles).toHaveLength(5)
-    expect(ok.directorPath).not.toBeNull()
-    expect(ok.directorError).toBeNull()
+    expect(ok.profiles).toHaveLength(4)
+    expect(ok.profiles.some(p => p.name === 'director')).toBe(false)
+    expect(ok.profileError).toBeNull()
 
     const other = await fsp.mkdtemp(path.join(tmpRoot, 'userdata-nomodel-'))
     const missing = await setupRuntimeFiles({ userDataDir: other })
     expect(missing.profiles).toEqual([])
-    expect(missing.directorPath).toBeNull()
-    expect(missing.directorError?.code).toBe('UPSTREAM_AUTH_MISSING')
+    expect(missing.profileError?.code).toBe('UPSTREAM_AUTH_MISSING')
   })
 })

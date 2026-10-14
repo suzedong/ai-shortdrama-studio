@@ -153,8 +153,8 @@ describe('T8-1/T8-2 · mock provider 端到端（真 opencode serve + 本机桩�
     userDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'sdg-runtime-e2e-userdata-'))
     workspaceDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'sdg-runtime-e2e-ws-'))
 
-    // 不带 ark Key（出公网链路物理不成立）；给占位 ARK_MODEL 仅为安装 director profile
-    // （client 强制 agent=director；profile 安装是其可用前提），prompt 全部显式指定 mock 模型。
+    // 不带 ark Key（出公网链路物理不成立）；给占位 ARK_MODEL 仅为安装 showrunner profile
+    // （client 强制 agent=showrunner；profile 安装是其可用前提），prompt 全部显式指定 mock 模型。
     delete process.env.ARK_API_KEY
     delete process.env.ARK_MODEL
     delete process.env.ARK_BASE_URL
@@ -210,11 +210,9 @@ describe('T8-1/T8-2 · mock provider 端到端（真 opencode serve + 本机桩�
     expect(JSON.stringify(status)).not.toContain('password')
   })
 
-  it.skipIf(skipNoBinary)('listAgents 暴露 director/showrunner 两个 primary（并存）', async () => {
+  it.skipIf(skipNoBinary)('listAgents 仅暴露 showrunner 一个 primary（director 已退役）', async () => {
     const agents = await client.listAgents()
-    expect(agents.map((a) => a.name).sort()).toEqual(['director', 'showrunner'])
-    const director = agents.find(a => a.name === 'director')!
-    expect(director.tools.slice().sort()).toEqual(['glob', 'grep', 'read'])
+    expect(agents.map((a) => a.name).sort()).toEqual(['showrunner'])
     const showrunner = agents.find(a => a.name === 'showrunner')!
     expect(showrunner.tools.slice().sort()).toEqual([
       'shortdrama_brief.impact.assess',
@@ -247,7 +245,7 @@ describe('T8-1/T8-2 · mock provider 端到端（真 opencode serve + 本机桩�
       const accepted = await client.promptAsync({
         sessionId: session.id,
         text: '只回复四个字：你好，世界',
-        agent: 'director',
+        agent: 'showrunner',
         model: { providerID: 'mock', modelID: MOCK_MODEL_ID },
       })
       expect(accepted.accepted).toBe(true)
@@ -397,7 +395,7 @@ describe('T8-4 · 真机 ark 链路（RUNTIME_E2E_ARK=1 且有 ARK_API_KEY/ARK_M
   const events: RuntimeEvent[] = []
   let stream: EventStreamHandle
 
-  arkIt('director 默认 ark 模型跑通一轮 prompt', async () => {
+  arkIt('showrunner 默认 ark 模型跑通一轮 prompt', async () => {
     const userDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'sdg-runtime-ark-userdata-'))
     const workspaceDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'sdg-runtime-ark-ws-'))
     dirs = [userDataDir, workspaceDir]

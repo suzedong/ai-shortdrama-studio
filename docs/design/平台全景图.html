@@ -423,8 +423,8 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
   <p class="mut" style="font-size:13px">实线/绿色 = 现存代码已建成；琥珀色 = 规划中（媒体侧）；对话通道已按 D-012 定稿 runtime 单轨终态（不回退、不重建旧 IPC/工具）；业务层按设计 v1.11 口径认定。</p>
   <div class="grid g4 rv" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">
     <div class="card"><h4>渲染进程</h4><p>项目库 / 中央画布（10 节点 Stage）/ ChatPanel / 流式 UI；经 contextBridge 安全桥走 IPC，不直连外部服务。</p></div>
-    <div class="card"><h4>主进程（信任边界）</h4><p>JSON 会话持久化（单写队列）、RuntimeManager（opencode 端口 4096 · 随机口令）、MCP 工具服务（11 纯工具）、ark.ts 工具内复用。</p></div>
-    <div class="card"><h4>opencode 子进程</h4><p>Director 主控：意图理解 → 拆解 → 调工具 → 合流；经 11 个纯 MCP 工具产出业务产物（§5.2 目标族）。</p></div>
+    <div class="card"><h4>主进程（信任边界）</h4><p>JSON 会话持久化（单写队列）、RuntimeManager（opencode 端口 4096 · 随机口令）、MCP 工具服务（22 纯工具 / 8 族）、ark.ts 工具内复用。</p></div>
+    <div class="card"><h4>opencode 子进程</h4><p>showrunner 单主控：意图理解 → 拆解 → 调工具 → 合流；经 22 个纯 MCP 工具（8 族）产出业务产物（§5.2）；writer / media-director / comfyui-operator 为 subagent，经 task 调度（director 已退役）。</p></div>
     <div class="card"><h4>外部世界</h4><p>火山方舟（唯一出公网文本 LLM）；局域网 ComfyUI 池（媒体零公网）+ FFmpeg/MediaKit 后期。</p></div>
   </div>
   <p class="more"><a href="./架构模块关系图.html">完整四层架构 → 架构模块关系图.html</a><span class="sep">·</span><a href="./短剧Agent平台设计.html#sec-5">§5 对话生成网关</a><span class="sep">·</span><a href="./短剧Agent平台设计.html#sec-8">§8 引擎与生成通道 →</a></p>
@@ -624,15 +624,6 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
         <h4>左栏项目库是硬编码静态稿，多项目能力缺失</h4>
         <p>项目列表/新建已接真实 project IPC，projectDir→opencode session 映射在旧代码中已建立；完整的多项目管理（重命名/删除/批量等）仍列二期补齐。</p>
         <div class="fix">旧映射随会话恢复，反补时重新认定；剩余多项目管理能力列二期。</div>
-      </div>
-    </div>
-
-    <div class="pcard rv">
-      <div class="plvl lvl-l">低</div>
-      <div style="flex:1">
-        <h4>MCP stdio 骨架 6 工具全为 mock</h4>
-        <p>顶层 mcp/server.ts 的 canvas.read / video.submit / harness.verify 等仅返回占位文本，属二期实现项；注意它与旧代码 electron/mcp/ HTTP 服务是两套东西，勿混淆。</p>
-        <div class="fix">保留骨架；业务工具走 electron/mcp/，画布/质检类工具后续按设计 §5 逐项实现。</div>
       </div>
     </div>
 

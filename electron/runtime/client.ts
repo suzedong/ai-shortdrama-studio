@@ -2,8 +2,8 @@
 // 严格匹配《SDG-RE-契约.md》§3.1/§4/§5/§7：
 // - 仅使用 @opencode-ai/sdk/client 的 createOpencodeClient 连接已启动的 serve；禁止 createOpencode() 自启；
 // - 主进程是 opencode 唯一客户端，口令只在 Authorization 头中，不进任何 DTO / 错误消息；
-// - 边界参数校验（不信任 renderer）：sessionId/text 非空，agent 仅 director，
-//   model 只能取已配置模型（ark 当前模型 / mock-1），tools 只能取 director 已声明集合子集；
+// - 边界参数校验（不信任 renderer）：sessionId/text 非空，agent 仅 showrunner，
+//   model 只能取已配置模型（ark 当前模型 / mock-1），tools 只能取 showrunner 已声明集合子集；
 // - 业务失败（assistant message error / 结构化解析失败）走 RuntimePromptResult.error，不 reject；
 //   通道级 / 运行时级错误才抛 Error（name=RuntimeErrorCode）。
 //
@@ -17,11 +17,8 @@ import crypto from 'node:crypto'
 import { createOpencodeClient } from '@opencode-ai/sdk/client'
 import type { Agent, AssistantMessage, Part, Session } from '@opencode-ai/sdk/client'
 import {
-  DIRECTOR_AGENT,
-  DIRECTOR_DECLARED_TOOLS,
   SHOWRUNNER_AGENT,
   SHOWRUNNER_DECLARED_TOOLS,
-  isDirectorDeclaredTool,
   isShowrunnerDeclaredTool,
   MOCK_MODEL_ID,
   MOCK_PROVIDER_ID,
@@ -193,14 +190,14 @@ export class OpencodeRuntimeClient {
 
   // -- agent -----------------------------------------------------------------
 
-  /** 仅暴露两个 primary（director/showrunner）；subagent 与内置 agent 不向 renderer 开放 */
+  /** 仅暴露唯一 primary（showrunner）；subagent 与内置 agent 不向 renderer 开放 */
   async listAgents(): Promise<RuntimeAgent[]> {
     const sdk = this.ensureReady()
     const result = await sdk.app.agents()
     if (result.error || !result.data) throw mapHttpError(result, 'INTERNAL')
 
     return result.data
-      .filter((a) => a.name === DIRECTOR_AGENT || a.name === SHOWRUNNER_AGENT)
+      .filter((a) => a.name === SHOWRUNNER_AGENT)
       .map((a) => {
         const enabledTools = Object.entries(a.tools ?? {})
           .filter(([, v]) => v === true)
@@ -210,14 +207,8 @@ export class OpencodeRuntimeClient {
           description: a.description ?? '',
           model: a.model ? { providerID: a.model.providerID, modelID: a.model.modelID } : null,
           // REST 在工具由 frontmatter 全量推导为 permission 时可能省略 tools map：
-          // 本方随仓库管理的两个 primary 均以声明常量兜底（T8 真机回归）
-          tools:
-            enabledTools.length === 0 &&
-            (a.name === DIRECTOR_AGENT || a.name === SHOWRUNNER_AGENT)
-              ? a.name === DIRECTOR_AGENT
-                ? [...DIRECTOR_DECLARED_TOOLS]
-                : [...SHOWRUNNER_DECLARED_TOOLS]
-              : enabledTools,
+          // showrunner primary 以声明常量兜底（T8 真机回归）
+          tools: enabledTools.length === 0 ? [...SHOWRUNNER_DECLARED_TOOLS] : enabledTools,
         } satisfies RuntimeAgent
       })
   }
@@ -252,17 +243,14 @@ export class OpencodeRuntimeClient {
       throw makeError('INVALID_ARGUMENT', 'text 必须为非空字符串')
     }
 
-    // agent：默认 director；仅允许两个 primary（director/showrunner）。
+    // agent：唯一 primary 为 showrunner。
     // 三个 subagent 只能由 showrunner 经 task 调度，renderer 不可直连。
-    let agent = DIRECTOR_AGENT
+    let agent = SHOWRUNNER_AGENT
     if (req.agent !== undefined) {
-      if (
-        typeof req.agent !== 'string' ||
-        (req.agent !== DIRECTOR_AGENT && req.agent !== SHOWRUNNER_AGENT)
-      ) {
+      if (typeof req.agent !== 'string' || req.agent !== SHOWRUNNER_AGENT) {
         throw makeError(
           'INVALID_ARGUMENT',
-          `agent 仅允许使用 ${DIRECTOR_AGENT} 或 ${SHOWRUNNER_AGENT}（subagent 不可直连）`,
+          `agent 仅允许使用 ${SHOWRUNNER_AGENT}（subagent 不可直连）`,
         )
       }
       agent = req.agent
@@ -295,7 +283,7 @@ export class OpencodeRuntimeClient {
       model = { providerID: m.providerID, modelID: m.modelID }
     }
 
-    // tools：只能取 director 已声明集合的子集
+    // tools：只能取 showrunner 已声明集合的子集
     let tools: Record<string, boolean> | undefined
     if (req.tools !== undefined) {
       if (!Array.isArray(req.tools) || req.tools.some((t) => typeof t !== 'string')) {
@@ -303,13 +291,8 @@ export class OpencodeRuntimeClient {
       }
       const unique = new Set<string>()
       for (const t of req.tools) {
-        // 按 agent 分组校验（feature-018 契约 §6）：
-        // director → 只读三件 + shortdrama_ 前缀；showrunner → 仅 6 个物理 ID（不含 task）
-        const declared =
-          agent === SHOWRUNNER_AGENT
-            ? isShowrunnerDeclaredTool(t)
-            : isDirectorDeclaredTool(t)
-        if (!declared) {
+        // showrunner → 仅白名单内物理 ID（不含 task）
+        if (!isShowrunnerDeclaredTool(t)) {
           throw makeError(
             'INVALID_ARGUMENT',
             `工具 ${t} 不在 ${agent} profile 已声明集合内`,

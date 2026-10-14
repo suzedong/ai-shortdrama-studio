@@ -3,8 +3,9 @@
 // - 生成态写入 app.getPath('userData')/opencode/，每次启动按模板重生成，不做用户态合并；
 // - 仅 ark + mock 两个 provider，enabled_providers 白名单抑制 opencode 30+ 内置 provider；
 // - ark 的 Key 永不落盘：json 只声明 env:["ARK_API_KEY"]，真实值由 manager 经子进程环境变量注入；
-// - 本期仅 director profile，model 为 ark/<ARK_MODEL>，modelID 启动时注入，不硬编码入库；
-// - ARK_MODEL 缺失时 director 不安装（不静默回退 mock），运行时本身仍可经 mock 启动（契约 §6/§7.4）。
+// - profiles 为摄制组四件套（showrunner 主控 + writer/media-director/comfyui-operator），
+//   model 为 ark/<ARK_MODEL>，modelID 启动时注入，不硬编码入库；
+// - ARK_MODEL 缺失时 profile 不安装（不静默回退 mock），运行时本身仍可经 mock 启动（契约 §6/§7.4）。
 import path from 'node:path'
 import fsp from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -20,29 +21,14 @@ export const MOCK_API_KEY = 'mock-no-key'
 export const MOCK_PROVIDER_ID = 'mock'
 export const MOCK_MODEL_ID = 'mock-1'
 export const ARK_PROVIDER_ID = 'ark'
-export const DIRECTOR_AGENT = 'director'
 /** 白名单：仅这两个 provider 可被 opencode 加载（契约 §7.3） */
 export const ENABLED_PROVIDERS = [ARK_PROVIDER_ID, MOCK_PROVIDER_ID] as const
-/**
- * director profile 已声明的只读工具（feature-008 最小集，契约 §7.4）。
- * 另有 MCP 业务工具以 `shortdrama_` 前缀整体放行（feature-010，契约 §3/§6.3）；
- * 判定统一走 isDirectorDeclaredTool，越界即 INVALID_ARGUMENT（client 层校验）。
- */
-export const DIRECTOR_DECLARED_TOOLS = ['read', 'glob', 'grep'] as const
 
 /** MCP 业务服务器在 opencode config 中的注册名（工具 ID = shortdrama_<tool>） */
 export const SHORTDRAMA_MCP_NAME = 'shortdrama'
 
 /** MCP 远程工具调用超时（ms，契约 §6.3 D-012）：工具内部走 ark 整段生成（20–60s），10s 会误超时 */
 export const SHORTDRAMA_MCP_TIMEOUT_MS = 180_000
-
-/** director 工具放行判定：只读三件 + shortdrama_ 前缀的 MCP 业务工具 */
-export function isDirectorDeclaredTool(tool: string): boolean {
-  return (
-    (DIRECTOR_DECLARED_TOOLS as readonly string[]).includes(tool) ||
-    tool.startsWith(`${SHORTDRAMA_MCP_NAME}_`)
-  )
-}
 
 // -- feature-018 · 摄制组 profiles -------------------------------------------
 
@@ -83,7 +69,6 @@ export function isShowrunnerDeclaredTool(tool: string): boolean {
 const CONFIG_DIR_NAME = 'opencode'
 const CONFIG_FILE_NAME = 'opencode.json'
 const AGENTS_DIR_NAME = 'agents'
-const DIRECTOR_FILE_NAME = 'director.md'
 /** 模板内 modelID 占位符：启动时替换为 ARK_MODEL，模板与仓库中不写死任何 modelID */
 const MODEL_PLACEHOLDER = '__ARK_MODEL_ID__'
 
@@ -93,11 +78,10 @@ export interface AgentProfileSpec {
 }
 
 /**
- * 启动时安装的全部 profile（旧 director 并存至 feature-022）。
+ * 启动时安装的全部 profile：showrunner 单主控 + 三个 subagent。
  * 物理文件名与进程内 agent name 一致（见 feature-018 契约 §1/§2）。
  */
 export const AGENT_PROFILES: readonly AgentProfileSpec[] = [
-  { name: DIRECTOR_AGENT, file: DIRECTOR_FILE_NAME },
   { name: SHOWRUNNER_AGENT, file: 'showrunner.md' },
   { name: 'writer', file: 'writer.md' },
   { name: 'media-director', file: 'media-director.md' },
@@ -124,22 +108,12 @@ export interface GeneratedRuntimeConfig {
   arkActive: boolean
 }
 
-export interface InstallDirectorOptions {
-  userDataDir: string
-  /** ARK_MODEL；缺失 / 非字符串 / 空白即抛 UPSTREAM_AUTH_MISSING，不静默回退 mock */
-  arkModel: string
-  /** 测试注入：resources/opencode/agents/director.md 的绝对路径 */
-  templatePath?: string
-}
-
 export interface RuntimeFilesResult {
   config: GeneratedRuntimeConfig
-  /** 安装成功时为生成态 director.md 路径；ARK_MODEL 缺失时为 null */
-  directorPath: string | null
   /** feature-018：全部已安装 profile（缺 model 时为空数组） */
   profiles: InstalledAgentProfile[]
-  /** director 不可用原因（供状态展示 / 结构化错误），可用时为 null */
-  directorError: RuntimeErrorBodyShape | null
+  /** profile 不可用原因（供状态展示 / 结构化错误），可用时为 null */
+  profileError: RuntimeErrorBodyShape | null
 }
 
 interface RuntimeErrorBodyShape {
@@ -150,8 +124,8 @@ interface RuntimeErrorBodyShape {
 // -- 路径解析 -----------------------------------------------------------------
 
 /**
- * 解析仓库 / 打包资源中的 director.md 模板。
- * - 打包后：process.resourcesPath/opencode/agents/director.md（I-001 extraResources 方案）；
+ * 解析仓库 / 打包资源中的 agent profile 模板（如 showrunner.md）。
+ * - 打包后：process.resourcesPath/opencode/agents/<file>（I-001 extraResources 方案）；
  * - 开发态：electron/runtime/（vitest 直跑 ts）或 dist-electron/electron/runtime/（编译产物）向上定位仓库根。
  *
  * 环境判定必须用 app.isPackaged：Electron 开发态下 process.resourcesPath 同样存在（指向
@@ -181,10 +155,6 @@ export async function resolveAgentTemplatePath(file: string): Promise<string> {
     }
   }
   return candidates[0]! // 让后续读取抛出明确的 ENOENT
-}
-
-export async function resolveDefaultDirectorTemplatePath(): Promise<string> {
-  return resolveAgentTemplatePath(DIRECTOR_FILE_NAME)
 }
 
 export function runtimeConfigDir(userDataDir: string): string {
@@ -322,27 +292,6 @@ export async function installAgentProfiles(
   return installed
 }
 
-/** 兼容保留：仅安装 director 一个 profile（旧链路，feature-022 移除） */
-export async function installDirectorAgent(opts: InstallDirectorOptions): Promise<string> {
-  const arkModel = opts.arkModel?.trim()
-  if (!arkModel) {
-    throw makeError(
-      'UPSTREAM_AUTH_MISSING',
-      'ARK_MODEL 未配置：主控 director profile 不可用（不会回退 mock），请在 .env 设置 ARK_MODEL',
-    )
-  }
-  const agentsDir = path.join(runtimeConfigDir(opts.userDataDir), AGENTS_DIR_NAME)
-  await fsp.mkdir(agentsDir, { recursive: true })
-  const { targetPath, rendered } = await renderAgentFile(
-    opts.userDataDir,
-    { name: DIRECTOR_AGENT, file: DIRECTOR_FILE_NAME },
-    arkModel,
-    opts.templatePath,
-  )
-  await fsp.writeFile(targetPath, rendered, 'utf-8')
-  return targetPath
-}
-
 /**
  * 启动序列编排：重生成 opencode.json + 安装全部 profile。
  * ARK_MODEL 缺失不阻断运行时启动（mock 可用、serve 健康），仅令 profile 不安装并带回结构化原因。
@@ -352,15 +301,13 @@ export async function setupRuntimeFiles(opts: {
   arkModel?: string
   arkBaseUrl?: string
   mockBaseUrl?: string
-  templatePath?: string
 }): Promise<RuntimeFilesResult> {
   const config = await generateRuntimeConfig(opts)
   if (!opts.arkModel?.trim()) {
     return {
       config,
-      directorPath: null,
       profiles: [],
-      directorError: {
+      profileError: {
         code: 'UPSTREAM_AUTH_MISSING',
         message: 'ARK_MODEL 未配置：Agent profile 未安装，仅 mock provider 可用',
       },
@@ -369,14 +316,11 @@ export async function setupRuntimeFiles(opts: {
   const profiles = await installAgentProfiles({
     userDataDir: opts.userDataDir,
     arkModel: opts.arkModel,
-    templatePaths: opts.templatePath ? { [DIRECTOR_AGENT]: opts.templatePath } : undefined,
   })
-  const director = profiles.find(p => p.name === DIRECTOR_AGENT)
   return {
     config,
-    directorPath: director?.path ?? null,
     profiles,
-    directorError: null,
+    profileError: null,
   }
 }
 

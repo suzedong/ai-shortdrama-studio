@@ -57,7 +57,7 @@ export interface RuntimeStructuredFormat {
 export interface RuntimePromptRequest {
   sessionId: string
   text: string
-  /** 默认 director */
+  /** 唯一允许 showrunner（subagent 不可直连）；默认即 showrunner */
   agent?: string
   /** 不传则用 profile 默认模型 */
   model?: RuntimeModelRef

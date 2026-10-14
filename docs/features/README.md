@@ -89,10 +89,10 @@
 下列骨架已随重建落地、当前无任务包，**不占用业务编号**；如后续需要规格留痕，按《指令》§7 反向补录建包（建议归入 8xx），不在近期路线内：
 
 - **对话生成网关 runtime 单轨**（`electron/runtime/*`，14 错误码，无 Key 报 `UPSTREAM_AUTH_MISSING`）— §5.1
-- **MCP 纯工具族**（`electron/mcp/*`：canvas / file / asset / comfyui / gate / brief / manifest，共 16 个）— §5.2
+- **MCP 纯工具族**（`electron/mcp/*`：canvas / file / asset / comfyui / gate / brief（含 impact）/ manifest / style，8 族共 22 个；随 feature-001/002/801/802 演进）— §5.2
 - **持久化与版本归档**（`electron/fs/*`：sandbox 白名单 / write-queue / archive 版本归档）、**项目库**（`electron/project/*`，含 manifest 7 态状态机，见 feature-801）
 - **画布**（`electron/canvas/*`：canvas.json 节点模型）、**确认门桥**（`gate/bridge.ts` 三态）
-- **Agent profiles**（`resources/opencode/agents/`：showrunner / director / writer / media-director / comfyui-operator）
+- **Agent profiles**（`resources/opencode/agents/`：showrunner 唯一 primary / writer / media-director / comfyui-operator，共 4 个；director 已退役）
 
 ## 3. 建包前裁决（已于 2026-10-13 拍板，见决策台账 D-013）
 

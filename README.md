@@ -2,7 +2,7 @@
 
 > AI Agent 驱动的短剧内容生产桌面应用 —— 模仿 MiniMax Design 的交互形态，为 AI 短剧从零设计。**一块画布 = 一条连续生产线；一个指令 = 一支虚拟摄制组。**
 
-当前版本：v0.1.0（原型期）｜设计基线：v1.11（2026-10-09 定稿）
+当前版本：v0.1.0（原型期）｜设计基线：v1.12（2026-10-14 反向同步）
 
 ## 它是什么
 
@@ -110,7 +110,7 @@ ai-shortdrama-studio/
 │   ├── components/  lib/
 │   └── test/            # 主进程工具与运行时单测
 ├── shared/types.ts      # 前后端共享类型契约（只读，修改触发 K1 卡口）
-├── resources/opencode/agents/  # 摄制组 Agent 提示词（主控/编剧/导演/美术/引擎）
+├── resources/opencode/agents/  # 摄制组 Agent 提示词（showrunner 唯一主控 / writer / media-director / comfyui-operator 三个 subagent）
 ├── docs/                # 文档体系（入口见 docs/README.md）
 ├── 短剧Agent平台设计.md    # 架构事实源（根目录）
 ├── 版本记录.md            # 项目级变更编年史

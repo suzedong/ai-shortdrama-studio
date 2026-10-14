@@ -181,19 +181,19 @@
 
 <header>
   <div class="kicker">AI SHORT DRAMA · AGENT PLATFORM</div>
-  <h1>短剧 Agent 平台设计<span class="tag">v1.11 · 2026-10-09</span></h1>
+  <h1>短剧 Agent 平台设计<span class="tag">v1.12 · 2026-10-14</span></h1>
   <div class="sub">模仿 MiniMax Design、为 AI 短剧从零设计的 Agent 驱动内容生产平台 · 一块画布 = 一条生产线，一个指令 = 一支团队</div>
   <div class="stats">
     <div class="stat"><div class="sv">8</div><div class="sl">业务闭环</div><div class="su">0 立项 → 7 发布</div></div>
     <div class="stat"><div class="sv">10</div><div class="sl">画布节点</div><div class="su">Stage 枚举</div></div>
     <div class="stat"><div class="sv">7</div><div class="sl">状态机态数</div><div class="su">manifest.status</div></div>
     <div class="stat"><div class="sv">25</div><div class="sl">IPC 通道</div><div class="su">main.ts 实测</div></div>
-    <div class="stat"><div class="sv">11</div><div class="sl">MCP 纯工具</div><div class="su">磁盘实况</div></div>
+    <div class="stat"><div class="sv">22</div><div class="sl">MCP 纯工具</div><div class="su">8 族 · 磁盘实况</div></div>
     <div class="stat"><div class="sv">14</div><div class="sl">runtime 错误码</div><div class="su">electron/runtime</div></div>
-    <div class="stat"><div class="sv">197</div><div class="sl">测试通过</div><div class="su">24 文件 · 1 skipped</div></div>
+    <div class="stat"><div class="sv">35</div><div class="sl">测试文件</div><div class="su">358 通过 · 1 skipped</div></div>
   </div>
   <div class="fact">可视化呈现 · 事实以 <a href="../短剧Agent平台设计.md">短剧Agent平台设计.md</a> 为准
-    <span class="src">来源：设计 md v1.11</span><span class="src">台账 D-005·D-011·D-012</span><span class="src">2026-10-09</span>
+    <span class="src">来源：设计 md v1.12</span><span class="src">台账 D-005·D-011·D-012</span><span class="src">2026-10-14</span>
   </div>
 </header>
 
@@ -542,6 +542,7 @@
     <div class="card"><div class="ct">引擎 Agent <span class="src s-b">改编</span></div><div class="cb"><b>片场/工程</b>：引擎调度、工作流装载、队列轮询、落盘、断点续跑。</div></div>
     <div class="card"><div class="ct">剪辑 Agent <span class="src s-b">改编</span></div><div class="cb"><b>剪辑</b>：粗剪、字幕、转场、合流、混音、切片、封面。</div></div>
   </div>
+  <p class="dim"><b>实现层摄制组（磁盘实况，v1.12）</b>：opencode profile 已安装 <b>4 个</b>——<code>showrunner</code>（唯一 primary 主控）+ <code>writer</code> / <code>media-director</code> / <code>comfyui-operator</code>（3 个 subagent，经 <code>task</code> 调度）；早期同名 <code>director</code> profile 已于 2026-10-14 退役（提交 8114e84）。上表 7 角色为目标态分工，随 STAGE 3-7 逐步扩编。</p>
   <div class="grid g3">
     <div class="card"><div class="ct">主控 → 专职</div><div class="cb">任务地图派发到收件箱，完成后回报产物状态。</div></div>
     <div class="card"><div class="ct">并行</div><div class="cb">无依赖任务并行（定妆与场景并行、多镜批量）；有依赖经数据节点合流。</div></div>
@@ -554,7 +555,7 @@
 
 <!-- ═══ 5 MCP 工具层与对话生成网关 ═══ -->
 <section id="sec-5">
-  <div class="sec-head"><span class="sec-no">05</span><h2>MCP 工具层与对话生成网关 <span class="src s-b">改编</span></h2><span class="hint">§5 · v1.11 定稿</span></div>
+  <div class="sec-head"><span class="sec-no">05</span><h2>MCP 工具层与对话生成网关 <span class="src s-b">改编</span></h2><span class="hint">§5 · v1.12 磁盘实况</span></div>
   <h3>5.1 对话生成网关（runtime 单轨）</h3>
   <p>对话与生成统一经 <b>Agent 运行时单轨（runtime:*）</b>，不设预置"生成动作"业务 IPC / 工具——旧 8 个 <code>agent:*</code> IPC 与 <code>shortdrama_*</code> 生成工具已退役、不再重建（2026-10-09 用户拍板"不回退"）。诊断 / 选题 / 大纲 / 小传 / 分场 / 台词 / 分镜 / 改写等生成动作，全部由会话内 Agent 规划完成。</p>
   <table>
@@ -570,14 +571,18 @@
     <div class="card"><div class="ct">无 Key 行为</div><div class="cb">未配置火山方舟 Key → 显式报 <code>UPSTREAM_AUTH_MISSING</code> 提示配置，<b>不静默降级 mock</b>（旧 mock 降级策略随旧 IPC 退役）。</div></div>
   </div>
   <h3>5.2 工具族（MCP 网关：已落地 + 目标）</h3>
-  <p>平台内置 MCP 网关（仅本机），工具以 schema 声明、统一鉴权审计。<b>已落地（磁盘实况，11 个纯工具）</b>：</p>
-  <div class="grid g3">
-    <div class="card"><div class="ct">画布 <code>canvas.get / update</code></div><div class="cb">画布节点与连线读写。</div></div>
-    <div class="card"><div class="ct">文件 <code>file.list / read / write</code></div><div class="cb">项目内文本产物读写（路径白名单）。</div></div>
-    <div class="card"><div class="ct">资产 <code>asset.list / register</code></div><div class="cb">资产索引检索与登记。</div></div>
-    <div class="card"><div class="ct">ComfyUI <code>instances / queue / status</code></div><div class="cb">引擎实例探活、队列、状态（renderer 不直连）。</div></div>
-    <div class="card"><div class="ct">确认门 <code>gate.request</code></div><div class="cb">确认门请求（放行 / 否决须确认令牌）。</div></div>
+  <p>平台内置 MCP 网关（仅本机），工具以 schema 声明、统一鉴权审计。<b>已落地（磁盘实况，22 个纯工具 / 8 族；物理 ID = <code>shortdrama_&lt;tool&gt;</code>）</b>：</p>
+  <div class="grid g4">
+    <div class="card"><div class="ct">画布 3 <code>canvas.get / update / align</code></div><div class="cb">画布节点与连线读写；align 为重生成定稿后清脏并推进血缘版本（feature-002）。</div></div>
+    <div class="card"><div class="ct">文件 3 <code>file.list / read / write</code></div><div class="cb">项目内文本产物读写（路径白名单）。</div></div>
+    <div class="card"><div class="ct">资产 2 <code>asset.list / register</code></div><div class="cb">资产索引检索与登记。</div></div>
+    <div class="card"><div class="ct">ComfyUI 3 <code>instances / queue / status</code></div><div class="cb">引擎实例探活、队列、状态（renderer 不直连）。</div></div>
+    <div class="card"><div class="ct">确认门 1 <code>gate.request</code></div><div class="cb">确认门请求（放行 / 否决须确认令牌）。</div></div>
+    <div class="card"><div class="ct">立项 5 <code>brief.plan / publish / list / impact.assess / impact.commit</code></div><div class="cb">就绪校验 + diff、版本化发布、历史列出（feature-001）；再版影响评估与提交（feature-002）。</div></div>
+    <div class="card"><div class="ct">状态机 2 <code>manifest.get / advance</code></div><div class="cb">阶段状态指针读取与定稿推进（feature-801）。</div></div>
+    <div class="card"><div class="ct">视觉风格 3 <code>style.catalog / get / validate</code></div><div class="cb">谱系 18 项读取、单条取明细、立项风格引用校验（feature-802，读 <code>resources/H3-Style/</code>）。</div></div>
   </div>
+  <p class="dim">showrunner 请求级白名单放行其中 <b>17 个</b>；asset 2 与 comfyui 3 不在其列（22 − 5 = 17），由 subagent 持有——writer 持文件/画布最小集，media-director 另持 asset 2 + <code>comfyui.queue/status</code>，comfyui-operator 持 asset 2 + comfyui 3 全集。subagent 仅经 <code>task</code> 接受 showrunner 委派。client 层取消 <code>shortdrama_</code> 前缀整体放行，逐物理 ID 判定（v1.12）。</p>
   <p><b>目标族（随 feature 包逐步落地，§11 路线）</b>：</p>
   <div class="grid g4">
     <div class="card"><div class="ct">项目 <span class="src s-c">自研新增</span></div><div class="cb"><code>project.manifest / events / timeline</code>：元信息、事件流、任务地图。</div></div>
@@ -779,7 +784,7 @@
 
 <!-- ═══ 13 版本记录 ═══ -->
 <section id="sec-13">
-  <div class="sec-head"><span class="sec-no">13</span><h2>版本记录</h2><span class="hint">§13 · v1.0 → v1.11</span></div>
+  <div class="sec-head"><span class="sec-no">13</span><h2>版本记录</h2><span class="hint">§13 · v1.0 → v1.12</span></div>
   <div class="timeline">
     <div class="tl"><div class="vh">v1.0 · v1.1 <span class="vd">2026-10-02 · 10-03</span></div>
       <div class="vb">媒体生成收窄——画面（B0/B5/B8）与配乐（B9）统一走 ComfyUI、复用 Dufs B* 模板，废弃云端矩阵直连；配音维持 T2A。变更史记入《版本记录.md》。</div></div>
@@ -801,13 +806,15 @@
       <div class="vb">经用户拍板"立项字段全可改 + 改后标记影响点 + 用户决定是否重生成"，§2.6 立项后变更机制从"反补（半锁定，premise 不可改）"⛔ 升级为"<b>全可改 + 影响评估 + 用户决策</b>"（三原则：全字段可改 / 影响必标记 / 决策归用户）。修订：§2.6.5 定案门语义"灵魂边界"→"当前版本落定"；§2.6.6 重写立项后变更规则；<b>新增 §2.6.7 影响评估机制</b>（追溯算法 4 步 + 影响分级表 + 评估面板 UI 草图 + 三动作语义）；原 §2.6.7 → §2.6.8 画布布局。原型已具备 STAGE 进度轨（v1.10 待办：STAGE 0 hover tooltip 接入版本号）。</div></div>
     <div class="tl"><div class="vh">v1.11 <span class="vd">2026-10-09 · D-012</span></div>
       <div class="vb">用户拍板"旧对话链路不回退、以磁盘实况为终态、所有设计要最后状态"。① §5 改写为「<b>MCP 工具层与对话生成网关</b>」——§5.1 runtime 单轨（runtime:start/stop/status、runtime:session:*、runtime:prompt/async、runtime:event:*；旧 8 个 <code>agent:*</code> IPC 与 <code>shortdrama_*</code> 生成工具不再重建；统一 runtime 错误码 14 个，旧 <code>STORY_CTX_MISSING</code>/<code>REVISE_*</code>/<code>STYLE_NOT_IN_CATALOG</code> 退役；无 Key 显式报 <code>UPSTREAM_AUTH_MISSING</code>，不 mock 降级）；§5.2 工具族按磁盘实况定稿（已落地 11 个纯工具 + 目标族 7 族）。② §7.1 改写为「<b>数据血缘、状态机与版本归档（最终设计）</b>」——删除旧 8 确认门与"待重建"框架；brief.json 由立项单.vN.json 取代；谱系小节并入 §8.3；补 §2.6.6/§2.6.7 影响评估字段落点。③ 旧通道快照 docs/SDG-OD-legacy/feature-010-ark对话IPC快照.md 有用内容并入本文后删除；平台全景图.html 引用改指 §5.1。</div></div>
+    <div class="tl"><div class="vh">v1.12 <span class="vd">2026-10-14 · 反向同步</span></div>
+      <div class="vb">实现实况反向同步（无新决策编号，依据提交 8114e84 + 用户拍板）。① <b>director profile 退役，showrunner 为唯一 primary 主控</b>——实现层固定 4 个 profile（showrunner + writer / media-director / comfyui-operator 三个 subagent，经 <code>task</code> 调度）；§4.1 表后补「实现层摄制组（磁盘实况）」注记，7 角色目标态表不变。② §5.2 已落地工具由 <b>11 个 / 5 族更正为 22 个 / 8 族</b>（补 canvas.align；新增立项 brief.* 5、状态机 manifest.* 2、视觉风格 style.* 3，随 feature-001/002/801/802 落地），注明物理 ID 规则 <code>shortdrama_&lt;tool&gt;</code> 与 showrunner 请求级白名单 17 个（asset 2 / comfyui 3 不开放给主控）。③ client 层取消 <code>shortdrama_</code> 前缀整体放行，改逐物理 ID 白名单判定（8 个幽灵工具名直接拒绝）。镜像与两张信息图磁盘实况卡同步。</div></div>
   </div>
   <p class="dim">镜像纪律：md 改动同步 docs/design/ 同名 html；原型（docs/design/短剧Agent平台-原型.html）同步迭代。</p>
 </section>
 
 <footer>
-  <span>短剧 Agent 平台设计 · v1.11 · 2026-10-09 · 人读镜像（源为同名 md）</span>
-  <span class="src">事实源：短剧Agent平台设计.md v1.11</span>
+  <span>短剧 Agent 平台设计 · v1.12 · 2026-10-14 · 人读镜像（源为同名 md）</span>
+  <span class="src">事实源：短剧Agent平台设计.md v1.12</span>
   <span class="src">台账 D-005 · D-011 · D-012</span>
 </footer>
 

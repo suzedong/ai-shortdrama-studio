@@ -439,6 +439,8 @@ Agent 的两种工作方式：
 | **引擎 Agent** | 片场 / 工程 | 本地 / 云端引擎调度、工作流装载、队列、轮询、产物落盘、断点续跑 | [改编]（对应 Design comfyui-agent，扩展为通用引擎调度） |
 | **剪辑 Agent** | 剪辑 | 粗剪拼接、字幕、转场、合流、混音、切片、封面 | [改编]（对应 Design 视频剪辑插件能力，提升为专职 Agent） |
 
+> **实现层摄制组（磁盘实况，v1.12）**：opencode profile 已安装 **4 个**——`showrunner`（唯一 primary 主控，承担上表主控 Agent 职责）+ `writer` / `media-director` / `comfyui-operator`（3 个 subagent，经 `task` 调度）；早期同名 `director` profile 已于 2026-10-14 退役（提交 8114e84），主控统一为 showrunner。上表 7 角色是目标态分工，随 STAGE 3-7 逐步扩编。
+
 ### 4.2 协作模型 [自研新增]
 
 （Design 实测为标准 opencode + MCP 网关，未公开内部协作总线细节；以下消息总线 / 共享黑板 / 失败隔离为本平台架构决策。）
@@ -474,15 +476,20 @@ Agent 的两种工作方式：
 
 ### 5.2 工具族（MCP 网关：已落地 + 目标）
 
-平台内置 MCP 网关（仅本机可达），全部工具以 schema 声明、统一鉴权与审计。**已落地（磁盘实况，11 个纯工具）**：
+平台内置 MCP 网关（仅本机可达），全部工具以 schema 声明、统一鉴权与审计。**已落地（磁盘实况，22 个纯工具 / 8 族；物理工具 ID = `shortdrama_<tool>`）**：
 
-| 工具族 | 代表工具 | 说明 |
+| 工具族 | 工具 | 说明 |
 |---|---|---|
-| 画布 | canvas.get / canvas.update | 画布节点与连线读写 |
-| 文件 | file.list / file.read / file.write | 项目内文本产物读写（路径白名单） |
-| 资产 | asset.list / asset.register | 资产索引检索与登记 |
-| ComfyUI | comfyui.instances / comfyui.queue / comfyui.status | 引擎实例探活、队列、状态（renderer 不直连） |
-| 确认门 | gate.request | 确认门请求（放行 / 否决须确认令牌） |
+| 画布（3） | canvas.get / canvas.update / canvas.align | 画布节点与连线读写；align 为重生成定稿后清脏并推进血缘版本（feature-002） |
+| 文件（3） | file.list / file.read / file.write | 项目内文本产物读写（路径白名单） |
+| 资产（2） | asset.list / asset.register | 资产索引检索与登记 |
+| ComfyUI（3） | comfyui.instances / comfyui.queue / comfyui.status | 引擎实例探活、队列、状态（renderer 不直连） |
+| 确认门（1） | gate.request | 确认门请求（放行 / 否决须确认令牌） |
+| 立项（5） | brief.plan / brief.publish / brief.list / brief.impact.assess / brief.impact.commit | 立项就绪校验 + diff、版本化发布、历史列出（feature-001）；再版影响评估与提交（feature-002） |
+| 状态机（2） | manifest.get / manifest.advance | 阶段状态指针读取与定稿推进（feature-801） |
+| 视觉风格（3） | style.catalog / style.get / style.validate | 谱系 18 项读取、单条取明细、立项风格引用校验（feature-802，读 `resources/H3-Style/`） |
+
+showrunner 请求级白名单放行其中 17 个；asset 2 与 comfyui 3 不在其列（22 − 5 = 17），由 subagent 持有——writer 持文件/画布最小集，media-director 另持 asset 2 + comfyui.queue/status，comfyui-operator 持 asset 2 + comfyui 3 全集。subagent 不面对用户，仅经 `task` 接受 showrunner 委派。
 
 **目标族（随 feature 包逐步落地，§11 路线）**：
 
@@ -681,4 +688,5 @@ initiating → story-outline → story-profiles
 - v1.9（2026-10-08）修订（立项模型重建，决策见 D-005）：经《2002 相识》立项流程对话推演，§2.6 整体重写——旧「4 节点 + 4 确认门（0-a~0-d）+ 多 tab 立项单」模型⛔ 作废，改为「**1 入口动作 + 2 节点（选题诊断含六要素口径草案 / 故事前提）+ 1 道定案门（就绪客观判定，定案卡一键或口头拍板）**」；新增反问机制、「已捕获口径」常驻区、故事前提最低门槛、立项后变更走反补。视觉风格选型明确「**主风格唯一（候选含主·备全部条目）+ 辅助 0–1 个（候选域封闭 = B 青春治愈 1 项 + D 类型氛围 5 项，挂气氛）**」；新增 §8.3 将视觉风格谱系定位为系统级外部数据源（路径注册 / 版本跟踪 / 引用风格 ID + 谱系版本）。§0.1 八步表立项行、§7.1（重新定性为现存代码待反向补录）同步更新。旧 22 个 feature 任务包整体归档至 docs/archive/features-pre-rebuild/，新包从 feature-001 重建。
 - v1.10（2026-10-09）修订（立项后变更规则升级，决策见 D-011）：经用户拍板"立项字段全可改 + 改后标记影响点 + 用户决定是否重生成"，§2.6 立项后变更机制从"反补（半锁定，premise 不可改）"⛔ 升级为"**全可改 + 影响评估 + 用户决策**"（落地为三原则：全字段可改 / 影响必标记 / 决策归用户）。具体修订：① §2.6.5 定案门语义从"立项完成 = 灵魂边界"改为"立项完成 = 当前版本落定"——按钮文案「立项完成，进入故事」→「发布立项 v(N+1)」，新增"相对 vN 改动"提示与"查看历史"按钮；② §2.6.6 重写立项后变更规则（核心三原则、触发入口 4 类、字段改动→影响范围映射 6 类、待对齐角标语义、脏读运行时表现、历史版本与回滚、STAGE 0 步骤视觉）；③ **新增 §2.6.7 影响评估机制**（追溯算法 4 步 + 影响分级表 高/中/低 + 评估面板 UI 草图 + 三个动作语义 + Harness 校验补充）；④ 原 §2.6.7 → §2.6.8 画布布局，数据模型段补"立项单 v1..vN 全量保留 + 影响清单 + parentReference 字段"、新增与方案 A 左栏融合 / titlebar STAGE 进度轨联动两条。立项模型 v1.9 主体（1 入口 + 2 节点 + 1 定案门）保持不变，本次仅升级"立项后"行为。原型（短剧Agent平台-原型.html）当前已具备 STAGE 进度轨（v1.10 待办：在 STAGE 0 步骤 hover tooltip 接入版本号显示）。镜像 HTML 同步更新。
 - v1.11（2026-10-09）修订（对话通道定稿 + §7.1 定稿，决策见台账 D-012）：用户拍板"旧对话链路不回退、以磁盘实况为终态、所有设计要最后状态"。① §5 改写为「**MCP 工具层与对话生成网关**」——新增 §5.1 对话生成网关（runtime 单轨：runtime:start/stop/status、runtime:session:*、runtime:prompt/async、runtime:event:*；诊断/大纲/小传/分场/台词/分镜/改写等生成动作由会话内 Agent 规划完成，旧 8 个 `agent:*` IPC 与 `shortdrama_*` 生成工具不再重建；统一走 runtime 错误码 14 个，旧 `STORY_CTX_MISSING`/`REVISE_*`/`STYLE_NOT_IN_CATALOG` 退役；无 Key 显式报 `UPSTREAM_AUTH_MISSING`，不 mock 降级）；§5.2 工具族按磁盘实况定稿（已落地 11 个纯工具 canvas/file/asset/comfyui/gate + 目标族 project/media/engine/资产扩展/edit/harness/skill）。② §7.1「现存代码数据血缘（待反向补录重建）」改写为「**数据血缘、状态机与版本归档（最终设计）**」——删除旧 8 确认门与"待重建/不代表目标设计"框架；brief.json 由立项单.vN.json 取代；谱系小节并入 §8.3 口径；补充 §2.6.6/§2.6.7 影响评估字段落点（manifest.briefVersion + parentReference + 影响清单）。③ 旧通道快照 docs/SDG-OD-legacy/feature-010-ark对话IPC快照.md 有用内容并入本文后删除；平台全景图.html 引用改指 §5.1。
+- v1.12（2026-10-14）修订（实现实况反向同步，无新决策编号）：① 摄制组 profile 收口——**director profile 退役，showrunner 为唯一 primary 主控**，实现层固定为 4 个 profile（showrunner + writer / media-director / comfyui-operator 三个 subagent，经 `task` 调度）；§4.1 表后补「实现层摄制组（磁盘实况）」注记，7 角色目标态表不变。② §5.2 已落地工具由 **11 个 / 5 族更正为 22 个 / 8 族**（补 canvas.align；新增立项 brief.* 5、状态机 manifest.* 2、视觉风格 style.* 3，随 feature-001/002/801/802 落地），并注明物理 ID 规则 `shortdrama_<tool>` 与 showrunner 请求级白名单 17 个（asset 2 / comfyui 3 不开放给主控）。③ client 层取消 `shortdrama_` 前缀整体放行，改为逐物理 ID 白名单判定（旧 director 时代的 8 个幽灵工具名直接拒绝）。依据：提交 8114e84 + 用户 2026-10-14 拍板；镜像 HTML 与三张信息图（架构模块关系图 / 进度看板与路线图 / 平台全景图）磁盘实况卡同步（信息图按只增不改纪律保留 2026-10-09 历史快照，新增 2026-10-14 再核卡/注记）。
 - 镜像纪律：改本文 md 必须同步 docs/design/ 下同名 .html（人读镜像）；原型（docs/design/短剧Agent平台-原型.html）与本文同步迭代。

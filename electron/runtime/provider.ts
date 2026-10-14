@@ -35,7 +35,7 @@ export const SHORTDRAMA_MCP_TIMEOUT_MS = 180_000
 export const SHOWRUNNER_AGENT = 'showrunner'
 
 /**
- * showrunner 请求级工具白名单（14 个纯工具物理 ID）。
+ * showrunner 请求级工具白名单（17 个纯工具物理 ID）。
  * `task` 由 profile 常驻（permission.task 白名单），不随请求 tools 传递。
  * feature-001：立项三工具 brief.plan/publish/list 随立项模型重建放行。
  * feature-801：状态机两工具 manifest.get/advance 放行。

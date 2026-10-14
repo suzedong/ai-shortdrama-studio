@@ -12,7 +12,8 @@ const FORBIDDEN_IMPORT_PATTERNS = [
   /opencode-ai/,
   /electron\//,          // 主进程 / 引擎模块
   /electron\\/,
-  /comfyui/i,
+  // ComfyUI 作为产品名允许出现在 UI 文案；仅禁止以模块名被 import/require（C7 红线是 renderer 不直连引擎）
+  /(?:from\s+|import\s*\(?\s*|require\(\s*)['"][^'"]*comfyui/i,
   /fluent-ffmpeg/,
   /sharp/,
   /\bark\b/i,

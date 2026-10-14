@@ -1,6 +1,6 @@
 // feature-019 C7 · renderer 驱动测试（契约 §4，需求 AC-2/AC-3/AC-4）
 // 发送（agent:'showrunner'）→ 流式文本 → GateCard 挂载 → 裁决推进 → 画布更新。
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -96,7 +96,7 @@ describe('C7 · StudioApp 立项驱动', () => {
     const h = installApi(emptyCanvas())
     render(<StudioApp />)
 
-    await user.type(screen.getByPlaceholderText(/描述你的短剧灵感/), '重生复仇都市女频')
+    await user.type(screen.getByPlaceholderText(/描述创作目标/), '重生复仇都市女频')
     await user.click(screen.getByRole('button', { name: '发送' }))
 
     expect(h.promptAsync).toHaveBeenCalledWith({
@@ -110,7 +110,7 @@ describe('C7 · StudioApp 立项驱动', () => {
   it('流式文本 → GateCard 挂载 → approved 裁决 → 画布节点更新', async () => {
     const h = installApi(emptyCanvas())
     render(<StudioApp />)
-    await screen.findByText('未命名项目')
+    await screen.findByText(/未命名项目/)
 
     h.emitRuntime({
       type: 'message.part', ts: '', sessionId: 'sess-1', messageId: 'msg-1', partId: 'p1',
@@ -135,7 +135,7 @@ describe('C7 · StudioApp 立项驱动', () => {
   it('rejected：带 note 提交否决', async () => {
     const h = installApi(emptyCanvas())
     render(<StudioApp />)
-    await screen.findByText('未命名项目')
+    await screen.findByText(/未命名项目/)
 
     h.emitGate(gate0final('pending'))
     await user.click(screen.getByRole('button', { name: '否决 / 重做' }))
@@ -158,7 +158,7 @@ describe('C7 · StudioApp 立项驱动', () => {
     window.api.runtime.start = vi.fn(async () => failedStatus)
     render(<StudioApp />)
 
-    await user.type(screen.getByPlaceholderText(/描述你的短剧灵感/), '测试')
+    await user.type(screen.getByPlaceholderText(/描述创作目标/), '测试')
     await user.click(screen.getByRole('button', { name: '发送' }))
     expect(await screen.findByText('启动失败')).toBeInTheDocument()
   })
@@ -171,14 +171,14 @@ describe('feature-022 · 三栏与产物查看', () => {
     render(<StudioApp />)
     expect(screen.getByText('项目')).toBeInTheDocument()
     expect(screen.getByText(/还没有任何产物/)).toBeInTheDocument()
-    expect(screen.getByPlaceholderText(/描述你的短剧灵感/)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/描述创作目标/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '返回旧版' })).not.toBeInTheDocument()
   })
 
   it('项目列表渲染；点击调用 openProject', async () => {
     installApi(emptyCanvas())
     render(<StudioApp />)
-    const item = await screen.findByRole('button', { name: '项目一' })
+    const item = await screen.findByRole('button', { name: /项目一/ })
     await user.click(item)
     expect(window.api.openProject).toHaveBeenCalledWith('/ws/project-p1')
   })
@@ -186,7 +186,7 @@ describe('feature-022 · 三栏与产物查看', () => {
   it('新建项目：createProject → openProject 串联', async () => {
     installApi(emptyCanvas())
     render(<StudioApp />)
-    await user.click(screen.getByRole('button', { name: '+ 新建项目' }))
+    await user.click(screen.getByRole('button', { name: /新建项目/ }))
     await user.type(screen.getByPlaceholderText(/项目名/), '我的新剧')
     await user.click(screen.getByRole('button', { name: '确认新建' }))
     expect(window.api.createProject).toHaveBeenCalledWith('我的新剧')
@@ -196,18 +196,21 @@ describe('feature-022 · 三栏与产物查看', () => {
   it('点击有 ref.path 的节点 → fileRead 打开只读查看器；关闭后消失', async () => {
     const h = installApi(emptyCanvas())
     render(<StudioApp />)
-    await screen.findByText('未命名项目')
+    await screen.findByText(/未命名项目/)
 
     h.emitCanvas(canvasWithDiagnosis())
     const node = await screen.findByText('重生复仇：选题诊断')
     await user.click(node)
 
     expect(window.api.fileRead).toHaveBeenCalledWith({ path: '立项/diagnosis.json' })
-    // JSON 美化后包含换行展开
-    expect(await screen.findByText(/"a": 1/)).toBeInTheDocument()
+    // diagnosis 走通用 JSON 视图（KV 分栏）：路径条与通用视图标题上屏
+    expect(await screen.findByText('立项/diagnosis.json')).toBeInTheDocument()
+    expect(screen.getByText('结构化数据（通用视图）')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: '关闭' }))
-    expect(screen.queryByText(/"a": 1/)).not.toBeInTheDocument()
+    // 顶栏 WindowControls 也有名为「关闭」的按钮，故限定在查看器根节点内查找
+    const viewerRoot = screen.getByText('立项/diagnosis.json').closest('div.absolute')!
+    await user.click(within(viewerRoot).getByRole('button', { name: '关闭' }))
+    expect(screen.queryByText('立项/diagnosis.json')).not.toBeInTheDocument()
   })
 
   it('fileRead 拒绝时查看器呈现错误提示态', async () => {
@@ -216,7 +219,7 @@ describe('feature-022 · 三栏与产物查看', () => {
       ok: false as const, error: { code: 'NOT_FOUND', message: '产物文件不存在' },
     }))
     render(<StudioApp />)
-    await screen.findByText('未命名项目')
+    await screen.findByText(/未命名项目/)
     h.emitCanvas(canvasWithDiagnosis())
     await user.click(await screen.findByText('重生复仇：选题诊断'))
     expect(await screen.findByText('产物文件不存在')).toBeInTheDocument()
@@ -225,21 +228,21 @@ describe('feature-022 · 三栏与产物查看', () => {
   it('切项目（projectId 变化）时关闭查看器；常规推送不关', async () => {
     const h = installApi(emptyCanvas())
     render(<StudioApp />)
-    await screen.findByText('未命名项目')
+    await screen.findByText(/未命名项目/)
     h.emitCanvas(canvasWithDiagnosis())
     await user.click(await screen.findByText('重生复仇：选题诊断'))
-    expect(await screen.findByText(/"a": 1/)).toBeInTheDocument()
+    expect(await screen.findByText('立项/diagnosis.json')).toBeInTheDocument()
 
     // 同 projectId 的常规推送：viewer 保持
     const same = canvasWithDiagnosis()
     h.emitCanvas(same)
-    expect(screen.getByText(/"a": 1/)).toBeInTheDocument()
+    expect(screen.getByText('立项/diagnosis.json')).toBeInTheDocument()
 
     // projectId 变化：viewer 关闭
     const other = emptyCanvas('另一个项目')
     other.projectId = 'p2'
     h.emitCanvas(other)
-    expect(screen.queryByText(/"a": 1/)).not.toBeInTheDocument()
-    expect(await screen.findByText('另一个项目')).toBeInTheDocument()
+    expect(screen.queryByText('立项/diagnosis.json')).not.toBeInTheDocument()
+    expect(await screen.findByText(/另一个项目/)).toBeInTheDocument()
   })
 })

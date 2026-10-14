@@ -251,7 +251,7 @@ export function evaluateDraft(
 'shortdrama_style.validate',
 ```
 
-仅 showrunner profile 放行；writer / media-director / comfyui-operator 不追加（director 走 `shortdrama_` 前缀全放行的既有机制，无需改动）。
+仅 showrunner profile 放行；writer / media-director / comfyui-operator 不追加（showrunner 按物理 ID 白名单逐工具判定，三工具均在白名单内）。
 
 2. [showrunner.md](../../../resources/opencode/agents/showrunner.md) 第 0 步：
    - 第 5 点（风格只引用谱系 ID）：把纪律口号落地为动作——选型前先调 `shortdrama_style.catalog`（全量）或 `shortdrama_style.get`（按题材预选 ID 取明细），基于返回条目向用户展示主/备、可行度、辅助候选，确认 `ID @ version` 逐字采用返回版本，不得凭印象自造 ID；需要气氛时辅助只能从 6 个封闭候选中选。

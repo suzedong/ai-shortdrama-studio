@@ -69,8 +69,19 @@ export class CanvasStore {
         const { linksTo: _linksTo, ...node } = n
         node.updatedAt = new Date().toISOString()
         const idx = canvas.nodes.findIndex(x => x.id === node.id)
-        if (idx >= 0) canvas.nodes[idx] = node
-        else canvas.nodes.push(node)
+        if (idx >= 0) {
+          // feature-002 契约 §4.4：整体替换下保留血缘/脏态——
+          // canvas.update 无 dirty 入口（zod 剥离），故恒沿用旧 dirty；
+          // parentReference 未显式传入时沿用旧值，显式传入（定稿）则覆盖。
+          const old = canvas.nodes[idx]!
+          node.dirty = old.dirty
+          if (node.parentReference === undefined) {
+            node.parentReference = old.parentReference
+          }
+          canvas.nodes[idx] = node
+        } else {
+          canvas.nodes.push(node)
+        }
       }
       if (upserts.length > 0) {
         canvas.edges = deriveAutoEdges(canvas.edges, upserts)
@@ -89,19 +100,33 @@ export class CanvasStore {
     })
   }
 
+  /**
+   * feature-002：在同一次写盘内对画布做任意读-改-写（commit 多节点挂脏 +
+   * brief 节点 upsert 合并，避免多份 canvas.json 归档）。自开写队列。
+   */
+  async withCanvas(mutate: (canvas: Canvas) => void): Promise<Canvas> {
+    return this.persist(mutate)
+  }
+
+  /**
+   * feature-002：同 persist 但**不再入队**——调用方必须已处于 enqueue 任务内，
+   * 使 commit 的立项双写/影响清单/manifest/画布严格同队列（前序校验失败时零写盘）。
+   */
+  async persistInQueue(mutate: (canvas: Canvas) => void): Promise<Canvas> {
+    const canvas = await this.get()
+    const next: Canvas = JSON.parse(JSON.stringify(canvas)) as Canvas
+    mutate(next)
+    next.updatedAt = new Date().toISOString()
+    const file = this.file()
+    await archiveExisting(file, new Date())
+    await fsp.writeFile(file, JSON.stringify(next, null, 2), 'utf-8')
+    this.cache = next
+    for (const fn of this.listeners) fn(next)
+    return next
+  }
+
   private persist(mutate: (canvas: Canvas) => void): Promise<Canvas> {
-    return enqueue(async () => {
-      const canvas = await this.get()
-      const next: Canvas = JSON.parse(JSON.stringify(canvas)) as Canvas
-      mutate(next)
-      next.updatedAt = new Date().toISOString()
-      const file = this.file()
-      await archiveExisting(file, new Date())
-      await fsp.writeFile(file, JSON.stringify(next, null, 2), 'utf-8')
-      this.cache = next
-      for (const fn of this.listeners) fn(next)
-      return next
-    })
+    return enqueue(() => this.persistInQueue(mutate))
   }
 
   subscribe(fn: CanvasChangeListener): () => void {

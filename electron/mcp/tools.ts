@@ -1,5 +1,7 @@
-// feature-017 / feature-001 · MCP 纯工具注册（主进程）
-// 14 个零 LLM 工具：文件 / 画布 / 裁决门 / 资产 / ComfyUI 实例 / 立项单（brief.plan/publish/list）。
+// feature-017 / feature-001 / feature-801 / feature-802 / feature-002 · MCP 纯工具注册（主进程）
+// 22 个零 LLM 工具：文件 / 画布 / 裁决门 / 资产 / ComfyUI 实例 / 立项单（brief.plan/publish/list）
+//   / manifest 状态机（manifest.get/advance）/ 视觉风格谱系（17–19 style.catalog/get/validate）
+//   / 立项后变更（20–22 brief.impact.assess/commit、canvas.align）。
 // 纪律：只 import zod、MCP SDK、shared types 与 fs/project/canvas/gate/asset/comfy/brief 模块。
 import path from 'node:path'
 import fsp from 'node:fs/promises'
@@ -20,6 +22,15 @@ import { listInstances, requireInstance } from '../comfy/settings.js'
 import { diffBrief } from '../brief/diff.js'
 import { evaluateDraft, listBriefVersions } from '../brief/plan.js'
 import { renderBriefMd } from '../brief/render-md.js'
+import { publishV1InQueue, publishBriefFiles, type ReadyBriefDraft } from '../brief/publish.js'
+import {
+  readManifest, advanceManifest, parseManifest, applyBriefVersion, MANIFEST_FILE,
+} from '../project/manifest.js'
+import { assessImpact } from '../brief/impact.js'
+import type { ImpactDecision, ImpactReportFile } from '../brief/impact.js'
+import type { ManifestEvent } from '../../shared/types.js'
+import { loadStyleCatalog } from '../style/loader.js'
+import { validateStyleRefs } from '../style/validate.js'
 
 type ToolErr = { ok: false; error: { code: string; message: string } }
 type ToolResult<T> = ({ ok: true } & T) | ToolErr
@@ -139,6 +150,11 @@ export function registerPureTools(server: McpServer): void {
           status: z.enum(['pending', 'active', 'done', 'invalidated']),
           ref: z.object({ path: z.string(), format: z.enum(['json', 'md']) }).optional(),
           meta: z.record(z.string(), z.unknown()).optional(),
+          // feature-002 契约 §4.4：定稿血缘可经 update 写入；dirty 无入口（zod 剥离）
+          parentReference: z.object({
+            briefVersion: z.number().int().positive(),
+            fields: z.array(z.string()),
+          }).optional(),
           updatedAt: z.string(),
           linksTo: z.array(z.string()).optional(),
         }))
@@ -316,7 +332,9 @@ export function registerPureTools(server: McpServer): void {
           style: args.style ?? {},
           diagnosisSummary: args.diagnosisSummary,
         }
-        const { missing, pendingMarks } = evaluateDraft(draft)
+        // feature-802：谱系装载失败直接阻断（R6），不降级为无校验旧行为
+        const catalog = await loadStyleCatalog()
+        const { missing, pendingMarks, styleIssues } = evaluateDraft(draft, catalog)
         const listing = await listBriefVersions(projectDir)
         const latestEntry = listing.versions[listing.versions.length - 1]
         const prev = latestEntry
@@ -325,9 +343,10 @@ export function registerPureTools(server: McpServer): void {
         return respond({
           ok: true as const,
           plan: {
-            ready: missing.length === 0,
+            ready: missing.length === 0 && styleIssues.length === 0,
             missing,
             pendingMarks,
+            styleIssues,
             nextVersion: listing.latestVersion === null ? 1 : listing.latestVersion + 1,
             changesFromPrevious: diffBrief(prev, draft),
             latestVersion: listing.latestVersion,
@@ -366,74 +385,22 @@ export function registerPureTools(server: McpServer): void {
           diagnosisSummary: args.diagnosisSummary,
         }
 
-        const { missing } = evaluateDraft(draft)
-        if (missing.length > 0) {
-          return respond(fail('BRIEF_NOT_READY', `立项草案未就绪：${missing.map(m => m.message).join('；')}`))
+        // feature-802：谱系装载失败直接阻断（R6）；谱系问题并入 BRIEF_NOT_READY，不新增错误码
+        const catalog = await loadStyleCatalog()
+        const { missing, styleIssues } = evaluateDraft(draft, catalog)
+        if (missing.length > 0 || styleIssues.length > 0) {
+          const problems = [...missing.map(m => m.message), ...styleIssues.map(s => s.message)]
+          return respond(fail('BRIEF_NOT_READY', `立项草案未就绪：${problems.join('；')}`))
         }
         if (args.approve.by === 'verbal' && !args.approve.verbal?.quote?.trim()) {
           return respond(fail('INVALID_ARGUMENT', '口头拍板必须记录用户原话'))
         }
 
-        // 版本号分配与双写在单写队列内串行，防并发撞号
-        const written = await enqueue(async () => {
-          const listing = await listBriefVersions(projectDir)
-          const version = listing.latestVersion === null ? 1 : listing.latestVersion + 1
-          const jsonName = `立项单.v${version}.json`
-          const mdName = `立项单.v${version}.md`
-          const jsonAbs = resolveInside(projectDir, jsonName)
-          const mdAbs = resolveInside(projectDir, mdName)
-
-          // 理论上不可能（版本号磁盘扫描分配）；命中即拒，绝不覆盖
-          const [jsonExists, mdExists] = await Promise.all([
-            fsp.access(jsonAbs).then(() => true, () => false),
-            fsp.access(mdAbs).then(() => true, () => false),
-          ])
-          if (jsonExists || mdExists) {
-            throw Object.assign(new Error(`${jsonExists ? jsonName : mdName} 已存在`), { code: 'BRIEF_VERSION_EXISTS' })
-          }
-
-          const prevEntry = listing.versions[listing.versions.length - 1]
-          const prev = prevEntry
-            ? JSON.parse(await fsp.readFile(path.join(projectDir, prevEntry.path), 'utf-8')) as ProjectBrief
-            : null
-          const now = new Date().toISOString()
-          const brief: ProjectBrief = {
-            schemaVersion: 2,
-            version,
-            kind: args.kind,
-            fiveElements: args.fiveElements,
-            premise: args.premise,
-            style: args.style,
-            approve: {
-              at: now,
-              by: args.approve.by,
-              ...(args.approve.verbal ? { verbal: args.approve.verbal } : {}),
-              ...(args.approve.note ? { note: args.approve.note } : {}),
-            },
-            changesFromPrevious: diffBrief(prev, draft),
-            publishedAt: now,
-            ...(args.diagnosisSummary?.trim() ? { diagnosisSummary: args.diagnosisSummary } : {}),
-          }
-
-          await fsp.writeFile(jsonAbs, JSON.stringify(brief, null, 2), 'utf-8')
-          await fsp.writeFile(mdAbs, renderBriefMd(brief), 'utf-8')
-          return { version, jsonName, mdName, changesFromPrevious: brief.changesFromPrevious }
-        })
+        // feature-002：发布主体抽 publish.ts（v1 行为逐字不变，另写 manifest.briefVersion=1）
+        const written = await publishV1InQueue(projectDir, draft as ReadyBriefDraft, args.approve)
 
         // 画布节点 upsert（canvasStore.update 内部经同一全局 enqueue 串行，排在双写之后）
-        const canvas = await canvasStore.update({
-          nodes: [{
-            id: 'step-0-brief',
-            step: '0',
-            kind: 'brief',
-            title: `立项单 v${written.version}`,
-            status: 'done',
-            ref: { path: written.jsonName, format: 'json' as const },
-            meta: { version: `v${written.version}` },
-            updatedAt: new Date().toISOString(),
-            linksTo: [],
-          }],
-        })
+        const canvas = await canvasStore.update({ nodes: [written.briefNode] })
 
         return respond({
           ok: true as const,
@@ -458,6 +425,377 @@ export function registerPureTools(server: McpServer): void {
       try {
         const r = await listBriefVersions(getActiveProjectDir())
         return respond({ ok: true as const, ...r })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+
+  // ── feature-801 manifest 状态机（15–16；零 LLM）──────────────────
+
+  const manifestEventSchema = z.enum([
+    'brief-published', 'outline-approved', 'profiles-approved',
+    'scenes-approved', 'dialogue-approved', 'storyboard-finalized',
+  ])
+
+  // 15. manifest.get（只读：阶段状态指针）
+  server.tool(
+    'manifest.get',
+    '读取当前项目 manifest 阶段状态（status / statusHistory）；不写文件。',
+    {},
+    async () => {
+      try {
+        const manifest = await readManifest()
+        return respond({ ok: true as const, manifest })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+
+  // 16. manifest.advance（读-改-写推进一格；不校验门状态、不碰 canvas、不归档）
+  server.tool(
+    'manifest.advance',
+    '按定稿事件推进 manifest 状态机一格（initiating→…→storyboard-done）；重复事件幂等不写盘，乱序/终态报错。',
+    { event: manifestEventSchema },
+    async (args: { event: ManifestEvent }) => {
+      try {
+        const r = await advanceManifest(args.event)
+        return respond({ ok: true as const, ...r })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+
+  // ── feature-802 视觉风格谱系（17–19；零 LLM、只读、不依赖激活项目）──────
+
+  // 17. style.catalog（全量 18 条）
+  server.tool(
+    'style.catalog',
+    '读取视觉风格谱系全表（4 形态 18 画风：ID/名称/家族/主备/可行度/辅助候选/视觉特征/锚点词/质感配方）与谱系版本。立项选型前调用。',
+    {},
+    async () => {
+      try {
+        const catalog = await loadStyleCatalog()
+        return respond({
+          ok: true as const,
+          version: catalog.version,
+          count: catalog.entries.length,
+          entries: catalog.entries,
+        })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+
+  // 18. style.get（按 ID 查单条）
+  server.tool(
+    'style.get',
+    '按风格 ID（如 A7、D1）查询单条谱系明细；ID 未知返 STYLE_ID_UNKNOWN。',
+    { id: z.string().min(1) },
+    async (args: { id: string }) => {
+      try {
+        const catalog = await loadStyleCatalog()
+        const id = args.id.trim()
+        const entry = catalog.entries.find(e => e.id === id)
+        if (!entry) {
+          return respond(fail(
+            'STYLE_ID_UNKNOWN',
+            `风格 ID「${id}」不在谱系（当前 ${catalog.version}，${catalog.entries.length} 项），请先用 style.catalog 选型`,
+          ))
+        }
+        return respond({ ok: true as const, version: catalog.version, entry })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+
+  // 19. style.validate（校验引用；业务问题不抛错）
+  server.tool(
+    'style.validate',
+    '校验立项风格引用：主风格 ID 是否在谱系 18 项闭集、catalogVersion 是否与当前谱系逐字一致、辅助风格是否属封闭候选域（B1+D1–D5）。字段空/缺省不校验（非空由 brief.plan 的 missing 负责）；问题以 issues 返回，不抛业务错。',
+    {
+      mainStyleId: z.string().optional(),
+      catalogVersion: z.string().optional(),
+      auxiliaryStyleId: z.string().optional(),
+    },
+    async (args: { mainStyleId?: string; catalogVersion?: string; auxiliaryStyleId?: string }) => {
+      try {
+        const catalog = await loadStyleCatalog()
+        const issues = validateStyleRefs(args, catalog)
+        return respond({
+          ok: true as const,
+          valid: issues.length === 0,
+          version: catalog.version,
+          issues,
+        })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+
+  // ── feature-002 立项后变更与影响评估（20–22；零 LLM；仅 showrunner 放行）──────
+
+  const briefDraftSchema = z.object({
+    kind: kindSchema,
+    fiveElements: fiveElementsSchema,
+    premise: premiseSchema,
+    style: styleSchema,
+    diagnosisSummary: z.string().optional(),
+  })
+  const approveSchema = z.object({
+    by: z.enum(['gate', 'verbal']),
+    verbal: z.object({ quote: z.string().min(1) }).optional(),
+    note: z.string().optional(),
+  })
+
+  // 20. brief.impact.assess（只读预评估：Δ → 分级影响清单；不装载谱系、不写盘）
+  server.tool(
+    'brief.impact.assess',
+    '立项再版预评估：相对最新已发布立项单计算字段改动，追溯画布 done 节点血缘并给分级影响清单（高默认重生成、中默认仅标记）。零写盘。',
+    { draft: briefDraftSchema },
+    async (args: { draft: z.infer<typeof briefDraftSchema> }) => {
+      try {
+        const projectDir = getActiveProjectDir()
+        const draft: BriefDraft = {
+          kind: args.draft.kind,
+          fiveElements: args.draft.fiveElements,
+          premise: args.draft.premise,
+          style: args.draft.style,
+          diagnosisSummary: args.draft.diagnosisSummary,
+        }
+        const listing = await listBriefVersions(projectDir)
+        if (listing.latestVersion === null) {
+          return respond(fail('BRIEF_NO_BASELINE', '尚无已发布立项，不存在再版基线；首版请走 brief.plan / brief.publish'))
+        }
+        const latestEntry = listing.versions[listing.versions.length - 1]!
+        const prev = JSON.parse(
+          await fsp.readFile(path.join(projectDir, latestEntry.path), 'utf-8'),
+        ) as ProjectBrief
+        const changes = diffBrief(prev, draft)
+        const canvas = await canvasStore.get()
+        const assessment = assessImpact(changes, canvas, listing.latestVersion)
+        return respond({
+          ok: true as const,
+          fromVersion: assessment.fromVersion,
+          toVersion: assessment.toVersion,
+          changes,
+          items: assessment.items,
+          counts: assessment.counts,
+          latestPublishedAt: prev.publishedAt,
+        })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+
+  // 21. brief.impact.commit（v2+ 发布：就绪闸门 → 复算影响 → decisions 恰好覆盖
+  //     → 双写 + 影响清单 + manifest 指针 + 挂脏/brief 节点单次画布写）
+  server.tool(
+    'brief.impact.commit',
+    '发布立项再版（v2+）：落盘 立项单.vN.json/md 与 影响清单.v(N-1)-vN.json，推进 manifest.briefVersion，按用户 decisions 给受影响节点挂脏；返回 regenerate 工作队列。',
+    {
+      draft: briefDraftSchema,
+      approve: approveSchema,
+      decisions: z.array(z.object({
+        nodeId: z.string().min(1),
+        decision: z.enum(['regenerate', 'mark']),
+      })).min(0),
+    },
+    async (args: {
+      draft: z.infer<typeof briefDraftSchema>
+      approve: z.infer<typeof approveSchema>
+      decisions: { nodeId: string; decision: ImpactDecision }[]
+    }) => {
+      try {
+        const projectDir = getActiveProjectDir()
+        const draft: BriefDraft = {
+          kind: args.draft.kind,
+          fiveElements: args.draft.fiveElements,
+          premise: args.draft.premise,
+          style: args.draft.style,
+          diagnosisSummary: args.draft.diagnosisSummary,
+        }
+
+        // 就绪闸门：装载谱系（802 纪律，失败三码不降级）+ evaluateDraft
+        const catalog = await loadStyleCatalog()
+        const { missing, styleIssues } = evaluateDraft(draft, catalog)
+        if (missing.length > 0 || styleIssues.length > 0) {
+          const problems = [...missing.map(m => m.message), ...styleIssues.map(s => s.message)]
+          return respond(fail('BRIEF_NOT_READY', `立项草案未就绪：${problems.join('；')}`))
+        }
+        if (args.approve.by === 'verbal' && !args.approve.verbal?.quote?.trim()) {
+          return respond(fail('INVALID_ARGUMENT', '口头拍板必须记录用户原话'))
+        }
+
+        // 全部读-改-写收进一次写队列
+        const result = await enqueue(async () => {
+          const listing = await listBriefVersions(projectDir)
+          if (listing.latestVersion === null) {
+            throw Object.assign(
+              new Error('尚无已发布立项，不存在再版基线；首版请走 brief.publish'),
+              { code: 'BRIEF_NO_BASELINE' },
+            )
+          }
+          const fromVersion = listing.latestVersion
+          const latestEntry = listing.versions[listing.versions.length - 1]!
+          const prev = JSON.parse(
+            await fsp.readFile(path.join(projectDir, latestEntry.path), 'utf-8'),
+          ) as ProjectBrief
+
+          // 复算影响（不信任 Agent 传入清单）
+          const canvas0 = await canvasStore.get()
+          const changes = diffBrief(prev, draft)
+          const assessment = assessImpact(changes, canvas0, fromVersion)
+
+          // decisions 必须恰好覆盖复算 items 全集
+          const want = new Set(assessment.items.map(i => i.nodeId))
+          const got = new Set(args.decisions.map(d => d.nodeId))
+          const missingIds = [...want].filter(id => !got.has(id))
+          const extraIds = [...got].filter(id => !want.has(id))
+          const dup = args.decisions.length !== got.size
+          if (missingIds.length > 0 || extraIds.length > 0 || dup) {
+            const detail = [
+              missingIds.length ? `缺少决策：${missingIds.join(', ')}` : '',
+              extraIds.length ? `多余/未知节点：${extraIds.join(', ')}` : '',
+              dup ? '存在重复 nodeId' : '',
+            ].filter(Boolean).join('；')
+            throw Object.assign(
+              new Error(`决策集合与复算影响清单不一致（${detail}）`),
+              { code: 'IMPACT_DECISION_MISMATCH' },
+            )
+          }
+          const decisionByNode = new Map(args.decisions.map(d => [d.nodeId, d.decision]))
+
+          // 立项单双写（版本防覆盖在 publishBriefFiles 内）
+          const written = await publishBriefFiles(projectDir, draft as ReadyBriefDraft, args.approve)
+          const toVersion = written.version
+          const reportName = `影响清单.v${fromVersion}-v${toVersion}.json`
+          const report: ImpactReportFile = {
+            schemaVersion: 1,
+            kind: 'brief-impact-report',
+            fromVersion,
+            toVersion,
+            committedAt: new Date().toISOString(),
+            changes,
+            items: assessment.items.map(i => ({
+              ...i,
+              decision: decisionByNode.get(i.nodeId)!,
+            })),
+          }
+          await fsp.writeFile(
+            resolveInside(projectDir, reportName),
+            JSON.stringify(report, null, 2),
+            'utf-8',
+          )
+
+          // manifest 指针推进（不追加 statusHistory）
+          const manifestAbs = path.join(projectDir, MANIFEST_FILE)
+          const rawManifest = JSON.parse(await fsp.readFile(manifestAbs, 'utf-8'))
+          const manifest = parseManifest(rawManifest, new Date().toISOString())
+          const nextManifest = applyBriefVersion(manifest, toVersion, new Date().toISOString())
+          await fsp.writeFile(manifestAbs, JSON.stringify(nextManifest, null, 2), 'utf-8')
+
+          // 画布单次写：全部 item 挂脏（regenerate/mark 同挂）+ brief 节点 upsert
+          const markedDirty = assessment.items.map(i => i.nodeId)
+          const regenerate = assessment.items.filter(
+            i => decisionByNode.get(i.nodeId) === 'regenerate',
+          )
+          const canvas = await canvasStore.persistInQueue(c => {
+            for (const item of assessment.items) {
+              const idx = c.nodes.findIndex(x => x.id === item.nodeId)
+              if (idx < 0) continue // assess 候选来自当前画布，理论必在
+              const old = c.nodes[idx]!
+              c.nodes[idx] = {
+                ...old,
+                dirty: {
+                  sinceBriefVersion: fromVersion,
+                  latestBriefVersion: toVersion,
+                  fields: item.fields,
+                  severity: item.severity,
+                  impactReport: reportName,
+                },
+              }
+            }
+            const bIdx = c.nodes.findIndex(x => x.id === written.briefNode.id)
+            const { linksTo: _links, ...briefNode } = written.briefNode
+            if (bIdx >= 0) c.nodes[bIdx] = briefNode
+            else c.nodes.push(briefNode)
+          })
+
+          return {
+            version: toVersion,
+            jsonPath: written.jsonName,
+            mdPath: written.mdName,
+            impactReportPath: reportName,
+            changes,
+            items: assessment.items,
+            markedDirty,
+            regenerate,
+            canvas,
+          }
+        })
+
+        return respond({ ok: true as const, ...result })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+
+  // 22. canvas.align（重生成定稿后清脏并推进血缘版本；无 dirty 幂等）
+  server.tool(
+    'canvas.align',
+    '产物重生成定稿后对齐立项版本：清除节点 dirty、把 parentReference 推进到目标版本（默认当前 manifest.briefVersion）；节点无脏时幂等成功。',
+    {
+      nodeId: z.string().min(1),
+      briefVersion: z.number().int().positive().optional(),
+    },
+    async (args: { nodeId: string; briefVersion?: number }) => {
+      try {
+        const manifest = await readManifest()
+        const target = args.briefVersion ?? manifest.briefVersion
+        if (target === null) {
+          return respond(fail('BRIEF_NO_BASELINE', '当前项目尚无已发布立项，无法对齐版本'))
+        }
+        const result = await enqueue(async () => {
+          const canvas0 = await canvasStore.get()
+          const idx = canvas0.nodes.findIndex(x => x.id === args.nodeId)
+          if (idx < 0) {
+            throw Object.assign(
+              new Error(`画布节点 ${args.nodeId} 不存在`),
+              { code: 'CANVAS_NODE_NOT_FOUND' },
+            )
+          }
+          const node = canvas0.nodes[idx]!
+          if (!node.dirty) {
+            return { nodeId: args.nodeId, briefVersion: target, alreadyAligned: true as const, canvas: canvas0 }
+          }
+          if (target <= node.dirty.sinceBriefVersion) {
+            throw Object.assign(
+              new Error(`目标版本 v${target} 不高于节点所基版本 v${node.dirty.sinceBriefVersion}，不允许倒退对齐`),
+              { code: 'INVALID_ARGUMENT' },
+            )
+          }
+          const fields = node.parentReference?.fields ?? node.dirty.fields
+          const canvas = await canvasStore.persistInQueue(c => {
+            const i = c.nodes.findIndex(x => x.id === args.nodeId)
+            const old = c.nodes[i]!
+            const { dirty: _dirty, ...rest } = old
+            c.nodes[i] = {
+              ...rest,
+              parentReference: { briefVersion: target, fields },
+              updatedAt: new Date().toISOString(),
+            }
+          })
+          return { nodeId: args.nodeId, briefVersion: target, canvas }
+        })
+        return respond({ ok: true as const, ...result })
       } catch (e) {
         return respond(normalize(e))
       }

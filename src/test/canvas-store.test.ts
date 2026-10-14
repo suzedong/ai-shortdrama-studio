@@ -84,3 +84,59 @@ describe('T3 CanvasStore', () => {
     expect(c.nodes.map(x => x.id)).toContain('z')
   })
 })
+
+describe('feature-002 血缘 / 脏态保留（契约 §4.4）', () => {
+  const dirty = {
+    sinceBriefVersion: 2,
+    latestBriefVersion: 3,
+    fields: ['premise.leads'],
+    severity: 'high' as const,
+    impactReport: '影响清单.v2-v3.json',
+  }
+  const ref2 = { briefVersion: 2, fields: ['premise.leads'] }
+  const ref3 = { briefVersion: 3, fields: ['premise.leads', 'kind'] }
+
+  it('脏节点经普通 update（不带两字段）后 dirty/parentReference 保留', async () => {
+    const store = new CanvasStore()
+    await store.withCanvas(canvas => {
+      canvas.nodes.push(n('keep', {
+        status: 'done', parentReference: ref2, dirty,
+      }))
+    })
+    await store.update({ nodes: [n('keep', { title: '改名', status: 'done' })] })
+    const node = (await store.get()).nodes.find(x => x.id === 'keep')!
+    expect(node.title).toBe('改名')
+    expect(node.dirty).toEqual(dirty)
+    expect(node.parentReference).toEqual(ref2)
+  })
+
+  it('显式 parentReference 覆盖旧值；dirty 仍保留（update 无清脏入口）', async () => {
+    const store = new CanvasStore()
+    await store.withCanvas(canvas => {
+      canvas.nodes.push(n('override', { status: 'done', parentReference: ref2, dirty }))
+    })
+    await store.update({
+      nodes: [n('override', { status: 'done', parentReference: ref3 })],
+    })
+    const node = (await store.get()).nodes.find(x => x.id === 'override')!
+    expect(node.parentReference).toEqual(ref3)
+    expect(node.dirty).toEqual(dirty)
+  })
+
+  it('upsert 新节点不带脏、不带血缘', async () => {
+    const store = new CanvasStore()
+    await store.update({ nodes: [n('fresh')] })
+    const node = (await store.get()).nodes.find(x => x.id === 'fresh')!
+    expect(node.dirty).toBeUndefined()
+    expect(node.parentReference).toBeUndefined()
+  })
+
+  it('withCanvas 单次写盘：多次节点变更合并为一次 persist', async () => {
+    const store = new CanvasStore()
+    const c = await store.withCanvas(canvas => {
+      canvas.nodes.push(n('w1', { status: 'done', parentReference: ref2, dirty }))
+      canvas.nodes.push(n('w2', { status: 'done', parentReference: ref2 }))
+    })
+    expect(c.nodes.map(x => x.id)).toEqual(expect.arrayContaining(['w1', 'w2']))
+  })
+})

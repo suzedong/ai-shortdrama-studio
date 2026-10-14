@@ -1,11 +1,44 @@
 // 共享类型定义 —— 前后端共用的立项阶段数据结构
 
-// 历史 10 节点线性模型（feature-001：仅 library.ts initialNodes() 的历史 manifest.nodes 骨架在用；
-// 新立项模型为「1 入口 + 2 节点 + 0-final 一道门」；B-04 随 manifest 7 态状态机整体清退，勿再扩散消费）
-export type Stage =
-  | 'idea' | 'diagnosis' | 'brief' | 'background' | 'story'
-  | 'outline' | 'profiles'
-  | 'scenes' | 'dialogue' | 'storyboard'
+// ===== manifest 阶段状态机（feature-801；设计书 §7.1 L578-583）=====
+
+// manifest.status 7 态（逐字采用设计书 §7.1 L581-582）
+export type ManifestStatus =
+  | 'initiating'
+  | 'story-outline'
+  | 'story-profiles'
+  | 'script-scenes'
+  | 'script-dialogue'
+  | 'script-storyboard'
+  | 'storyboard-done'
+
+// 推进事件（每次定稿对应一个事件；工具入参只接受事件名，不接受任意目标态）
+export type ManifestEvent =
+  | 'brief-published'      // 立项单首版定稿（initiating → story-outline）
+  | 'outline-approved'     // 1-a 大纲门 approved
+  | 'profiles-approved'    // 1-b 小传门 approved
+  | 'scenes-approved'      // 2-a 分场门 approved
+  | 'dialogue-approved'    // 2-b 台词门 approved
+  | 'storyboard-finalized' // 2-c 分镜文字稿定稿（随 feature-201 激活）
+
+// 状态机推进留痕（只追加，不修改/不删除）
+export interface ManifestTick {
+  event: ManifestEvent
+  from: ManifestStatus
+  to: ManifestStatus
+  at: string              // ISO 时间戳
+}
+
+// manifest.json 文件形状（项目根，永不归档；阶段状态指针，非业务产物容器）
+export interface ProjectManifest {
+  status: ManifestStatus
+  createdAt: string            // ISO；createProject 时写入
+  workflowVersion: 1           // 固定 1
+  updatedAt: string            // ISO；每次 advance 更新；createProject 时等于 createdAt
+  statusHistory: ManifestTick[] // 从 [] 起单调追加，长度 = 已完成推进格数
+  /** 当前项目对齐的立项版本；未发布立项为 null；brief.publish(v1)→1，brief.impact.commit→N（feature-002） */
+  briefVersion: number | null
+}
 
 // 立项六要素（原五要素 + 画幅；类型名保持 FiveElements 不变，术语决策见 feature-005 D-023）
 export interface FiveElements {
@@ -246,7 +279,7 @@ export interface ChatMessage {
 // ===== 产物变更传播（feature-005 D-016）=====
 
 // 变更发起源：idea/background（人工事实）+ AI 产物源（gate id 命名）
-// feature-001：删除旧立项门 0-c/0-d；立项后变更解锁（0-final）属 B-03/P1，暂不加入
+// feature-002 已落 CanvasNode.parentReference/dirty（立项版本血缘与脏标）；RevisionSource 扩 '0-final' 留待后续修订传播包
 export type RevisionSource =
   | 'idea' | 'background'
   | '1-a' | '1-b' | '2-a' | '2-b' | '2-c'
@@ -254,7 +287,8 @@ export type RevisionSource =
 // unlock 消息载荷：变更定稿事实，downstream 全部失效
 export interface UnlockData {
   source: RevisionSource
-  downstream: Stage[]   // 需重新走的节点；S3-S8 不含已过门的本棒；2-c 为 []
+  // 需重新走的画布节点 id（step-x-* 形态）；feature-002 立项变更走 parentReference/dirty 独立链路，不复用本字段；2-c 为 []
+  downstream: string[]
   newIdea?: string      // 仅 source==='idea'
 }
 
@@ -288,6 +322,21 @@ export interface SessionStateFile {
 /** 八步闭环步骤编号 0 立项 → 7 发布 */
 export type StepId = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7'
 
+/** 产物血缘：本节点定稿时基于哪一版立项、引用了立项单哪些叶子字段（feature-002） */
+export interface CanvasParentReference {
+  briefVersion: number      // 定稿时 manifest.briefVersion
+  fields: string[]          // 引用的立项字段路径，如 ['fiveElements.episodeCount']
+}
+
+/** 脏标记：产物基于旧版立项、与当前最新版存在命中字段差异（feature-002 §2.6.7） */
+export interface CanvasDirty {
+  sinceBriefVersion: number   // 产物基于的旧版 vN
+  latestBriefVersion: number  // 发布时的新版 vM
+  fields: string[]            // 命中的 Δ 字段（= parentReference.fields ∩ Δ）
+  severity: 'high' | 'medium' // 命中字段最高级
+  impactReport: string        // 影响清单文件名（相对项目根），如 '影响清单.v2-v3.json'
+}
+
 /** 画布节点：以 ref.path 引用产物文件，不内联大产物 */
 export interface CanvasNode {
   id: string                         // 稳定节点 id（如 step-1-outline）
@@ -297,6 +346,10 @@ export interface CanvasNode {
   status: 'pending' | 'active' | 'done' | 'invalidated'
   ref?: { path: string; format: 'json' | 'md' }  // 产物落盘位置
   meta?: Record<string, unknown>
+  /** 产物血缘；showrunner 定稿挂 done 时由 canvas.update 写入；无立项前定稿不出现 */
+  parentReference?: CanvasParentReference
+  /** 脏态；仅 brief.impact.commit 可写、canvas.align 可清；canvas.update 入参不接收（feature-002） */
+  dirty?: CanvasDirty
   updatedAt: string
 }
 

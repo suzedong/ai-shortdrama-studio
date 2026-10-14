@@ -291,12 +291,14 @@ describe('prompt / promptAsync 边界与透传', () => {
     })
   })
 
-  it('feature-001 · showrunner 立项三工具（brief.plan/publish/list）放行', async () => {
+  it('feature-001/801 · showrunner 点号物理工具（brief 三件套 + manifest 两件套）放行', async () => {
     const { client, state } = makeFakeClient()
     const tools = [
       'shortdrama_brief.plan',
       'shortdrama_brief.publish',
       'shortdrama_brief.list',
+      'shortdrama_manifest.get',
+      'shortdrama_manifest.advance',
     ]
     const r = await client.promptAsync({ ...baseReq, agent: 'showrunner', tools })
     expect(r.accepted).toBe(true)
@@ -306,6 +308,26 @@ describe('prompt / promptAsync 边界与透传', () => {
       'shortdrama_brief.plan': true,
       'shortdrama_brief.publish': true,
       'shortdrama_brief.list': true,
+      'shortdrama_manifest.get': true,
+      'shortdrama_manifest.advance': true,
+    })
+  })
+
+  it('feature-802 · showrunner 风格谱系三物理工具（style 三件套）放行', async () => {
+    const { client, state } = makeFakeClient()
+    const tools = [
+      'shortdrama_style.catalog',
+      'shortdrama_style.get',
+      'shortdrama_style.validate',
+    ]
+    const r = await client.promptAsync({ ...baseReq, agent: 'showrunner', tools })
+    expect(r.accepted).toBe(true)
+    const body = state.calls['session.promptAsync']!.at(-1).body
+    expect(body.agent).toBe('showrunner')
+    expect(body.tools).toEqual({
+      'shortdrama_style.catalog': true,
+      'shortdrama_style.get': true,
+      'shortdrama_style.validate': true,
     })
   })
 

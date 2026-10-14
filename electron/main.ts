@@ -16,6 +16,13 @@ import { runtimeManager } from './runtime/manager.js'
 import { OpencodeRuntimeClient } from './runtime/client.js'
 import { subscribeEvents, type EventStreamHandle } from './runtime/projection.js'
 import type { RuntimeEvent, RuntimeStatus } from './runtime/types.js'
+import { windowChromeOptions, type WindowPlatform } from './window/chrome.js'
+
+/** process.platform 收窄到三分支：非 darwin/win32 的类 Unix 一律按 linux 自绘外壳处理 */
+const windowPlatform: WindowPlatform =
+  process.platform === 'darwin' ? 'darwin'
+    : process.platform === 'win32' ? 'win32'
+      : 'linux'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -27,13 +34,25 @@ function createWindow() {
     height: 900,
     minWidth: 1100,
     minHeight: 700,
-    titleBarStyle: 'hiddenInset',
+    ...windowChromeOptions(windowPlatform),
     backgroundColor: '#FAFAFE',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },
+  })
+
+  // feature-804：最大化/还原状态推送（双击标题栏、Win+↑、Aero Snap 等多入口状态同步）
+  mainWindow.on('maximize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('window:maximize-changed', { maximized: true })
+    }
+  })
+  mainWindow.on('unmaximize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('window:maximize-changed', { maximized: false })
+    }
   })
 
   const devUrl = process.env.VITE_DEV_SERVER_URL
@@ -48,6 +67,43 @@ function createWindow() {
     mainWindow = null
   })
 }
+
+// feature-804 · 窗口控制 IPC（契约 §2，K8 登记：window:* 四 invoke + 一推送）
+// 单窗口应用：只操作模块内 mainWindow 单例；窗口销毁竞态返回 WINDOW_UNAVAILABLE，不抛未捕获异常。
+ipcMain.handle('window:minimize', () => {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return { ok: false, error: { code: 'WINDOW_UNAVAILABLE' } }
+  }
+  mainWindow.minimize()
+  return { ok: true }
+})
+
+ipcMain.handle('window:toggle-maximize', () => {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return { ok: false, error: { code: 'WINDOW_UNAVAILABLE' } }
+  }
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize()
+  } else {
+    mainWindow.maximize()
+  }
+  return { ok: true, maximized: mainWindow.isMaximized() }
+})
+
+ipcMain.handle('window:is-maximized', () => {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return { ok: true, maximized: false }
+  }
+  return { ok: true, maximized: mainWindow.isMaximized() }
+})
+
+ipcMain.handle('window:close', () => {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return { ok: false, error: { code: 'WINDOW_UNAVAILABLE' } }
+  }
+  mainWindow.close()
+  return { ok: true }
+})
 
 // feature-011 F13：项目库真实化（原 project:create 假实现已移除）
 ipcMain.handle('project:list', () => listProjects())

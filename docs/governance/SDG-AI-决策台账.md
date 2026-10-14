@@ -188,3 +188,43 @@
   - 错误码以 runtime 14 个为唯一口径（`electron/runtime/types.ts`），旧业务错误码不再引入；
   - 无 Key 场景显式报 `UPSTREAM_AUTH_MISSING` 提示配置，不恢复 mock 降级；
   - 新增生成 / 工具能力须走 §5.2 目标族与 feature 包流程，不得绕过 runtime 单轨另立通道。
+
+---
+
+## D-013 ｜ K8 ｜ 任务包按八步业务模块重新划分 + 三项建包前裁决
+
+- **日期**：2026-10-13
+- **卡口**：K8（任务包体系性规划 + 跨包契约歧义裁决；不落代码）
+- **触发背景**：D-005 旧 22 包作废后仅重建了 feature-001，后续包无成体系编号规划；偏差 B-03/B-04/B-05/B-06 需归位到具体任务包，且 shotlist 阶段边界、style-catalog.ts 去向、共享层改动存在建包前必须拍板的歧义。
+- **用户决策**（2026-10-13 拍板，四项）：
+  1. **划分维度：以 §0.1 八步业务闭环为模块边界**。编号百位 = 业务阶段：0xx–7xx 对应 STAGE 0–7，每段 99 序号；跨阶段横切机制归入 8xx 平台基础（状态机 / 风格谱系 / 统一媒体引擎 / Harness / Skill）。共规划 15 包：001（已落地）、002、101、201、301、302、401、501、601、602、701、801–805（805 二期暂不建包）。
+  2. **shotlist 同一文件两阶段演进**：201 产出 `分镜/shotlist.json` 文字稿（一期空镜 `dialogue=null`、`refs=[]`）；401 在**同一文件**上启用 `refs[]` / 景别 / 运镜 / 时长，升级为生产分镜——不设两个产物文件。
+  3. **B-05 取重建方案**：重建 `electron/style-catalog.ts`（CATALOG_VERSION + 风格 ID 校验，读 `resources/H3-Style/` 谱系源），feature-802 为落地包；平台只消费不私改谱系（D-005 第 6 条）。
+  4. **K1 共享层扩展知情**：002 与 801 改 `shared/types.ts`（`manifest.briefVersion` / 产物 `parentReference` / `CanvasNode.dirty` / 7 态 status / 清退历史 `Stage` 10 态），各包建包时正式走 K1：先出字段方案、用户确认后记包内变更记录，再动代码。
+- **建设顺序**：P1 = 801 状态机推进（B-04）→ 002 立项后变更（B-03）；802 风格谱系（B-05）；101/201 反向补录（代码已落地）。P2 = 803 ComfyUI 统一媒体引擎 → 804 Harness + 确认门全链路。P3 = 301 → 302 → 401 → 501 → 601 → 602 → 701。
+- **落地内容**（本次仅文档）：
+  - [features/README.md](../../docs/features/README.md) 整体重写：§0 编号规则、§1 九张模块包表（边界 / 解决偏差 / 技术落点 / 溯源 / 状态）、§2 已落地无包骨架、§3 裁决（本决策第 2–4 项）、§4 建设顺序、§5 归档说明；
+  - [设计现状与偏差清单.md](../../docs/设计现状与偏差清单.md) §3 路线表改为新模块编号并与 README 互链。
+- **波及文件**：features/README.md、设计现状与偏差清单.md；**代码未改**。后续包内 K1 决策记入各包变更记录，不进本台账（§3 台账规则）。
+
+---
+
+## D-014 ｜ K8 ｜ 804 编号让位 Windows 窗口标题栏缺陷修复，Harness 顺延 806
+
+- **日期**：2026-10-13
+- **卡口**：K8（任务包编号体系调整；十五包规划外新增窗口外壳包）
+- **触发背景**：真机盘点发现 `electron/main.ts` 的 `BrowserWindow` 使用 macOS 专用 `titleBarStyle:'hiddenInset'`，Windows 下退化为无最小化/最大化/关闭按钮的无边框窗口（只能 Alt+F4），定为新偏差 **B-10**。用户提供 MiniMax Design Windows 版截图并指示建包修复时，发现 804 编号已在 D-013 十五包方案中分配给「Harness 基础校验与确认门全链路」（未建包），产生编号冲突。
+- **用户决策**（2026-10-13 拍板）：
+  1. **804 让给窗口标题栏**：feature-804 = Windows 窗口标题栏缺陷修复包（真机缺陷优先，不占 P1/P2 媒体链顺序）；
+  2. **Harness 包顺延 806**：原 D-013 规划的 feature-804-Harness 改编号 feature-806，P2 优先级与"可随阶段分批"策略不变；805 Skill 体系编号不动；
+  3. 窗口外壳选型与视觉方案属包级选型，在 feature-804 包内 D-002/D-003/D-005 固化，随 K8 卡口（新增 4 invoke + 1 推送 IPC 登记）一并报批后才准编码。
+- **包级选型（随建包登记，K8 已于 2026-10-13 经 AskUserQuestion 批准）**：
+  - 外壳：win32/linux 取 `frame:false` 全自绘（darwin 保留 `hiddenInset` 零变化），放弃 `titleBarOverlay` 混合方案；已知代价为失去 Win11 最大化钮悬停 Snap Layouts 菜单（Win+方向键/拖边吸附/双击最大化保留）；
+  - 视觉：沿用现有浅色 44px 自绘顶栏（设计书 L289-298/L383 规定 titlebar 承载八步进度轨），仅右侧补三按钮（46×32、关闭红 `#C42B1C`），不做截图深色 32px 薄栏改版。
+- **落地内容**（本次仅文档）：
+  - 新建任务包 [feature-804-Windows窗口标题栏](../features/feature-804-Windows窗口标题栏/) 5 文件（需求规格 / 契约 / 任务清单 / 设计说明 / 变更记录），溯源 [改编]，无 K1（平台类型落 `src/global.d.ts`，不碰 `shared/types.ts`）；
+  - [features/README.md](../../docs/features/README.md)：8xx 表 804 行改窗口标题栏、新增 806 Harness 行、§4 P2 顺序 804→806；
+  - [设计现状与偏差清单.md](../../docs/设计现状与偏差清单.md)：§2 新增 B-10，§3 路线表 804 改窗口标题栏、Harness 改 806。
+- **波及文件**：feature-804 任务包 5 文件、features/README.md、设计现状与偏差清单.md。交叉指针：feature-804 变更记录 D-006。
+- **落地回填（2026-10-13）**：K8 批准后 T1→T6 已全部完成——`electron/window/chrome.ts` 平台分支纯函数、main.ts 四 invoke 一推送、preload/global.d.ts/dev-mock 三处契约同步、`src/studio/WindowControls.tsx` 三按钮、StudioApp 顶栏集成；新增测试 15 例全绿，全量回归 264 passed / 7 skipped / 12 failed（与基线同分布、零扩大）。README 与偏差清单 B-10 已同步为「已落地，待 Windows 真机人工验收」。
+- **编号规则补充**：D-013 的十五包为规划基线而非编号锁定；遇真机缺陷等紧急包时，未建包的规划包可顺延编号，以本台账决策为凭，并在 README/偏差清单同步改号。

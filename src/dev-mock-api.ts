@@ -344,6 +344,16 @@ export function installDevMockApi(): void {
         remove: () => resolve({ ok: true as const }),
       },
     },
+
+    // feature-804 · Windows 窗口标题栏（契约 §5）：浏览器预览固定 win32 形态，操作 no-op
+    window: {
+      platform: 'win32' as const,
+      minimize: () => resolve({ ok: true as const }),
+      toggleMaximize: () => resolve({ ok: true as const, maximized: false }),
+      isMaximized: () => resolve({ ok: true as const, maximized: false }),
+      close: () => resolve({ ok: true as const }),
+      onMaximizeChange: () => noop,
+    },
   }
 
   Object.assign(api, { __devMock: true })

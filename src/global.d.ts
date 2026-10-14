@@ -12,6 +12,8 @@ import type {
 } from './lib/runtime-types'
 
 declare global {
+  // feature-804 · 平台标识（与主进程 WindowPlatform 同形三字符串，两端各自声明、不跨层 import）
+  type StudioPlatform = 'darwin' | 'win32' | 'linux'
   interface Window {
     api: {
       // 项目库（feature-011 F13）
@@ -68,6 +70,15 @@ declare global {
           upsert(instance: Partial<ComfyInstance>): Promise<ComfyInstance>
           remove(id: string): Promise<{ ok: true }>
         }
+      }
+      // feature-804 · Windows 窗口标题栏（契约 §4）
+      window: {
+        readonly platform: StudioPlatform
+        minimize(): Promise<{ ok: true }>
+        toggleMaximize(): Promise<{ ok: true; maximized: boolean }>
+        isMaximized(): Promise<{ ok: true; maximized: boolean }>
+        close(): Promise<{ ok: true }>
+        onMaximizeChange(cb: (maximized: boolean) => void): () => void
       }
     }
   }

@@ -80,4 +80,21 @@ contextBridge.exposeInMainWorld('api', {
       remove: (id: string) => ipcRenderer.invoke('settings:comfy:remove', { id }),
     },
   },
+
+  // feature-804 · Windows 窗口标题栏（契约 §3）
+  // platform 为 Node 上下文同步常量（非 invoke），首渲染即定形态，无闪烁。
+  window: {
+    platform: process.platform as 'darwin' | 'win32' | 'linux',
+    minimize: (): Promise<{ ok: true }> => ipcRenderer.invoke('window:minimize'),
+    toggleMaximize: (): Promise<{ ok: true; maximized: boolean }> =>
+      ipcRenderer.invoke('window:toggle-maximize'),
+    isMaximized: (): Promise<{ ok: true; maximized: boolean }> =>
+      ipcRenderer.invoke('window:is-maximized'),
+    close: (): Promise<{ ok: true }> => ipcRenderer.invoke('window:close'),
+    onMaximizeChange: (cb: (maximized: boolean) => void): (() => void) => {
+      const listener = (_event: unknown, payload: { maximized: boolean }) => cb(payload.maximized)
+      ipcRenderer.on('window:maximize-changed', listener)
+      return () => ipcRenderer.removeListener('window:maximize-changed', listener)
+    },
+  },
 })

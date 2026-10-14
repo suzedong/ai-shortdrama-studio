@@ -14,6 +14,7 @@ import StageNavPanel from './StageNavPanel'
 import Stage0View from './Stage0View'
 import StudioViewer from './StudioViewer'
 import VisualCatalog from './VisualCatalog'
+import WindowControls from './WindowControls'
 
 type CenterView = 'dag' | 'stage0'
 
@@ -87,6 +88,8 @@ function devMockActive(): boolean {
 }
 
 export default function StudioApp() {
+  // feature-804：平台形态（契约 §7）；防御式访问，部分桩/缺段按 win32 渲染
+  const platform = window.api.window?.platform ?? 'win32'
   const [canvas, setCanvas] = useState<Canvas>(emptyCanvas)
   const [items, setItems] = useState<ChatItem[]>(() => (devMockActive() ? demoChatItems() : []))
   const [stream, setStream] = useState<StreamingTurn | null>(null)
@@ -295,7 +298,10 @@ export default function StudioApp() {
     <div className="flex h-full flex-col overflow-hidden bg-win shadow-[0_18px_50px_rgba(40,42,80,0.18)]">
       {/* ═══ 顶栏 ═══ */}
       <header
-        className="flex h-11 shrink-0 items-center gap-3 border-b border-line bg-white pl-20 pr-4"
+        // feature-804：darwin 保留红绿灯留白 pl-20/pr-4；win32/linux 左 pl-3、右 pr-0 让关闭钮贴边
+        className={`flex h-11 shrink-0 items-center gap-3 border-b border-line bg-white ${
+          platform === 'darwin' ? 'pl-20 pr-4' : 'pl-3 pr-0'
+        }`}
         style={{ WebkitAppRegion: 'drag' }}
       >
         {/* 标题（左上角红绿灯由 macOS 原生渲染，无需自绘） */}
@@ -364,6 +370,8 @@ export default function StudioApp() {
         <button className="rounded-lg px-2.5 py-1.5 text-[12.5px] text-muted hover:bg-canvas">导出</button>
         <div className="grid h-[26px] w-[26px] place-items-center rounded-full bg-gradient-to-br from-[#B8AFFF] to-violet text-[11px] font-bold text-white">SZ</div>
         </div>
+        {/* feature-804：自绘窗口控制（仅 win32/linux；末位贴右边） */}
+        {platform !== 'darwin' && <WindowControls />}
       </header>
 
       {/* ═══ 主体：四栏（图标轨 ｜ 左栏双视图 ｜ 中栏 ｜ 右栏）═══ */}

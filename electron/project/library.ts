@@ -4,7 +4,7 @@ import { app } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
-import type { NodeStatus, ProjectSession, SessionStateFile, Stage } from '../../shared/types.js'
+import type { ProjectManifest, ProjectSession, SessionStateFile } from '../../shared/types.js'
 import { enqueue } from '../fs/write-queue.js'
 
 function stateFilePath(): string {
@@ -86,17 +86,7 @@ export async function listProjects(): Promise<ProjectSummary[]> {
   return out.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
 }
 
-// 立项初始节点（历史 manifest 骨架字段，沿用原样）
-function initialNodes(): Record<Stage, NodeStatus> {
-  return {
-    idea: 'active',
-    diagnosis: 'pending', brief: 'pending', background: 'pending',
-    story: 'pending', outline: 'pending', profiles: 'pending',
-    scenes: 'pending', dialogue: 'pending', storyboard: 'pending',
-  }
-}
-
-// project:create：真实初始化会话目录 + manifest 骨架 + .session.json，并切换为当前会话
+// project:create：真实初始化会话目录 + manifest（7 态状态机初始态）+ .session.json，并切换为当前会话
 export async function createProject(name?: string): Promise<{ dir: string }> {
   return enqueue(async () => {
     const now = new Date()
@@ -105,21 +95,14 @@ export async function createProject(name?: string): Promise<{ dir: string }> {
     await fsp.mkdir(dir, { recursive: true })
 
     const title = typeof name === 'string' && name.trim() ? name.trim() : '新项目'
-    const manifest = {
+    const nowIso = now.toISOString()
+    const manifest: ProjectManifest = {
       status: 'initiating',
-      createdAt: now.toISOString(),
-      workflowVersion: 1 as const,
-      phase: 'initiating' as const,
-      nodes: initialNodes(),
-      pendingGate: null,
-      redoGate: null,
-      storyRedo: null,
-      scriptRedo: null,
-      activeUnlock: null,
-      activeDraft: null,
-      feOverride: null,
-      preflight: null,
-      saved: false,
+      createdAt: nowIso,
+      workflowVersion: 1,
+      updatedAt: nowIso,
+      statusHistory: [],
+      briefVersion: null,
     }
     await fsp.writeFile(path.join(dir, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf-8')
     const session: ProjectSession = {

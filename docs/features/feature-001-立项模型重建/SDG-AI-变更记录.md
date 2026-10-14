@@ -43,4 +43,15 @@
 
 ## 三、修订记录
 
-（暂无）
+### R-001 · brief.publish 与 manifest 推进的边界补注（2026-10-13，feature-801 联动）
+
+- 原文口径：D-003「publish **不**推进 manifest.status（B-04 排除）」。
+- [feature-801](../feature-801-manifest状态机推进/) 契约 §11 联动修订：**publish 工具自身仍不写 manifest（工具边界不变）**；立项首版定稿后的状态推进由 showrunner 在 publish 返回后**显式调用** `shortdrama_manifest.advance({ event: 'brief-published' })` 完成，且**仅当 `version === 1`**；再版（v2+，立项后变更，feature-002 范围）不推此事件。
+- 同步修订：本包 D-001「不在批准范围」第 5 条所述「`Stage` 保留仅供历史 manifest.nodes 骨架，待 B-04 清退」已由 feature-801 执行完毕（K1：删 `Stage` 联合与 `StageCanvas.tsx`，manifest 改 7 态形状）。
+- 交叉指针：[feature-801 契约 §11](../feature-801-manifest状态机推进/SDG-RE-契约.md)、[showrunner.md](../../../resources/opencode/agents/showrunner.md) 第 0 步第 8 条。
+
+### R-002 · plan.ts「style 仅非空校验（B-05）」被 feature-802 注入式增补（2026-10-13，feature-802 联动）
+
+- 原文口径：本包契约中 brief.plan 的 `style.mainStyleId` / `style.catalogVersion` 只做非空校验，B-05 遗留「风格 ID 是否在谱系内」无实现。
+- [feature-802](../feature-802-视觉风格谱系接入/) 契约 §12 联动修订：`evaluateDraft(draft, catalog?)` 新增**可选第二参注入**，注入后返回对象追加 `styleIssues`（未知 ID / 版本不符 / 辅助越域三码），brief.plan/publish handler 成为唯一装载注入点。**纯函数默认行为（无注入 styleIssues=[]）、planBrief 签名与 BriefPlan/BriefMissingCode 形状逐字不变**，本包既有全部断言逐字未动——属行为增补而非契约破坏，不回改本包文档原句。
+- 交叉指针：[feature-802 契约 §12](../feature-802-视觉风格谱系接入/SDG-RE-契约.md)、[偏差清单 B-05/B-11](../../设计现状与偏差清单.md)。

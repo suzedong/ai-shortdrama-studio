@@ -6,6 +6,8 @@ import type {
   BriefDraft, BriefMissing, BriefPlan, ProjectBrief, ProjectKind,
 } from '../../shared/types.js'
 import { diffBrief } from './diff.js'
+import type { LoadedStyleCatalog, StyleIssue } from '../style/types.js'
+import { validateStyleRefs } from '../style/validate.js'
 
 const PENDING = '待定'
 
@@ -34,9 +36,13 @@ function isEmpty(value: unknown, array: boolean): boolean {
 /**
  * 就绪校验（不读磁盘）：
  * - 空串 / 空数组记缺失；字符串「待定」合法但进 pendingMarks。
- * - style 只校验 mainStyleId + catalogVersion 非空，不校验谱系 ID 存在性（B-05）。
+ * - style 非空由 MAIN_STYLE_MISSING 负责；注入谱系 catalog（feature-802）时追加 styleIssues
+ *   （ID 闭集 / 版本一致 / 辅助候选封闭域），不注入则恒为 []，行为与旧版逐字一致。
  */
-export function evaluateDraft(draft: BriefDraft): { missing: BriefMissing[]; pendingMarks: string[] } {
+export function evaluateDraft(
+  draft: BriefDraft,
+  catalog?: LoadedStyleCatalog,
+): { missing: BriefMissing[]; pendingMarks: string[]; styleIssues: StyleIssue[] } {
   const missing: BriefMissing[] = []
   const pendingMarks: string[] = []
 
@@ -68,7 +74,9 @@ export function evaluateDraft(draft: BriefDraft): { missing: BriefMissing[]; pen
     missing.push({ code: 'MAIN_STYLE_MISSING', field: 'style.mainStyleId', message: '缺少主视觉风格 ID 或谱系版本' })
   }
 
-  return { missing, pendingMarks }
+  const styleIssues = catalog ? validateStyleRefs(draft.style ?? {}, catalog) : []
+
+  return { missing, pendingMarks, styleIssues }
 }
 
 /** 扫描项目根一层 立项单.vN.json；损坏文件跳过并在 warnings 注明，按 N 升序返回 */

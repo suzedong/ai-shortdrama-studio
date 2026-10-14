@@ -6,6 +6,7 @@ import type { BriefDraft, ProjectBrief } from '@shared/types'
 import { diffBrief } from '../../electron/brief/diff'
 import { evaluateDraft, listBriefVersions, planBrief } from '../../electron/brief/plan'
 import { renderBriefMd } from '../../electron/brief/render-md'
+import type { LoadedStyleCatalog } from '../../electron/style/types'
 
 function fullBrief(version: number, overrides: Partial<ProjectBrief> = {}): ProjectBrief {
   return {
@@ -120,6 +121,52 @@ describe('evaluateDraft 就绪校验（契约 §2）', () => {
   it('catalogVersion 缺失 → MAIN_STYLE_MISSING', () => {
     const r = evaluateDraft(fullDraft({ style: { mainStyleId: 'A7' } }))
     expect(r.missing).toContainEqual(expect.objectContaining({ code: 'MAIN_STYLE_MISSING' }))
+  })
+})
+
+describe('evaluateDraft 谱系注入 styleIssues（feature-802 契约 §5）', () => {
+  // 构造 catalog：闭集 A7/B1/D1；辅助候选 D1；版本 v9.9（纯函数层构造，不经 loader）
+  function makeCatalog(): LoadedStyleCatalog {
+    const mk = (
+      id: string, name: string, familyCode: 'A' | 'B' | 'C' | 'D' | 'E',
+      role: 'main' | 'backup', auxiliaryCandidate: boolean,
+    ) => ({
+      id, name, familyCode, familyLabel: `${familyCode} 系`, role,
+      feasibility: 'high' as const, auxiliaryCandidate,
+      visualTraits: 't', anchorWords: 'a', textureRecipe: 'r',
+    })
+    return {
+      version: 'v9.9', sourcePath: 'mem',
+      entries: [mk('A7', '拟真人', 'A', 'main', false), mk('B1', '清新', 'B', 'main', true), mk('D1', '悬疑', 'D', 'backup', true)],
+    }
+  }
+
+  it('无注入：返回 styleIssues 键且为空（既有行为不破坏）', () => {
+    expect(evaluateDraft(fullDraft()).styleIssues).toEqual([])
+  })
+
+  it('合法 A7@v9.9 + 辅助 D1：styleIssues=[]', () => {
+    const catalog = makeCatalog()
+    const r = evaluateDraft(
+      fullDraft({ style: { mainStyleId: 'A7', catalogVersion: 'v9.9', auxiliaryStyleId: 'D1' } }),
+      catalog,
+    )
+    expect(r.styleIssues).toEqual([])
+  })
+
+  it('未知主 ID / 错版本 / 辅助越域产出 styleIssues，ready 判定受其阻塞', () => {
+    const catalog = makeCatalog()
+    const r = evaluateDraft(
+      fullDraft({ style: { mainStyleId: 'ZZ9', catalogVersion: 'v1.46', auxiliaryStyleId: 'A7' } }),
+      catalog,
+    )
+    expect(r.styleIssues.map(i => i.code)).toEqual([
+      'STYLE_ID_UNKNOWN', 'STYLE_VERSION_MISMATCH', 'STYLE_AUX_NOT_CANDIDATE',
+    ])
+    expect(r.styleIssues.map(i => i.field)).toEqual([
+      'style.mainStyleId', 'style.catalogVersion', 'style.auxiliaryStyleId',
+    ])
+    expect(r.missing).toEqual([])
   })
 })
 

@@ -34,6 +34,13 @@ const TOOLS_TRUE: Record<string, string[]> = {
     'shortdrama_brief.plan',
     'shortdrama_brief.publish',
     'shortdrama_brief.list',
+    // feature-801：manifest 状态机两工具物理 ID 保留点号
+    'shortdrama_manifest.get',
+    'shortdrama_manifest.advance',
+    // feature-802：视觉风格谱系三工具物理 ID 保留点号
+    'shortdrama_style.catalog',
+    'shortdrama_style.get',
+    'shortdrama_style.validate',
   ],
   'writer.md': [
     'shortdrama_file_read',
@@ -73,7 +80,7 @@ describe('T1 · profile frontmatter 静态契约', () => {
     }
   })
 
-  it('showrunner：primary + 9 物理工具 + task 常驻 + 占位符 model', async () => {
+  it('showrunner：primary + 14 物理工具 + task 常驻 + 占位符 model', async () => {
     const { fm } = splitFrontmatter(await readProfile('showrunner.md'))
     expect(fm).toMatch(/^mode: primary$/m)
     expect(fm).toMatch(/^model: ark\/__ARK_MODEL_ID__$/m)
@@ -111,12 +118,22 @@ describe('T1 · profile frontmatter 静态契约', () => {
     }
   })
 
-  it('frontmatter 点号工具键仅允许 feature-001 立项三工具（brief.plan/publish/list）', async () => {
+  it('frontmatter 点号工具键仅允许立项三工具、状态机两工具与 feature-802 谱系三工具', async () => {
+    const dottedWhitelist = [
+      'shortdrama_brief.plan',
+      'shortdrama_brief.publish',
+      'shortdrama_brief.list',
+      'shortdrama_manifest.get',
+      'shortdrama_manifest.advance',
+      'shortdrama_style.catalog',
+      'shortdrama_style.get',
+      'shortdrama_style.validate',
+    ]
     for (const file of PROFILE_FILES) {
       const { fm } = splitFrontmatter(await readProfile(file))
       const dottedKeys = [...fm.matchAll(/^\s+(shortdrama_\S*\.\S*):/gm)].map(m => m[1])
       for (const key of dottedKeys) {
-        expect(['shortdrama_brief.plan', 'shortdrama_brief.publish', 'shortdrama_brief.list']).toContain(key)
+        expect(dottedWhitelist).toContain(key)
       }
       // 点号键只可能出现在 showrunner profile
       if (dottedKeys.length > 0) expect(file).toBe('showrunner.md')
@@ -153,6 +170,33 @@ describe('T2 · 系统提示静态契约', () => {
       expect(body).toContain('自身推理产出')
       // 紧匹配：禁止"经工具生成/产出内容"肯定式表述；引号内的否定式不命中
       expect(body).not.toMatch(/经工具(直接)?(生成|产出)内容/)
+    }
+  })
+
+  it('feature-802：showrunner 第 0 步动作化——先查后选、6 封闭候选、styleIssues 与装载三码', async () => {
+    const { body } = splitFrontmatter(await readProfile('showrunner.md'))
+    // 选型前必须调谱系工具
+    expect(body).toContain('shortdrama_style.catalog')
+    expect(body).toContain('shortdrama_style.get')
+    expect(body).toContain('shortdrama_style.validate')
+    // 封闭候选域与逐字版本
+    expect(body).toContain('`B1` 清新生活流与 `D1`–`D5`')
+    expect(body).toMatch(/逐字采用返回的 `version`/)
+    // ready:false 时 styleIssues 必须处理
+    expect(body).toContain('styleIssues[].message')
+    // 装载三码显式阻断
+    expect(body).toContain('STYLE_CATALOG_MISSING')
+    expect(body).toContain('STYLE_CATALOG_PARSE_ERROR')
+    expect(body).toContain('STYLE_CATALOG_DRIFT')
+    // 三工具名不得出现在第 0 步之外（第 0 步为正文唯一章节，计数锚点：第 1/2 步不含）
+    expect(body).not.toMatch(/第 1 步[\s\S]*shortdrama_style\./)
+  })
+
+  it('feature-802：三个专职 profile 正文不出现 style 谱系工具', async () => {
+    for (const file of ['writer.md', 'media-director.md', 'comfyui-operator.md'] as const) {
+      const { fm, body } = splitFrontmatter(await readProfile(file))
+      expect(fm).not.toContain('shortdrama_style.')
+      expect(body).not.toContain('shortdrama_style.')
     }
   })
 })

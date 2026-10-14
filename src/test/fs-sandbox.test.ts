@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import path from 'node:path'
+import os from 'node:os'
 import { resolveInside } from '../../electron/fs/sandbox'
 
-const ROOT = path.join('/tmp', 'project-root')
+// 用真实绝对路径（含 Windows 盘符），避免 POSIX 风格 '/tmp' 在 win32 被
+// path.resolve 补当前盘符后与 ROOT 前缀不匹配
+const ROOT = path.join(os.tmpdir(), 'project-root')
 
 describe('T1 resolveInside 路径沙箱', () => {
   it('正常相对路径解析到 root 内', () => {

@@ -837,7 +837,7 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
         openable={Boolean(menu.node?.ref?.path) && Boolean(onOpenNode)}
         onAction={(act, node) => {
           if (act === 'fit') fitView()
-          else if (act === 'view' && node.ref?.path && onOpenNode) onOpenNode(node)
+          else if (act === 'view' && node?.ref?.path && onOpenNode) onOpenNode(node)
           else if (node && onNodeAction) onNodeAction(act, node)
           setMenu(null)
         }}

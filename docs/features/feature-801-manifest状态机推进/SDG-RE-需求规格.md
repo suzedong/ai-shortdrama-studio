@@ -89,5 +89,5 @@ initiating → story-outline → story-profiles
 - AC5：重复幂等——当前态已是该事件的目标态时再次调用同一事件（如立项 v2 后又调 `brief-published`），返回 `{ok:true, status, advanced:false}`，不追加 tick、不重写文件。
 - AC6：终态保护——`storyboard-done` 下收任何事件返回 `MANIFEST_TERMINAL`，文件不变。
 - AC7：旧项目 manifest（含 12 字段骨架、`nodes` 10 态、`status:'initiating'`）可被 manifest.get 正常读出（旧字段原样保留在磁盘、读返回不丢失未知字段），非法/缺失 `status` 容错为 `initiating`；openProject 不报错。
-- AC8：生产代码与测试中不再 import 或出现 `Stage` 类型与 `StageCanvas`；`npm run typecheck`、`npx tsc -b tsconfig.node.json` 与本包相关测试全绿（不扩大 HEAD 既有 11 失败基线）。
+- AC8：生产代码与测试中不再 import 或出现 `Stage` 类型与 `StageCanvas`；`npm run typecheck`、`npx tsc -b tsconfig.node.json` 与本包相关测试全绿（不扩大当时 HEAD 既有 11 失败基线；该存量失败已于 2026-10-14 清零）。
 - AC9：showrunner.md 中 5 个已定稿点（publish 后 + 4 门后）均有 manifest.advance 动作与正确事件名；2-c 仅以「feature-201 预留」语境出现。

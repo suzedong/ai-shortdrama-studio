@@ -9,7 +9,7 @@
   ⚠ 本文件仅为可视化呈现，不是事实源；进度与规划以 A 类 .md 文档为准。
   事实来源见页底「事实来源索引」。无构建、无外部依赖（Google Fonts 除外），仅含展示脚本。
   数据快照日期：2026-10-09（当日复核 test:run / typecheck，与 2026-10-08 首测结果一致）。
-  2026-10-14 再核（v1.12 反向同步）：磁盘实况更新为 22 个纯 MCP 工具 / 8 族、4 个 Agent profile（director 已退役，showrunner 单 primary）、5 个现行 feature 包；测试基线 358 通过 / 11 失败（存量，architecture + studio-flow）/ 1 跳过。
+  2026-10-14 再核（v1.12 反向同步）：磁盘实况更新为 22 个纯 MCP 工具 / 8 族、4 个 Agent profile（director 已退役，showrunner 单 primary）、5 个现行 feature 包；测试基线 369 通过 / 0 失败 / 1 跳过（35 文件，存量同日清零），typecheck 0 错误。
   D-005：旧 22 个 feature 包已整体作废归档，本看板内 F-001~F-010 均为旧包历史，新包从 feature-001 重建。
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -205,7 +205,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <span class="chip">画像 <b>P2</b></span>
   </div>
   <div class="snapshot">数据快照：2026-10-09 复核 · npm run test:run（197 通过 / 1 跳过）/ typecheck（0 错误），与 10-08 首测一致；F-001~F-010 为旧包历史</div>
-  <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-10-14 再核（v1.12）：磁盘实况已演进为 <b>22 个纯 MCP 工具 / 8 族 · 4 个 Agent profile（director 退役，showrunner 唯一 primary）· 5 个现行 feature 包</b>；当前测试基线 <b>358 通过 / 11 失败（存量：architecture 1 + studio-flow 10）/ 1 跳过</b>，11 个失败为既有存量、本次文档同步零新增。</div>
+  <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-10-14 再核（v1.12）：磁盘实况已演进为 <b>22 个纯 MCP 工具 / 8 族 · 4 个 Agent profile（director 退役，showrunner 唯一 primary）· 5 个现行 feature 包</b>；当前测试基线 <b>369 通过 / 0 失败 / 1 跳过（35 文件，同日存量清零）</b>；typecheck 双 tsconfig + tsc -b 全绿。</div>
   <div class="truth-banner">
     <span class="tb-ic">⚠ FACT</span>
     <span>本页是 <b>B 类可视化文档</b>，仅用于汇报与快速理解，<b>不是事实源</b>。进度以各任务清单与 A 类文档为准；如冲突以 A 类为准并修正本页。事实来源见 <a href="#sources">页底索引</a>。</span>
@@ -213,7 +213,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 
   <div class="stats rv">
     <div class="stat"><div class="num"><span data-to="22">0</span><small> 个旧包</small></div><div class="lbl">已整体作废归档（D-005）；现行新包 5 个（feature-001/002/801/802/804，2026-10-14）</div></div>
-    <div class="stat"><div class="num"><span data-to="197">0</span><small> 通过</small></div><div class="lbl">2026-10-09 快照（24 文件 · 1 跳过 · 0 失败）；2026-10-14 再核：358 通过 / 35 文件 · 11 存量失败 · 1 跳过</div></div>
+    <div class="stat"><div class="num"><span data-to="369">0</span><small> 通过</small></div><div class="lbl">2026-10-14 再核（35 文件 · 1 跳过 · 0 失败，存量同日清零）；2026-10-09 快照为 197 通过 / 24 文件</div></div>
     <div class="stat"><div class="num"><span data-to="0">0</span><small> /8 步</small></div><div class="lbl">新设计已落地步数；旧代码覆盖前 3 步形态（对话通道已定稿终态），业务层待反补重建</div></div>
     <div class="stat"><div class="num"><span data-to="0">0</span><small> 个</small></div><div class="lbl">typecheck 待清错误</div></div>
   </div>
@@ -346,7 +346,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       <span class="alvl al-warn">再核·10-14</span>
       <div>
         <h4>2026-10-14 再核（v1.12 反向同步，提交 8114e84）：工具 / Agent 已对齐</h4>
-        <p>磁盘实况：<b>22 个纯 MCP 工具 / 8 族</b>（electron/mcp/tools.ts；新增 brief 5 / manifest 2 / style 3 / canvas.align）；<b>4 个 Agent profile</b>——showrunner 唯一 primary（持 17 工具白名单）+ writer / media-director / comfyui-operator 三个 subagent（经 task 调度），早期 director profile 已退役；client 取消 <code>shortdrama_</code> 前缀整体放行、改逐物理 ID 判定，8 个幽灵工具直接拒绝；现行 feature 包 5 个。测试基线：358 通过 / 35 文件 · <b>11 失败（存量：architecture.test.ts 1 + studio-flow.test.tsx 10）</b> · 1 跳过——失败均为本次变更前既有的存量项，文档同步零新增、不顺手修复。</p>
+        <p>磁盘实况：<b>22 个纯 MCP 工具 / 8 族</b>（electron/mcp/tools.ts；新增 brief 5 / manifest 2 / style 3 / canvas.align）；<b>4 个 Agent profile</b>——showrunner 唯一 primary（持 17 工具白名单）+ writer / media-director / comfyui-operator 三个 subagent（经 task 调度），早期 director profile 已退役；client 取消 <code>shortdrama_</code> 前缀整体放行、改逐物理 ID 判定，8 个幽灵工具直接拒绝；现行 feature 包 5 个。测试基线：<b>369 通过 / 35 文件 · 0 失败 · 1 跳过</b>（存量失败于 2026-10-14 同日清零，typecheck 全绿）。</p>
       </div>
     </div>
   </div>
@@ -440,7 +440,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </div>
       <div class="src-row">
         <span class="si-base">实测·10-14</span>
-        <div><div class="si-ti">2026-10-14 命令行再核（v1.12 同步基线）</div><div class="si-sub"><code>npm run test:run</code> → 358 通过 / 35 文件 / 11 失败（存量：architecture.test.ts 1 + studio-flow.test.tsx 10）/ 1 跳过；11 个失败为既有存量，本次文档同步零新增</div></div>
+        <div><div class="si-ti">2026-10-14 命令行再核（v1.12 同步基线，同日存量清零）</div><div class="si-sub"><code>npm run test:run</code> → 369 通过 / 35 文件 / 0 失败 / 1 跳过（仅 T8-4 真机 ark 用例需 Key）；<code>npm run typecheck</code> + <code>tsc -b</code> 全绿</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">代码核对</span>

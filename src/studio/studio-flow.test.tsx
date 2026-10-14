@@ -208,7 +208,8 @@ describe('feature-022 · 三栏与产物查看', () => {
     expect(screen.getByText('结构化数据（通用视图）')).toBeInTheDocument()
 
     // 顶栏 WindowControls 也有名为「关闭」的按钮，故限定在查看器根节点内查找
-    const viewerRoot = screen.getByText('立项/diagnosis.json').closest('div.absolute')!
+    // closest() 类型签名返回 Element，within() 要求 HTMLElement；运行时该容器必然存在
+    const viewerRoot = screen.getByText('立项/diagnosis.json').closest('div.absolute') as HTMLElement
     await user.click(within(viewerRoot).getByRole('button', { name: '关闭' }))
     expect(screen.queryByText('立项/diagnosis.json')).not.toBeInTheDocument()
   })

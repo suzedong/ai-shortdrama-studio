@@ -1,4 +1,7 @@
+// @vitest-environment node
 // feature-008 T8 · 端到端集成测试
+// 主进程真二进制链路 + Node 原生 undici fetch：必须用 node 环境。
+// 全局默认 jsdom 的 AbortSignal 与 undici 跨 realm，fetch 传 signal 会被拒。
 // 真二进制 opencode serve（1.18.34）+ 本机最小 OpenAI 兼容桩（127.0.0.1:4099，mock provider）
 // 链路：manager（生命周期）→ client（会话/prompt）→ projection（SSE 六类事件）。
 // IPC（main.ts）是上述三层的薄封装，逻辑均在此覆盖；通道经 tsc 与 T9 真机验证。

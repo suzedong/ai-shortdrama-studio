@@ -145,7 +145,6 @@
   .tl{position:relative;padding:0 0 16px 6px;}
   .tl::before{content:"";position:absolute;left:-22px;top:6px;width:10px;height:10px;border-radius:50%;
     background:var(--panel2);border:2px solid var(--violet-deep);}
-  .tl.rev::before{border-color:var(--amber);}
   .tl .vh{font-family:Menlo,Consolas,monospace;font-size:12px;font-weight:700;color:var(--violet);}
   .tl .vd{font-size:11px;color:var(--dim);font-family:Menlo,Consolas,monospace;}
   .tl .vt{font-size:12.5px;color:#C7CCDA;margin-top:2px;}
@@ -190,7 +189,7 @@
     <div class="stat"><div class="sv">25</div><div class="sl">IPC 通道</div><div class="su">main.ts 实测</div></div>
     <div class="stat"><div class="sv">22</div><div class="sl">MCP 纯工具</div><div class="su">8 族 · 磁盘实况</div></div>
     <div class="stat"><div class="sv">14</div><div class="sl">runtime 错误码</div><div class="su">electron/runtime</div></div>
-    <div class="stat"><div class="sv">35</div><div class="sl">测试文件</div><div class="su">358 通过 · 1 skipped</div></div>
+    <div class="stat"><div class="sv">35</div><div class="sl">测试文件</div><div class="su">369 通过 · 0 失败 · 1 skipped（typecheck 全绿）</div></div>
   </div>
   <div class="fact">可视化呈现 · 事实以 <a href="../短剧Agent平台设计.md">短剧Agent平台设计.md</a> 为准
     <span class="src">来源：设计 md v1.12</span><span class="src">台账 D-005·D-011·D-012</span><span class="src">2026-10-14</span>
@@ -792,18 +791,14 @@
       <div class="vb">§7.1 新增一期已落地三阶段数据血缘（feature-002~004 实现真相）——实际会话目录、CharacterProfile.id / Scene.sceneNo 两条主键引用链、manifest.status 状态机；§7 终态目标目录不变。</div></div>
     <div class="tl"><div class="vh">v1.3 · v1.4 <span class="vd">2026-10-04</span></div>
       <div class="vb">§0.1 新增开发原则与边界条件（项目必要性 / 局域网 ComfyUI 硬边界 / 八步闭环完整性 / 继承+扩展），决策见 feature-008 变更记录；v1.4 新增原则五 · 生成通道红线（图像仅 qwen-image、视频仅 MiniMax H3、音乐仅 MiniMax Music3），决策见 feature-008 D-005。</div></div>
-    <div class="tl rev"><div class="vh">v1.5 <span class="vd">2026-10-04 · Reverse Sync · D-007</span></div>
-      <div class="vb">裁决原则五与 v1.1 收窄决策的冲突——<b>图像（B0）= qwen-image 云端、音乐（B9）= Music3 云端，不再经 ComfyUI；视频（B5/B8）= MiniMax H3 经本地/局域网 ComfyUI 不变</b>；ComfyUI 收敛为纯 H3 视频引擎。⛔ 部分反转 v1.1 中 B0/B9 走 ComfyUI 的表述。</div></div>
-    <div class="tl rev"><div class="vh">v1.6 <span class="vd">2026-10-04 · D-009</span></div>
-      <div class="vb">执行路径二次裁决——图像 qwen-image 改为<b>本地/局域网权重经 ComfyUI 推理（纯局域网、不出公网、无按次费用）</b>，⛔ 反转 v1.5 中「图像走云端」部分（模型红线「仅 qwen-image」不变）。终局：<b>ComfyUI = 统一视觉引擎（qwen-image 图像 B0 ＋ H3 视频 B5/B8）；Music3 云端为媒体唯一出网通道（B9）</b>。</div></div>
-    <div class="tl rev"><div class="vh">v1.7 <span class="vd">2026-10-04 · D-010</span></div>
-      <div class="vb">音乐执行路径三次裁决——Music3 改为<b>本地/局域网权重经 ComfyUI 推理</b>，⛔ 反转 v1.6 中「音乐云端 / 唯一出网通道 / B9 不在引擎」（模型红线「仅 Music3」不变）。终局：<b>qwen-image/H3/Music3 三类媒体全部经本地/局域网 ComfyUI 权重与工作流（B0/B5/B8/B9），媒体零公网；ComfyUI = 统一媒体引擎；出公网仅余文本火山方舟</b>。D-007→D-009→D-010 轨迹保留。</div></div>
+    <div class="tl"><div class="vh">v1.7 <span class="vd">2026-10-04 · 媒体执行路径终局 · D-010</span></div>
+      <div class="vb">媒体执行路径经多轮裁决定稿（模型红线「仅 qwen-image / H3 / Music3」不变）：<b>qwen-image/H3/Music3 三类媒体全部经本地/局域网 ComfyUI 权重与工作流推理（B0/B5/B8/B9），媒体生成零公网、无媒体云端 Key；ComfyUI = 统一媒体引擎；平台出公网仅余文本火山方舟</b>。同步修订 §0/§0.1/§5/§8/§11/§12，AGENTS.md 同源。</div></div>
     <div class="tl"><div class="vh">v1.8 <span class="vd">2026-10-05 · 一致性修复</span></div>
       <div class="vb"><b>裁决反向同步</b>——§2.6 立项单由"五要素"统一为"<b>立项六要素</b>"（补画幅，落实 feature-005 §术语对齐裁决）；§7.1 补入 feature-005 三个小节（版本归档区 / 视觉风格谱系快照 / 术语对齐）；§0 补旧体系对比表；原型底部状态条"云端模型矩阵"改为"火山方舟（文本）"；§7.1 血缘图由位图 PNG 改为内联矢量 SVG（另存同名 svg 供 md 引用），图内"五要素"同步改"六要素"，删除原 PNG。</div></div>
     <div class="tl"><div class="vh">v1.9 <span class="vd">2026-10-08 · D-005</span></div>
-      <div class="vb">经《2002 相识》立项流程对话推演，§2.6 整体重写——旧「4 节点 + 4 确认门（0-a~0-d）+ 多 tab 立项单」模型⛔ 作废，改为「<b>1 入口动作 + 2 节点（选题诊断含六要素口径草案 / 故事前提）+ 1 道定案门（就绪客观判定，定案卡一键或口头拍板）</b>」；新增反问机制、「已捕获口径」常驻区、故事前提最低门槛、立项后变更走反补。视觉风格选型明确「<b>主风格唯一 + 辅助 0–1 个（候选域封闭 = B 青春治愈 1 项 + D 类型氛围 5 项）</b>」；新增 §8.3 视觉风格谱系为系统级外部数据源。§0.1 八步表、§7.1（重新定性为现存代码待反向补录）同步更新。旧 22 个 feature 任务包整体归档至 docs/archive/features-pre-rebuild/，新包从 feature-001 重建。</div></div>
+      <div class="vb">经《2002 相识》立项流程对话推演，§2.6 整体重写——取代旧「4 节点 + 4 确认门（0-a~0-d）+ 多 tab 立项单」模型，改为「<b>1 入口动作 + 2 节点（选题诊断含六要素口径草案 / 故事前提）+ 1 道定案门（就绪客观判定，定案卡一键或口头拍板）</b>」；新增反问机制、「已捕获口径」常驻区、故事前提最低门槛、立项后变更走反补。视觉风格选型明确「<b>主风格唯一 + 辅助 0–1 个（候选域封闭 = B 青春治愈 1 项 + D 类型氛围 5 项）</b>」；新增 §8.3 视觉风格谱系为系统级外部数据源。§0.1 八步表、§7.1（重新定性为现存代码待反向补录）同步更新。旧 22 个 feature 任务包整体归档至 docs/archive/features-pre-rebuild/，新包从 feature-001 重建。</div></div>
     <div class="tl"><div class="vh">v1.10 <span class="vd">2026-10-09 · D-011</span></div>
-      <div class="vb">经用户拍板"立项字段全可改 + 改后标记影响点 + 用户决定是否重生成"，§2.6 立项后变更机制从"反补（半锁定，premise 不可改）"⛔ 升级为"<b>全可改 + 影响评估 + 用户决策</b>"（三原则：全字段可改 / 影响必标记 / 决策归用户）。修订：§2.6.5 定案门语义"灵魂边界"→"当前版本落定"；§2.6.6 重写立项后变更规则；<b>新增 §2.6.7 影响评估机制</b>（追溯算法 4 步 + 影响分级表 + 评估面板 UI 草图 + 三动作语义）；原 §2.6.7 → §2.6.8 画布布局。原型已具备 STAGE 进度轨（v1.10 待办：STAGE 0 hover tooltip 接入版本号）。</div></div>
+      <div class="vb">经用户拍板"立项字段全可改 + 改后标记影响点 + 用户决定是否重生成"，§2.6 立项后变更机制由"反补（半锁定，premise 不可改）"升级为"<b>全可改 + 影响评估 + 用户决策</b>"（三原则：全字段可改 / 影响必标记 / 决策归用户）。修订：§2.6.5 定案门语义"灵魂边界"→"当前版本落定"；§2.6.6 重写立项后变更规则；<b>新增 §2.6.7 影响评估机制</b>（追溯算法 4 步 + 影响分级表 + 评估面板 UI 草图 + 三动作语义）；原 §2.6.7 → §2.6.8 画布布局。原型已具备 STAGE 进度轨（v1.10 待办：STAGE 0 hover tooltip 接入版本号）。</div></div>
     <div class="tl"><div class="vh">v1.11 <span class="vd">2026-10-09 · D-012</span></div>
       <div class="vb">用户拍板"旧对话链路不回退、以磁盘实况为终态、所有设计要最后状态"。① §5 改写为「<b>MCP 工具层与对话生成网关</b>」——§5.1 runtime 单轨（runtime:start/stop/status、runtime:session:*、runtime:prompt/async、runtime:event:*；旧 8 个 <code>agent:*</code> IPC 与 <code>shortdrama_*</code> 生成工具不再重建；统一 runtime 错误码 14 个，旧 <code>STORY_CTX_MISSING</code>/<code>REVISE_*</code>/<code>STYLE_NOT_IN_CATALOG</code> 退役；无 Key 显式报 <code>UPSTREAM_AUTH_MISSING</code>，不 mock 降级）；§5.2 工具族按磁盘实况定稿（已落地 11 个纯工具 + 目标族 7 族）。② §7.1 改写为「<b>数据血缘、状态机与版本归档（最终设计）</b>」——删除旧 8 确认门与"待重建"框架；brief.json 由立项单.vN.json 取代；谱系小节并入 §8.3；补 §2.6.6/§2.6.7 影响评估字段落点。③ 旧通道快照 docs/SDG-OD-legacy/feature-010-ark对话IPC快照.md 有用内容并入本文后删除；平台全景图.html 引用改指 §5.1。</div></div>
     <div class="tl"><div class="vh">v1.12 <span class="vd">2026-10-14 · 反向同步</span></div>

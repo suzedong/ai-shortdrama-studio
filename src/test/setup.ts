@@ -14,13 +14,19 @@ vi.mock('electron', () => ({
   app: { isPackaged: false },
 }))
 
-// jsdom 未实现 scrollIntoView
-Element.prototype.scrollIntoView = function scrollIntoView() {}
-
-// jsdom 未实现 ResizeObserver
-class ResizeObserverMock {
-  observe(): void {}
-  unobserve(): void {}
-  disconnect(): void {}
+// 以下为 jsdom 环境专属 polyfill；主进程集成测试以 @vitest-environment node
+// 运行时 Element/ResizeObserver 全局不存在，需按环境守卫
+if (typeof Element !== 'undefined') {
+  // jsdom 未实现 scrollIntoView
+  Element.prototype.scrollIntoView = function scrollIntoView() {}
 }
-globalThis.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver
+
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  // jsdom 未实现 ResizeObserver
+  class ResizeObserverMock {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  }
+  globalThis.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver
+}

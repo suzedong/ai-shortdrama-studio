@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 // 渲染进程全局类型声明 —— 对应 electron/preload.ts 暴露的 API
 import type {
   Canvas, CanvasGate, ComfyInstance, AssetIndexItem,

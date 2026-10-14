@@ -301,7 +301,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
 
   <div class="stats">
     <div class="stat"><div class="num">22<small> 个旧包</small></div><div class="lbl">已整体作废归档（D-005）；新包已反补落地 5 个（feature-001/002/801/802/804 · 2026-10-14）</div></div>
-    <div class="stat"><div class="num" data-to="197">0</div><div class="lbl">2026-10-09 快照 197 通过（1 skipped）；2026-10-14 再核：358 通过 / 11 存量失败（24→35 测试文件）</div></div>
+    <div class="stat"><div class="num" data-to="369">0</div><div class="lbl">2026-10-14 再核：369 通过 / 0 失败 / 1 跳过（35 测试文件，存量同日清零，typecheck 全绿）；10-09 快照为 197 通过 / 24 文件</div></div>
     <div class="stat"><div class="num">0<small>/8 步</small></div><div class="lbl">2026-10-09 快照：新设计尚未反补；2026-10-14 已反补 0~2 步文本侧（feature-001/002/801/802）</div></div>
     <div class="stat"><div class="num">25<small> 个IPC</small></div><div class="lbl">现行通道实况（runtime 单轨 · D-012 终态；另 4 窗口控制）</div></div>
   </div>
@@ -564,7 +564,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
     <div class="tl" style="opacity:.6"><div class="date">2026-10-04</div><div class="tt">旧 feature-008 / 009（已归档）</div><div class="td">opencode 运行时集成（旧包级通道裁决）· 运行时调试抽屉</div></div>
     <div class="tl" style="opacity:.6"><div class="date">2026-10-05</div><div class="tt">旧 feature-010 对话通道全量接入（已归档）</div><div class="td">流式正文/推理分轨/工具卡/停止 · 删旧 8 对话 IPC</div></div>
     <div class="tl" style="opacity:.6"><div class="date">2026-10-09</div><div class="tt">D-005：立项模型重建 + 旧 22 包整体作废归档；D-012：对话通道 runtime 单轨定稿终态</div><div class="td">新设计 v1.11：2 节点 + 1 定案门、谱系定位系统级外部数据源；下一步从 feature-001 反向补录重建，再接资产/媒体引擎</div></div>
-    <div class="tl cur"><div class="date">2026-10-14 · 现在</div><div class="tt">设计升 v1.12（实现实况反向同步）：director 退役、showrunner 单 primary</div><div class="td">已反补落地 5 个新包 feature-001/002/801/802/804；22 个纯 MCP 工具 / 8 族、4 个 Agent profile；取消 shortdrama_ 前缀整体放行、8 个幽灵工具直接拒绝；35 文件 358 通过 / 11 存量失败（architecture 1 + studio-flow 10，零新增）/ 1 跳过</div></div>
+    <div class="tl cur"><div class="date">2026-10-14 · 现在</div><div class="tt">设计升 v1.12（实现实况反向同步）：director 退役、showrunner 单 primary</div><div class="td">已反补落地 5 个新包 feature-001/002/801/802/804；22 个纯 MCP 工具 / 8 族、4 个 Agent profile；取消 shortdrama_ 前缀整体放行、8 个幽灵工具直接拒绝；35 文件 369 通过 / 0 失败 / 1 跳过（存量失败同日清零，typecheck 全绿）</div></div>
   </div>
 </section>
 
@@ -580,7 +580,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
   </div>
 
   <div class="grid g4 rv" style="margin-top:16px">
-    <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--green)">24</div><div style="font-size:11.5px;color:var(--muted)">测试文件（2026-10-09 快照 197 passed / 1 skipped；2026-10-14 再核：35 文件 / 358 passed / 11 存量失败）</div></div>
+    <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--green)">35</div><div style="font-size:11.5px;color:var(--muted)">测试文件（2026-10-14 再核：369 passed / 0 failed / 1 skipped；10-09 快照为 24 文件 / 197 passed）</div></div>
     <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--violet)">10</div><div style="font-size:11.5px;color:var(--muted)">画布节点（Stage 枚举 · 现行实现）</div></div>
     <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--red)">1</div><div style="font-size:11.5px;color:var(--muted)">新立项定案门（取代旧 0-a…2-c 八道门）</div></div>
     <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--cyan)">0</div><div style="font-size:11.5px;color:var(--muted)">媒体能力接入度（ComfyUI 待建）</div></div>
@@ -607,7 +607,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
       <div style="flex:1">
         <h4>对话通道双轨割裂 —— 旧 feature-010 曾收敛为 runtime 单轨（已归档）</h4>
         <p>旧代码中 ChatPanel 已切到 opencode runtime：流式正文、推理分轨折叠、工具调用卡、可中途停止；旧 8 个对话 IPC 已删除（快照并入设计后删）。该事实随旧包归档冻结；对话通道经 D-012 定稿终态，不回退。</p>
-        <div class="fix" style="background:rgba(139,124,246,.08);color:var(--violet)">决策留痕：归档包 + 台账 D-012；2026-10-09 实测 197 passed / 1 skipped（当日快照，随旧包冻结；2026-10-14 再核 358 passed / 11 存量失败 / 1 skipped）。</div>
+        <div class="fix" style="background:rgba(139,124,246,.08);color:var(--violet)">决策留痕：归档包 + 台账 D-012；2026-10-09 实测 197 passed / 1 skipped（当日快照，随旧包冻结；2026-10-14 再核 369 passed / 0 failed / 1 skipped，存量同日清零）。</div>
       </div>
     </div>
 
@@ -639,11 +639,10 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
     </div>
 
     <div class="pcard rv">
-      <div class="plvl lvl-l">观察</div>
+      <div class="plvl lvl-l">终局</div>
       <div style="flex:1">
-        <h4>媒体路径一天内三次裁决（D-007 → D-009 → D-010）</h4>
-        <p>图像与音乐的执行路径在 2026-10-04 经历"云端 → 回归 ComfyUI"反复，终局为三类媒体全部局域网推理。决策留痕完整但暴露了架构方向在拍板前收敛不足。</p>
-        <div class="fix">重大通道决策建议先出一页备选对比（成本/边界/依赖）再签字，减少反转成本。</div>
+        <h4>媒体通道终局：ComfyUI 统一媒体引擎（v1.7 / D-010，经多轮裁决定稿）</h4>
+        <p>图像 qwen-image / 视频 H3 / 音乐 Music3 全部经本地/局域网 ComfyUI 权重与工作流推理（B0/B5/B8/B9），媒体生成零公网、无媒体云端 Key；平台出公网仅余文本火山方舟。</p>
       </div>
     </div>
   </div>
@@ -651,7 +650,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
 
 <footer>
   <span>短剧 Agent 平台 · 全景图 · 2026-10-14 再核（原快照 2026-10-09，B 类人读文档）</span>
-  <span>事实源：设计 v1.12 / 决策台账 D-005 · D-011 · D-012 / docs/archive/ / vitest：10-09 快照 197 passed · 1 skipped；10-14 再核 358 passed · 11 存量失败 · 1 skipped</span>
+  <span>事实源：设计 v1.12 / 决策台账 D-005 · D-011 · D-012 / docs/archive/ / vitest：10-14 再核 369 passed · 0 failed · 1 skipped（10-09 快照 197 passed · 24 文件）；typecheck 0 错误</span>
 </footer>
 
 </main>

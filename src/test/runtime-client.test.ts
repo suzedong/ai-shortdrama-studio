@@ -331,6 +331,24 @@ describe('prompt / promptAsync 边界与透传', () => {
     })
   })
 
+  it('feature-002 · showrunner 再版三物理工具（impact.assess / impact.commit / canvas.align）放行', async () => {
+    const { client, state } = makeFakeClient()
+    const tools = [
+      'shortdrama_brief.impact.assess',
+      'shortdrama_brief.impact.commit',
+      'shortdrama_canvas.align',
+    ]
+    const r = await client.promptAsync({ ...baseReq, agent: 'showrunner', tools })
+    expect(r.accepted).toBe(true)
+    const body = state.calls['session.promptAsync']!.at(-1).body
+    expect(body.agent).toBe('showrunner')
+    expect(body.tools).toEqual({
+      'shortdrama_brief.impact.assess': true,
+      'shortdrama_brief.impact.commit': true,
+      'shortdrama_canvas.align': true,
+    })
+  })
+
   it('feature-018 · subagent 名作 agent → INVALID_ARGUMENT', async () => {
     const { client } = makeFakeClient()
     for (const agent of ['writer', 'media-director', 'comfyui-operator']) {

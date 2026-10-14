@@ -163,6 +163,7 @@
   - 反向补录阶段如发现旧代码含 premise 锁定逻辑，按本决策反转。
   - feature-003（画布节点 / 状态机）需在 `CanvasNode.parentReference` 与 `CanvasNode.dirty` 字段落地本规则。
 - **编号说明**：本条 D-011 为治理台账全局编号；与 D-005 同源（均修改 §2.6），不共用编号但同属 K8 立项模型族。
+- **落地注记（2026-10-14，feature-002）**：本条经 [feature-002](../features/feature-002-立项后变更与影响评估/) 全部落地（偏差 B-03 关闭）：K1 三字段（`ProjectManifest.briefVersion`、`CanvasNode.parentReference/dirty`）+ K8 三工具（`brief.impact.assess/commit`、`canvas.align`，全仓 22 工具）+ showrunner 再版六步剧本 + renderer 脏读黄条/角标/`vN ⚠k` 徽标；三选一走对话（D-005），不做弹窗。两处形态差异经包级 D-002/D-003 拍板记名、设计书不回改：①血缘挂 `CanvasNode.parentReference`（非设计书所写 manifest.nodes，B-09 后 manifest 无 nodes）；②影响清单落项目根 `影响清单.vN-vM.json`（非 `立项/` 前缀，`→` 换 ASCII `-`）。原后续约束中的 feature-003/005/006 编号已被 D-013 路线图重编（801/002）取代。
 
 ---
 

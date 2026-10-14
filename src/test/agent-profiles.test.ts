@@ -41,6 +41,10 @@ const TOOLS_TRUE: Record<string, string[]> = {
     'shortdrama_style.catalog',
     'shortdrama_style.get',
     'shortdrama_style.validate',
+    // feature-002：立项再版评估/提交 + 节点对齐物理 ID 保留点号
+    'shortdrama_brief.impact.assess',
+    'shortdrama_brief.impact.commit',
+    'shortdrama_canvas.align',
   ],
   'writer.md': [
     'shortdrama_file_read',
@@ -80,7 +84,7 @@ describe('T1 · profile frontmatter 静态契约', () => {
     }
   })
 
-  it('showrunner：primary + 14 物理工具 + task 常驻 + 占位符 model', async () => {
+  it('showrunner：primary + 17 物理工具 + task 常驻 + 占位符 model', async () => {
     const { fm } = splitFrontmatter(await readProfile('showrunner.md'))
     expect(fm).toMatch(/^mode: primary$/m)
     expect(fm).toMatch(/^model: ark\/__ARK_MODEL_ID__$/m)
@@ -118,7 +122,7 @@ describe('T1 · profile frontmatter 静态契约', () => {
     }
   })
 
-  it('frontmatter 点号工具键仅允许立项三工具、状态机两工具与 feature-802 谱系三工具', async () => {
+  it('frontmatter 点号工具键仅允许立项三工具、状态机两工具、feature-802 谱系三工具与 feature-002 再版三工具', async () => {
     const dottedWhitelist = [
       'shortdrama_brief.plan',
       'shortdrama_brief.publish',
@@ -128,6 +132,9 @@ describe('T1 · profile frontmatter 静态契约', () => {
       'shortdrama_style.catalog',
       'shortdrama_style.get',
       'shortdrama_style.validate',
+      'shortdrama_brief.impact.assess',
+      'shortdrama_brief.impact.commit',
+      'shortdrama_canvas.align',
     ]
     for (const file of PROFILE_FILES) {
       const { fm } = splitFrontmatter(await readProfile(file))

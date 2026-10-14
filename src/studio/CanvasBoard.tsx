@@ -200,6 +200,34 @@ function stepLabel(step: string): string {
 
 export { kindLabel }
 
+// feature-002 · dirty 命中字段 → 中文名（措辞与契约 §2.1/§6 同源）
+const DIRTY_FIELD_LABELS: Record<string, string> = {
+  'fiveElements.episodeCount': '集数',
+  'fiveElements.episodeDuration': '单集时长',
+  'fiveElements.genre': '题材',
+  'fiveElements.platforms': '平台',
+  'fiveElements.tone': '基调',
+  'fiveElements.aspectRatio': '画幅',
+  'style.mainStyleId': '主风格',
+  'style.catalogVersion': '谱系版本',
+  'style.auxiliaryStyleId': '辅助风格',
+  kind: '项目性质',
+  diagnosisSummary: '诊断摘要',
+  'premise.leads': '人物',
+  'premise.time': '时间',
+  'premise.place': '地点',
+  'premise.coreEvent': '核心事件',
+  'premise.seasonBoundary': '季边界',
+}
+
+function dirtyFieldLabel(f: string): string {
+  return DIRTY_FIELD_LABELS[f] ?? f
+}
+
+function dirtyTitle(d: NonNullable<CanvasNode['dirty']>): string {
+  return `基于 v${d.sinceBriefVersion}，与最新 v${d.latestBriefVersion} 不一致：${d.fields.map(dirtyFieldLabel).join('、')}`
+}
+
 interface Positioned {
   node: CanvasNode
   x: number
@@ -306,6 +334,9 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
   const [menu, setMenu] = useState<{ x: number; y: number; node: CanvasNode | null } | null>(null)
 
   const laid = useMemo(() => layout(nodes, overrides), [nodes, overrides])
+  // feature-002 · 脏读：挂 dirty 的产物节点（brief 节点自身不挂脏）
+  const dirtyNodes = useMemo(() => nodes.filter(n => n.dirty), [nodes])
+  const dirtyLatest = dirtyNodes.reduce((m, n) => Math.max(m, n.dirty!.latestBriefVersion), 0)
 
   // 初始：保可读缩放（0.65 下限），从 STAGE 0 左侧开始，垂直居中；超出部分可横向拖动
   useLayoutEffect(() => {
@@ -544,6 +575,16 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
       onMouseLeave={onViewportMouseUp}
       onContextMenu={onViewportContextMenu}
     >
+      {/* feature-002 · 脏读黄条：有任一 dirty 产物时顶部纯文本提示（无按钮、无链接、不阻断） */}
+      {dirtyNodes.length > 0 && (
+        <div
+          data-dirty-banner
+          className="pointer-events-none absolute left-3 top-3 z-20 max-w-[46%] rounded-lg bg-[#FFF4DE] px-3 py-1.5 text-[11px] font-semibold leading-snug text-[#C0841D] shadow-[0_4px_12px_rgba(192,132,29,0.18)]"
+        >
+          {`有 ${dirtyNodes.length} 个产物基于旧版立项（最新 v${dirtyLatest}），内容可能与最新立项不一致。`}
+        </div>
+      )}
+
       {/* 世界 */}
       <div
         data-canvas-bg="1"
@@ -686,7 +727,17 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
                   </svg>
                 </span>
                 <span className="truncate">{kindLabel(node.kind)}</span>
-                <span className="ml-auto font-semibold text-[#A6ABC0]">{typeof node.meta?.version === 'string' ? node.meta.version : '—'}</span>
+                {/* feature-002 · 脏读角标：基于旧版立项时黄色 ⚠（不灰显、不阻断，status 保持 done） */}
+                {node.dirty && (
+                  <span
+                    data-dirty-badge={node.id}
+                    title={dirtyTitle(node.dirty)}
+                    className="ml-auto grid h-[15px] w-[15px] place-items-center rounded bg-[#FFF4DE] text-[9px] leading-none text-[#C0841D]"
+                  >
+                    ⚠
+                  </span>
+                )}
+                <span className={`font-semibold text-[#A6ABC0] ${node.dirty ? '' : 'ml-auto'}`}>{typeof node.meta?.version === 'string' ? node.meta.version : '—'}</span>
               </div>
               {/* 节点体 */}
               <div className="flex flex-1 flex-col px-2.5 py-2">

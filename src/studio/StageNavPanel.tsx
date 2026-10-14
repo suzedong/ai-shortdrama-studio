@@ -33,7 +33,21 @@ function badge(n: CanvasNode): string {
   return typeof v === 'string' ? v : '—'
 }
 
+function parseV(v: unknown): number | null {
+  if (typeof v !== 'string') return null
+  const m = /^v(\d+)$/.exec(v)
+  return m ? Number(m[1]) : null
+}
+
 export default function StageNavPanel({ nodes, activeStep, onSelect }: Props) {
+  // feature-002 · STAGE 0 立项版本：renderer 无 manifest 数据源（不新增 IPC），
+  // N 取 brief 节点 meta.version 与全画布 dirty.latestBriefVersion 的最大值；k = 全画布 dirty 节点数。
+  const dirtyNodes = nodes.filter(n => n.dirty)
+  const briefMetaV = parseV(nodes.find(n => n.kind === 'brief')?.meta?.version)
+  const latestFromDirty = dirtyNodes.reduce((m, n) => Math.max(m, n.dirty!.latestBriefVersion), 0)
+  const briefVersionCandidates = [briefMetaV, latestFromDirty > 0 ? latestFromDirty : null].filter((v): v is number => v !== null)
+  const briefVersion = briefVersionCandidates.length > 0 ? Math.max(...briefVersionCandidates) : null
+
   return (
     <div className="flex flex-col gap-0.5 pb-2">
       {STAGES.map(s => {
@@ -45,6 +59,9 @@ export default function StageNavPanel({ nodes, activeStep, onSelect }: Props) {
         const isCurrent = activeStep === s.step
         const isIdle = matched.length === 0
         const isActive = !isIdle && !allDone && Boolean(activeNode)
+        // feature-002 · STAGE 0 已发布立项：无 dirty 显 ✓ vN（绿），有 dirty 显 vN ⚠k（黄）；未发布沿用现状
+        const stage0Brief = s.step === '0' && briefVersion !== null
+        const stage0Dirty = stage0Brief && dirtyNodes.length > 0
         return (
           <button
             key={s.step}
@@ -82,26 +99,35 @@ export default function StageNavPanel({ nodes, activeStep, onSelect }: Props) {
               </div>
             </div>
             <span
+              data-stage-badge={s.step}
               className={`ml-auto shrink-0 self-center rounded px-1.5 py-px text-[8.5px] font-extrabold ${
-                isIdle
-                  ? 'bg-[#F2F3F9] text-[#9AA0B5]'
-                  : allDone
-                    ? 'bg-[#E7F8F0] text-[#1E9E66]'
-                    : isActive
-                      ? 'bg-violet text-white'
-                      : pendingCount > 0
-                        ? 'bg-[#FFF4DE] text-[#C0841D]'
-                        : 'bg-[#F2F3F9] text-[#9AA0B5]'
+                stage0Dirty
+                  ? 'bg-[#FFF4DE] text-[#C0841D]'
+                  : isIdle
+                    ? 'bg-[#F2F3F9] text-[#9AA0B5]'
+                    : allDone
+                      ? 'bg-[#E7F8F0] text-[#1E9E66]'
+                      : isActive
+                        ? 'bg-violet text-white'
+                        : pendingCount > 0
+                          ? 'bg-[#FFF4DE] text-[#C0841D]'
+                          : 'bg-[#F2F3F9] text-[#9AA0B5]'
               }`}
-              title={activeNode ? `当前进行中：${activeNode.title} (${badge(activeNode)})` : ''}
+              title={stage0Dirty
+                ? `${dirtyNodes.length} 个产物基于旧版立项，与最新 v${briefVersion} 不一致`
+                : activeNode ? `当前进行中：${activeNode.title} (${badge(activeNode)})` : ''}
             >
-              {isIdle
-                ? '空'
-                : allDone
-                  ? `✓ ${matched.length}`
-                  : isActive
-                    ? badge(activeNode!)
-                    : `${matched.length} 节点`}
+              {stage0Brief
+                ? stage0Dirty
+                  ? `v${briefVersion} ⚠${dirtyNodes.length}`
+                  : `✓ v${briefVersion}`
+                : isIdle
+                  ? '空'
+                  : allDone
+                    ? `✓ ${matched.length}`
+                    : isActive
+                      ? badge(activeNode!)
+                      : `${matched.length} 节点`}
             </span>
           </button>
         )

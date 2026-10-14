@@ -105,3 +105,15 @@ zod 入参不含 dirty 键 → 普通 update 永远走保留分支。
 - typecheck：基线 7 错误（dev-mock-api ×1、CanvasBoard ×2、VisualCatalog ×4），红线零新增；CanvasBoard 改动后两个既有错误不扩大。
 - 全量 vitest：基线 **302 passed / 7 skipped / 12 failed**（2026-10-13 feature-802 后）；12 failed 均已定性（fs-sandbox ×1、architecture ×1、studio-flow ×10），本包 renderer 改动以不扩大 studio-flow 失败数为红线。
 - 受影响静态契约测试：agent-profiles（白名单 14→17）、mcp-pure-tools（19→22）、runtime-client、runtime-integration——四处必须同轮更新，少一处即失败点名。
+
+## 9. 实施补记（2026-10-14 落地后）
+
+### 9.1 §3 版本号数据源的实现取舍
+
+- §3 原述「取值优先级：brief 节点 meta.version」。实现为更稳健的**取大**：N = max(`parseV(brief 节点 meta.version)`, 全画布 `max(dirty.latestBriefVersion)`)。正常链路下 brief 节点必随 commit upsert 为最新版（meta.version 恒 ≥ 各 dirty 节点的 latestBriefVersion），取大结果与「以 brief 节点为准」完全等价；取大仅在 brief 节点暂时缺失/旧档时提供兜底，不引入新通道、不改变主路径行为。
+- 两数据源皆无时 STAGE 0 显示「空」（既有分支不变）。旧档存在已发布立项但画布无 brief 节点时徽标/黄条退化，属「renderer 只读画布」的已知边界，不做旧档修复（详见变更记录 R-002）。
+
+### 9.2 契约 §9.5 测试策略实际落点
+
+- canvas-board.test.tsx 套件包前健康（18/18），故走「挂得住加轻断言」分支：新增 5 例（脏角标 title/⚠ 文案与 brief 节点无角标、黄条逐字文案、干净画布双无标识、StageNavPanel 空/绿/黄三态），套件 23/23 全绿；未新增独立渲染测试文件。
+- 最终回归：**353 passed / 7 skipped / 12 failed**（基线 302/7/12，净增 51 passed，failed 零扩大）；typecheck 7 条基线持平，node/preload tsc 零错误；runtime-integration 套件级 AbortSignal 失败经 git stash 对照定性为 HEAD 既有（failed 断言=0），不计入 12。

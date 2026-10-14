@@ -15,7 +15,7 @@ describe('T8 mcp/tools.ts 静态护栏', () => {
     expect(toolsSrc).not.toMatch(/chat\(/)
   })
 
-  it('注册 19 个工具（含 brief 三件套、manifest 两件套、feature-802 style 三件套）', () => {
+  it('注册 22 个工具（含 brief 三件套、manifest 两件套、feature-802 style 三件套、feature-002 再版三件套）', () => {
     const names = [
       'file.read', 'file.list', 'file.write',
       'canvas.get', 'canvas.update',
@@ -25,11 +25,13 @@ describe('T8 mcp/tools.ts 静态护栏', () => {
       'brief.plan', 'brief.publish', 'brief.list',
       'manifest.get', 'manifest.advance',
       'style.catalog', 'style.get', 'style.validate',
+      // feature-002：立项再版评估/提交 + 节点对齐（契约 §9.4）
+      'brief.impact.assess', 'brief.impact.commit', 'canvas.align',
     ]
     for (const n of names) {
       expect(toolsSrc).toContain(`'${n}'`)
     }
-    expect((toolsSrc.match(/server\.tool\(/g) ?? []).length).toBe(19)
+    expect((toolsSrc.match(/server\.tool\(/g) ?? []).length).toBe(22)
   })
 
   it('统一 { ok } 结构：无旧信封字段', () => {

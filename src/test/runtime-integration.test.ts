@@ -217,9 +217,12 @@ describe('T8-1/T8-2 · mock provider 端到端（真 opencode serve + 本机桩�
     expect(director.tools.slice().sort()).toEqual(['glob', 'grep', 'read'])
     const showrunner = agents.find(a => a.name === 'showrunner')!
     expect(showrunner.tools.slice().sort()).toEqual([
+      'shortdrama_brief.impact.assess',
+      'shortdrama_brief.impact.commit',
       'shortdrama_brief.list',
       'shortdrama_brief.plan',
       'shortdrama_brief.publish',
+      'shortdrama_canvas.align',
       'shortdrama_canvas_get',
       'shortdrama_canvas_update',
       'shortdrama_file_list',

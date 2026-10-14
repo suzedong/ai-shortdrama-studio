@@ -163,6 +163,7 @@ describe('feature-002 立项后变更 MCP 工具（契约 §4/§9.2）', () => {
     const before = await fsp.readdir(projDir)
     const r = await call<{
       fromVersion: number; toVersion: number
+      changes: { field: string; from: string; to: string }[]
       items: { nodeId: string; severity: string; fields: string[]; defaultAction: string }[]
       counts: { high: number; medium: number; total: number }
       latestPublishedAt: string
@@ -470,7 +471,6 @@ describe('feature-002 立项后变更 MCP 工具（契约 §4/§9.2）', () => {
       'utf-8',
     )
     // 手工造 v1 立项单（不经 brief.publish，模拟历史项目：有立项单、manifest 无指针）
-    const legacyNow = new Date().toISOString()
     await fsp.writeFile(
       path.join(legacyDir, '立项单.v1.json'),
       JSON.stringify({

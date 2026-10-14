@@ -55,3 +55,10 @@
 - 原文口径：本包契约中 brief.plan 的 `style.mainStyleId` / `style.catalogVersion` 只做非空校验，B-05 遗留「风格 ID 是否在谱系内」无实现。
 - [feature-802](../feature-802-视觉风格谱系接入/) 契约 §12 联动修订：`evaluateDraft(draft, catalog?)` 新增**可选第二参注入**，注入后返回对象追加 `styleIssues`（未知 ID / 版本不符 / 辅助越域三码），brief.plan/publish handler 成为唯一装载注入点。**纯函数默认行为（无注入 styleIssues=[]）、planBrief 签名与 BriefPlan/BriefMissingCode 形状逐字不变**，本包既有全部断言逐字未动——属行为增补而非契约破坏，不回改本包文档原句。
 - 交叉指针：[feature-802 契约 §12](../feature-802-视觉风格谱系接入/SDG-RE-契约.md)、[偏差清单 B-05/B-11](../../设计现状与偏差清单.md)。
+
+### R-003 · brief 工具族被 feature-002 扩展（2026-10-14，feature-002 联动）
+
+- 原文口径：本包 D-003 立项工具族为 `brief.plan/publish/list` 三件，showrunner 物理 ID 白名单 9 个。
+- [feature-002](../feature-002-立项后变更与影响评估/) 联动修订：新增 `shortdrama_brief.impact.assess` / `shortdrama_brief.impact.commit` 两工具（再版 diff + 影响评估 + 影响清单落盘），showrunner 白名单 9→17 物理名（全仓 22 工具）；`publish.ts` 在再版链路上增补 ENOENT 容错（读旧版缺失场景），publish 版本化双写、永不覆盖的工具边界逐字不变。
+- 本包 D-001 批准范围第 1 条的 `ProjectBrief` v2 schema 未被修改；feature-002 的 K1 只新增 `ProjectManifest.briefVersion` 与 canvas 侧 `CanvasParentReference/CanvasDirty`，未动 Brief 类型。
+- 交叉指针：[feature-002 变更记录](../feature-002-立项后变更与影响评估/SDG-AI-变更记录.md)、[偏差清单 B-03](../../设计现状与偏差清单.md)。

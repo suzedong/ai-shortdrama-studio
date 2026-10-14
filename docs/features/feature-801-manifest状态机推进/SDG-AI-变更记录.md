@@ -54,3 +54,4 @@
 ## 三、修订记录
 
 - 2026-10-13：feature-001 契约 §3.2 第 7 条 / D-003「publish 不推进 manifest.status」联动修订已按契约 §11 落定——publish 工具代码零改动，首版定稿推进由 showrunner 随后显式调 `manifest.advance({event:'brief-published'})` 完成（仅 v1）；交叉指针已记入 [feature-001 变更记录 R-001](../feature-001-立项模型重建/SDG-AI-变更记录.md)。
+- 2026-10-14（feature-002 联动）：本包 D-001 批准建立的 `ProjectManifest` 类型被 [feature-002](../feature-002-立项后变更与影响评估/) 经其 K1 追加**单字段** `briefVersion?: number`（最新已发布立项版本指针），§1 五字段形状、7 态跃迁表、读-改-写与 tick 机制零改动；再版（v2+）不触发 `brief-published` 的 D-003 口径由 feature-002 showrunner 再版六步剧本兑现。交叉指针：[feature-002 变更记录](../feature-002-立项后变更与影响评估/SDG-AI-变更记录.md)、[偏差清单 B-03](../../设计现状与偏差清单.md)。

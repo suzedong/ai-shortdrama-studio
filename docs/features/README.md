@@ -27,7 +27,7 @@
 | 包 | 业务 | 解决偏差 | 技术落点 | 溯源 | 状态 |
 |---|---|---|---|---|---|
 | [feature-001-立项模型重建](./feature-001-立项模型重建/) | 单定案门 `0-final` + ProjectBrief v2 版本化落盘 + brief.plan/publish/list 三工具 + showrunner 第 0 步重写 | B-01 / B-02 | `electron/brief/*`、`electron/gate/bridge.ts`、`shared/types.ts`、showrunner.md | 自研新增 | ✅ 已落地（2026-10-13） |
-| feature-002-立项后变更与影响评估 | 全字段可改 + diff + 依赖图反向追溯 + `影响清单.vN→v(N+1).json` + 三选一动作 + 脏读 + 历史回滚（§2.6.6/2.6.7） | B-03 | `manifest.briefVersion`、产物 `parentReference{briefVersion,fields[]}`、`CanvasNode.dirty`（**K1**：扩 `shared/types.ts`）、brief/diff、影响评估面板 UI | 自研新增 | ⬜ 未建包（P1） |
+| [feature-002-立项后变更与影响评估](./feature-002-立项后变更与影响评估/) | 全字段可改 + diff + 依赖图反向追溯 + `影响清单.vN-vM.json` + 三选一动作 + 脏读 + 历史回滚（§2.6.6/2.6.7） | B-03 | `manifest.briefVersion`、产物 `parentReference{briefVersion,fields[]}`、`CanvasNode.dirty`（**K1**：扩 `shared/types.ts`）、`brief.impact.assess/commit` + `canvas.align` 三工具（共 22 工具，**K8**）、CanvasBoard 脏读黄条/角标 + StageNavPanel STAGE 0 徽标 | 自研新增 | ✅ 已落地（2026-10-14） |
 
 ### 1xx · STAGE 1 故事
 

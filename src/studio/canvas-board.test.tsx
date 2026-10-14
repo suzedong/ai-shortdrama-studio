@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { Canvas, CanvasNode } from '@shared/types'
 import CanvasBoard, { snapNode } from './CanvasBoard'
+import StageNavPanel from './StageNavPanel'
 
 function emptyCanvas(): Canvas {
   return {
@@ -105,6 +106,62 @@ describe('C5 · CanvasBoard 多步分组', () => {
     // 1→2 跨步骤 auto 边以横向贝塞尔 path 呈现
     expect(container.querySelector('path[data-edge="e-step-1-profiles--step-2-scenes"]')).toBeTruthy()
     expect(container.querySelector('path[data-edge="e-step-2-scenes--step-2-dialogue"]')).toBeTruthy()
+  })
+})
+
+// feature-002 · 脏读标识（契约 §6）：dirty 节点黄 ⚠ 角标 + 顶部黄条；不灰显、status 保持 done
+describe('feature-002 · CanvasBoard 脏读标识', () => {
+  it('dirty 节点：meta.version 旁黄 ⚠ 角标，hover 文案含中文字段；无 dirty 不渲染', () => {
+    const c = emptyCanvas()
+    c.nodes = [
+      node({ id: 'step-0-brief', step: '0', kind: 'brief', title: '立项单 v2', status: 'done', meta: { version: 'v2' } }),
+      node({
+        id: 'step-1-outline', step: '1', kind: 'outline', title: '故事大纲', status: 'done',
+        meta: { version: 'v1' },
+        parentReference: { briefVersion: 1, fields: ['fiveElements.episodeCount', 'premise.leads'] },
+        dirty: {
+          sinceBriefVersion: 1, latestBriefVersion: 2,
+          fields: ['fiveElements.episodeCount', 'premise.leads'],
+          severity: 'high', impactReport: '影响清单.v1-v2.json',
+        },
+      }),
+    ]
+    const { container } = render(<CanvasBoard canvas={c} />)
+
+    const badge = container.querySelector('[data-dirty-badge="step-1-outline"]')
+    expect(badge).toBeTruthy()
+    expect(badge?.getAttribute('title')).toContain('基于 v1，与最新 v2 不一致：集数、人物')
+    expect(badge?.textContent).toContain('⚠')
+    // brief 节点自身不挂脏
+    expect(container.querySelector('[data-dirty-badge="step-0-brief"]')).toBeNull()
+  })
+
+  it('有任一 dirty 节点：顶部黄条给出计数与最新版；无 dirty 时黄条不渲染', () => {
+    const dirtyCanvas = emptyCanvas()
+    dirtyCanvas.nodes = [
+      node({ id: 'step-0-brief', step: '0', kind: 'brief', title: '立项单 v3', status: 'done', meta: { version: 'v3' } }),
+      node({
+        id: 'step-2-scenes', step: '2', kind: 'scenes', title: '第一集分场', status: 'done',
+        parentReference: { briefVersion: 1, fields: ['fiveElements.episodeCount'] },
+        dirty: {
+          sinceBriefVersion: 1, latestBriefVersion: 3, fields: ['fiveElements.episodeCount'],
+          severity: 'medium', impactReport: '影响清单.v1-v3.json',
+        },
+      }),
+    ]
+    const { container, unmount } = render(<CanvasBoard canvas={dirtyCanvas} />)
+    const banner = container.querySelector('[data-dirty-banner]')
+    expect(banner?.textContent).toBe('有 1 个产物基于旧版立项（最新 v3），内容可能与最新立项不一致。')
+
+    unmount()
+    const clean = emptyCanvas()
+    clean.nodes = [
+      node({ id: 'step-0-brief', step: '0', kind: 'brief', title: '立项单 v1', status: 'done', meta: { version: 'v1' } }),
+      node({ id: 'step-1-outline', step: '1', kind: 'outline', title: '故事大纲', status: 'done' }),
+    ]
+    const r2 = render(<CanvasBoard canvas={clean} />)
+    expect(r2.container.querySelector('[data-dirty-banner]')).toBeNull()
+    expect(r2.container.querySelector('[data-dirty-badge]')).toBeNull()
   })
 })
 
@@ -216,5 +273,51 @@ describe('snapNode · 拖拽吸附', () => {
     const g = r.guides.find(x => x.axis === 'eh')
     expect(g).toBeTruthy()
     expect(g?.label).toBe('水平等距 56px')
+  })
+})
+
+// feature-002 · STAGE 0 立项版本徽标三态（契约 §6.2，无新 IPC：N 取自画布）
+describe('feature-002 · StageNavPanel STAGE 0 徽标', () => {
+  function renderStage0(nodes: CanvasNode[]) {
+    const { container } = render(<StageNavPanel nodes={nodes} activeStep={null} onSelect={() => {}} />)
+    return container.querySelector('[data-stage-badge="0"]')
+  }
+
+  it('未发布（无 brief 版本、无 dirty）：沿用现状「空」', () => {
+    const badge = renderStage0([])
+    expect(badge?.textContent).toBe('空')
+  })
+
+  it('已发布且无 dirty：绿态 ✓ vN（取 brief 节点 meta.version）', () => {
+    const badge = renderStage0([
+      node({ id: 'step-0-brief', step: '0', kind: 'brief', title: '立项单 v2', status: 'done', meta: { version: 'v2' } }),
+      node({ id: 'step-1-outline', step: '1', kind: 'outline', title: '故事大纲', status: 'done' }),
+    ])
+    expect(badge?.textContent).toBe('✓ v2')
+    expect(badge?.className).toContain('bg-[#E7F8F0]')
+  })
+
+  it('已发布且画布有 dirty：黄态 vN ⚠k，k 为全画布 dirty 数，N 取 dirty.latestBriefVersion', () => {
+    const badge = renderStage0([
+      node({ id: 'step-0-brief', step: '0', kind: 'brief', title: '立项单 v3', status: 'done', meta: { version: 'v3' } }),
+      node({
+        id: 'step-1-outline', step: '1', kind: 'outline', title: '故事大纲', status: 'done',
+        parentReference: { briefVersion: 1, fields: ['premise.leads'] },
+        dirty: {
+          sinceBriefVersion: 1, latestBriefVersion: 3, fields: ['premise.leads'],
+          severity: 'high', impactReport: '影响清单.v1-v3.json',
+        },
+      }),
+      node({
+        id: 'step-2-scenes', step: '2', kind: 'scenes', title: '第一集分场', status: 'done',
+        parentReference: { briefVersion: 2, fields: ['fiveElements.episodeCount'] },
+        dirty: {
+          sinceBriefVersion: 2, latestBriefVersion: 3, fields: ['fiveElements.episodeCount'],
+          severity: 'medium', impactReport: '影响清单.v2-v3.json',
+        },
+      }),
+    ])
+    expect(badge?.textContent).toBe('v3 ⚠2')
+    expect(badge?.className).toContain('bg-[#FFF4DE]')
   })
 })

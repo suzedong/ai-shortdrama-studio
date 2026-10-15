@@ -2,10 +2,52 @@
 // 多 Agent 结构化对话：用户气泡 + Agent 气泡（文本 / 立项单卡 / 工具轨迹卡）+ 内嵌 GateCard。
 // 视觉对齐原型 #rightChat：28px 头像、#F4F5FA 气泡、brief-card / trace / gate 卡。
 import { useEffect, useRef, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 import { turnReasoning, turnText, type StreamingTurn } from '../lib/chat-runtime'
 import type { CanvasGate } from '@shared/types'
 import GateCardView from './GateCardView'
+
+// ── Agent 气泡 Markdown 渲染（2026-10-15，K9 批准 react-markdown + remark-gfm；仅 Agent 侧） ──
+// 默认不渲染原始 HTML（XSS 面为零）；链接统一新窗打开，由主进程 setWindowOpenHandler 转交系统浏览器。
+// 排版规则见 index.css `.md-bubble`；流式分片对未闭合标记天然容错（下一片到达即重解析）。
+function MarkdownText({ text }: { text: string }) {
+  return (
+    <div className="md-bubble">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: ({ children, href }) => (
+            <a href={href} target="_blank" rel="noreferrer noopener" className="text-violet underline underline-offset-2">
+              {children}
+            </a>
+          ),
+          h1: ({ children }) => <h1 className="mt-2 text-[13.5px] font-extrabold first:mt-0">{children}</h1>,
+          h2: ({ children }) => <h2 className="mt-2 text-[13px] font-bold first:mt-0">{children}</h2>,
+          h3: ({ children }) => <h3 className="mt-1.5 text-[12.5px] font-bold first:mt-0">{children}</h3>,
+          p: ({ children }) => <p className="first:mt-0 last:mb-0">{children}</p>,
+          ul: ({ children }) => <ul className="my-1 ml-[18px] list-disc space-y-0.5">{children}</ul>,
+          ol: ({ children }) => <ol className="my-1 ml-[18px] list-decimal space-y-0.5">{children}</ol>,
+          li: ({ children }) => <li className="pl-0.5 marker:text-muted">{children}</li>,
+          blockquote: ({ children }) => (
+            <blockquote className="my-1 border-l-2 border-line pl-2 text-muted">{children}</blockquote>
+          ),
+          hr: () => <hr className="my-2 border-line" />,
+          table: ({ children }) => (
+            <div className="my-1.5 overflow-x-auto">
+              <table className="border-collapse text-[11px]">{children}</table>
+            </div>
+          ),
+          th: ({ children }) => <th className="border border-line px-1.5 py-0.5 font-bold">{children}</th>,
+          td: ({ children }) => <td className="border border-line px-1.5 py-0.5">{children}</td>,
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    </div>
+  )
+}
 
 // ── 多 Agent 身份（与原型 chat-head 五叠圈一致） ──
 export type AgentId = 'showrunner' | 'writer' | 'art' | 'shot' | 'sound' | 'engine'
@@ -183,7 +225,7 @@ function AgentTurn({ turn }: { turn: StreamingTurn }) {
           <p className="mt-1 whitespace-pre-wrap">{reasoning}</p>
         </details>
       )}
-      {text && <p className="whitespace-pre-wrap">{text}</p>}
+      {text && <MarkdownText text={text} />}
       {!text && !reasoning && turn.status === 'running' && (
         <span className="text-muted">主控 Agent 正在思考…</span>
       )}
@@ -253,7 +295,7 @@ export default function ChatComposer({
             <div key={item.id} className="flex gap-[9px]">
               <Avatar agent={item.agent} />
               <div className="max-w-[280px] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
-                {item.text && <p className="whitespace-pre-wrap">{item.text}</p>}
+                {item.text && <MarkdownText text={item.text} />}
                 {item.brief && <BriefCard rows={item.brief} />}
                 {item.trace && <TraceCard trace={item.trace} />}
               </div>

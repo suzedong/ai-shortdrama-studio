@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import type { WebContents } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -62,6 +62,14 @@ function createWindow() {
   } else {
     mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'))
   }
+
+  // Markdown 气泡（及渲染层任何 target=_blank）外链：禁止应用内开新窗，http(s) 转系统浏览器
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) {
+      void shell.openExternal(url)
+    }
+    return { action: 'deny' }
+  })
 
   mainWindow.on('closed', () => {
     mainWindow = null

@@ -47,3 +47,40 @@ body {
   animation: dag-dash 8s linear infinite;
   z-index: 2;
 }
+
+/* Agent 气泡 Markdown（ChatComposer MarkdownText） */
+.md-bubble {
+  /* 保留 Agent 回复中的软换行（无 remark-breaks 依赖），markdown 块级结构仍正常布局 */
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.md-bubble strong { font-weight: 700; }
+.md-bubble em { font-style: italic; }
+.md-bubble del { color: #7A8098; }
+.md-bubble code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  background: rgba(108, 92, 231, .1);
+  color: #5A4BC4;
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+.md-bubble pre {
+  margin: 6px 0;
+  padding: 8px 10px;
+  background: #1E2233;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.md-bubble pre code {
+  display: block;
+  padding: 0;
+  background: transparent;
+  color: #E8EAF3;
+  font-size: 10.5px;
+  line-height: 1.6;
+  white-space: pre;
+}
+.md-bubble input[type="checkbox"] { margin: 0 4px 0 0; vertical-align: -1px; }
+/* GFM 任务列表：GFM 渲染为 li 内含 checkbox，无项目符号 */
+.md-bubble li:has(> input[type="checkbox"]) { list-style: none; margin-left: -16px; }

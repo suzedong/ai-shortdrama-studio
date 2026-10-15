@@ -506,8 +506,8 @@ export default function StudioApp() {
         <main className="relative min-w-0 flex-1 bg-canvas">
           {centerView === 'stage0' ? (
             <Stage0View
+              canvas={canvas}
               projectTitle={projectTitle}
-              briefVer={typeof canvas.nodes.find(n => n.id === 'n-brief')?.meta?.version === 'string' ? (canvas.nodes.find(n => n.id === 'n-brief')?.meta?.version as string) : 'v1'}
               onBackToDag={() => setCenterView('dag')}
             />
           ) : (

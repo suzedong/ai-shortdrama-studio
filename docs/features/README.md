@@ -28,6 +28,7 @@
 |---|---|---|---|---|---|
 | [feature-001-立项模型重建](./feature-001-立项模型重建/) | 单定案门 `0-final` + ProjectBrief v2 版本化落盘 + brief.plan/publish/list 三工具 + showrunner 第 0 步重写 | B-01 / B-02 | `electron/brief/*`、`electron/gate/bridge.ts`、`shared/types.ts`、showrunner.md | 自研新增 | ✅ 已落地（2026-10-13） |
 | [feature-002-立项后变更与影响评估](./feature-002-立项后变更与影响评估/) | 全字段可改 + diff + 依赖图反向追溯 + `影响清单.vN-vM.json` + 三选一动作 + 脏读 + 历史回滚（§2.6.6/2.6.7） | B-03 | `manifest.briefVersion`、产物 `parentReference{briefVersion,fields[]}`、`CanvasNode.dirty`（**K1**：扩 `shared/types.ts`）、`brief.impact.assess/commit` + `canvas.align` 三工具（共 22 工具，**K8**）、CanvasBoard 脏读黄条/角标 + StageNavPanel STAGE 0 徽标 | 自研新增 | ✅ 已落地（2026-10-14） |
+| [feature-003-立项视图接线](./feature-003-立项视图接线/) | STAGE 0 中栏静态原型壳（「安妮的夏天」假数据 + 演示控制条）替换为真实立项单只读视图；修复 StudioApp `n-brief` id 错配（真实节点 `step-0-brief`）；四态视图 + 门镜像条 + 脏读黄条 + 背景档案折叠 | B-16（盘点发现，本包登记并关闭） | `src/studio/Stage0View.tsx`（重写）、`StudioApp.tsx`（仅调用点）、`stage0/select.ts`（新纯函数）、`stage0-view.test.tsx`（26 例）；**纯 renderer，无 K1/K8/K9，shared/electron/preload/package 零 diff** | 改编 | ✅ 已落地（2026-10-15，真机目验 + 40 文件 431 passed） |
 
 ### 1xx · STAGE 1 故事
 
@@ -83,6 +84,7 @@
 | [feature-804-Windows窗口标题栏](./feature-804-Windows窗口标题栏/) | 修复 `hiddenInset` 在 Windows 无窗口控制缺陷：外壳平台分支（darwin hiddenInset / win32·linux frame:false）+ 顶栏右侧自绘最小化/最大化·还原/关闭三按钮（46×32、关闭红 #C42B1C）+ 4 IPC 1 推送；macOS 零变化 | B-10 | `electron/window/chrome.ts`（纯函数）、`electron/main.ts`（window:* IPC）、preload/global.d.ts/dev-mock 三处同步、`src/studio/WindowControls.tsx`、StudioApp 顶栏集成（**K8**：新增 IPC 登记；无 K1） | 改编 | ✅ 已落地（2026-10-13，Windows 真机人工验收待执行） |
 | feature-805-Skill体系 | Skill 检索 / 执行 / 沉淀 / 投稿；模板中心（二期） | §6 / §11 二期 | skill.* 工具 | Design 原有 | ⬜ 二期（暂不建包） |
 | feature-806-Harness基础校验与确认门全链路 | 结构 / 内容 / 规格 / 一致性多轮校验；简报 / 定妆 / 分镜 / 整集 / 成片确认门卡片；校验不过不可确认（原 D-013 十五包方案的 804，因真机缺陷让位顺延 806，见决策台账 D-014） | B-06 配套（§9 / §11 一期·4） | harness.* 工具、`gate/bridge.ts` 门序扩展（1-a/1-b、2-a~2-c 及 3-7 门）、GateCardView | Design 原有 + 改编 | ⬜ 未建包（P2，可随阶段分批） |
+| [feature-807-确认门口头拍板约束与门态防护](./feature-807-确认门口头拍板约束与门态防护/) | 修复 STAGE 0 真机走查缺陷：门 pending/rejected 时禁止 verbal 绕过发布（brief.publish 写盘前门态校验 + 版本绑定）；口头拍板两前提；gate 超时只许同 gateId 重挂、禁止回溯旧话；门卡字段来源回溯（platforms 不得凭空扩写） | B-14 / B-15 | `electron/gate/guard.ts`（新纯函数）、tools.ts brief.publish 拒绝分支（工具总数仍 22）、showrunner.md L80/91/100/103/115（**无 K1、无新工具**） | 自研新增 | ✅ 已落地（2026-10-15，T6 真机回归已通过） |
 
 ## 2. 已落地平台基础（暂无任务包 · 反向补录可选）
 

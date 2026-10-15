@@ -355,7 +355,14 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
     setSelectedId(nodes.find(n => n.status === 'active')?.id ?? null)
   }, [nodes])
 
-  // 流程导航 STAGE 联动：activeStep 变化时把对应列水平居中到视口
+  // zoom/pan 的最新值同步到 ref：供事件回调读取，避免把 zoom 放进 effect 依赖
+  // 造成「滚轮缩放时 STAGE 居中 effect 抢占 pan」以及非纯 updater 的 StrictMode 双调用问题
+  const zoomRef = useRef(zoom)
+  const panRef = useRef(pan)
+  zoomRef.current = zoom
+  panRef.current = pan
+
+  // 流程导航 STAGE 联动：仅 activeStep 切换时把对应列水平居中到视口（缩放/平移不触发）
   useEffect(() => {
     if (activeStep == null) return
     const el = viewportRef.current
@@ -365,8 +372,23 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
     const r = el.getBoundingClientRect()
     setVp({ w: r.width, h: r.height })
     const colCenterX = col.x + NODE_W / 2
-    setPan(p => ({ x: r.width / 2 - colCenterX * zoom, y: p.y }))
-  }, [activeStep, laid.cols, zoom])
+    setPan(p => ({ x: r.width / 2 - colCenterX * zoomRef.current, y: p.y }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStep])
+
+  // 视口尺寸（窗口缩放、侧栏面板伸缩）实时同步：鸟瞰取景框与缩放锚点依赖 vp
+  useEffect(() => {
+    const el = viewportRef.current
+    if (!el) return
+    const sync = () => {
+      const r = el.getBoundingClientRect()
+      setVp({ w: r.width, h: r.height })
+    }
+    sync()
+    const ro = new ResizeObserver(sync)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [nodes.length])
 
   const clampZoom = useCallback((z: number) => Math.min(1.6, Math.max(0.25, Math.round(z * 100) / 100)), [])
 
@@ -383,12 +405,16 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
     setPan({ x: (r.width - laid.width * z) / 2, y: (r.height - laid.height * z) / 2 })
   }, [clampZoom, laid.height, laid.width, nodes.length])
 
+  // 以视口点 (cx,cy) 为锚点缩放：直接读 ref 中的当前 zoom/pan 同步计算。
+  // 不得在 setZoom 的 updater 内调用 setPan（updater 必须纯函数，StrictMode
+  // 开发态会双调用 updater，导致 pan 以旧锚点被套用两次而纵向漂移失锚）。
   const zoomAt = useCallback((next: number, cx: number, cy: number) => {
-    setZoom(z0 => {
-      const z = clampZoom(next)
-      setPan(p => ({ x: cx - ((cx - p.x) * z) / z0, y: cy - ((cy - p.y) * z) / z0 }))
-      return z
-    })
+    const z0 = zoomRef.current
+    const p = panRef.current
+    const z = clampZoom(next)
+    if (z === z0) return
+    setZoom(z)
+    setPan({ x: cx - ((cx - p.x) * z) / z0, y: cy - ((cy - p.y) * z) / z0 })
   }, [clampZoom])
 
   const onWheel = useCallback((e: React.WheelEvent) => {
@@ -396,8 +422,8 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
     if (!el) return
     const r = el.getBoundingClientRect()
     const factor = e.deltaY < 0 ? 1.1 : 0.9
-    zoomAt(zoom * factor, e.clientX - r.left, e.clientY - r.top)
-  }, [zoom, zoomAt])
+    zoomAt(zoomRef.current * factor, e.clientX - r.left, e.clientY - r.top)
+  }, [zoomAt])
 
   // 拖拽平移：仅在画布空白（viewport/world 本身）按下时发起，
   // 节点上按下不启动拖拽，保证节点 click（打开查看器）不被 pointer capture 吞掉
@@ -558,8 +584,16 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
   const mmOffY = (mmInnerH - laid.height * mmScale) / 2
   const mmViewW = (vp.w / zoom) * mmScale
   const mmViewH = (vp.h / zoom) * mmScale
-  const mmViewX = mmOffX + (-pan.x / zoom) * mmScale
-  const mmViewY = mmOffY + (-pan.y / zoom) * mmScale
+  // 取景框按内容区（等比缩放后的世界包围盒）裁剪：视口大于世界或拖到世界外时，
+  // 框仍如实反映覆盖范围，只是不溢出小地图圆角背景（内层 overflow-hidden 兜底）
+  const mmContentX = mmOffX
+  const mmContentY = mmOffY
+  const mmContentW = laid.width * mmScale
+  const mmContentH = laid.height * mmScale
+  const mmViewRawX = mmOffX + (-pan.x / zoom) * mmScale
+  const mmViewRawY = mmOffY + (-pan.y / zoom) * mmScale
+  const mmViewX = Math.max(mmContentX, Math.min(mmViewRawX, mmContentX + mmContentW - 1.5))
+  const mmViewY = Math.max(mmContentY, Math.min(mmViewRawY, mmContentY + mmContentH - 1.5))
 
   return (
     <div
@@ -785,7 +819,7 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
 
       {/* 小地图 */}
       <div className="absolute bottom-3.5 right-3.5 z-10 h-20 w-32 rounded-[10px] border border-line bg-white p-2 shadow-[0_4px_12px_rgba(40,42,80,0.08)]">
-        <div className="relative h-full w-full rounded-[5px] bg-[#F3F4F9]">
+        <div className="relative h-full w-full overflow-hidden rounded-[5px] bg-[#F3F4F9]">
           {laid.items.map(({ node, x, y }) => (
             <i
               key={`mm-${node.id}`}

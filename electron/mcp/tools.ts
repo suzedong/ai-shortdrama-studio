@@ -1,7 +1,8 @@
-// feature-017 / feature-001 / feature-801 / feature-802 / feature-002 · MCP 纯工具注册（主进程）
+// feature-017 / feature-001 / feature-801 / feature-802 / feature-002 / feature-807 · MCP 纯工具注册（主进程）
 // 22 个零 LLM 工具：文件 / 画布 / 裁决门 / 资产 / ComfyUI 实例 / 立项单（brief.plan/publish/list）
 //   / manifest 状态机（manifest.get/advance）/ 视觉风格谱系（17–19 style.catalog/get/validate）
 //   / 立项后变更（20–22 brief.impact.assess/commit、canvas.align）。
+// feature-807：brief.publish 写盘前经 gate/guard 做门态防护（4 个 BRIEF_GATE_* 信封码，工具数不变）。
 // 纪律：只 import zod、MCP SDK、shared types 与 fs/project/canvas/gate/asset/comfy/brief 模块。
 import path from 'node:path'
 import fsp from 'node:fs/promises'
@@ -16,6 +17,7 @@ import { resolveInside } from '../fs/sandbox.js'
 import { getActiveProjectDir } from '../project/current.js'
 import { canvasStore } from '../canvas/store.js'
 import { gateBridge } from '../gate/bridge.js'
+import { assertBriefPublishable, findBriefGate } from '../gate/guard.js'
 import { registerAsset, listAssets } from '../asset/index.js'
 import { getComfyClient } from '../comfy/client.js'
 import { listInstances, requireInstance } from '../comfy/settings.js'
@@ -394,6 +396,19 @@ export function registerPureTools(server: McpServer): void {
         }
         if (args.approve.by === 'verbal' && !args.approve.verbal?.quote?.trim()) {
           return respond(fail('INVALID_ARGUMENT', '口头拍板必须记录用户原话'))
+        }
+
+        // feature-807：写盘前门态防护（B-14）。版本号与 publishV1InQueue 同源（publish.ts L48）
+        const listing = await listBriefVersions(projectDir)
+        const publishVersion = listing.latestVersion === null ? 1 : listing.latestVersion + 1
+        const currentCanvas = await canvasStore.get()
+        const violation = assertBriefPublishable(
+          findBriefGate(currentCanvas.gates),
+          args.approve,
+          publishVersion,
+        )
+        if (violation) {
+          return respond(fail(violation.code, violation.message))
         }
 
         // feature-002：发布主体抽 publish.ts（v1 行为逐字不变，另写 manifest.briefVersion=1）

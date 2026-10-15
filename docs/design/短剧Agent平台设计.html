@@ -628,7 +628,7 @@
   </div>
 
   <h3>7.1 数据血缘、状态机与版本归档（最终设计） <span class="src s-c">v1.11 定稿</span></h3>
-  <div class="note">本节为数据血缘与持久化的<b>最终状态设计</b>（v1.11 由"现存代码现状"定稿，2026-10-09 用户拍板"旧链路不回退、以磁盘实况为终态"）。§7 上方的项目目录为终态目标布局；本节描述会话 / 产物层的数据血缘、状态机、版本归档与术语约定，字段契约以 <code>shared/types.ts</code> 为准。旧 8 确认门（0-a~0-d / 1-a~1-b / 2-a~2-c）模型已作废（由 §2.6 新模型取代），不再作为设计依据。</div>
+  <div class="note">本节为数据血缘与持久化的<b>最终状态设计</b>（v1.11 由"现存代码现状"定稿，2026-10-09 用户拍板"旧链路不回退、以磁盘实况为终态"）。§7 上方的项目目录为终态目标布局；本节描述会话 / 产物层的数据血缘、状态机、版本归档与术语约定，字段契约以 <code>shared/types.ts</code> 为准。确认门口径（2026-10-15 B-12 订正）：STAGE 0 旧 4 门 <code>0-a~0-d</code> 已随 D-005 退役（见 §2.6，现仅 <code>0-final</code> 一道立项定稿门）；STAGE 1/2 的 <code>1-a</code>（大纲）/<code>1-b</code>（小传）/<code>2-a</code>（分场）/<code>2-b</code>（台词）/<code>2-c</code>（分镜文字稿）<b>仍为现行确认门</b>（<code>GateId</code> 已定义、showrunner 编排持有门序；其中 2-c 已预留、随 feature-201 待实施激活），并非作废。</div>
   <pre>project-*/                      ~/Documents/ai-shortdrama-studio/
 ├─ manifest.json           阶段状态指针 {status, createdAt, ...}；读-改-写保留既有字段
 ├─ 立项单.vN.json          立项定稿版本（全量保留 v1..vN，不覆盖；旧 brief.json 由本文件取代）

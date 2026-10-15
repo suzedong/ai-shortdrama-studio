@@ -106,8 +106,8 @@ ai-shortdrama-studio/
 │   ├── ark.ts           #   火山方舟文本通道
 │   ├── main.ts / preload.ts
 ├── src/                 # 渲染器：画布工作台、对话区、确认门卡、StudioApp
-│   ├── studio/          #   画布 / 对话 / 确认门 / 项目导航组件 + 编排测试
-│   ├── components/  lib/
+│   ├── studio/          #   画布 / 对话 / 确认门 / 项目导航组件 + 编排/UI 测试
+│   ├── lib/             #   渲染器运行时对接（chat-runtime 等）
 │   └── test/            # 主进程工具与运行时单测
 ├── shared/types.ts      # 前后端共享类型契约（只读，修改触发 K1 卡口）
 ├── resources/opencode/agents/  # 摄制组 Agent 提示词（showrunner 唯一主控 / writer / media-director / comfyui-operator 三个 subagent）
@@ -130,8 +130,8 @@ ai-shortdrama-studio/
 
 ## 当前状态与路线
 
-- **已落地（磁盘实况）**：runtime 对话单轨、22 个纯 MCP 工具（8 族）、三阶段数据血缘（STAGE 0→1→2 产物链）、版本归档、确认门桥、画布基座。
-- **进行中**：`docs/features/` 任务包重建（旧 22 包已作废归档，按六步法反向补录，见 [docs/设计现状与偏差清单.md](./docs/设计现状与偏差清单.md)）。
+- **已落地（磁盘实况）**：runtime 对话单轨、22 个纯 MCP 工具（8 族）、三阶段数据血缘（STAGE 0→1→2 产物链）、版本归档、确认门桥、画布基座；manifest 7 态状态机（feature-801）、立项后变更与影响评估（feature-002）、视觉风格谱系（feature-802）、门态防护（feature-807）、STAGE 0 真实立项视图（feature-003）。
+- **现行任务包**：`docs/features/` 共 9 个现行包——001 / 002 / 003 / 101 / 801 / 802 / 804 / 807 已落地，201 部分落地（分场 + 台词已落，2-c 分镜文字稿待实施）；旧 22 包 2026-10-08 作废、2026-10-10 已删除（git `ef4a175`），详见 [docs/设计现状与偏差清单.md](./docs/设计现状与偏差清单.md)。
 - **未落地**：STAGE 3-7（资产 / 分镜 / 镜头 / 后期 / 发布）逐阶段扩展；ComfyUI 媒体引擎适配；T2A 人机通道；语音通道。
 
 一期 MVP 目标：单集全闭环（立项 → 故事 → 分场 → 资产 → 分镜 → 镜头 → 后期 → 成片），详见设计书 §11。

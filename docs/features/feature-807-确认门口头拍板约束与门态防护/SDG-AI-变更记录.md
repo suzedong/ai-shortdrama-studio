@@ -10,41 +10,41 @@
 - 用户裁决（AskUserQuestion）：
   - 数据补救＝**再版 v2 去快手**（已按 feature-002 六步经应用内对话完成并逐文件核验，v1 保留不覆盖、status 未跳格）。
   - 机制修复＝**登记偏差并走任务包修复**：先登记 B-14/B-15，再建本包收紧 showrunner.md L103 口头条款 + gate 超时纪律，并评估 brief.publish 工具层防护；按 No Spec No Code 走。
-- 状态：数据补救 ✅ 完成；偏差登记 ✅ 完成（偏差清单 §2/§3、版本记录 2026-10-15 条目）；本任务包规格已建，**待用户批准后进入实施**。
+- 状态：数据补救 ✅ 完成；偏差登记 ✅ 完成（偏差清单 §2/§3、版本记录 2026-10-15 条目）；本任务包规格已于 2026-10-15 经用户批准，T1–T6 全部闭环（见 I-807-1 / I-807-2）。
 
-### D-807-1 · 卡口性质：无 K1、无工具数量 K8；仅既有工具契约收紧（待批准）
+### D-807-1 · 卡口性质：无 K1、无工具数量 K8；仅既有工具契约收紧（2026-10-15 已批准）
 
 - 本包不改 `shared/types.ts`（CanvasGate/Canvas/Manifest 形状零改动，门版本直接读既有 `gate.payload.version`）。
 - 不新增 / 不删除 MCP 工具：工具总数保持 22、showrunner 白名单保持 17；仅给既有 `brief.publish`（编号 13）增加写盘前的门态拒绝分支，zod 入参与成功返回形状不变。
 - 唯一须用户批准项＝该既有工具的拒绝行为契约（[契约](./SDG-RE-契约.md) §3）+ 新增错误码（D-807-2）。批准本包 5 文件即视为对该契约收紧的显式批准；批准前不触碰代码 / 提示词。
 
-### D-807-2 · 错误码粒度：默认 4 个语义码（待批准，备选单码 + reason）
+### D-807-2 · 错误码粒度：默认 4 个语义码（2026-10-15 已批准，采默认项；备选单码 + reason）
 
 - 默认：`BRIEF_GATE_PENDING` / `BRIEF_GATE_REJECTED` / `BRIEF_GATE_VERSION_MISMATCH` / `BRIEF_GATE_APPROVED_USE_GATE`。
 - 风格对齐既有 `BRIEF_NOT_READY` / `BRIEF_NO_BASELINE` / `IMPACT_DECISION_MISMATCH`（一语义一码，Agent 可直接据码决策，不解析中文 message）。
 - 备选：单码 `BRIEF_GATE_BLOCKED` + `reason` 枚举（见设计 §2.1）。未另决则按默认 4 码实施。
 - 归属：MCP 纯工具业务错误信封层，**不进** runtime/types.ts 的 14 个 runtime 通道错误码（两套体系）。
 
-### D-807-3 · approved 同版本 + verbal 默认拒绝（待批准）
+### D-807-3 · approved 同版本 + verbal 默认拒绝（2026-10-15 已批准）
 
 - 门已 approved（同版本）时要求必须 `approve.by:'gate'`；verbal 调 publish 返回 `BRIEF_GATE_APPROVED_USE_GATE`。
 - 理由：避免一版两凭证、保留门 note 留痕；正常门后路径（showrunner.md L102）本就 by:'gate'，只堵异常路径。
 - 备选：approved 同版本任何 by 都放行（放宽，见设计 §2.2）。
 
-### D-807-4 · brief.impact.commit 默认不加门态硬拦截（待批准）
+### D-807-4 · brief.impact.commit 默认不加门态硬拦截（2026-10-15 已批准）
 
 - 再版 v2+ 走 feature-002 独立流程，plan→assess→**用户三选一**→commit，三选一即用户裁决点；再版可以不发门（对话承载）。给 commit 加门态硬校验会误伤合法无门再版（本次 v2 补救正属此场景）。
 - 故默认：commit handler 不改；仅在 showrunner.md 提示词层要求再版 verbal 针对再版定案卡 + 经三选一、禁止复用首版 / 旧门口头语。
 - 备选：为 commit 加同版本 pending/rejected 门拦截（需先定义再版门协议，超出 B-14 修复范围，本包不做）。
 
-### D-807-5 · rejected 旧门残留：方案 A 零结构改动（待批准）
+### D-807-5 · rejected 旧门残留：方案 A 零结构改动（2026-10-15 已批准）
 
 - commit 不清 / 不改旧 rejected 门；需要门的再版由 showrunner 以同一 gateId 重发——bridge 现状已支持 rejected（无 live entry）→ 同 gateId 重开 pending 并覆盖 question/options/payload（bridge.ts initializeEntry L55-103）。
 - 无门再版后，旧 rejected 门因 payload 绑定旧版本，被版本匹配规则自然隔离，不能充当新版凭证；其在画布的展示残留属 renderer 通道包，不在本包。
 - 走查项目 `project-20261015-083049-xho7` 的旧 rejected 门（v1 含快手卡）作为历史现场保留，不回改、不清理。
 - 备选 B（commit 标记 / 归档旧门）需改 CanvasGate 结构或加工具（K1/K8），明确不做。
 
-### D-807-6 · B-15 平台忠实度：提示词来源回溯，不做平台闭集（待批准）
+### D-807-6 · B-15 平台忠实度：提示词来源回溯，不做平台闭集（2026-10-15 已批准）
 
 - platforms 是开放业务集合，硬编码白名单违背项目必要性且易过期；缺陷本质是「Agent 把未确认事实当确认事实」。
 - 裁决：以 showrunner 发门前字段来源回溯纪律解决（每个上卡字段可指回用户原话 / 故事背景档案等已确认产物；无来源不补、拿不准回对话问），工具层不引入 platforms 枚举。与风格字段（mainStyleId 有内置谱系目录、故有闭集校验）区分。

@@ -473,7 +473,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
   <div class="grid g2 rv">
     <div class="card">
       <h4>会话目录（§7.1 定稿）</h4>
-      <p>manifest.json（status 7 态状态机 + 画布 10 节点 Stage）、立项单.vN.json、故事背景档案、chat.messages.json、故事/（大纲·小传）+ 剧本/（分场·台词）、分镜/shotlist；JSON 源 + MD 镜像双写，无数据库。资产 / 镜头 / 声音 / 时间线 / 成片随 feature 包扩展。</p>
+      <p>manifest.json（status 7 态状态机 + 画布 10 节点 Stage）、立项单.vN.json、故事背景档案、.session.json（activeSessionId 绑定 opencode 会话；消息历史存 opencode 原生存储，R-001）、故事/（大纲·小传）+ 剧本/（分场·台词）、分镜/shotlist；JSON 源 + MD 镜像双写，无数据库。资产 / 镜头 / 声音 / 时间线 / 成片随 feature 包扩展。</p>
       <p class="mut" style="font-size:12px;margin-top:8px">manifest 状态机（§7.1 定稿，7 态）：initiating → story-outline → story-profiles → script-scenes → script-dialogue → script-storyboard → storyboard-done；下游只读已定稿上游，缺失报 runtime 错误（旧 STORY_CTX_MISSING 已退役）。</p>
     </div>
     <div class="card">

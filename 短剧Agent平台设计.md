@@ -561,8 +561,7 @@ project-*/
 ├── manifest.json          # 阶段状态指针 { status, createdAt, ... }；读-改-写保留既有字段
 ├── 立项单.vN.json         # 立项定稿版本（全量保留 v1..vN，不覆盖；旧 brief.json 由本文件取代）
 ├── 故事背景档案.md         # 背景档案（§2.6.3 对话收敛产物）
-├── chat.messages.json     # 会话消息流唯一事实源；replay 重建 UI 状态（阶段/节点/待处理门/redo）
-├── .session.json
+├── .session.json          # { title, createdAt, lastOpenedAt, activeSessionId }；activeSessionId 绑定 opencode 会话
 ├── 故事/
 │   ├── 故事大纲.json/.md   # 大纲定稿
 │   └── 人物小传.json/.md   # 小传定稿（角色 id 诞生地）
@@ -596,7 +595,7 @@ initiating → story-outline → story-profiles
 - **目录约定**：任何产物文件被覆盖前，旧文件自动移入同目录 `版本/<basename>.<YYYYMMDD-HHmmss><ext>`；同秒冲突追加 `.N` 序号。`manifest.json` 永不归档。
 - **副本语义**：归档失败（rename/mkdir 异常）向上抛错阻断本次写入——宁可写入失败也不做无备份覆盖。
 - **触发点**：立项单定稿、剧本 / 分镜 `.json/.md` 双写、背景档案保存。
-- **消费方式**：replay/hydrate 时读取 `chat.messages.json` 中 unlock 消息，对 source 为 idea/background 的 unlock 从消息流取 `newIdea` / 档案全文，从 `版本/` 目录反查对应历史版本文件作为 diff 参照；UI 历史角标点击展示同目录版本快照。
+- **消费方式**：消息历史复用 opencode 原生会话存储（平台不另建消息 JSON，`chat.messages.json` 终态作废，R-001）；`.session.json` 仅持久化 `activeSessionId` 绑定，重开项目经 SDK `session.messages` 回放消息流，其中 unlock 消息对 source 为 idea/background 的 unlock 取 `newIdea` / 档案全文，从 `版本/` 目录反查对应历史版本文件作为 diff 参照；UI 历史角标点击展示同目录版本快照。
 
 #### 视觉风格谱系（外部数据源）
 

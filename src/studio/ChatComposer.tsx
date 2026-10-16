@@ -93,9 +93,15 @@ interface Props {
   pendingGate: CanvasGate | null
   deciding: boolean
   sending: boolean
+  /** feature-808 D-006：流式生成态（promptAsync accepted 后 → idle/error 前），驱动停止钮持续可达 */
+  generating?: boolean
   error: string | null
   onSend: (text: string) => void
   onDecide: (decision: 'approved' | 'rejected', note?: string) => void
+  /** feature-808（R4 / D-006）：sending 或 generating 中显示停止钮；不传则维持仅发送钮形态 */
+  onStop?: () => void
+  /** feature-808：历史回放加载态（默认 false）；加载中禁用发送 */
+  historyLoading?: boolean
 }
 
 // ── 浏览器预览演示消息（对齐原型 #chatBody 5 条） ──
@@ -234,7 +240,7 @@ function AgentTurn({ turn }: { turn: StreamingTurn }) {
 }
 
 export default function ChatComposer({
-  items, stream, pendingGate, deciding, sending, error, onSend, onDecide,
+  items, stream, pendingGate, deciding, sending, generating = false, error, onSend, onDecide, onStop, historyLoading,
 }: Props) {
   const [draft, setDraft] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -246,7 +252,7 @@ export default function ChatComposer({
 
   const submit = (): void => {
     const text = draft.trim()
-    if (!text || sending) return
+    if (!text || sending || generating || historyLoading) return
     setDraft('')
     onSend(text)
   }
@@ -277,6 +283,16 @@ export default function ChatComposer({
 
       {/* ── chat-body ── */}
       <div ref={scrollRef} className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-3.5">
+        {historyLoading && (
+          <div
+            data-testid="chat-history-loading"
+            className="flex items-center gap-2 text-xs text-muted"
+            role="status"
+          >
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-line border-t-violet" />
+            正在载入历史对话…
+          </div>
+        )}
         {items.length === 0 && !stream && (
           <div className="text-xs leading-6 text-muted">
             输入一句灵感（如「重生复仇都市女频」），主控 Agent 会理解拆解，并按当前阶段依次请你裁决确认门。
@@ -370,18 +386,33 @@ export default function ChatComposer({
               <span className="h-[5px] w-[5px] rounded-full bg-violet" />
               H3 自动选配
             </span>
-            <button
-              type="button"
-              title="发送"
-              onClick={submit}
-              disabled={sending || !draft.trim()}
-              className="ml-auto grid h-7 w-7 place-items-center rounded-lg bg-violet text-white transition hover:bg-[#5B4BD6] disabled:opacity-50"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="h-[13px] w-[13px]">
-                <path d="m22 2-7 20-4-9-9-4z" />
-                <path d="M22 2 11 13" />
-              </svg>
-            </button>
+            {(sending || generating) && onStop ? (
+              <button
+                type="button"
+                title="停止生成"
+                data-testid="chat-stop"
+                onClick={onStop}
+                className="ml-auto grid h-7 w-7 place-items-center rounded-lg bg-bad text-white transition hover:opacity-90"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-[11px] w-[11px]">
+                  <rect x="5" y="5" width="14" height="14" rx="2.5" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                type="button"
+                title="发送"
+                data-testid="chat-send"
+                onClick={submit}
+                disabled={sending || generating || historyLoading || !draft.trim()}
+                className="ml-auto grid h-7 w-7 place-items-center rounded-lg bg-violet text-white transition hover:bg-[#5B4BD6] disabled:opacity-50"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="h-[13px] w-[13px]">
+                  <path d="m22 2-7 20-4-9-9-4z" />
+                  <path d="M22 2 11 13" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       </div>

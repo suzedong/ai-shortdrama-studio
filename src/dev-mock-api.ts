@@ -281,7 +281,9 @@ export function installDevMockApi(): void {
       { dir: '/demo/jiugang', name: '旧港往事', updatedAt: new Date().toISOString() },
     ]),
     createProject: (name?: string) => resolve({ dir: `/demo/${name || 'untitled'}` }),
-    openProject: () => resolve({ ok: true as const }),
+    openProject: () => resolve({ ok: true as const, activeSessionId: null as string | null }),
+    // feature-808：项目-会话绑定双态（mock 恒为未绑定）
+    activeSession: (_sessionId?: string | null) => resolve({ sessionId: null as string | null }),
     configStatus: () => resolve({ arkConfigured: false }),
 
     runtime: {
@@ -290,6 +292,7 @@ export function installDevMockApi(): void {
       status: () => resolve(stoppedStatus()),
       createSession: () => resolve({ id: 'sess-demo', title: null, createdAt: new Date().toISOString() }),
       listSessions: () => resolve([]),
+      sessionMessages: () => resolve([]),
       abortSession: () => resolve({ ok: true as const }),
       deleteSession: () => resolve({ ok: true as const }),
       prompt: () => resolve({ messageId: 'm-demo', accepted: true as const }),

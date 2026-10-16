@@ -5,6 +5,7 @@ import type {
   RuntimePromptRequest,
   RuntimePromptResult,
   RuntimeSession,
+  RuntimeSessionMessageRecord,
   RuntimeStatus,
 } from '../src/lib/runtime-types'
 
@@ -13,6 +14,12 @@ contextBridge.exposeInMainWorld('api', {
   listProjects: () => ipcRenderer.invoke('project:list'),
   createProject: (name?: string) => ipcRenderer.invoke('project:create', name === undefined ? undefined : { name }),
   openProject: (dir: string) => ipcRenderer.invoke('project:open', dir),
+  // feature-808：项目绑定会话读（无参）/写（{ sessionId } 或 { sessionId: null }）双态（D-005 顶层暴露）
+  activeSession: (sessionId?: string | null): Promise<{ sessionId: string | null }> =>
+    ipcRenderer.invoke(
+      'project:active-session',
+      sessionId === undefined ? undefined : { sessionId },
+    ),
   configStatus: (): Promise<{ arkConfigured: boolean }> => ipcRenderer.invoke('app:config-status'),
   // feature-022：旧壳 IPC（saveProject/template/session/chat/archive/workflow）已全部下线
 
@@ -24,6 +31,9 @@ contextBridge.exposeInMainWorld('api', {
     createSession: (title?: string): Promise<RuntimeSession> =>
       ipcRenderer.invoke('runtime:session:create', title === undefined ? undefined : { title }),
     listSessions: (): Promise<RuntimeSession[]> => ipcRenderer.invoke('runtime:session:list'),
+    // feature-808：会话历史回放（文本 DTO）
+    sessionMessages: (sessionId: string): Promise<RuntimeSessionMessageRecord[]> =>
+      ipcRenderer.invoke('runtime:session:messages', { sessionId }),
     abortSession: (sessionId: string): Promise<{ ok: true }> =>
       ipcRenderer.invoke('runtime:session:abort', sessionId),
     deleteSession: (sessionId: string): Promise<{ ok: true }> =>

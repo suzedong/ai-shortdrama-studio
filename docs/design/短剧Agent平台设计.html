@@ -633,8 +633,7 @@
 ├─ manifest.json           阶段状态指针 {status, createdAt, ...}；读-改-写保留既有字段
 ├─ 立项单.vN.json          立项定稿版本（全量保留 v1..vN，不覆盖；旧 brief.json 由本文件取代）
 ├─ 故事背景档案.md          背景档案（§2.6.3 对话收敛产物）
-├─ chat.messages.json      会话消息流唯一事实源；replay 重建 UI 状态（阶段/节点/待处理门/redo）
-├─ .session.json
+├─ .session.json          {title, createdAt, lastOpenedAt, activeSessionId}；activeSessionId 绑定 opencode 会话
 ├─ 故事/
 │  ├─ 故事大纲.json/.md     大纲定稿
 │  └─ 人物小传.json/.md     小传定稿（角色 id 诞生地）
@@ -704,7 +703,7 @@
   </div>
   <p><b>约束</b>：生成动作只读已定稿上游文件，缺上游由 Agent 报告缺料（runtime 错误码，见 §5.1），不静默产出；产物 JSON 源 + MD 镜像双写。立项后变更按 §2.6.6 / §2.6.7 全字段可改 + 影响评估 + 用户决策（<code>manifest.briefVersion</code> + <code>parentReference</code> + <code>影响清单.vN→v(N+1).json</code>，feature-005/006 包落地）。</p>
   <div class="grid g3">
-    <div class="card"><div class="ct">版本归档区（持久化机制）</div><div class="cb"><b>目录约定</b>：任何产物文件被覆盖前，旧文件自动移入同目录 <code>版本/&lt;basename&gt;.&lt;YYYYMMDD-HHmmss&gt;&lt;ext&gt;</code>；同秒冲突追加 <code>.N</code> 序号。<code>manifest.json</code> 永不归档。<b>副本语义</b>：归档失败（rename/mkdir 异常）向上抛错阻断本次写入——宁可写入失败也不做无备份覆盖。<b>触发点</b>：立项单定稿、剧本 / 分镜 .json/.md 双写、背景档案保存。<b>消费方式</b>：replay/hydrate 时读取 <code>chat.messages.json</code> 中 unlock 消息，对 source 为 idea/background 的 unlock 从消息流取 <code>newIdea</code>/档案全文，从 <code>版本/</code> 目录反查对应历史版本文件作为 diff 参照；UI 历史角标点击展示同目录版本快照。</div></div>
+    <div class="card"><div class="ct">版本归档区（持久化机制）</div><div class="cb"><b>目录约定</b>：任何产物文件被覆盖前，旧文件自动移入同目录 <code>版本/&lt;basename&gt;.&lt;YYYYMMDD-HHmmss&gt;&lt;ext&gt;</code>；同秒冲突追加 <code>.N</code> 序号。<code>manifest.json</code> 永不归档。<b>副本语义</b>：归档失败（rename/mkdir 异常）向上抛错阻断本次写入——宁可写入失败也不做无备份覆盖。<b>触发点</b>：立项单定稿、剧本 / 分镜 .json/.md 双写、背景档案保存。<b>消费方式</b>：消息历史复用 opencode 原生会话存储（平台不另建消息 JSON，<code>chat.messages.json</code> 终态作废，R-001）；<code>.session.json</code> 仅持久化 <code>activeSessionId</code> 绑定，重开项目经 SDK <code>session.messages</code> 回放消息流，其中 unlock 消息对 source 为 idea/background 的 unlock 取 <code>newIdea</code>/档案全文，从 <code>版本/</code> 目录反查对应历史版本文件作为 diff 参照；UI 历史角标点击展示同目录版本快照。</div></div>
     <div class="card"><div class="ct">视觉风格谱系（外部数据源）</div><div class="cb">系统级外部数据源（注册路径 / 版本跟踪 / 引用风格 ID + 谱系版本），完整约定见 §8.3；当前实现 <code>electron/style-catalog.ts</code> 固化谱系（<code>CATALOG_VERSION</code> + <code>assertInCatalog</code> 校验，失败即拒），与 §8.3 机制并存。辅助风格仅允许 B/D 候选域（§2.6.4）。</div></div>
     <div class="card"><div class="ct">术语对齐</div><div class="cb">「立项五要素」统一更名为「<b>立项六要素</b>」（题材/平台/集数/单集时长/风格基调/画幅），画幅由 <code>deriveFiveElements</code> 按平台规则派生；<code>FiveElements.aspectRatio</code> 为必填字段，旧数据回退竖屏。</div></div>
   </div>

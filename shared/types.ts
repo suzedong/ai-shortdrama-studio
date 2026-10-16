@@ -310,6 +310,8 @@ export interface ProjectSession {
   title: string          // 一期固定 '新项目'
   createdAt: string      // ISO
   lastOpenedAt: string   // ISO
+  /** feature-808：当前项目绑定的 opencode 会话 id；未绑定/旧文件为 undefined，清空为 null */
+  activeSessionId?: string | null
 }
 
 // userData/session-state.json 文件格式

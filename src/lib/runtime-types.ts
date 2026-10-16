@@ -38,6 +38,20 @@ export interface RuntimeSession {
   createdAt: string
 }
 
+/** session.messages 回放记录（仅回放所需最小形状；reasoning/tool 不透传） */
+export interface RuntimeSessionMessagePart {
+  type: 'text'
+  text: string
+  /** assistant text part 的 time.start（ms）；user text part 无 */
+  startedAt?: number
+  ignored?: boolean
+  synthetic?: boolean
+}
+export interface RuntimeSessionMessageRecord {
+  info: { id: string; role: 'user' | 'assistant' }
+  parts: RuntimeSessionMessagePart[]
+}
+
 export interface RuntimeModelRef {
   providerID: string
   modelID: string

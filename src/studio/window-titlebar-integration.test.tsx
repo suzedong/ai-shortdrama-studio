@@ -27,6 +27,9 @@ function installApi(platform: 'darwin' | 'win32' | 'linux') {
       start: vi.fn(async () => ({ state: 'stopped', port: null, version: null, healthy: false, startedAt: null, error: null })),
       createSession: vi.fn(async () => ({ id: 'sess-1', title: null, createdAt: new Date().toISOString() })),
       subscribe: vi.fn(async () => ({ ok: true as const })),
+      unsubscribe: vi.fn(async () => ({ ok: true as const })),
+      abortSession: vi.fn(async () => ({ ok: true as const })),
+      sessionMessages: vi.fn(async () => []),
       promptAsync: vi.fn(async () => ({ accepted: true as const, messageId: 'm1' })),
       onEvent: vi.fn(() => () => undefined),
     },
@@ -42,7 +45,9 @@ function installApi(platform: 'darwin' | 'win32' | 'linux') {
     },
     listProjects: vi.fn(async () => []),
     createProject: vi.fn(async () => ({ dir: '/ws/p' })),
-    openProject: vi.fn(async () => ({ ok: true as const })),
+    openProject: vi.fn(async () => ({ ok: true as const, activeSessionId: null as string | null })),
+    // feature-808：项目-会话绑定（默认无绑定 → 不回放、不启 runtime）
+    activeSession: vi.fn(async () => ({ sessionId: null as string | null })),
     fileRead: vi.fn(async () => ({ ok: false as const, error: { code: 'X', message: 'x' } })),
     window: { platform, minimize, toggleMaximize, isMaximized, close, onMaximizeChange },
   } as unknown as Window['api']

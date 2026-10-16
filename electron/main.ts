@@ -3,7 +3,13 @@ import type { WebContents } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { listProjects, createProject, openProject } from './project/library.js'
+import {
+  listProjects,
+  createProject,
+  openProject,
+  readActiveSession,
+  setActiveSession,
+} from './project/library.js'
 import { isConfigured } from './ark.js'
 import { canvasStore } from './canvas/store.js'
 import { gateBridge } from './gate/bridge.js'
@@ -148,6 +154,30 @@ ipcMain.handle('project:open', (_e, dir: unknown) => {
     }
     return res
   })
+})
+
+// feature-808：当前项目绑定会话的读/写双态（不经 withRuntime，绝不因读绑定拉起 opencode）
+// 无参 = 读态（无项目/无绑定 → { sessionId: null }，不抛错）；
+// { sessionId: string } = 绑定；{ sessionId: null } = 清空（写态无项目抛 INVALID_ARGUMENT）。
+ipcMain.handle('project:active-session', (_e, arg?: unknown) => {
+  if (arg !== undefined) {
+    if (
+      !isRecord(arg) ||
+      !(typeof arg.sessionId === 'string' || arg.sessionId === null) ||
+      (typeof arg.sessionId === 'string' && arg.sessionId.trim().length === 0)
+    ) {
+      throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { sessionId: string | null }')
+    }
+    const dir = getActiveProjectDir() // 无项目抛 INVALID_ARGUMENT，写态不吞
+    return setActiveSession(dir, arg.sessionId)
+  }
+  let dir: string
+  try {
+    dir = getActiveProjectDir()
+  } catch {
+    return { sessionId: null }
+  }
+  return readActiveSession(dir)
 })
 
 // feature-011：只读查询文本侧配置状态（供底栏诚实显示：未配置/已配置）
@@ -390,6 +420,20 @@ ipcMain.handle('runtime:session:create', (_e, arg?: unknown) =>
 )
 
 ipcMain.handle('runtime:session:list', () => withRuntime(() => runtimeClient.listSessions()))
+
+// feature-808：会话历史回放读（文本 DTO）；404 → SESSION_NOT_FOUND 由 client 归一
+ipcMain.handle('runtime:session:messages', (_e, arg: unknown) =>
+  withRuntime(async () => {
+    let sessionId: string
+    if (typeof arg === 'string') sessionId = arg
+    else if (isRecord(arg) && typeof arg.sessionId === 'string') sessionId = arg.sessionId
+    else throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { sessionId: string }')
+    if (sessionId.trim().length === 0) {
+      throw makeRuntimeError('INVALID_ARGUMENT', 'sessionId 必须为非空字符串')
+    }
+    return runtimeClient.getSessionMessages(sessionId)
+  }),
+)
 
 ipcMain.handle('runtime:session:abort', (_e, sessionId: unknown) =>
   withRuntime(async () => {

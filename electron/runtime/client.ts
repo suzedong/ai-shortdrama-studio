@@ -15,7 +15,7 @@
 // - GET /agent 在 SDK 运行时挂在 app.agents()（sdk.gen.d.ts：App.agents，T8 真机核实）。
 import crypto from 'node:crypto'
 import { createOpencodeClient } from '@opencode-ai/sdk/client'
-import type { Agent, AssistantMessage, Part, Session } from '@opencode-ai/sdk/client'
+import type { Agent, AssistantMessage, Message, Part, Session } from '@opencode-ai/sdk/client'
 import {
   SHOWRUNNER_AGENT,
   SHOWRUNNER_DECLARED_TOOLS,
@@ -32,6 +32,7 @@ import type {
   RuntimePromptRequest,
   RuntimePromptResult,
   RuntimeSession,
+  RuntimeSessionMessageRecord,
   RuntimeStructuredFormat,
 } from './types.js'
 
@@ -63,6 +64,9 @@ export interface SdkHandle {
       SdkResult<{ info: AssistantMessage; parts: Part[] }>
     >
     promptAsync(o: { path: { id: string }; body: PromptBody }): Promise<SdkResult<null>>
+    messages(o: { path: { id: string } }): Promise<
+      SdkResult<Array<{ info: Message; parts: Part[] }>>
+    >
   }
   app: {
     // SDK d.ts 声明见 gen/sdk.gen.d.ts App.agents → GET /agent
@@ -133,6 +137,15 @@ export class OpencodeRuntimeClient {
     const result = await sdk.session.delete({ path: { id } })
     if (result.error) throw mapHttpError(result, 'INTERNAL')
     return { ok: true }
+  }
+
+  /** feature-808：历史回放，裁剪为文本 DTO（契约 §5.1/§5.2） */
+  async getSessionMessages(sessionId: string): Promise<RuntimeSessionMessageRecord[]> {
+    const id = requireSessionId(sessionId)
+    const sdk = this.ensureReady()
+    const result = await sdk.session.messages({ path: { id } })
+    if (result.error || !result.data) throw mapHttpError(result, 'SESSION_NOT_FOUND')
+    return result.data.map(toMessageRecord)
   }
 
   // -- prompt ----------------------------------------------------------------
@@ -353,6 +366,31 @@ function toRuntimeSession(s: Session): RuntimeSession {
     title: s.title ? s.title : null,
     createdAt: new Date(s.time.created).toISOString(),
   }
+}
+
+/**
+ * feature-808 · session.messages 回放映射：仅保留文本 part（reasoning/tool 等不透传）。
+ * 纯映射，不含 fs/网络；坏数据不抛错（契约 §5.2 规则 1–3）。
+ */
+export function toMessageRecord(raw: {
+  info: Message
+  parts: Part[]
+}): RuntimeSessionMessageRecord {
+  const role = raw.info.role === 'assistant' ? 'assistant' : 'user'
+  const id = typeof raw.info.id === 'string' ? raw.info.id : ''
+  const parts: RuntimeSessionMessageRecord['parts'] = []
+  for (const p of raw.parts) {
+    if (p.type !== 'text') continue
+    const part: RuntimeSessionMessageRecord['parts'][number] = {
+      type: 'text',
+      text: typeof p.text === 'string' ? p.text : '',
+    }
+    if (typeof p.time?.start === 'number') part.startedAt = p.time.start
+    if (p.ignored === true) part.ignored = true
+    if (p.synthetic === true) part.synthetic = true
+    parts.push(part)
+  }
+  return { info: { id, role }, parts }
 }
 
 /** 上游 assistant message 错误 → RuntimeErrorCode（业务失败，不 reject） */

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { Canvas, CanvasGate, CanvasNode, StepId } from '@shared/types'
 import { reduceRuntimeEvent, turnText, type StreamingTurn } from '../lib/chat-runtime'
+import { replayMessages } from '../lib/history-replay'
 import CanvasBoard, { kindLabel, type NodeAction } from './CanvasBoard'
 import ChatComposer, { demoChatItems, type ChatItem } from './ChatComposer'
 import ProjectNav, { type ProjectNavHandle } from './ProjectNav'
@@ -95,6 +96,9 @@ export default function StudioApp() {
   const [stream, setStream] = useState<StreamingTurn | null>(null)
   const [pendingGate, setPendingGate] = useState<CanvasGate | null>(null)
   const [sending, setSending] = useState(false)
+  // feature-808 D-006：生成态独立于 sending（promptAsync 仅代表 HTTP accepted，
+  // 流式可能数秒后才开始）；由流式事件置位/复位，驱动停止钮持续可达
+  const [generating, setGenerating] = useState(false)
   const [deciding, setDeciding] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [viewerNode, setViewerNode] = useState<CanvasNode | null>(null)
@@ -110,10 +114,29 @@ export default function StudioApp() {
   const streamRef = useRef<StreamingTurn | null>(null)
   streamRef.current = stream
   const projectIdRef = useRef('')
+  // feature-808：当前项目绑定的会话 id（事件过滤、发送复用的事实源）
+  const activeSessionIdRef = useRef<string | null>(null)
+  // 防快速切项目时旧回放覆盖新右栏：每次装载递增，迟到结果按序号/ projectId 丢弃
+  const projectSessionSeqRef = useRef(0)
+  // SSE 全程只订阅一次（无参订阅，首发送时惰性触发）
+  const subscribedRef = useRef(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   // ---- runtime 事件 → 流式归约；轮次定稿时落为历史消息 ----
+  // feature-808：归约前先按绑定会话严格归属（R5 / D-007）——
+  // 带 sessionId 的事件必须命中当前绑定 sid，否则一律丢弃；
+  // 无 sessionId 的 runtime 级事件（connected 等）放行（reducer 对其 no-op）。
+  // 注意：当前项目 sid=null（无绑定空项目）时，他会话事件 evSid!==undefined 同样丢弃。
   useEffect(() => {
     const off = window.api.runtime.onEvent(ev => {
+      const sid = activeSessionIdRef.current
+      const evSid = 'sessionId' in ev ? ev.sessionId : undefined
+      if (evSid !== undefined && evSid !== sid) return
+      // D-006：归属事件中的终态无条件复位 generating（不能只挂定稿分支——
+      // session.idle 在 turn=null 时 reducer 返回 null，无流式分片的空转 idle 也须复位）
+      if (ev.type === 'session.idle' || ev.type === 'runtime.error') {
+        setGenerating(false)
+      }
       const prev = streamRef.current
       const next = reduceRuntimeEvent(prev, ev)
       if (next !== prev) {
@@ -127,12 +150,83 @@ export default function StudioApp() {
         }
       }
     })
-    return off
+    return () => {
+      off()
+      // feature-808：SSE 全程订阅一次，卸载时退订
+      window.api.runtime.unsubscribe().catch(e => console.error('runtime.unsubscribe failed', e))
+    }
   }, [])
+
+  // feature-808：回放装载（§4.2）。session 序号过期一律丢弃；404 → 清绑定 + info toast 降级
+  const loadReplay = useCallback(async (sessionId: string, seq: number, projectId: string) => {
+    const stale = () =>
+      seq !== projectSessionSeqRef.current || projectId !== projectIdRef.current
+    try {
+      const records = await window.api.runtime.sessionMessages(sessionId) // withRuntime 惰性自启
+      if (stale()) return
+      setItems(replayMessages(records))
+    } catch (e) {
+      if (stale()) return
+      const code = (e as { name?: string; code?: string } | null)?.name
+        ?? (e as { code?: string } | null)?.code
+      if (code === 'SESSION_NOT_FOUND') {
+        try {
+          await window.api.activeSession(null)
+        } catch (clearErr) {
+          console.error('activeSession(null) failed', clearErr)
+        }
+        if (stale()) return
+        activeSessionIdRef.current = null
+        setItems([])
+        setToast({ tone: 'info', text: '上次的会话记录已不可用，已为你开始新对话。' })
+      } else {
+        // 绑定保留，不锁死；用户仍可重试发送
+        setError('历史对话加载失败，请稍后重试。')
+      }
+    } finally {
+      if (!stale()) setHistoryLoading(false)
+    }
+  }, [])
+
+  // feature-808：切项目会话装载（§4.1）。唯一装载信号：canvas projectId 变化
+  // （覆盖启动恢复 / 左栏切换 / 新建三入口）；dev-mock 演示态不介入
+  const onProjectSessionChange = useCallback((projectId: string) => {
+    if (devMockActive()) return
+    const seq = ++projectSessionSeqRef.current
+    setItems([])
+    streamRef.current = null
+    setStream(null)
+    setGenerating(false) // D-006：切项目清场，停止钮随当前视图复位
+    activeSessionIdRef.current = null
+    if (!projectId) return
+    setHistoryLoading(true)
+    window.api.activeSession()
+      .then(bind => {
+        if (seq !== projectSessionSeqRef.current || projectId !== projectIdRef.current) return
+        activeSessionIdRef.current = bind.sessionId
+        if (bind.sessionId) {
+          void loadReplay(bind.sessionId, seq, projectId)
+        } else {
+          setHistoryLoading(false) // 空态：不启动 runtime（AC1）
+        }
+      })
+      .catch(e => {
+        if (seq !== projectSessionSeqRef.current || projectId !== projectIdRef.current) return
+        console.error('activeSession read failed', e)
+        setHistoryLoading(false)
+      })
+  }, [loadReplay])
 
   // ---- 画布初值 + 订阅；项目切换时 canvas:changed 自动刷新 ----
   useEffect(() => {
     let alive = true
+    const syncProjectSession = (projectId: string) => {
+      // projectId 变化（含 '' → 首次有项目）才装载；同项目重复推送不重放
+      if (projectId !== projectIdRef.current) {
+        projectIdRef.current = projectId
+        onProjectSessionChange(projectId)
+      }
+    }
     const offChange = window.api.canvas.onChange(c => {
       setCanvas(c)
       setPendingGate(pendingFromCanvas(c))
@@ -140,14 +234,14 @@ export default function StudioApp() {
       if (projectIdRef.current && c.projectId !== projectIdRef.current) {
         setViewerNode(null)
       }
-      projectIdRef.current = c.projectId
+      syncProjectSession(c.projectId)
     })
     window.api.canvas.get()
       .then(c => {
         if (!alive) return
         setCanvas(c)
         setPendingGate(pendingFromCanvas(c))
-        projectIdRef.current = c.projectId
+        syncProjectSession(c.projectId)
       })
       .catch(e => {
         console.error('canvas.get failed', e)
@@ -170,7 +264,14 @@ export default function StudioApp() {
     return off
   }, [])
 
-  // ---- 发送一轮：惰性确保 runtime + session，指定 showrunner ----
+  // feature-808：SSE 全程只订阅一次（无参订阅，首发送惰性触发；失败可重试）
+  const ensureSubscribedOnce = useCallback(async () => {
+    if (subscribedRef.current) return
+    await window.api.runtime.subscribe()
+    subscribedRef.current = true
+  }, [])
+
+  // ---- 发送一轮：复用绑定会话；无绑定才惰性建会话并回写，指定 showrunner ----
   const handleSend = useCallback(async (text: string) => {
     setError(null)
     setSending(true)
@@ -183,13 +284,39 @@ export default function StudioApp() {
           throw new Error(started.error?.message || '运行时启动失败，请稍后重试。')
         }
       }
-      const session = await window.api.runtime.createSession()
-      await window.api.runtime.subscribe(session.id)
-      await window.api.runtime.promptAsync({ sessionId: session.id, text, agent: 'showrunner' })
+      await ensureSubscribedOnce()
+      let sid = activeSessionIdRef.current
+      if (!sid) {
+        const session = await window.api.runtime.createSession()
+        sid = session.id
+        activeSessionIdRef.current = session.id
+        // 回写绑定：崩溃只记 error，不阻断本轮发送（重开表现为未绑定空态）
+        try {
+          await window.api.activeSession(session.id)
+        } catch (bindErr) {
+          console.error('activeSession write failed', bindErr)
+        }
+      }
+      await window.api.runtime.promptAsync({ sessionId: sid, text, agent: 'showrunner' })
+      // D-006：accepted 后进入生成态，停止钮持续可达；真实环境由 session.idle /
+      // runtime.error 事件复位。dev mock 不产生任何 runtime 事件，不置位以免停止钮卡死。
+      if (!devMockActive()) setGenerating(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : '发送失败，请重试。')
     } finally {
       setSending(false)
+    }
+  }, [ensureSubscribedOnce])
+
+  // feature-808（R4 / D-006）：停止当前轮；不本地复位 generating
+  // （由 session.idle / runtime.error 事件链复位；abort 被引擎接受后必发 idle）
+  const handleStop = useCallback(async () => {
+    const sid = activeSessionIdRef.current
+    if (!sid) return // 防御：sending 中理论上必有绑定
+    try {
+      await window.api.runtime.abortSession(sid)
+    } catch (e) {
+      console.error('abortSession failed', e)
     }
   }, [])
 
@@ -560,8 +687,11 @@ export default function StudioApp() {
             pendingGate={pendingGate}
             deciding={deciding}
             sending={sending}
+            generating={generating}
             error={error}
+            historyLoading={historyLoading}
             onSend={handleSend}
+            onStop={handleStop}
             onDecide={handleDecide}
           />
         </aside>

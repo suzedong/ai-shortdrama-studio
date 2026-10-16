@@ -1,6 +1,6 @@
 // feature-019 C7 · renderer 驱动测试（契约 §4，需求 AC-2/AC-3/AC-4）
 // 发送（agent:'showrunner'）→ 流式文本 → GateCard 挂载 → 裁决推进 → 画布更新。
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -37,6 +37,9 @@ function installApi(initial: Canvas): Harness {
       start: vi.fn(async () => ({ state: 'running', port: 0, version: '1.18.34', healthy: true, startedAt: null, error: null })),
       createSession: vi.fn(async () => ({ id: 'sess-1', title: null, createdAt: new Date().toISOString() })),
       subscribe: vi.fn(async () => ({ ok: true as const })),
+      unsubscribe: vi.fn(async () => ({ ok: true as const })),
+      abortSession: vi.fn(async () => ({ ok: true as const })),
+      sessionMessages: vi.fn(async () => []),
       promptAsync,
       onEvent: vi.fn(cb => { runtimeCbs.add(cb); return () => runtimeCbs.delete(cb) }),
     },
@@ -55,7 +58,9 @@ function installApi(initial: Canvas): Harness {
       { dir: '/ws/project-p1', name: '项目一', updatedAt: new Date().toISOString() },
     ]),
     createProject: vi.fn(async () => ({ dir: '/ws/project-p2' })),
-    openProject: vi.fn(async () => ({ ok: true as const })),
+    openProject: vi.fn(async () => ({ ok: true as const, activeSessionId: null as string | null })),
+    // feature-808：项目-会话绑定（默认无绑定 → 不回放、不启 runtime）
+    activeSession: vi.fn(async () => ({ sessionId: null as string | null })),
     fileRead: vi.fn(async () => ({ ok: true as const, content: '{"a":1}', format: 'json' as const })),
   } as unknown as Window['api']
 
@@ -112,11 +117,16 @@ describe('C7 · StudioApp 立项驱动', () => {
     render(<StudioApp />)
     await screen.findByText(/未命名项目/)
 
+    // 先发送惰性建会话（绑定 sess-1）；D-007 严格归属后，流式只接受当前绑定 sid
+    await user.type(screen.getByPlaceholderText(/描述创作目标/), '做一个重生复仇项目')
+    await user.click(screen.getByRole('button', { name: '发送' }))
+    await waitFor(() => expect(h.promptAsync).toHaveBeenCalledTimes(1))
+
     h.emitRuntime({
       type: 'message.part', ts: '', sessionId: 'sess-1', messageId: 'msg-1', partId: 'p1',
       part: { kind: 'text', text: '我已完成选题诊断。' },
     })
-    expect(screen.getByText('我已完成选题诊断。')).toBeInTheDocument()
+    expect(await screen.findByText('我已完成选题诊断。')).toBeInTheDocument()
 
     h.emitGate(gate0final('pending'))
     expect(screen.getByText('立项单 v1 是否可以拍板发布？')).toBeInTheDocument()
@@ -129,6 +139,9 @@ describe('C7 · StudioApp 立项驱动', () => {
     expect(screen.getByText('已完成')).toBeInTheDocument()
 
     h.emitRuntime({ type: 'session.idle', ts: '', sessionId: 'sess-1' })
+    await waitFor(() =>
+      expect(screen.queryByTestId('chat-stop')).not.toBeInTheDocument(),
+    )
     expect(screen.getByText('我已完成选题诊断。')).toBeInTheDocument()
   })
 

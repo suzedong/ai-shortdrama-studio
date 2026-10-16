@@ -118,7 +118,9 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
           </p>
         ) : (
           visible.map((p, i) => {
-            const active = p.dir.endsWith(`/${activeProjectId}`) || p.dir === activeProjectId
+            // activeProjectId 为项目目录 basename（canvas.projectId）；真实 Windows 下
+            // p.dir 是 path.join 的反斜杠路径，mock/测试为正斜杠——取末段通吃两种分隔符
+            const active = p.dir.split(/[\\/]/).pop() === activeProjectId
             return (
               <button
                 key={p.dir}

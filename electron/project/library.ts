@@ -36,6 +36,18 @@ function workspaceRoot(): string {
   return path.join(app.getPath('documents'), 'ai-shortdrama-studio')
 }
 
+// feature-808：路径硬边界（openProject 与绑定读写共用）；仅允许工作区内 project-* 目录
+function assertProjectDir(dir: string): string {
+  const root = workspaceRoot()
+  const resolved = path.resolve(dir)
+  if (path.dirname(resolved) !== root || !path.basename(resolved).startsWith('project-')) {
+    const err = new Error('非法的项目目录') as Error & { code: string }
+    err.code = 'INVALID_PROJECT_DIR'
+    throw err
+  }
+  return resolved
+}
+
 export interface ProjectSummary {
   dir: string
   name: string
@@ -110,6 +122,7 @@ export async function createProject(name?: string): Promise<{ dir: string }> {
       title,
       createdAt: now.toISOString(),
       lastOpenedAt: now.toISOString(),
+      activeSessionId: null,
     }
     await fsp.writeFile(sessionInfoFile(dir), JSON.stringify(session, null, 2), 'utf-8')
     writeSessionState({ currentDir: dir })
@@ -118,15 +131,11 @@ export async function createProject(name?: string): Promise<{ dir: string }> {
 }
 
 // project:open：切换当前会话；同时更新 .session.json 的 lastOpenedAt
-export async function openProject(dir: string): Promise<{ ok: true }> {
-  const root = workspaceRoot()
-  const resolved = path.resolve(dir)
-  // 路径硬边界：只允许打开工作区内的 project-* 目录
-  if (path.dirname(resolved) !== root || !path.basename(resolved).startsWith('project-')) {
-    const err = new Error('非法的项目目录') as Error & { code: string }
-    err.code = 'INVALID_PROJECT_DIR'
-    throw err
-  }
+// feature-808：旧四字段文件打开后定型为五字段（activeSessionId 读出保留，无则 null）
+export async function openProject(
+  dir: string,
+): Promise<{ ok: true; activeSessionId: string | null }> {
+  const resolved = assertProjectDir(dir)
   try {
     await fsp.access(path.join(resolved, 'manifest.json'))
   } catch {
@@ -142,14 +151,59 @@ export async function openProject(dir: string): Promise<{ ok: true }> {
     } catch {
       // 无 .session.json：补建
     }
+    const activeSessionId: string | null =
+      typeof info.activeSessionId === 'string' ? info.activeSessionId : null
     const session: ProjectSession = {
       dir: resolved,
       title: info.title || '新项目',
       createdAt: info.createdAt || nowIso,
       lastOpenedAt: nowIso,
+      activeSessionId,
     }
     await fsp.writeFile(sessionInfoFile(resolved), JSON.stringify(session, null, 2), 'utf-8')
     writeSessionState({ currentDir: resolved })
-    return { ok: true as const }
+    return { ok: true as const, activeSessionId }
+  })
+}
+
+// feature-808：读项目绑定会话；缺失/损坏 → { sessionId: null }（只读直读，不经写队列）
+export async function readActiveSession(dir: string): Promise<{ sessionId: string | null }> {
+  const resolved = assertProjectDir(dir)
+  try {
+    const info = JSON.parse(
+      await fsp.readFile(sessionInfoFile(resolved), 'utf-8'),
+    ) as Partial<ProjectSession>
+    return { sessionId: typeof info.activeSessionId === 'string' ? info.activeSessionId : null }
+  } catch {
+    return { sessionId: null }
+  }
+}
+
+// feature-808：写绑定（enqueue 串行读-改-写）；仅改 activeSessionId，
+// 保留 dir/title/createdAt/lastOpenedAt（绑定写不是「打开项目」，不刷 lastOpenedAt）
+export async function setActiveSession(
+  dir: string,
+  sessionId: string | null,
+): Promise<{ sessionId: string | null }> {
+  const resolved = assertProjectDir(dir)
+  return enqueue(async () => {
+    let info: Partial<ProjectSession> = {}
+    try {
+      info = JSON.parse(
+        await fsp.readFile(sessionInfoFile(resolved), 'utf-8'),
+      ) as Partial<ProjectSession>
+    } catch {
+      // 无 .session.json：按默认补建
+    }
+    const nowIso = new Date().toISOString()
+    const session: ProjectSession = {
+      dir: resolved,
+      title: info.title || '新项目',
+      createdAt: info.createdAt || nowIso,
+      lastOpenedAt: typeof info.lastOpenedAt === 'string' ? info.lastOpenedAt : nowIso,
+      activeSessionId: sessionId,
+    }
+    await fsp.writeFile(sessionInfoFile(resolved), JSON.stringify(session, null, 2), 'utf-8')
+    return { sessionId }
   })
 }

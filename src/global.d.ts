@@ -9,6 +9,7 @@ import type {
   RuntimePromptRequest,
   RuntimePromptResult,
   RuntimeSession,
+  RuntimeSessionMessageRecord,
   RuntimeStatus,
 } from './lib/runtime-types'
 
@@ -22,7 +23,9 @@ declare global {
         dir: string; name: string; createdAt?: string; updatedAt: string
       }[]>
       createProject: (name?: string) => Promise<{ dir: string }>
-      openProject: (dir: string) => Promise<{ ok: true }>
+      openProject: (dir: string) => Promise<{ ok: true; activeSessionId: string | null }>
+      // feature-808：项目绑定会话读（无参）/写（string 绑定 / null 清空）双态
+      activeSession(sessionId?: string | null): Promise<{ sessionId: string | null }>
       configStatus: () => Promise<{ arkConfigured: boolean }>
       // feature-022：旧壳 IPC 已全部下线
       // feature-008 · Agent 运行时（契约 §3.3）
@@ -32,6 +35,7 @@ declare global {
         status(): Promise<RuntimeStatus>
         createSession(title?: string): Promise<RuntimeSession>
         listSessions(): Promise<RuntimeSession[]>
+        sessionMessages(sessionId: string): Promise<RuntimeSessionMessageRecord[]>
         abortSession(sessionId: string): Promise<{ ok: true }>
         deleteSession(sessionId: string): Promise<{ ok: true }>
         prompt(req: RuntimePromptRequest): Promise<RuntimePromptResult>

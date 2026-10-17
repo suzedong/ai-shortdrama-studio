@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-10-17T15:03:19.003Z",
+  "events": [
+    {
+      "t": 0.03,
+      "phase": "cdp-target",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "t": 0.04,
+      "phase": "app-ready"
+    },
+    {
+      "t": 0.63,
+      "phase": "project-opened"
+    },
+    {
+      "t": 3.65,
+      "phase": "project-dir",
+      "dir": "C:\\Users\\SZD\\Documents\\ai-shortdrama-studio\\project-20261017-230018-h0i8"
+    },
+    {
+      "t": 3.83,
+      "phase": "round1-sent",
+      "prompt": "直接开工，不要反问：做一部都市甜宠短剧（女主咖啡"
+    },
+    {
+      "t": 3.99,
+      "phase": "round1-placeholder"
+    },
+    {
+      "t": 4.16,
+      "phase": "round1-typing-dots"
+    },
+    {
+      "t": 56.97,
+      "phase": "round1-stream-cursor"
+    },
+    {
+      "t": 60.11,
+      "phase": "round1-tool-first",
+      "rows": [
+        "✓ shortdrama_canvas_get 0.0s",
+        "✓ shortdrama_brief_list 0.1s",
+        "shortdrama_manifest_get 执行中",
+        "shortdrama_style_catalog 执行中"
+      ]
+    },
+    {
+      "t": 60.44,
+      "phase": "round1-tool-all-done",
+      "rows": [
+        "✓ shortdrama_canvas_get 0.0s",
+        "✓ shortdrama_brief_list 0.1s",
+        "✓ shortdrama_manifest_get 0.1s",
+        "✓ shortdrama_style_catalog 0.3s"
+      ]
+    },
+    {
+      "t": 146.18,
+      "phase": "round1-gate-pending"
+    },
+    {
+      "t": 146.38,
+      "phase": "round1-gate-approved"
+    },
+    {
+      "t": 180.25,
+      "phase": "round1-final",
+      "tools": [
+        "✓ shortdrama_canvas_get 0.0s",
+        "✓ shortdrama_brief_list 0.1s",
+        "✓ shortdrama_manifest_get 0.1s",
+        "✓ shortdrama_style_catalog 0.3s"
+      ],
+      "gapPolls": 0,
+      "polls": 1122
+    }
+  ],
+  "rounds": [
+    {
+      "round": 1,
+      "seen": {
+        "any": true,
+        "placeholder": true,
+        "dots": true,
+        "cursor": true,
+        "tool": true,
+        "toolDone": true
+      },
+      "finalRows": [
+        "✓ shortdrama_canvas_get 0.0s",
+        "✓ shortdrama_brief_list 0.1s",
+        "✓ shortdrama_manifest_get 0.1s",
+        "✓ shortdrama_style_catalog 0.3s"
+      ],
+      "gapPolls": 0,
+      "polls": 1122
+    }
+  ]
+}

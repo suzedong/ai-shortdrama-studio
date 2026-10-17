@@ -22,12 +22,12 @@
 
 ## 1. 任务
 
-- [ ] **T1 基线实测冻结**：跑 `npx tsc --noEmit` 与全量 `npm test`，把实测基线（预期：typecheck 仅 3 条历史基线；48 文件 528 passed / 0 failed / 1 skipped）记入变更记录实施段；实测与预期不符先停手呈报
-- [ ] **T2 实现**（严格按契约 §2/§3）：`toolDurationLabel` / `showStreamCursor` 纯函数 → TypingDots / ToolRow 内部组件 → AgentTurn 改造 → 占位气泡分支 → L508 空态联动
-- [ ] **T3 单测**：`chat-liveness.test.tsx` ≥15 例（纯函数 6 + 组件 ≥9），覆盖 AC1–AC8
-- [ ] **T4 回归**：`npx tsc --noEmit` 零新增；全量 `npm test` passed 不减少、skip 不增、文件数净增恰 1
-- [ ] **T5 真机目验**（Electron 真机，STAGE 0 走查自然触发 file.* / brief.* 工具链）：①发送后占位气泡即现 → ②正文流出带闪烁光标 → ③工具行 running→completed 三态与耗时 → ④定稿后指示器全撤无残留；截图留证存 `docs/design/verify-shots/`
-- [ ] **T6 治理收尾**：[features/README.md](../README.md) 总表 809 行状态翻 ✅（填落地日期与测试基线）；[版本记录.md](../../../版本记录.md) 增行；变更记录补实施记录并闭环
+- [x] **T1 基线实测冻结**：跑 `npx tsc --noEmit` 与全量 `npm test`，把实测基线（预期：typecheck 仅 3 条历史基线；48 文件 528 passed / 0 failed / 1 skipped）记入变更记录实施段；实测与预期不符先停手呈报
+- [x] **T2 实现**（严格按契约 §2/§3）：`toolDurationLabel` / `showStreamCursor` 纯函数 → TypingDots / ToolRow 内部组件 → AgentTurn 改造 → 占位气泡分支 → L508 空态联动
+- [x] **T3 单测**：`chat-liveness.test.tsx` ≥15 例（纯函数 6 + 组件 ≥9），覆盖 AC1–AC8
+- [x] **T4 回归**：`npx tsc --noEmit` 零新增；全量 `npm test` passed 不减少、skip 不增、文件数净增恰 1
+- [x] **T5 真机目验**（Electron 真机，STAGE 0 走查自然触发 file.* / brief.* 工具链）：①发送后占位气泡即现 → ②正文流出带闪烁光标 → ③工具行 running→completed 三态与耗时 → ④定稿后指示器全撤无残留；截图留证存 `docs/design/verify-shots/`
+- [x] **T6 治理收尾**：[features/README.md](../README.md) 总表 809 行状态翻 ✅（填落地日期与测试基线）；[版本记录.md](../../../版本记录.md) 增行；变更记录补实施记录并闭环
 
 ## 2. 产出物清单
 

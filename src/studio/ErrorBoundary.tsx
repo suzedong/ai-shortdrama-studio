@@ -1,5 +1,5 @@
 // feature-019 · 渲染期异常兜底（契约 §4-3）
-// feature-022：去除 onBackLegacy（旧壳已下线），仅保留重试。
+// 去除 onBackLegacy（旧壳已下线），仅保留重试。
 // 最小类组件：任何渲染期异常显示可展示文案，不整窗白屏；不暴露凭证 / 堆栈细节。
 import React from 'react'
 

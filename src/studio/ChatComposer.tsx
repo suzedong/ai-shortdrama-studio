@@ -303,14 +303,14 @@ export default function ChatComposer({
           item.role === 'user' ? (
             <div key={item.id} className="flex flex-row-reverse gap-[9px]">
               <Avatar user />
-              <div className="max-w-[280px] rounded-[12px] rounded-tr-[4px] bg-violet px-3 py-[9px] text-[12px] leading-[1.6] text-white">
+              <div className="max-w-[85%] rounded-[12px] rounded-tr-[4px] bg-violet px-3 py-[9px] text-[12px] leading-[1.6] text-white">
                 {item.text}
               </div>
             </div>
           ) : (
             <div key={item.id} className="flex gap-[9px]">
               <Avatar agent={item.agent} />
-              <div className="max-w-[280px] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
+              <div className="max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
                 {item.text && <MarkdownText text={item.text} />}
                 {item.brief && <BriefCard rows={item.brief} />}
                 {item.trace && <TraceCard trace={item.trace} />}
@@ -322,7 +322,7 @@ export default function ChatComposer({
         {stream && (
           <div className="flex gap-[9px]">
             <Avatar agent="showrunner" />
-            <div className="max-w-[280px] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
+            <div className="max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
               <AgentTurn turn={stream} />
               {pendingGate && (
                 <GateCardView gate={pendingGate} deciding={deciding} onDecide={onDecide} />
@@ -334,7 +334,7 @@ export default function ChatComposer({
         {!stream && pendingGate && (
           <div className="flex gap-[9px]">
             <Avatar agent="showrunner" />
-            <div className="max-w-[280px]">
+            <div className="max-w-[85%]">
               <GateCardView gate={pendingGate} deciding={deciding} onDecide={onDecide} />
             </div>
           </div>

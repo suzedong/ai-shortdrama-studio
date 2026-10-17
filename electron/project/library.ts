@@ -1,6 +1,6 @@
-// feature-022 · 项目库（自 electron/session.ts 解耦迁移，行为逐行不变）
+// 项目库（自 electron/session.ts 解耦迁移，行为逐行不变）
 // 保留：session-state 读写、project:list/create/open；旧壳会话/消息/档案/工作流持久化已随旧壳删除。
-import { app } from 'electron'
+import { app, shell } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
@@ -179,6 +179,20 @@ export async function readActiveSession(dir: string): Promise<{ sessionId: strin
   }
 }
 
+// B-23：读项目名（只读直读，不经写队列）；缺失/损坏/非字符串 → null。
+// 用于 project:open 处理器同步 canvas.title（项目名双源：.session.json 为准）。
+export async function readProjectTitle(dir: string): Promise<string | null> {
+  const resolved = assertProjectDir(dir)
+  try {
+    const info = JSON.parse(
+      await fsp.readFile(sessionInfoFile(resolved), 'utf-8'),
+    ) as Partial<ProjectSession>
+    return typeof info.title === 'string' && info.title.trim() ? info.title : null
+  } catch {
+    return null
+  }
+}
+
 // feature-808：写绑定（enqueue 串行读-改-写）；仅改 activeSessionId，
 // 保留 dir/title/createdAt/lastOpenedAt（绑定写不是「打开项目」，不刷 lastOpenedAt）
 export async function setActiveSession(
@@ -206,4 +220,65 @@ export async function setActiveSession(
     await fsp.writeFile(sessionInfoFile(resolved), JSON.stringify(session, null, 2), 'utf-8')
     return { sessionId }
   })
+}
+
+// B-19 · project:rename：仅改 .session.json 的 title（enqueue 串行读-改-写五字段，
+// 保留 activeSessionId/createdAt/lastOpenedAt）；空标题 INVALID_ARGUMENT 零写盘
+export async function renameProject(
+  dir: string,
+  title: string,
+): Promise<{ ok: true; title: string }> {
+  const resolved = assertProjectDir(dir)
+  const trimmed = title.trim()
+  if (!trimmed) {
+    const err = new Error('项目名不能为空') as Error & { code: string }
+    err.code = 'INVALID_ARGUMENT'
+    throw err
+  }
+  try {
+    await fsp.access(path.join(resolved, 'manifest.json'))
+  } catch {
+    const err = new Error('项目目录已损坏或不存在') as Error & { code: string }
+    err.code = 'PROJECT_NOT_FOUND'
+    throw err
+  }
+  return enqueue(async () => {
+    let info: Partial<ProjectSession> = {}
+    try {
+      info = JSON.parse(
+        await fsp.readFile(sessionInfoFile(resolved), 'utf-8'),
+      ) as Partial<ProjectSession>
+    } catch {
+      // 无 .session.json：按默认补建
+    }
+    const nowIso = new Date().toISOString()
+    const session: ProjectSession = {
+      dir: resolved,
+      title: trimmed,
+      createdAt: info.createdAt || nowIso,
+      lastOpenedAt: typeof info.lastOpenedAt === 'string' ? info.lastOpenedAt : nowIso,
+      activeSessionId: typeof info.activeSessionId === 'string' ? info.activeSessionId : null,
+    }
+    await fsp.writeFile(sessionInfoFile(resolved), JSON.stringify(session, null, 2), 'utf-8')
+    return { ok: true as const, title: trimmed }
+  })
+}
+
+// B-19 · project:delete：移入系统回收站（可恢复）；当前打开的项目拒删（PROJECT_ACTIVE）
+export async function deleteProject(dir: string): Promise<{ ok: true }> {
+  const resolved = assertProjectDir(dir)
+  if (readSessionState().currentDir === resolved) {
+    const err = new Error('不能删除当前打开的项目，请先切换到其他项目') as Error & { code: string }
+    err.code = 'PROJECT_ACTIVE'
+    throw err
+  }
+  try {
+    await fsp.access(resolved)
+  } catch {
+    const err = new Error('项目目录已损坏或不存在') as Error & { code: string }
+    err.code = 'PROJECT_NOT_FOUND'
+    throw err
+  }
+  await shell.trashItem(resolved)
+  return { ok: true as const }
 }

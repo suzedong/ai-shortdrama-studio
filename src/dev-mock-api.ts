@@ -79,6 +79,12 @@ function demoBrief() {
       auxiliaryStyleId: undefined,
     },
     diagnosisSummary: '同类校园恋爱短剧近 90 天头部 12 部平均完播率 38%，前 3 秒「初遇事故」钩子占比 67%；本项目以「误会式开场 + 集尾老照片悬念」切入，A7 拟真人风格与清新治愈基调产能可行，建议立项并先交付 E01 验证钩子。',
+    // B-32：补 demo 诊断明细（D-018 落盘字段），供 StudioViewer「选题诊断明细」演示
+    diagnosisDetail:
+      '【对标案例】\n《夏日限定告白》抖音 · 9.2 分 · 播放 2.1 亿：误会式开场 + 集尾悬念钩子，与本案结构同型。\n《海街日记·短剧版》快手 · 8.7 分 · 播放 8600 万：海边小城取景，清新治愈基调验证可行。\n' +
+      '【用户洞察】\n目标客群 18-24 岁女性，偏好「慢热相识 + 夏日限定感」，弃剧点集中在第 3 集前无明确心意信号。\n' +
+      '【钩子模式】\n前 3 秒事故开场；每集结尾老照片/灯塔意象复现，牵引第二季悬念。\n' +
+      '【合规提示】\n校园题材避免早恋明示，以「大一新生」设定规避；灯塔场景注意安全管理提示。',
     approve: {
       at: '2026-09-12T10:24:00+08:00',
       by: 'gate' as const,
@@ -256,6 +262,17 @@ const DEMO_FILES: Record<string, () => unknown> = {
   '/demo/anni/scene-dorm.json': demoSceneDorm,
   '/demo/assets/V001.mp4': demoShotV001,
   '/demo/assets/V002.mp4': demoShotV002,
+  // B-33：立项单查看器背景档案折叠块演示（string 工厂 → fileRead 走 md 分支原样返回）
+  '故事背景档案.md': () =>
+    '# 安妮的夏天 · 故事背景档案\n\n' +
+    '## 世界观\n' +
+    '2026 年夏天的海边小城「潮音镇」，旅游业刚复苏，老街与灯塔是地标。人们节奏慢，邻里熟络。\n\n' +
+    '## 主要人物\n' +
+    '- **林安妮**（19）：大一新生，暑假回外婆家帮忙看店，外冷内热，相机不离手。\n' +
+    '- **江屿**（21）：灯塔管理员学徒，寡言，每天黄昏记录海面。\n\n' +
+    '## 核心设定\n' +
+    '外婆的旧杂货店即将拆迁；安妮在整理旧物时发现一叠 1998 年的老照片，照片里的灯塔与江屿的日记出现同一串日期。\n\n' +
+    '> 基调：慢热、清新治愈；误会式相识，集尾以老照片复现作钩子。',
 }
 
 function stoppedStatus(): RuntimeStatus {
@@ -282,6 +299,20 @@ export function installDevMockApi(): void {
     ]),
     createProject: (name?: string) => resolve({ dir: `/demo/${name || 'untitled'}` }),
     openProject: () => resolve({ ok: true as const, activeSessionId: null as string | null }),
+    // B-19：改名/删除桩（mock 恒成功）
+    renameProject: (_dir: string, title: string) => resolve({ ok: true as const, title }),
+    deleteProject: (_dir: string) => resolve({ ok: true as const }),
+    // D-017：立项直改桩（mock 恒成功，空影响清单）
+    updateBrief: (_patch: unknown) => resolve({
+      ok: true as const,
+      version: 2,
+      jsonPath: '立项单.v2.json',
+      mdPath: '立项单.v2.md',
+      impactReportPath: '影响清单.v1-v2.json',
+      changes: [],
+      items: [],
+      markedDirty: [],
+    }),
     // feature-808：项目-会话绑定双态（mock 恒为未绑定）
     activeSession: (_sessionId?: string | null) => resolve({ sessionId: null as string | null }),
     configStatus: () => resolve({ arkConfigured: false }),
@@ -337,7 +368,10 @@ export function installDevMockApi(): void {
       if (!factory) {
         return resolve({ ok: false as const, error: { code: 'DEV_MOCK', message: `浏览器预览 mock：演示产物库中无 ${path}` } })
       }
-      return resolve({ ok: true as const, format: 'json' as const, content: JSON.stringify(factory()) })
+      const value = factory()
+      // B-33：string 工厂按 md 产物原样返回（对齐主进程 read.ts：.md → format 'md'、content 原文）
+      if (typeof value === 'string') return resolve({ ok: true as const, format: 'md' as const, content: value })
+      return resolve({ ok: true as const, format: 'json' as const, content: JSON.stringify(value) })
     },
 
     settings: {

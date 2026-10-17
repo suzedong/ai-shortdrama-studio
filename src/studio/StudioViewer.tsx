@@ -1,4 +1,4 @@
-// feature-022 · 只读产物查看器（契约 §3 / OD §4）
+// 只读产物查看器
 // 经 file:read 按 node.ref.path 读落盘产物，按 node.kind 结构化呈现：
 // brief / outline / scenes / dialogue / storyboard / profiles / visual-style / shot 媒体；
 // 未知 JSON / MD 回退美化原文。无编辑、无保存。
@@ -13,6 +13,15 @@ import type {
   VisualStyle,
 } from '@shared/types'
 
+import { styleNameOf } from './VisualCatalog'
+import { BACKGROUND_PATH, BackgroundMd, DiagnosisSections, EntryQuoteCard, formatAt } from './Stage0View'
+
+/** 谱系风格引用：ID · 名称；未知/未来版本 ID 回退只显 ID */
+function styleRefLabel(id: string): string {
+  const name = styleNameOf(id)
+  return name ? `${id} · ${name}` : id
+}
+
 type State =
   | { phase: 'loading' }
   | { phase: 'ok'; content: string; format: 'json' | 'md' }
@@ -22,6 +31,8 @@ interface Props {
   node: CanvasNode
   kindLabel: string
   onClose: () => void
+  /** B-33：入口动作 · 用户原话（会话首条 user 消息，由 StudioApp 传入；仅 brief 视图显示） */
+  entryQuote?: string
 }
 
 // ── 通用视觉件 ──────────────────────────────────────────────
@@ -71,17 +82,37 @@ function RecipeBox({ label, children }: { label?: string; children: ReactNode })
 
 // ── 各 kind 视图 ────────────────────────────────────────────
 
-function BriefView({ data }: { data: ProjectBrief }) {
+/** B-33：查看器读背景档案（与 Stage0View useBriefDocuments 的 bg 分支同语义：NOT_FOUND→absent 不显块，其他失败→failed 块内提示） */
+type BgDoc = { phase: 'absent' } | { phase: 'failed' } | { phase: 'ok'; content: string }
+function useBackgroundDoc(): BgDoc {
+  const [bg, setBg] = useState<BgDoc>({ phase: 'absent' })
+  useEffect(() => {
+    let alive = true
+    window.api.fileRead({ path: BACKGROUND_PATH })
+      .then(res => {
+        if (!alive) return
+        setBg(res.ok ? { phase: 'ok', content: res.content } : res.error.code === 'NOT_FOUND' ? { phase: 'absent' } : { phase: 'failed' })
+      })
+      .catch(() => { if (alive) setBg({ phase: 'failed' }) })
+    return () => { alive = false }
+  }, [])
+  return bg
+}
+
+function BriefView({ data, entryQuote = '' }: { data: ProjectBrief; entryQuote?: string }) {
   const fe = data.fiveElements
   const p = data.premise
   const s = data.style
   const changes = data.changesFromPrevious
+  const [bgOpen, setBgOpen] = useState(false)
+  const bg = useBackgroundDoc()
   const approveLabel =
     data.approve.by === 'verbal'
       ? `口头拍板${data.approve.verbal?.quote ? `：“${data.approve.verbal.quote}”` : ''}`
       : '门内拍板'
   return (
     <div className="flex flex-col gap-3">
+      <EntryQuoteCard quote={entryQuote} />
       <Section
         title="项目性质"
         extra={<Tag tone="violet">立项单 v{data.version}</Tag>}
@@ -90,6 +121,7 @@ function BriefView({ data }: { data: ProjectBrief }) {
           <KV k="性质" v={data.kind === 'commercial' ? '商业短剧' : '个人纪念'} />
           <KV k="发布时间" v={data.publishedAt} />
           <KV k="拍板方式" v={approveLabel} />
+          <KV k="拍板时间" v={formatAt(data.approve.at)} />
           {data.approve.note && <KV k="裁决备注" v={data.approve.note} />}
         </div>
       </Section>
@@ -104,22 +136,54 @@ function BriefView({ data }: { data: ProjectBrief }) {
         </div>
       </Section>
       <Section title="故事前提">
-        <div className="rounded-lg border border-line">
-          <KV k="人物" v={p.leads} />
-          <KV k="时间" v={p.time} />
-          <KV k="地点" v={p.place} />
-          <KV k="核心事件" v={p.coreEvent} />
-          <KV k="本季边界" v={p.seasonBoundary} />
+        <div className="flex flex-col gap-2">
+          <div className="rounded-lg border border-line">
+            <KV k="人物" v={p.leads} />
+            <KV k="时间" v={p.time} />
+            <KV k="地点" v={p.place} />
+            <KV k="核心事件" v={p.coreEvent} />
+            <KV k="本季边界" v={p.seasonBoundary} />
+          </div>
+          {bg.phase !== 'absent' && (
+            <div className="rounded-lg border border-line" data-viewer-background>
+              <button
+                type="button"
+                onClick={() => setBgOpen(v => !v)}
+                className="flex w-full items-center gap-1.5 px-2.5 py-2 text-[10.5px] font-extrabold text-[#5A607A] hover:bg-[#F8F9FD]"
+                aria-expanded={bgOpen}
+              >
+                <span className="text-[#A6ABC0]">{bgOpen ? '▾' : '▸'}</span>{BACKGROUND_PATH}
+              </button>
+              {bgOpen && (
+                bg.phase === 'ok'
+                  ? <BackgroundMd content={bg.content} />
+                  : <div className="border-t border-[#F2F3F8] px-2.5 py-2 text-[10px] text-[#B8BDCE]">背景档案读取失败，已跳过。</div>
+              )}
+            </div>
+          )}
         </div>
       </Section>
       <Section title="视觉风格">
         <div className="rounded-lg border border-line">
-          <KV k="主风格" v={`${s.mainStyleId} @ ${s.catalogVersion}`} />
-          <KV k="辅助气氛" v={s.auxiliaryStyleId || '无'} />
+          <KV k="主风格" v={`${styleRefLabel(s.mainStyleId)} @ ${s.catalogVersion}`} />
+          <KV k="辅助气氛" v={s.auxiliaryStyleId ? styleRefLabel(s.auxiliaryStyleId) : '无'} />
         </div>
       </Section>
-      <Section title="选题诊断结论">
-        <p className="text-[11.5px] leading-[1.7] text-[#4A4F68]">{data.diagnosisSummary || '（无）'}</p>
+      <Section title="选题诊断">
+        <div className="flex flex-col gap-2">
+          <div>
+            <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">选题诊断结论</div>
+            <p className="text-[11.5px] leading-[1.7] text-[#4A4F68]">{data.diagnosisSummary || '（无）'}</p>
+          </div>
+          {data.diagnosisDetail && (
+            <div>
+              <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">选题诊断明细</div>
+              <div className="text-[11.5px] leading-[1.7] text-[#4A4F68]">
+                <DiagnosisSections detail={data.diagnosisDetail} />
+              </div>
+            </div>
+          )}
+        </div>
       </Section>
       <Section title={`相对上一版改动 · ${changes.length} 项`}>
         {data.version === 1 || changes.length === 0 ? (
@@ -127,11 +191,15 @@ function BriefView({ data }: { data: ProjectBrief }) {
         ) : (
           <div className="rounded-lg border border-line">
             {changes.map((c, i) => (
-              <KV
+              <div
                 key={`${c.field}-${i}`}
-                k={c.field}
-                v={`${c.from || '（空）'} → ${c.to || '（空）'}`}
-              />
+                className="border-b border-line/60 px-3 py-[7px] text-[11.5px] last:border-b-0 odd:bg-canvas/60"
+              >
+                <div className="break-all text-[10.5px] leading-4 text-muted">{c.field}</div>
+                <div className="mt-0.5 break-words leading-5 text-ink">
+                  {c.from || '（空）'} → {c.to || '（空）'}
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -439,10 +507,10 @@ function JsonObjectInline({ data, boxed }: { data: Record<string, unknown>; boxe
 
 // ── kind → 视图路由 ─────────────────────────────────────────
 
-function StructuredBody({ kind, data, node }: { kind: string; data: unknown; node: CanvasNode }) {
+function StructuredBody({ kind, data, node, entryQuote = '' }: { kind: string; data: unknown; node: CanvasNode; entryQuote?: string }) {
   switch (kind) {
     case 'brief':
-      return <BriefView data={data as ProjectBrief} />
+      return <BriefView data={data as ProjectBrief} entryQuote={entryQuote} />
     case 'outline':
       return <OutlineView data={data as StoryOutline} />
     case 'scenes':
@@ -468,7 +536,7 @@ function StructuredBody({ kind, data, node }: { kind: string; data: unknown; nod
 
 // ── 外壳 ────────────────────────────────────────────────────
 
-export default function StudioViewer({ node, kindLabel, onClose }: Props) {
+export default function StudioViewer({ node, kindLabel, onClose, entryQuote = '' }: Props) {
   const [state, setState] = useState<State>({ phase: 'loading' })
   const refPath = node.ref?.path
 
@@ -538,7 +606,7 @@ export default function StudioViewer({ node, kindLabel, onClose }: Props) {
             <p className="text-sm text-bad">{state.message}</p>
           </div>
         )}
-        {state.phase === 'ok' && parseOk && <StructuredBody kind={node.kind} data={parsed} node={node} />}
+        {state.phase === 'ok' && parseOk && <StructuredBody kind={node.kind} data={parsed} node={node} entryQuote={entryQuote} />}
         {state.phase === 'ok' && !parseOk && (
           <pre className="whitespace-pre-wrap break-all rounded-xl border border-line bg-white p-4 font-mono text-xs leading-5 text-ink">
             {state.content}

@@ -23,7 +23,8 @@ const FAMILIES: Record<string, string> = {
   E: '材质工艺·3D 漫',
 }
 
-const STYLES: StyleEntry[] = [
+// B-24：导出供立项视图「修改立项」风格下拉复用（数据源唯一，谱系校验天然成立）
+export const STYLES: StyleEntry[] = [
   // A · 写实影像系 6（3 主 3 备）
   { id: 'A1', fam: 'A', name: '数字电影写实',         st: '主', feat: '●高', family: FAMILIES.A, anchor: 'cinematic still, anamorphic' },
   { id: 'A2', fam: 'A', name: '胶片电影感',           st: '主', feat: '●高', family: FAMILIES.A, anchor: 'Kodak Gold, film grain' },
@@ -48,6 +49,11 @@ const STYLES: StyleEntry[] = [
   // E · 材质工艺系 1
   { id: 'E1', fam: 'E', name: '3D CG', st: '主', feat: '●中', family: FAMILIES.E, anchor: '3D render, Pixar style' },
 ]
+
+/** 谱系 id → 中文名称（未知/未来版本 ID 返回 null，调用方回退只显 ID） */
+export function styleNameOf(id: string): string | null {
+  return STYLES.find(s => s.id === id)?.name ?? null
+}
 
 // 缩略图占位：每 family 独立渐变（图片缺失时兜底）
 const FAMILY_GRAD: Record<string, string> = {

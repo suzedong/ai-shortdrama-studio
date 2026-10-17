@@ -7,7 +7,7 @@ export default {
         violet: '#6C5CE7',
         'violet-soft': '#EEECFB',
         ink: '#1A1A2E',
-        muted: '#8A8FA3',
+        muted: '#646A80',
         line: '#E8E9F0',
         canvas: '#FAFAFE',
         win: '#FBFBFE',
@@ -16,7 +16,7 @@ export default {
         bad: '#E05A52',
       },
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Microsoft YaHei"', 'sans-serif'],
+        sans: ['"MiSans VF"', '"MiSansLatin VF"', '-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Microsoft YaHei"', 'sans-serif'],
       },
       boxShadow: {
         card: '0 1px 2px rgba(20,20,40,0.04), 0 4px 12px rgba(20,20,40,0.04)',

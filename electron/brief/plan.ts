@@ -81,7 +81,7 @@ export function evaluateDraft(
 
 /** 扫描项目根一层 立项单.vN.json；损坏文件跳过并在 warnings 注明，按 N 升序返回 */
 export async function listBriefVersions(projectDir: string): Promise<{
-  versions: { version: number; path: string; publishedAt: string; kind: ProjectKind; approveBy: 'gate' | 'verbal' }[]
+  versions: { version: number; path: string; publishedAt: string; kind: ProjectKind; approveBy: 'gate' | 'verbal' | 'ui' }[]
   latestVersion: number | null
   warnings: string[]
 }> {
@@ -93,7 +93,7 @@ export async function listBriefVersions(projectDir: string): Promise<{
     return { versions: [], latestVersion: null, warnings }
   }
 
-  const found: { version: number; path: string; publishedAt: string; kind: ProjectKind; approveBy: 'gate' | 'verbal' }[] = []
+  const found: { version: number; path: string; publishedAt: string; kind: ProjectKind; approveBy: 'gate' | 'verbal' | 'ui' }[] = []
   for (const name of names) {
     const m = /^立项单\.v(\d+)\.json$/.exec(name)
     if (!m) continue

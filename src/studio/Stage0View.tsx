@@ -1,9 +1,11 @@
 // feature-003 · STAGE 0 立项视图（真实只读投影，替换 feature-025 静态原型壳）
 // 四态：empty / loading / brief-error / published；门 pending 与脏读为叠加态。
 // 数据全部来自既有通道：canvas props + window.api.fileRead；审批单点在右栏 GateCardView。
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
-import type { Canvas, ProjectBrief } from '../../shared/types'
+import type { Canvas, ProjectBrief, ProjectKind } from '../../shared/types'
 import {
   dirtyFieldLabel,
   FIVE_ELEMENT_FIELDS,
@@ -11,15 +13,25 @@ import {
   PREMISE_FIELDS,
   selectStage0State,
 } from './stage0/select'
+import { STYLES, styleNameOf } from './VisualCatalog'
+
+/** 谱系风格引用：ID · 名称；未知/未来版本 ID 或空值原样返回（外层 || '—' 兜底） */
+function styleRefLabel(id: string): string {
+  const name = styleNameOf(id)
+  return name ? `${id} · ${name}` : id
+}
 
 interface Stage0ViewProps {
   canvas: Canvas
   projectTitle: string
   onBackToDag: () => void
+  /** 入口动作 · 用户原话（会话首条用户消息，StudioApp 传入；空串不显示） */
+  entryQuote?: string
 }
 
 /** 背景档案固定产物名（showrunner 第 0 步写项目根） */
-const BACKGROUND_PATH = '故事背景档案.md'
+// B-33 起导出：StudioViewer 立项单背景档案折叠块共用同一路径常量
+export const BACKGROUND_PATH = '故事背景档案.md'
 
 type BriefDocState =
   | { phase: 'loading' }
@@ -43,25 +55,122 @@ function LeafValue({ value }: { value: unknown }) {
   return <span className="font-bold text-ink">{s}</span>
 }
 
-/** approve.at 本地格式；无效字符串原样显示 */
-function formatAt(at: unknown): string {
+/** approve.at 本地格式；无效字符串原样显示（B-32 起导出：StudioViewer 拍板时间共用） */
+export function formatAt(at: unknown): string {
   const s = text(at)
   if (!s) return '—'
   const d = new Date(s)
   return Number.isNaN(d.getTime()) ? s : d.toLocaleString()
 }
 
+/* ── 入口动作 · 用户原话（对齐原型 s0-entry：渐变底 + 图钉 + tag + 引文）── */
+// B-33 起导出：StudioViewer 立项单查看器顶部共用本卡
+export function EntryQuoteCard({ quote }: { quote: string }) {
+  if (!quote.trim()) return null
+  return (
+    <div
+      className="flex items-center gap-3 rounded-[13px] border border-[#DED9FB] bg-gradient-to-br from-[#F8F6FF] to-[#F0EEFF] px-[17px] py-[14px] shadow-[0_8px_22px_rgba(108,92,231,0.08)]"
+      data-stage0-entry-quote
+    >
+      <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] bg-gradient-to-br from-[#B8AFFF] to-[#6C5CE7] text-white shadow-[0_5px_12px_rgba(108,92,231,0.3)]">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="h-[14px] w-[14px]">
+          <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+        </svg>
+      </span>
+      <div className="min-w-0 flex-1">
+        <span className="rounded-[5px] bg-violet-soft px-[7px] py-px text-[9.5px] font-extrabold tracking-[0.3px] text-[#5A4FD8]">入口动作 · 用户原话</span>
+        <div className="mt-[5px] whitespace-pre-wrap text-[12.5px] font-bold leading-[1.5] text-ink">「{quote.trim()}」</div>
+      </div>
+    </div>
+  )
+}
+
+/* ── 选题诊断明细分节排版：按「【标题】正文」切节，节题加粗带色条，正文保留软换行 ── */
+function parseDiagnosisSections(detail: string): Array<{ title: string; body: string }> {
+  const parts = detail.split(/【([^】]+)】/)
+  const out: Array<{ title: string; body: string }> = []
+  const pre = (parts[0] ?? '').trim()
+  if (pre) out.push({ title: '', body: pre })
+  for (let i = 1; i + 1 < parts.length; i += 2) {
+    const body = (parts[i + 1] ?? '').trim()
+    if (body) out.push({ title: parts[i].trim(), body })
+  }
+  return out.length > 0 ? out : [{ title: '', body: detail }]
+}
+
+// B-32 起导出：StudioViewer 立项单「选题诊断明细」共用本分节排版
+export function DiagnosisSections({ detail }: { detail: string }) {
+  const sections = useMemo(() => parseDiagnosisSections(detail), [detail])
+  return (
+    <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
+      {sections.map((s, i) => (
+        <div key={i}>
+          {s.title && (
+            <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-extrabold text-[#4A4F68]">
+              <span className="h-2.5 w-[3px] rounded-full bg-violet/70" />
+              {s.title}
+            </div>
+          )}
+          <div className="whitespace-pre-wrap pl-[9px]">{s.body}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* ── 故事背景档案 Markdown 预览（2026-10-17 用户拍板；组件规则与 ChatComposer MarkdownText 同源，小字号定制） ── */
+// B-33 起导出：StudioViewer 立项单背景档案折叠块共用本渲染
+export function BackgroundMd({ content }: { content: string }) {
+  return (
+    <div
+      className="md-bubble max-h-[260px] overflow-y-auto border-t border-[#F2F3F8] px-2.5 py-2 text-[10.5px] leading-[1.7] text-[#4A4F68]"
+      data-stage0-background-md
+    >
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: ({ children, href }) => (
+            <a href={href} target="_blank" rel="noreferrer noopener" className="text-violet underline underline-offset-2">{children}</a>
+          ),
+          h1: ({ children }) => <h1 className="mb-1 mt-2 text-[12px] font-extrabold text-ink first:mt-0">{children}</h1>,
+          h2: ({ children }) => <h2 className="mb-1 mt-2 text-[11.5px] font-extrabold text-ink first:mt-0">{children}</h2>,
+          h3: ({ children }) => <h3 className="mb-0.5 mt-1.5 text-[11px] font-bold text-ink first:mt-0">{children}</h3>,
+          p: ({ children }) => <p className="my-0.5 first:mt-0 last:mb-0">{children}</p>,
+          ul: ({ children }) => <ul className="my-0.5 ml-[16px] list-disc space-y-0.5">{children}</ul>,
+          ol: ({ children }) => <ol className="my-0.5 ml-[16px] list-decimal space-y-0.5">{children}</ol>,
+          li: ({ children }) => <li className="pl-0.5 marker:text-[#9AA0B5]">{children}</li>,
+          blockquote: ({ children }) => (
+            <blockquote className="my-1 border-l-2 border-[#DED9FB] pl-2 text-[#7A8098]">{children}</blockquote>
+          ),
+          hr: () => <hr className="my-2 border-line" />,
+          table: ({ children }) => (
+            <div className="my-1.5 overflow-x-auto">
+              <table className="border-collapse text-[10px]">{children}</table>
+            </div>
+          ),
+          th: ({ children }) => <th className="border border-line px-1.5 py-0.5 font-bold">{children}</th>,
+          td: ({ children }) => <td className="border border-line px-1.5 py-0.5">{children}</td>,
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  )
+}
+
 /* ── 空态 ── */
-function EmptyStage0({ state, projectTitle, onBackToDag }: {
+function EmptyStage0({ state, projectTitle, onBackToDag, entryQuote = '' }: {
   state: ReturnType<typeof selectStage0State>
   projectTitle: string
   onBackToDag: () => void
+  entryQuote?: string
 }) {
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#FAFBFE]" data-view="stage0">
       <Header projectTitle={projectTitle} onBackToDag={onBackToDag} />
       <div className="absolute inset-0 top-[38px] overflow-y-auto px-[26px] py-[26px]">
         <div className="mx-auto flex max-w-[680px] flex-col gap-4 pt-[9vh]">
+          <EntryQuoteCard quote={entryQuote} />
           {state.gate0 && state.gate0.status !== 'approved' && <GatePendingStrip gate0={state.gate0} />}
           <div className="rounded-[14px] border border-line bg-white p-7 text-center shadow-[0_10px_30px_rgba(40,42,80,0.06)]" data-stage0-empty>
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-violet-soft text-xl text-violet">0</span>
@@ -132,24 +241,229 @@ function Header({ projectTitle, onBackToDag }: { projectTitle: string; onBackToD
   )
 }
 
+/* ── B-24/D-017 · 卡①行内直改：六字段控件原位替换只读行 → 系统再版落盘 + 影响追溯（原则六 · 不经 AI 对话；右侧对话为大白话兜底入口）── */
+const ASPECT_OPTIONS = ['竖屏 9:16', '横屏 16:9']
+
+/** 只读字段行（卡①行内编辑态中与可改行混排，样式与只读卡一致） */
+function FieldRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 border-b border-[#F6F7FB] px-2.5 py-1.5 text-[11px] last:border-b-0">
+      <span className="w-[58px] shrink-0 text-[10px] font-semibold text-[#9AA0B5]">{label}</span>
+      {children}
+    </div>
+  )
+}
+
+function EditRow({ label, field, bare, children }: { label: string; field: string; bare?: boolean; children: ReactNode }) {
+  return (
+    <label
+      className={`flex items-center gap-2 text-[11px] ${bare ? 'px-0 py-0.5' : 'border-b border-[#F6F7FB] px-2.5 py-1.5 last:border-b-0'}`}
+      data-stage0-edit-field={field}
+    >
+      <span className="w-[58px] shrink-0 text-[10px] font-semibold text-[#9AA0B5]">{label}</span>
+      {children}
+    </label>
+  )
+}
+
+const inputCls =
+  'w-full rounded-md border border-line bg-white px-2 py-1 text-[11px] font-bold text-ink outline-none focus:border-violet'
+
+function BriefEditPanel({ brief, onClose }: {
+  brief: ProjectBrief
+  onClose: () => void
+}) {
+  const old = {
+    kind: brief.kind,
+    episodeDuration: text(brief.fiveElements.episodeDuration),
+    episodeCount: text(brief.fiveElements.episodeCount),
+    aspectRatio: text(brief.fiveElements.aspectRatio),
+    mainStyleId: text(brief.style.mainStyleId),
+    auxiliaryStyleId: text(brief.style.auxiliaryStyleId),
+  }
+  const [kind, setKind] = useState<ProjectKind>(old.kind)
+  const [episodeDuration, setEpisodeDuration] = useState(old.episodeDuration)
+  const [episodeCount, setEpisodeCount] = useState(old.episodeCount)
+  const [aspectRatio, setAspectRatio] = useState(old.aspectRatio)
+  const [mainStyleId, setMainStyleId] = useState(old.mainStyleId)
+  const [auxiliaryStyleId, setAuxiliaryStyleId] = useState(old.auxiliaryStyleId)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // 画幅/风格选项：谱系 + D-023 画幅为唯一数据源；当前值不在集合内（历史/未来值）时前置兜底项保留
+  const aspectOptions = old.aspectRatio && !ASPECT_OPTIONS.includes(old.aspectRatio)
+    ? [old.aspectRatio, ...ASPECT_OPTIONS]
+    : ASPECT_OPTIONS
+  const styleOptions = useMemo(() => {
+    const known = new Set(STYLES.map(s => s.id))
+    const extra: string[] = []
+    for (const cur of [old.mainStyleId, old.auxiliaryStyleId]) {
+      if (cur && !known.has(cur) && !extra.includes(cur)) extra.push(cur)
+    }
+    return [...extra, ...STYLES.map(s => s.id)]
+  }, [old.mainStyleId, old.auxiliaryStyleId])
+
+  const fmtStyle = (id: string) => (id ? styleRefLabel(id) : '无')
+  const fmtKind = (k: ProjectKind) => (k === 'commercial' ? '商业短剧' : '个人纪念')
+  const diffs: string[] = []
+  if (kind !== old.kind)
+    diffs.push(`- 项目性质（kind）：「${fmtKind(kind)}」（原「${fmtKind(old.kind)}」）`)
+  if (episodeDuration.trim() !== old.episodeDuration)
+    diffs.push(`- 单集时长（fiveElements.episodeDuration）：「${episodeDuration.trim()}」（原「${old.episodeDuration}」）`)
+  if (episodeCount.trim() !== old.episodeCount)
+    diffs.push(`- 集数（fiveElements.episodeCount）：「${episodeCount.trim()}」（原「${old.episodeCount}」）`)
+  if (aspectRatio !== old.aspectRatio)
+    diffs.push(`- 画幅（fiveElements.aspectRatio）：「${aspectRatio}」（原「${old.aspectRatio}」）`)
+  if (mainStyleId !== old.mainStyleId)
+    diffs.push(`- 主视觉风格（style.mainStyleId）：「${fmtStyle(mainStyleId)}」（原「${fmtStyle(old.mainStyleId)}」）`)
+  if (auxiliaryStyleId !== old.auxiliaryStyleId)
+    diffs.push(`- 辅助视觉风格（style.auxiliaryStyleId）：「${fmtStyle(auxiliaryStyleId)}」（原「${fmtStyle(old.auxiliaryStyleId)}」）`)
+
+  // 就绪判定红线：主风格非空（MAIN_STYLE_MISSING）；时长/集数/画幅不为空串（ELEMENT_MISSING）
+  const invalid =
+    !episodeDuration.trim() || !episodeCount.trim() || !aspectRatio || !mainStyleId
+
+  // D-017：系统直改——patch 只携带变更字段；approve.by 恒 'ui'、受影响节点全仅挂脏（主进程语义）
+  const submit = async () => {
+    const patch: Parameters<typeof window.api.updateBrief>[0] = {}
+    if (kind !== old.kind) patch.kind = kind
+    const fe: { episodeDuration?: string; episodeCount?: string; aspectRatio?: string } = {}
+    if (episodeDuration.trim() !== old.episodeDuration) fe.episodeDuration = episodeDuration.trim()
+    if (episodeCount.trim() !== old.episodeCount) fe.episodeCount = episodeCount.trim()
+    if (aspectRatio !== old.aspectRatio) fe.aspectRatio = aspectRatio
+    if (Object.keys(fe).length > 0) patch.fiveElements = fe
+    const st: { mainStyleId?: string; auxiliaryStyleId?: string } = {}
+    if (mainStyleId !== old.mainStyleId) st.mainStyleId = mainStyleId
+    if (auxiliaryStyleId !== old.auxiliaryStyleId) st.auxiliaryStyleId = auxiliaryStyleId
+    if (Object.keys(st).length > 0) patch.style = st
+    setSubmitting(true)
+    setError(null)
+    try {
+      await window.api.updateBrief(patch)
+      // 再版成功：canvas:changed 广播 → brief 节点 ref 指向 v(N+1) → useBriefDocuments 自动重读新版
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+      setSubmitting(false)
+    }
+  }
+
+  const platforms = Array.isArray(brief.fiveElements.platforms) ? brief.fiveElements.platforms.join(' · ') : ''
+
+  // 卡①行内编辑态：六控件原位替换只读行；题材/平台/基调/诊断结论等开放式字段保持只读
+  return (
+    <section className="flex flex-col overflow-hidden rounded-[12px] border border-violet bg-white" data-stage0-edit-panel>
+      <div className="flex items-center gap-2 border-b border-[#F2F3F8] px-3.5 py-2.5">
+        <span className="grid h-6 w-6 place-items-center rounded-md bg-violet-soft text-[11px] font-extrabold text-violet">1</span>
+        <span className="text-[12px] font-extrabold text-ink">选题诊断</span>
+        <span className="rounded-full bg-violet-soft px-2 py-px text-[9px] font-bold text-[#5A4FD8]">修改中</span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="ml-auto rounded-md border border-line bg-white px-2.5 py-1 text-[10.5px] text-[#7A8098] hover:bg-[#F1F2F8]"
+          data-stage0-edit-cancel
+        >取消</button>
+      </div>
+      <div className="flex flex-col gap-3 px-3.5 py-3">
+        <div className="rounded-md border border-line">
+          <EditRow label="项目性质" field="kind">
+            <select className={inputCls} value={kind} onChange={e => setKind(e.target.value as ProjectKind)}>
+              <option value="commercial">商业短剧</option>
+              <option value="memorial">个人纪念</option>
+            </select>
+          </EditRow>
+          <FieldRow label="题材赛道"><LeafValue value={brief.fiveElements.genre} /></FieldRow>
+          <FieldRow label="目标平台"><LeafValue value={platforms} /></FieldRow>
+          <EditRow label="单集时长" field="episodeDuration">
+            <input className={inputCls} value={episodeDuration} onChange={e => setEpisodeDuration(e.target.value)} placeholder="如：60 秒" />
+          </EditRow>
+          <EditRow label="集数" field="episodeCount">
+            <input className={inputCls} value={episodeCount} onChange={e => setEpisodeCount(e.target.value)} placeholder="如：12 集" />
+          </EditRow>
+          <FieldRow label="风格基调"><LeafValue value={brief.fiveElements.tone} /></FieldRow>
+          <EditRow label="画幅" field="aspectRatio">
+            <select className={inputCls} value={aspectRatio} onChange={e => setAspectRatio(e.target.value)}>
+              {aspectOptions.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </EditRow>
+        </div>
+        <div className="flex flex-col gap-1 rounded-md border border-violet bg-violet-soft px-2.5 py-2">
+          <EditRow label="主风格" field="mainStyleId" bare>
+            <select className={inputCls} value={mainStyleId} onChange={e => setMainStyleId(e.target.value)}>
+              {styleOptions.map(id => <option key={id} value={id}>{styleRefLabel(id)}</option>)}
+            </select>
+          </EditRow>
+          <EditRow label="辅助风格" field="auxiliaryStyleId" bare>
+            <select className={inputCls} value={auxiliaryStyleId} onChange={e => setAuxiliaryStyleId(e.target.value)}>
+              <option value="">无</option>
+              {styleOptions.map(id => <option key={id} value={id}>{styleRefLabel(id)}</option>)}
+            </select>
+          </EditRow>
+        </div>
+        {text(brief.diagnosisSummary) && (
+          <div className="rounded-md bg-[#F7F8FC] px-2.5 py-2 text-[10.5px] leading-[1.7] text-[#6A708A]">
+            <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">选题诊断结论</div>
+            {brief.diagnosisSummary}
+          </div>
+        )}
+        {/* 诊断明细（D-018）：分节排版 + 长文限高滚动，恒只读 */}
+        {text(brief.diagnosisDetail) && (
+          <div className="rounded-md bg-[#F7F8FC] px-2.5 py-2 text-[10.5px] leading-[1.7] text-[#6A708A]" data-stage0-diagnosis-detail>
+            <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">选题诊断明细</div>
+            <DiagnosisSections detail={text(brief.diagnosisDetail)} />
+          </div>
+        )}
+        <div>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              disabled={invalid || diffs.length === 0 || submitting}
+              onClick={() => { void submit() }}
+              className="rounded-lg bg-violet px-3.5 py-1.5 text-[11px] font-bold text-white hover:bg-[#4A3FD0] disabled:cursor-not-allowed disabled:opacity-40"
+              data-stage0-edit-submit
+            >{submitting ? '再版中…' : '确认再版'}</button>
+            <span className="text-[10px] text-[#A6ABC0]">
+              {diffs.length === 0 ? '尚未修改任何字段' : `共 ${diffs.length} 处变更`}
+            </span>
+          </div>
+          <p className="mt-1.5 text-[10px] leading-[1.6] text-[#A6ABC0]">
+            提交后系统直接再版为 v{brief.version + 1} 并完成影响追溯（不经 AI 对话）；题材、故事前提等开放式修改在右侧对话中提出
+          </p>
+          {error && (
+            <p className="mt-2 rounded-md border border-[#F0C5CB] bg-[#FDF3F4] px-2.5 py-1.5 text-[10.5px] leading-[1.6] text-[#C23D4D]" data-stage0-edit-error>
+              再版失败：{error}
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 /* ── published 主体：双卡 + 定案/版本区 ── */
-function PublishedBody({ brief, state, bg }: {
+function PublishedBody({ brief, state, bg, entryQuote = '' }: {
   brief: ProjectBrief
   state: ReturnType<typeof selectStage0State>
   bg: BgDocState
+  entryQuote?: string
 }) {
   const [bgOpen, setBgOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
   const kindLabel = brief.kind === 'commercial' ? '商业短剧' : '个人纪念'
   const platforms = Array.isArray(brief.fiveElements.platforms) ? brief.fiveElements.platforms.join(' · ') : ''
   const isV1 = brief.version === 1
 
   return (
     <div className="flex flex-col gap-3.5">
+      <EntryQuoteCard quote={entryQuote} />
       {state.gate0 && state.gate0.status !== 'approved' && <GatePendingStrip gate0={state.gate0} />}
       <DirtyBar state={state} />
 
       <div className="grid grid-cols-2 gap-[14px]">
-        {/* 卡① 选题诊断 + 六要素 */}
+        {/* 卡① 选题诊断 + 六要素；修改立项时原位切换为行内编辑态（D-017） */}
+        {editing ? (
+          <BriefEditPanel brief={brief} onClose={() => setEditing(false)} />
+        ) : (
         <section className="flex flex-col overflow-hidden rounded-[12px] border border-line bg-white" data-stage0-card-diagnosis>
           <div className="flex items-center gap-2 border-b border-[#F2F3F8] px-3.5 py-2.5">
             <span className="grid h-6 w-6 place-items-center rounded-md bg-violet-soft text-[11px] font-extrabold text-violet">1</span>
@@ -159,22 +473,21 @@ function PublishedBody({ brief, state, bg }: {
           <div className="flex flex-col gap-3 px-3.5 py-3">
             <div className="rounded-md border border-line">
               {FIVE_ELEMENT_FIELDS.map(({ key, label }) => (
-                <div key={key} className="flex items-center gap-2 border-b border-[#F6F7FB] px-2.5 py-1.5 text-[11px] last:border-b-0">
-                  <span className="w-[58px] shrink-0 text-[10px] font-semibold text-[#9AA0B5]">{label}</span>
+                <FieldRow key={key} label={label}>
                   {key === 'platforms'
                     ? <LeafValue value={platforms} />
                     : <LeafValue value={brief.fiveElements[key]} />}
-                </div>
+                </FieldRow>
               ))}
             </div>
-            {/* 风格引用：只显 ID + 谱系版本，不解析名称 */}
+            {/* 风格引用：ID · 谱系名称（未知 ID 回退只显 ID）+ 谱系版本 */}
             <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-violet bg-violet-soft px-2.5 py-2 text-[10.5px]">
               <span className="text-[9.5px] font-extrabold text-[#5A4FD8]">视觉风格</span>
               <span className="font-extrabold text-ink" data-stage0-style>
-                主风格 {text(brief.style.mainStyleId) || '—'} · 谱系 {text(brief.style.catalogVersion) || '—'}
+                主风格 {styleRefLabel(text(brief.style.mainStyleId)) || '—'} · 谱系 {text(brief.style.catalogVersion) || '—'}
               </span>
               {text(brief.style.auxiliaryStyleId) && (
-                <span className="rounded bg-white/70 px-1.5 py-px text-[10px] font-bold text-[#5A4FD8]">辅助 {brief.style.auxiliaryStyleId}</span>
+                <span className="rounded bg-white/70 px-1.5 py-px text-[10px] font-bold text-[#5A4FD8]">辅助 {styleRefLabel(text(brief.style.auxiliaryStyleId))}</span>
               )}
             </div>
             {text(brief.diagnosisSummary) && (
@@ -183,8 +496,16 @@ function PublishedBody({ brief, state, bg }: {
                 {brief.diagnosisSummary}
               </div>
             )}
+            {/* 诊断明细（D-018）：分节排版 + 长文限高滚动，恒只读 */}
+            {text(brief.diagnosisDetail) && (
+              <div className="rounded-md bg-[#F7F8FC] px-2.5 py-2 text-[10.5px] leading-[1.7] text-[#6A708A]" data-stage0-diagnosis-detail>
+                <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">选题诊断明细</div>
+                <DiagnosisSections detail={text(brief.diagnosisDetail)} />
+              </div>
+            )}
           </div>
         </section>
+        )}
 
         {/* 卡② 故事前提 + 背景档案折叠 */}
         <section className="flex flex-col overflow-hidden rounded-[12px] border border-line bg-white" data-stage0-card-premise>
@@ -213,12 +534,12 @@ function PublishedBody({ brief, state, bg }: {
                 </button>
                 {bgOpen && (
                   bg.phase === 'ok'
-                    ? <pre className="max-h-[240px] overflow-auto whitespace-pre-wrap border-t border-[#F2F3F8] px-2.5 py-2 font-mono text-[10px] leading-[1.7] text-[#6A708A]">{bg.content}</pre>
+                    ? <BackgroundMd content={bg.content} />
                     : <div className="border-t border-[#F2F3F8] px-2.5 py-2 text-[10px] text-[#B8BDCE]">背景档案读取失败，已跳过。</div>
                 )}
               </div>
             )}
-            <p className="mt-auto text-[10px] leading-[1.6] text-[#A6ABC0]">字段只读；需要修改时在右侧对话中提出，由主控 Agent 再版立项。</p>
+            <p className="mt-auto text-[10px] leading-[1.6] text-[#A6ABC0]">故事前提为开放式文本，修改请在右侧对话中提出；卡①六字段可点下方「修改立项…」行内直改再版。</p>
           </div>
         </section>
       </div>
@@ -242,12 +563,34 @@ function PublishedBody({ brief, state, bg }: {
               {isV1 ? '首版立项' : `相对 v${brief.version - 1} 共 ${brief.changesFromPrevious.length} 处变更`}
             </span>
           </div>
+          {!editing && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="ml-auto rounded-lg border border-violet bg-violet-soft px-3 py-1.5 text-[11px] font-bold text-[#5A4FD8] hover:bg-[#DED9FB]"
+              data-stage0-edit-toggle
+            >修改立项…</button>
+          )}
         </div>
-        {brief.approve.by === 'verbal' && text(brief.approve.verbal?.quote) && (
-          <blockquote className="mt-2.5 rounded-md rounded-l-none border-l-[3px] border-violet bg-[#F7F8FC] px-3 py-2 text-[11px] leading-[1.7] text-[#4A4F68]" data-stage0-verbal-quote>
-            「{brief.approve.verbal?.quote}」
-          </blockquote>
-        )}
+        {/* 入口动作（D-018 恒显）：verbal=用户原话；gate=门批准入一键拍板；ui=修改立项系统直改 */}
+        <div className="mt-2.5" data-stage0-entry-action>
+          <p className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">
+            入口动作 · {brief.approve.by === 'verbal' ? '用户原话' : brief.approve.by === 'gate' ? '门批准入' : '系统直改'}
+          </p>
+          {brief.approve.by === 'verbal' && text(brief.approve.verbal?.quote) ? (
+            <blockquote className="rounded-md rounded-l-none border-l-[3px] border-violet bg-[#F7F8FC] px-3 py-2 text-[11px] leading-[1.7] text-[#4A4F68]" data-stage0-verbal-quote>
+              「{brief.approve.verbal?.quote}」
+            </blockquote>
+          ) : (
+            <p className="rounded-md bg-[#F7F8FC] px-3 py-2 text-[11px] leading-[1.7] text-[#4A4F68]">
+              {brief.approve.by === 'gate'
+                ? '门批准入 · 一键拍板'
+                : brief.approve.by === 'ui'
+                  ? '修改立项面板 · 系统直改再版'
+                  : '（原话缺失）'}
+            </p>
+          )}
+        </div>
         {text(brief.approve.note) && (
           <p className="mt-2 text-[10.5px] leading-[1.6] text-muted">备注：{brief.approve.note}</p>
         )}
@@ -322,11 +665,11 @@ function BriefError({ projectTitle, onBackToDag, doc }: {
   )
 }
 
-export default function Stage0View({ canvas, projectTitle, onBackToDag }: Stage0ViewProps) {
+export default function Stage0View({ canvas, projectTitle, onBackToDag, entryQuote = '' }: Stage0ViewProps) {
   const state = useMemo(() => selectStage0State(canvas), [canvas])
 
   if (state.phase === 'empty' || !state.briefNode) {
-    return <EmptyStage0 state={state} projectTitle={projectTitle} onBackToDag={onBackToDag} />
+    return <EmptyStage0 state={state} projectTitle={projectTitle} onBackToDag={onBackToDag} entryQuote={entryQuote} />
   }
 
   const refPath = state.briefNode.ref?.format === 'json' ? state.briefNode.ref.path : ''
@@ -336,7 +679,7 @@ export default function Stage0View({ canvas, projectTitle, onBackToDag }: Stage0
       <Header projectTitle={projectTitle} onBackToDag={onBackToDag} />
       <div className="absolute inset-0 top-[38px] overflow-y-auto px-[26px] py-[22px]">
         <div className="mx-auto flex max-w-[920px] flex-col gap-[18px]" data-stage0-brief>
-          <PublishedLoaded state={state} refPath={refPath} projectTitle={projectTitle} onBackToDag={onBackToDag} />
+          <PublishedLoaded state={state} refPath={refPath} projectTitle={projectTitle} onBackToDag={onBackToDag} entryQuote={entryQuote} />
         </div>
       </div>
     </div>
@@ -344,11 +687,12 @@ export default function Stage0View({ canvas, projectTitle, onBackToDag }: Stage0
 }
 
 /** 隔离读取 hook（保证 hooks 调用顺序不随主态切换变化） */
-function PublishedLoaded({ state, refPath, projectTitle, onBackToDag }: {
+function PublishedLoaded({ state, refPath, projectTitle, onBackToDag, entryQuote = '' }: {
   state: ReturnType<typeof selectStage0State>
   refPath: string
   projectTitle: string
   onBackToDag: () => void
+  entryQuote?: string
 }) {
   const { brief, bg } = useBriefDocuments(refPath)
 
@@ -374,7 +718,7 @@ function PublishedLoaded({ state, refPath, projectTitle, onBackToDag }: {
         <span className="rounded-full bg-[#E7F8F0] px-2 py-px text-[10px] font-bold text-[#1E9E66]" data-stage0-version={brief.brief.version}>立项单 v{brief.brief.version}</span>
         <span className="text-[10px] text-[#A6ABC0]">来源：{brief.path}</span>
       </div>
-      <PublishedBody brief={brief.brief} state={state} bg={bg} />
+      <PublishedBody brief={brief.brief} state={state} bg={bg} entryQuote={entryQuote} />
     </>
   )
 }

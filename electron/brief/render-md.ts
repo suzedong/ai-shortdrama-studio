@@ -1,5 +1,5 @@
 // feature-001 立项模型重建 · 立项单 MD 镜像渲染（契约 §4，纯函数）
-// 固定区块：标题/拍板行/项目性质/六要素/故事前提/视觉风格/诊断结论/相对上版改动。
+// 固定区块：标题/拍板行/项目性质/六要素/故事前提/视觉风格/诊断结论/诊断明细（D-018）/相对上版改动。
 import type { ProjectBrief } from '../../shared/types.js'
 
 const KIND_LABEL: Record<ProjectBrief['kind'], string> = {
@@ -13,9 +13,12 @@ export function renderBriefMd(brief: ProjectBrief): string {
   const p = brief.premise
   const approveLine = brief.approve.by === 'verbal'
     ? `口头拍板（“${brief.approve.verbal?.quote ?? ''}”）`
-    : '门内拍板'
+    : brief.approve.by === 'ui'
+      ? '修改立项面板直改'
+      : '门内拍板'
   const aux = brief.style.auxiliaryStyleId?.trim() ? brief.style.auxiliaryStyleId! : '无'
   const diag = brief.diagnosisSummary?.trim() ? brief.diagnosisSummary! : '（无）'
+  const diagDetail = brief.diagnosisDetail?.trim() ? brief.diagnosisDetail! : '（无）'
 
   const changes = brief.version === 1 || brief.changesFromPrevious.length === 0
     ? '首版立项。'
@@ -49,6 +52,9 @@ ${KIND_LABEL[brief.kind]}
 
 ## 选题诊断结论
 ${diag}
+
+## 选题诊断明细
+${diagDetail}
 
 ## 相对上一版改动
 ${changes}

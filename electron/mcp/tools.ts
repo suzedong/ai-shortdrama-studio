@@ -323,6 +323,7 @@ export function registerPureTools(server: McpServer): void {
       premise: premiseSchema.partial().optional(),
       style: styleSchema.partial().optional(),
       diagnosisSummary: z.string().optional(),
+      diagnosisDetail: z.string().optional(),
     },
     async (args) => {
       try {
@@ -333,6 +334,7 @@ export function registerPureTools(server: McpServer): void {
           premise: args.premise ?? {},
           style: args.style ?? {},
           diagnosisSummary: args.diagnosisSummary,
+          diagnosisDetail: args.diagnosisDetail,
         }
         // feature-802：谱系装载失败直接阻断（R6），不降级为无校验旧行为
         const catalog = await loadStyleCatalog()
@@ -370,6 +372,7 @@ export function registerPureTools(server: McpServer): void {
       premise: premiseSchema,
       style: styleSchema,
       diagnosisSummary: z.string().optional(),
+      diagnosisDetail: z.string().optional(),
       approve: z.object({
         by: z.enum(['gate', 'verbal']),
         verbal: z.object({ quote: z.string() }).optional(),
@@ -385,6 +388,7 @@ export function registerPureTools(server: McpServer): void {
           premise: args.premise,
           style: args.style,
           diagnosisSummary: args.diagnosisSummary,
+          diagnosisDetail: args.diagnosisDetail,
         }
 
         // feature-802：谱系装载失败直接阻断（R6）；谱系问题并入 BRIEF_NOT_READY，不新增错误码
@@ -561,6 +565,7 @@ export function registerPureTools(server: McpServer): void {
     premise: premiseSchema,
     style: styleSchema,
     diagnosisSummary: z.string().optional(),
+    diagnosisDetail: z.string().optional(),
   })
   const approveSchema = z.object({
     by: z.enum(['gate', 'verbal']),
@@ -582,6 +587,7 @@ export function registerPureTools(server: McpServer): void {
           premise: args.draft.premise,
           style: args.draft.style,
           diagnosisSummary: args.draft.diagnosisSummary,
+          diagnosisDetail: args.draft.diagnosisDetail,
         }
         const listing = await listBriefVersions(projectDir)
         if (listing.latestVersion === null) {
@@ -635,6 +641,7 @@ export function registerPureTools(server: McpServer): void {
           premise: args.draft.premise,
           style: args.draft.style,
           diagnosisSummary: args.draft.diagnosisSummary,
+          diagnosisDetail: args.draft.diagnosisDetail,
         }
 
         // 就绪闸门：装载谱系（802 纪律，失败三码不降级）+ evaluateDraft

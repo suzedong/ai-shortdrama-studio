@@ -1,4 +1,4 @@
-// feature-022 · 只读产物文件读取（契约 §2，D-022-01）
+// 只读产物文件读取
 // renderer 查看器唯一读通道：沙箱限项目目录内、仅 .json/.md、≤1MB；写产物永远走 agent 侧 MCP file.write。
 import path from 'node:path'
 import fsp from 'node:fs/promises'

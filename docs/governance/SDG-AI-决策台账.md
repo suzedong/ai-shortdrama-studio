@@ -229,3 +229,70 @@
 - **波及文件**：feature-804 任务包 5 文件、features/README.md、设计现状与偏差清单.md。交叉指针：feature-804 变更记录 D-006。
 - **落地回填（2026-10-13）**：K8 批准后 T1→T6 已全部完成——`electron/window/chrome.ts` 平台分支纯函数、main.ts 四 invoke 一推送、preload/global.d.ts/dev-mock 三处契约同步、`src/studio/WindowControls.tsx` 三按钮、StudioApp 顶栏集成；新增测试 15 例全绿，全量回归 264 passed / 7 skipped / 12 failed（与基线同分布、零扩大）。README 与偏差清单 B-10 已同步为「已落地，待 Windows 真机人工验收」。
 - **编号规则补充**：D-013 的十五包为规划基线而非编号锁定；遇真机缺陷等紧急包时，未建包的规划包可顺延编号，以本台账决策为凭，并在 README/偏差清单同步改号。
+
+---
+
+## D-015 ｜ K8 ｜ 项目改名/删除：恰 2 个新 IPC 批准（B-19 无包直接修的 K8 留痕）
+
+- **日期**：2026-10-16
+- **卡口**：K8（新增 IPC 面：恰 2 个 invoke `project:rename` / `project:delete`）
+- **触发背景**：左栏项目行无改名/删除入口、`electron/project/library.ts` 无 mutation 函数、IPC 面仅 `project:list/create/open`；MiniMax Design 具备项目改名/删除能力，属 [自研新增] 缺口。用户拍板**不建包直接修 + 登记偏差 B-19**（B-18/B-20 同模式）；因涉及新增 IPC 的 K8 卡口且无任务包变更记录可记，按台账规则（仅收不属于任何 Feature 任务包的项目级 K 卡口决策）补登本条。
+- **用户决策**（2026-10-16 拍板，四项）：
+  1. **禁止删除当前打开项目**：主进程以 `PROJECT_ACTIVE` 拒删，UI 删除入口 disabled 并提示「请先切换到其他项目」；
+  2. **删除 = 回收站**：`shell.trashItem` 可恢复，不做物理删除；
+  3. **UI = 悬停「···」菜单**：改名行内输入（Enter 提交 / Esc 取消）、删除二次确认条（明示「将移入回收站」）；
+  4. **K8 一并批准恰 2 个新 IPC**：`project:rename` / `project:delete`，不超出此范围；preload / global.d.ts / dev-mock-api 三处镜像同步。
+- **落地内容**（当日闭环，细节见 [设计现状与偏差清单.md](../../docs/设计现状与偏差清单.md) B-19 行与 [版本记录.md](../../版本记录.md) B-19 条目）：`library.ts` 新增 renameProject（assertProjectDir 白名单 → trim、空名 `INVALID_ARGUMENT` 零写盘 → manifest 存在性 → enqueue 读-改-写 `.session.json` 仅换 title）与 deleteProject（白名单 → 当前项拒删 → trashItem）；`main.ts` rename handler 对当前项顺带 `canvasStore.withCanvas` 同步 `canvas.title` 使顶栏即时刷新；`ProjectNav.tsx` 三态行；新增测试 10 例（project-nav 4 + project-library-mutation 6），全量 46 文件 475 passed / 1 skipped，typecheck 仅 3 条历史基线，无 K1/K9；CDP 真机目验全过（改名顶栏即时同步且磁盘一致、删除入回收站确证可恢复、当前项删除入口 disabled）。
+- **波及文件**：electron/project/library.ts、electron/main.ts、electron/preload.ts、src/global.d.ts、src/studio/ProjectNav.tsx、dev-mock-api、测试 2 文件（project-nav.test.tsx、project-library-mutation.test.ts）；文档双写：偏差清单 B-19、版本记录 B-19 条目。
+- **后续约束**：项目 mutation IPC 面以恰 2 个为限，新增项目级 IPC 须重新过 K8；无 K 卡口的「直接修 + 登记偏差」事项（B-18/B-20/B-21）不进本台账，以偏差清单 + 版本记录为留痕。
+
+---
+
+## D-016 ｜ K7 ｜ 原则六立项：系统优先，AI 归位（总体原则 5 条 → 6 条）
+
+- **日期**：2026-10-16
+- **卡口**：K7（项目总体原则 / 边界条件变更）
+- **触发背景**：B-23/B-24 修复后用户提出新原则动议，原话：「现在开发的是一个系统，AI(skill)只是一个工具，主要是为了处理文本内容，所以系统已经能用操作完成的，就不需要用AI对话了，这样也快，也剩Token，AI擅长处理文本」。彼时总体原则 5 条（设计 §0.1 / AGENTS.md §0.1 同源）。查证原则与现状自洽：① D-010 终局已将公网 AI 收敛到纯文本侧火山方舟，媒体全走局域网 ComfyUI 权重推理，AI 成本本就集中于文本；② §2.6.7 影响评估是确定性追溯算法，已实现为系统 MCP 工具（brief.impact.assess / commit）——连「改字段影响谁」都无需 AI 推算。
+- **用户决策**（2026-10-16 拍板，两项）：
+  1. **立项为「原则六 · 系统优先，AI 归位」**，写入设计 §0.1 + AGENTS.md §0.1 同源，判定标尺「能否写成枚举规则 / 表单校验：能 → 系统直做（不经 AI 对话）；不能 → AI 做」；
+  2. **B-24（定案立项修改入口）立即返工为系统直改**——原则六的最大冲击面恰是当日上线的「面板编辑 → 结构化指令走 Agent 对话」方案，返工卡口批准见 D-017。
+- **落地内容**（本条仅文档）：[短剧Agent平台设计.md](../../短剧Agent平台设计.md) §0.1 新增原则六（系统优先，AI 归位，含判定标尺与双通道取舍）+ 头部计数「四条」修正为「六条」（原则五补计）；[AGENTS.md](../../AGENTS.md) §0.1 同源新增第 6 条。
+- **波及文件**：短剧Agent平台设计.md、AGENTS.md。
+- **后续约束**：凡「系统可做却走 AI 对话」的既有 / 新建功能，按原则六返工或驳回；同一能力双通道并存时系统直改为默认入口、对话为开放式兜底，两者须落同一数据模型与追溯机制。
+
+---
+
+## D-017 ｜ K1+K8 ｜ B-24 返工为系统直改：BriefApprove.by 加 'ui' + 恰 1 个 brief 写 IPC
+
+- **日期**：2026-10-16
+- **卡口**：K1（`shared/types.ts` 共享层修改）+ K8（新增 IPC 面：恰 1 个 invoke `brief:update`）
+- **触发背景**：B-24（定案后无修改入口）首版按「面板编辑 → 结构化指令走 Agent 对话」落地；原则六（D-016）确立「确定性操作系统直做」，该路径恰在原则另一侧，用户拍板**立即返工为系统直改**（面板 UI 与校验保留，提交改系统直写 brief + 再版落盘 + 影响追溯；对话入口保留为大白话兜底）。返工需两处卡口批准：① 再版 brief 的 `approve.by` 现仅 `'gate' | 'verbal'`，面板直改两者皆不贴语义；② renderer 不直连文件系统，直写 brief 需新增写 IPC。
+- **用户决策**（2026-10-16 拍板，三项；批准时点先于编码）：
+  1. **K1 批准 `BriefApprove.by` 加 `'ui'`**：语义诚实（UI 通道直改），改动限于 `shared/types.ts` 一个联合成员 + 注释，`electron/brief/publish.ts` 的 `BriefApproveInput` 同步；
+  2. **受影响节点全部仅挂脏**：直改再版后 assessImpact 命中的节点一律 `decision: 'mark'`（severity HIGH / MEDIUM 照旧标注），不自动重生成、零意外算力消耗；§2.6.7 三选一面板属 feature-006 未建范围，本通道不做；
+  3. **K8 批准恰 1 个新 IPC**：`brief:update`（字段 patch → 主进程读最新立项合并 → 就绪闸 → 单次 enqueue：publishBriefFiles + 影响清单落盘 + manifest 推进 + 画布全量挂脏），preload / global.d.ts / dev-mock-api 三镜像同步。
+- **落地回填**（2026-10-16 当日闭环）：
+  - **K1 四处**：[shared/types.ts](../../shared/types.ts) `BriefApprove.by` 加 `'ui'`；[publish.ts](../../electron/brief/publish.ts) `BriefApproveInput` 同步；[plan.ts](../../electron/brief/plan.ts) `listBriefVersions` 返回与局部 `found` 的 approveBy 联合类型同步；[render-md.ts](../../electron/brief/render-md.ts) approveLine 三分支（`'ui'` → md 落款「修改立项面板直改」）。[tools.ts](../../electron/mcp/tools.ts) approveSchema 保持 `z.enum(['gate','verbal'])` 不动——`'ui'` 仅供系统通道，Agent 通道语义不变。
+  - **K8 恰 1 IPC**：新建 [update.ts](../../electron/brief/update.ts) `updateBriefFields`——基线读取（无已发布立项 BRIEF_NO_BASELINE 零写盘）→ prev+patch 合并 draft → diffBrief 空变更 INVALID_ARGUMENT → evaluateDraft 就绪闸（BRIEF_NOT_READY 携 missing）→ assessImpact 复算 → publishBriefFiles `{by:'ui'}` 再版四落盘 → 影响清单落盘（items decision 恒全 `'mark'`）→ manifest 推进 briefVersion → 单次 enqueue：persistInQueue 受影响节点全量挂脏 + briefNode ref/meta upsert；画布经 canvasStore.subscribe 自动广播 `canvas:changed`，处理器零手动推送。[main.ts](../../electron/main.ts) `brief:update` 处理器白名单校验六控件字段（kind 枚举 `'commercial'|'memorial'`，episodeDuration/episodeCount/aspectRatio + mainStyleId/auxiliaryStyleId 逐键 `typeof string`），空 patch 拒绝；[preload.ts](../../electron/preload.ts) / [global.d.ts](../../src/global.d.ts) / [dev-mock-api.ts](../../src/dev-mock-api.ts) 三镜像同步。
+  - **renderer 返工**：[Stage0View.tsx](../../src/studio/Stage0View.tsx) BriefEditPanel 提交改直调 `window.api.updateBrief`（patch 仅携带变更字段），面板 UI/六控件（项目性质二选 + 时长/集数/画幅/主辅风格）/就绪红线校验/变更计数保留，新增 submitting 态与 `data-stage0-edit-error` 错误条（再版失败面板保持打开、按钮恢复可点）；面板说明文案改「提交后系统直接再版为 v(N+1) 并完成影响追溯（不经 AI 对话）」；onSend 死链全清（Stage0ViewProps → Stage0View → PublishedLoaded → PublishedBody → BriefEditPanel 五层 prop），[StudioApp.tsx](../../src/studio/StudioApp.tsx) `handleSend` 保留供对话区。
+  - **当日扩展（用户拍板「项目性质也可手动改」）**：面板五控件扩为六控件——`kind`（商业短剧/个人纪念二选一，D-007 枚举）纳入直改白名单；diffBrief / assessImpact 本已覆盖 `kind`（medium 分级）零改动。
+  - **验证**：新建 [brief-update.test.ts](../../src/test/brief-update.test.ts) 6 例（无基线 BRIEF_NO_BASELINE / 值同基线 INVALID_ARGUMENT / 置空 BRIEF_NOT_READY 三零写盘 + 全链路四落盘/changes/挂脏/广播断言 + 辅助风格清除 + 改 kind 命中消费节点挂脏）；[stage0-view.test.tsx](../../src/studio/stage0-view.test.tsx) B-24 describe 改写 5 例（预填六控件+无变更禁提交 / patch 仅含变更字段直调 / 取消不调 / 空集数红线 / 再版失败错误条）。全量 **48 文件 500 passed / 1 skipped**；typecheck 仅 3 条历史基线（plan.ts L96 局部 `found` 声明漏网补齐后零新增）。
+
+---
+
+## D-018 ｜ K1 ｜ 定案区入口动作恒显 + ProjectBrief 加 diagnosisDetail 诊断明细落盘
+
+- **日期**：2026-10-17
+- **卡口**：K1（`shared/types.ts` 共享层修改：`ProjectBrief` / `BriefDraft` 各加 1 个可选字段）
+- **触发背景**：用户两问——①「入口动作 · 用户原话」区块在定案区为什么没有显示；②选题诊断 AI 给出的内容与结论为什么没有显示。查证结论两者均非 bug、是设计取舍：①该标签系设计稿（MiniMax Design 形态）标注，实现里仅 verbal 拍板路径渲染用户原话引用，gate / ui 路径无任何入口动作呈现——设计稿区块从未实现；②`diagnosisSummary` 原设计取舍为「摘要落盘、明细留在对话流」（types.ts 原注释），而对话流是 opencode 会话历史（runtime `session.messages`，不落盘到项目目录），完整诊断明细在项目内无从显示。
+- **用户决策**（2026-10-17 经 AskUserQuestion 拍板，两项；批准时点先于编码）：
+  1. **入口动作块恒显**（纯展示层，零 K1）：verbal 显用户原话引用；gate 显「门批准入 · 一键拍板」；ui 显「修改立项面板 · 系统直改再版」——三种拍板路径都有入口动作留痕；
+  2. **K1 批准扩字段落盘 + 卡①显示**：`ProjectBrief.diagnosisDetail?: string` + `BriefDraft.diagnosisDetail?: string`，AI 发布立项时完整诊断明细随立项单落盘，卡①与立项单.md 增加「选题诊断明细」区块。
+- **落地回填**（2026-10-17 当日闭环）：
+  - **K1**：[types.ts](../../shared/types.ts) `ProjectBrief` / `BriefDraft` 各加 `diagnosisDetail?: string`（可选，存量 v1/v2 立项单读取不破坏）。
+  - **electron 全链**：[tools.ts](../../electron/mcp/tools.ts) brief.plan / brief.publish 入参 schema 与透传（briefDraftSchema 同步）；[publish.ts](../../electron/brief/publish.ts) 明细 trim 非空才随立项单落盘；[update.ts](../../electron/brief/update.ts) 面板直改通道沿用 prev 明细（六控件不涉及明细）；[diff.ts](../../electron/brief/diff.ts) 参与字段级 diff；[impact.ts](../../electron/brief/impact.ts) MEDIUM_FIELDS 加 diagnosisDetail（与摘要同缀 medium）；[render-md.ts](../../electron/brief/render-md.ts) 新增「## 选题诊断明细」区块（恒渲染，无明细写（无））。
+  - **renderer**：[Stage0View.tsx](../../src/studio/Stage0View.tsx) ①定案区 verbal-only 原话块改**入口动作恒显块**（`data-stage0-entry-action`；verbal 保留 `data-stage0-verbal-quote` 引用块，gate / ui 显路径文案）；②卡①只读卡与编辑卡各加诊断明细块（`data-stage0-diagnosis-detail`，长文限高滚动、恒只读无控件）。[select.ts](../../src/studio/stage0/select.ts) 与 [CanvasBoard.tsx](../../src/studio/CanvasBoard.tsx) 脏字段标签表同源补 `diagnosisDetail: '诊断明细'`（明细参与 diff 后若挂脏，脏条显中文标签而非英文 key）。
+  - **提示词同步**：[showrunner.md](../../resources/opencode/agents/showrunner.md) 第 0 步门后 publish 入参加 `diagnosisDetail?`（节点①诊断卡完整明细随立项落盘并显示）；parentReference 字段表注改「诊断摘要与明细是立项留痕、下游产物不消费，均不进字段表」。
+  - **验证**：新增/改写 7 例——[stage0-view.test.tsx](../../src/studio/stage0-view.test.tsx) 新 describe 5 例（入口动作 gate / verbal / ui 三路径恒显 + 卡①明细块只读态与编辑态同显恒只读 + 无明细不渲染）；[brief.test.ts](../../src/test/brief.test.ts) diff 捕获 diagnosisDetail + render-md 明细区块两断言；[brief-impact.test.ts](../../src/test/brief-impact.test.ts) it.each 明细 → medium；[brief-update.test.ts](../../src/test/brief-update.test.ts) 面板直改明细原样沿用 + v2 md 渲染明细。全量 **48 文件 507 passed / 1 skipped**；typecheck 仅 3 条历史基线。
+- **波及文件**：shared/types.ts；electron（mcp/tools.ts、brief/publish.ts、brief/update.ts、brief/diff.ts、brief/impact.ts、brief/render-md.ts）；renderer（studio/Stage0View.tsx、studio/stage0/select.ts、studio/CanvasBoard.tsx）；resources/opencode/agents/showrunner.md；测试 4 文件（stage0-view.test.tsx、brief.test.ts、brief-impact.test.ts、brief-update.test.ts）；文档三写：本台账、偏差清单 B-25、版本记录 2026-10-17 条目。
+- **后续约束**：AI（showrunner 第 0 步）发布立项时应将节点①诊断卡完整明细经 brief.publish `diagnosisDetail` 入参落盘；`diagnosisSummary` 摘要口径不变（仍只写用户参与确认过的判断，B-15 纪律同适用于明细）；明细与摘要同为 medium 分级参与影响追溯，但不进 parentReference 字段表（下游不消费）。

@@ -39,7 +39,7 @@ describe('classifyField（契约 §2.1 全表）', () => {
   const mediumFields = [
     'fiveElements.episodeCount', 'fiveElements.episodeDuration',
     'fiveElements.genre', 'fiveElements.tone', 'fiveElements.platforms',
-    'style.auxiliaryStyleId', 'kind', 'diagnosisSummary',
+    'style.auxiliaryStyleId', 'kind', 'diagnosisSummary', 'diagnosisDetail', // diagnosisDetail：D-018
   ]
 
   it.each(highFields)('%s → high', f => expect(classifyField(f)).toBe('high'))

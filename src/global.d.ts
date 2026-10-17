@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 // 渲染进程全局类型声明 —— 对应 electron/preload.ts 暴露的 API
 import type {
-  Canvas, CanvasGate, ComfyInstance, AssetIndexItem,
+  Canvas, CanvasGate, ComfyInstance, AssetIndexItem, BriefChange,
 } from '../shared/types'
 import type {
   RuntimeAgent,
@@ -24,10 +24,35 @@ declare global {
       }[]>
       createProject: (name?: string) => Promise<{ dir: string }>
       openProject: (dir: string) => Promise<{ ok: true; activeSessionId: string | null }>
+      // B-19：项目改名/删除（K8 已批）
+      renameProject: (dir: string, title: string) => Promise<{ ok: true; title: string }>
+      deleteProject: (dir: string) => Promise<{ ok: true }>
+      // D-017：修改立项面板直写（K8 已批；approve.by 恒 'ui'，受影响节点全仅挂脏）
+      updateBrief(patch: {
+        kind?: 'commercial' | 'memorial'
+        fiveElements?: { episodeDuration?: string; episodeCount?: string; aspectRatio?: string }
+        style?: { mainStyleId?: string; auxiliaryStyleId?: string }
+      }): Promise<{
+        ok: true
+        version: number
+        jsonPath: string
+        mdPath: string
+        impactReportPath: string
+        changes: BriefChange[]
+        items: {
+          nodeId: string
+          step: string
+          title: string
+          severity: 'high' | 'medium'
+          fields: string[]
+          defaultAction: 'regenerate' | 'mark'
+        }[]
+        markedDirty: string[]
+      }>
       // feature-808：项目绑定会话读（无参）/写（string 绑定 / null 清空）双态
       activeSession(sessionId?: string | null): Promise<{ sessionId: string | null }>
       configStatus: () => Promise<{ arkConfigured: boolean }>
-      // feature-022：旧壳 IPC 已全部下线
+      // 旧壳 IPC 已全部下线
       // feature-008 · Agent 运行时（契约 §3.3）
       runtime: {
         start(): Promise<RuntimeStatus>
@@ -64,7 +89,7 @@ declare global {
       asset: {
         list(kind?: AssetIndexItem['kind']): Promise<AssetIndexItem[]>
       }
-      // feature-022 · 只读产物查看（契约 §2）
+      // 只读产物查看
       fileRead(arg: { path: string }): Promise<
         | { ok: true; content: string; format: 'json' | 'md' }
         | { ok: false; error: { code: string; message: string } }

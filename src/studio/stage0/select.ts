@@ -128,6 +128,7 @@ const DIRTY_FIELD_LABELS: Record<string, string> = {
   'style.auxiliaryStyleId': '辅助风格',
   kind: '项目性质',
   diagnosisSummary: '诊断摘要',
+  diagnosisDetail: '诊断明细', // D-018
   'premise.leads': '人物',
   'premise.time': '时间',
   'premise.place': '地点',

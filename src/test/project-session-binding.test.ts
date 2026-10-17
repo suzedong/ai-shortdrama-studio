@@ -15,6 +15,7 @@ vi.mock('electron', () => ({
 import {
   openProject,
   readActiveSession,
+  readProjectTitle,
   setActiveSession,
 } from '../../electron/project/library'
 
@@ -175,6 +176,52 @@ describe('feature-808 · 项目-会话绑定（契约 §6.2）', () => {
       code: 'INVALID_PROJECT_DIR',
     })
     await fsp.rm(wrongName, { recursive: true, force: true })
+    await fsp.rm(outside, { recursive: true, force: true })
+  })
+})
+
+/* ── B-23 · readProjectTitle：project:open 处理器同步 canvas.title 的数据源（只读直读）── */
+describe('B-23 · readProjectTitle', () => {
+  it('读回 .session.json 的 title（含 trim 后非空判定）', async () => {
+    const dir = await makeProject('project-title')
+    await fsp.writeFile(
+      path.join(dir, '.session.json'),
+      JSON.stringify({
+        dir, title: '我的短剧', createdAt: '2026-04-01T00:00:00.000Z',
+        lastOpenedAt: '2026-04-02T00:00:00.000Z', activeSessionId: null,
+      }),
+      'utf-8',
+    )
+    expect(await readProjectTitle(dir)).toBe('我的短剧')
+  })
+
+  it('.session.json 缺失 / 损坏 JSON → null', async () => {
+    const dir = await makeProject('project-title-none')
+    expect(await readProjectTitle(dir)).toBeNull()
+    await fsp.writeFile(path.join(dir, '.session.json'), '{坏 json', 'utf-8')
+    expect(await readProjectTitle(dir)).toBeNull()
+  })
+
+  it('title 空白串 / 非字符串 → null（处理器跳过同步，保留画布现值）', async () => {
+    const dir = await makeProject('project-title-blank')
+    const file = path.join(dir, '.session.json')
+    await fsp.writeFile(
+      file,
+      JSON.stringify({ dir, title: '   ', createdAt: '2026-04-01T00:00:00.000Z', lastOpenedAt: '2026-04-02T00:00:00.000Z', activeSessionId: null }),
+      'utf-8',
+    )
+    expect(await readProjectTitle(dir)).toBeNull()
+    await fsp.writeFile(
+      file,
+      JSON.stringify({ dir, title: 123, createdAt: '2026-04-01T00:00:00.000Z', lastOpenedAt: '2026-04-02T00:00:00.000Z', activeSessionId: null }),
+      'utf-8',
+    )
+    expect(await readProjectTitle(dir)).toBeNull()
+  })
+
+  it('工作区外目录 → INVALID_PROJECT_DIR（路径硬边界同族守卫）', async () => {
+    const outside = await fsp.mkdtemp(path.join(os.tmpdir(), 'asd-out-title-'))
+    await expect(readProjectTitle(outside)).rejects.toMatchObject({ code: 'INVALID_PROJECT_DIR' })
     await fsp.rm(outside, { recursive: true, force: true })
   })
 })

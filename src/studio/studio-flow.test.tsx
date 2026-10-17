@@ -53,7 +53,7 @@ function installApi(initial: Canvas): Harness {
       decide,
       onChanged: vi.fn(cb => { gateCbs.add(cb); return () => gateCbs.delete(cb) }),
     },
-    // feature-022：项目导航 + 只读产物查看
+    // 项目导航 + 只读产物查看
     listProjects: vi.fn(async () => [
       { dir: '/ws/project-p1', name: '项目一', updatedAt: new Date().toISOString() },
     ]),
@@ -177,8 +177,8 @@ describe('C7 · StudioApp 立项驱动', () => {
   })
 })
 
-// feature-022 · 三栏布局 / 项目导航 / 只读产物查看（AC-2/AC-3）
-describe('feature-022 · 三栏与产物查看', () => {
+// 三栏布局 / 项目导航 / 只读产物查看
+describe('三栏与产物查看', () => {
   it('三栏齐出：项目导航 + 画布 + 对话区', async () => {
     installApi(emptyCanvas())
     render(<StudioApp />)

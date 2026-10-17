@@ -71,17 +71,18 @@ describe('diffBrief（契约 §5）', () => {
     expect(diffBrief(prev, draft)).toEqual([])
   })
 
-  it('kind / premise / style / diagnosisSummary 变更均被捕获', () => {
+  it('kind / premise / style / diagnosis 摘要与明细变更均被捕获', () => {
     const prev = fullBrief(1)
     const draft = fullDraft({
       kind: 'memorial',
       premise: { ...fullBrief(1).premise, place: '北京' },
       style: { mainStyleId: 'B2', catalogVersion: 'v1.46', auxiliaryStyleId: 'C1' },
       diagnosisSummary: '新结论',
+      diagnosisDetail: '新明细', // D-018：prev 无明细 → from 空串
     })
     const fields = diffBrief(prev, draft).map(c => c.field)
     expect(fields).toEqual(
-      expect.arrayContaining(['kind', 'premise.place', 'style.mainStyleId', 'style.auxiliaryStyleId', 'diagnosisSummary']),
+      expect.arrayContaining(['kind', 'premise.place', 'style.mainStyleId', 'style.auxiliaryStyleId', 'diagnosisSummary', 'diagnosisDetail']),
     )
     expect(fields).not.toContain('style.catalogVersion')
   })
@@ -222,6 +223,8 @@ describe('renderBriefMd（契约 §4）', () => {
     expect(md).toContain('- 主风格：A7 @ v1.46')
     expect(md).toContain('- 辅助气氛：无')
     expect(md).toContain('## 选题诊断结论\n赛道可行')
+    // D-018：无明细时区块恒渲染、写（无）
+    expect(md).toContain('## 选题诊断明细\n（无）')
     expect(md).toContain('首版立项')
   })
 
@@ -238,5 +241,10 @@ describe('renderBriefMd（契约 §4）', () => {
   it('无诊断摘要写（无）', () => {
     const md = renderBriefMd(fullBrief(1, { diagnosisSummary: undefined }))
     expect(md).toContain('（无）')
+  })
+
+  it('D-018：诊断明细原样渲染（多行保留）', () => {
+    const md = renderBriefMd(fullBrief(1, { diagnosisDetail: '第一行\n第二行' }))
+    expect(md).toContain('## 选题诊断明细\n第一行\n第二行')
   })
 })

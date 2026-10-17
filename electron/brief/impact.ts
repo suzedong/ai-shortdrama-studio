@@ -55,6 +55,7 @@ const MEDIUM_FIELDS = [
   'style.auxiliaryStyleId',
   'kind',
   'diagnosisSummary',
+  'diagnosisDetail', // D-018：明细与摘要同缀 medium
 ] as const
 
 // 全集顺序（high 表在前，medium 表在后）

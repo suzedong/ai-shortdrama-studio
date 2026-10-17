@@ -1,8 +1,8 @@
-// feature-022 · 新壳工作台（OD §1 三栏布局 + §3.1 顶栏/底栏）
+// 新壳工作台（三栏布局 + 顶栏/底栏）
 // 布局：顶栏 → [图标轨 | 左栏 · 资源库/流程导航 双视图 | 中栏画布 | 右栏对话] → 底栏状态条
 // 左栏对齐原型方案 A · 图标轨 4 子面板 + lp-seg 一级 toggle + 流程导航 8 步面板
 // 所有 IPC 与组件接线保持不变；仅把视觉骨架对齐高保真原型。
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { Canvas, CanvasGate, CanvasNode, StepId } from '@shared/types'
 import { reduceRuntimeEvent, turnText, type StreamingTurn } from '../lib/chat-runtime'
@@ -107,6 +107,8 @@ export default function StudioApp() {
   const [leftQuery, setLeftQuery] = useState('')
   const [activeStep, setActiveStep] = useState<StepId | null>(null)
   const [catalogOpen, setCatalogOpen] = useState(false)
+  // B-31：rail 底部 AI 圆标 → 系统菜单（收纳使用指南/导出入口）
+  const [sysMenuOpen, setSysMenuOpen] = useState(false)
   const [centerView, setCenterView] = useState<CenterView>('dag')
   const [toast, setToast] = useState<{ tone: 'ok' | 'bad' | 'info'; text: string } | null>(null)
   const projectNavRef = useRef<ProjectNavHandle>(null)
@@ -121,6 +123,42 @@ export default function StudioApp() {
   // SSE 全程只订阅一次（无参订阅，首发送时惰性触发）
   const subscribedRef = useRef(false)
   const [historyLoading, setHistoryLoading] = useState(false)
+
+  // 入口动作 · 用户原话：会话首条用户消息（Stage0View 入口卡数据源）
+  const entryQuote = useMemo(() => items.find(i => i.role === 'user')?.text?.trim() ?? '', [items])
+
+  // 右栏对话区宽度：左缘拖拽调节（300–640px），localStorage 持久化
+  const CHAT_WIDTH_KEY = 'studio.chatWidth'
+  const [chatWidth, setChatWidth] = useState(() => {
+    const v = Number(localStorage.getItem('studio.chatWidth'))
+    return Number.isFinite(v) && v >= 300 && v <= 640 ? v : 380
+  })
+  const chatDragRef = useRef<{ startX: number; startWidth: number } | null>(null)
+  const onChatResizerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    chatDragRef.current = { startX: e.clientX, startWidth: chatWidth }
+  }
+  const onChatResizerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = chatDragRef.current
+    if (!d) return
+    setChatWidth(Math.min(640, Math.max(300, d.startWidth + (d.startX - e.clientX))))
+  }
+  const onChatResizerUp = () => {
+    if (!chatDragRef.current) return
+    chatDragRef.current = null
+    localStorage.setItem(CHAT_WIDTH_KEY, String(chatWidth))
+  }
+
+  // 系统菜单：点击菜单外任意处关闭
+  useEffect(() => {
+    if (!sysMenuOpen) return
+    const onDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('[data-sys-menu-root]')) setSysMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [sysMenuOpen])
 
   // ---- runtime 事件 → 流式归约；轮次定稿时落为历史消息 ----
   // feature-808：归约前先按绑定会话严格归属（R5 / D-007）——
@@ -488,14 +526,6 @@ export default function StudioApp() {
           视觉风格谱系
           <span className="rounded-full bg-white px-1.5 py-px font-mono text-[10px] font-extrabold text-violet">v1.46</span>
         </button>
-        {/* 模型芯片 */}
-        <button className="flex items-center gap-1.5 rounded-full border border-[#DED9FB] bg-violet-soft px-2.5 py-1 text-[12px] font-semibold text-violet">
-          <span className="rounded-full bg-violet px-1.5 py-px text-[10px] text-white">自动</span>
-          MiniMax H3 · 768P–2K
-        </button>
-        <button className="rounded-lg px-2.5 py-1.5 text-[12.5px] text-muted hover:bg-canvas">使用指南</button>
-        <button className="rounded-lg px-2.5 py-1.5 text-[12.5px] text-muted hover:bg-canvas">导出</button>
-        <div className="grid h-[26px] w-[26px] place-items-center rounded-full bg-gradient-to-br from-[#B8AFFF] to-violet text-[11px] font-bold text-white">SZ</div>
         </div>
         {/* feature-804：自绘窗口控制（仅 win32/linux；末位贴右边） */}
         {platform !== 'darwin' && <WindowControls />}
@@ -529,7 +559,26 @@ export default function StudioApp() {
             )
           })}
           <div className="flex-1" />
-          <div className="grid h-[30px] w-[30px] place-items-center rounded-full bg-gradient-to-br from-[#FFD39B] to-[#F0A04B] text-[12px] font-bold text-white">AI</div>
+          {/* B-31：AI 圆标 → 系统菜单（使用指南/导出入口自标题栏收纳至此；功能待挂载，点击暂仅关菜单） */}
+          <div className="relative" data-sys-menu-root>
+            <button
+              type="button"
+              onClick={() => setSysMenuOpen(v => !v)}
+              className="grid h-[30px] w-[30px] place-items-center rounded-full bg-gradient-to-br from-[#FFD39B] to-[#F0A04B] text-[12px] font-bold text-white"
+              title="系统菜单"
+              aria-haspopup="menu"
+              aria-expanded={sysMenuOpen}
+              data-sys-menu-trigger
+            >
+              AI
+            </button>
+            {sysMenuOpen && (
+              <div role="menu" data-sys-menu className="absolute bottom-0 left-[calc(100%+15px)] z-50 w-32 overflow-hidden rounded-xl border border-line bg-white py-1 shadow-[0_8px_24px_rgba(40,42,80,0.14)]">
+                <button type="button" role="menuitem" data-sys-menu-item="guide" onClick={() => setSysMenuOpen(false)} className="block w-full px-3 py-2 text-left text-[12.5px] text-ink hover:bg-canvas">使用指南</button>
+                <button type="button" role="menuitem" data-sys-menu-item="export" onClick={() => setSysMenuOpen(false)} className="block w-full px-3 py-2 text-left text-[12.5px] text-ink hover:bg-canvas">导出</button>
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* ── 左栏（260px，原型 L1035-1208）── */}
@@ -636,6 +685,7 @@ export default function StudioApp() {
               canvas={canvas}
               projectTitle={projectTitle}
               onBackToDag={() => setCenterView('dag')}
+              entryQuote={entryQuote}
             />
           ) : (
             <>
@@ -651,6 +701,7 @@ export default function StudioApp() {
                   node={viewerNode}
                   kindLabel={kindLabel(viewerNode.kind)}
                   onClose={handleCloseViewer}
+                  entryQuote={entryQuote}
                 />
               )}
             </>
@@ -679,8 +730,20 @@ export default function StudioApp() {
           </div>
         )}
 
-        {/* ── 右栏对话 ── */}
-        <aside className="w-[380px] shrink-0 border-l border-line bg-white">
+        {/* ── 右栏对话（左缘拖拽调宽 300–640px）── */}
+        <aside className="relative shrink-0 border-l border-line bg-white" style={{ width: chatWidth }}>
+          <div
+            className="absolute inset-y-0 -left-[3px] z-30 w-[6px] cursor-col-resize transition-colors hover:bg-violet/40"
+            onPointerDown={onChatResizerDown}
+            onPointerMove={onChatResizerMove}
+            onPointerUp={onChatResizerUp}
+            onPointerCancel={onChatResizerUp}
+            data-chat-resizer
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="拖拽调整对话区宽度"
+            title="拖拽调整对话区宽度"
+          />
           <ChatComposer
             items={items}
             stream={stream}

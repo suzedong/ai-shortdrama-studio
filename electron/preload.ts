@@ -14,6 +14,15 @@ contextBridge.exposeInMainWorld('api', {
   listProjects: () => ipcRenderer.invoke('project:list'),
   createProject: (name?: string) => ipcRenderer.invoke('project:create', name === undefined ? undefined : { name }),
   openProject: (dir: string) => ipcRenderer.invoke('project:open', dir),
+  // B-19：项目改名/删除（K8 已批）
+  renameProject: (dir: string, title: string) => ipcRenderer.invoke('project:rename', { dir, title }),
+  deleteProject: (dir: string) => ipcRenderer.invoke('project:delete', dir),
+  // D-017：修改立项面板直写（K8 已批）
+  updateBrief: (patch: {
+    kind?: 'commercial' | 'memorial'
+    fiveElements?: { episodeDuration?: string; episodeCount?: string; aspectRatio?: string }
+    style?: { mainStyleId?: string; auxiliaryStyleId?: string }
+  }) => ipcRenderer.invoke('brief:update', patch),
   // feature-808：项目绑定会话读（无参）/写（{ sessionId } 或 { sessionId: null }）双态（D-005 顶层暴露）
   activeSession: (sessionId?: string | null): Promise<{ sessionId: string | null }> =>
     ipcRenderer.invoke(
@@ -21,7 +30,7 @@ contextBridge.exposeInMainWorld('api', {
       sessionId === undefined ? undefined : { sessionId },
     ),
   configStatus: (): Promise<{ arkConfigured: boolean }> => ipcRenderer.invoke('app:config-status'),
-  // feature-022：旧壳 IPC（saveProject/template/session/chat/archive/workflow）已全部下线
+  // 旧壳 IPC（saveProject/template/session/chat/archive/workflow）已全部下线
 
   // feature-008 · Agent 运行时（opencode 基座）；契约 §3.3，12 invoke + 2 推送
   runtime: {
@@ -81,7 +90,7 @@ contextBridge.exposeInMainWorld('api', {
     list: (kind?: string) =>
       ipcRenderer.invoke('asset:list', kind === undefined ? undefined : { kind }),
   },
-  // feature-022 · 只读产物查看（契约 §2）
+  // 只读产物查看
   fileRead: (arg: { path: string }) => ipcRenderer.invoke('file:read', arg),
   settings: {
     comfy: {

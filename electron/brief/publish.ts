@@ -23,7 +23,7 @@ export type ReadyBriefDraft = BriefDraft & {
 }
 
 export interface BriefApproveInput {
-  by: 'gate' | 'verbal'
+  by: 'gate' | 'verbal' | 'ui' // 'ui' 仅系统直改通道（D-017）；MCP 入参 schema 仍只放 gate/verbal
   verbal?: { quote: string }
   note?: string
 }
@@ -81,6 +81,8 @@ export async function publishBriefFiles(
     changesFromPrevious: diffBrief(prev, draft),
     publishedAt: now,
     ...(draft.diagnosisSummary?.trim() ? { diagnosisSummary: draft.diagnosisSummary } : {}),
+    // D-018：诊断完整明细随立项单落盘（可选）
+    ...(draft.diagnosisDetail?.trim() ? { diagnosisDetail: draft.diagnosisDetail } : {}),
   }
 
   await fsp.writeFile(jsonAbs, JSON.stringify(brief, null, 2), 'utf-8')

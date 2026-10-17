@@ -1,5 +1,5 @@
 // feature-019 C7 · ErrorBoundary（契约 §4-1~4-3）
-// feature-022：旧壳下线，onBackLegacy/RootSwitch 用例一并移除。
+// 旧壳下线，onBackLegacy/RootSwitch 用例一并移除。
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'

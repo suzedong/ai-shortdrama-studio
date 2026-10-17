@@ -8,7 +8,10 @@ import {
   createProject,
   openProject,
   readActiveSession,
+  readProjectTitle,
   setActiveSession,
+  renameProject,
+  deleteProject,
 } from './project/library.js'
 import { isConfigured } from './ark.js'
 import { canvasStore } from './canvas/store.js'
@@ -16,6 +19,7 @@ import { gateBridge } from './gate/bridge.js'
 import { listAssets } from './asset/index.js'
 import { readProjectFile } from './fs/read.js'
 import { getActiveProjectDir } from './project/current.js'
+import { updateBriefFields, type BriefUpdatePatch } from './brief/update.js'
 import { listInstances, upsertInstance, removeInstance } from './comfy/settings.js'
 import type { Canvas, CanvasGate, ComfyInstance, AssetIndexItem } from '../shared/types.js'
 import { runtimeManager } from './runtime/manager.js'
@@ -143,17 +147,114 @@ ipcMain.handle('project:open', (_e, dir: unknown) => {
     gateBridge.settleAll()
     canvasStore.reset()
     await gateBridge.recoverPending()
-    // feature-022 真机修复：切项目后主动推送新画布（persist 才会广播，reset 不会）
+    // 真机修复：切项目后主动推送新画布（persist 才会广播，reset 不会）
     try {
+      // B-23：项目名双源归一——以 .session.json 为准同步 canvas.title
+      // （emptyCanvas 写死「新项目」；create 场景由 ProjectNav 串联 open 一并覆盖；
+      // 同步失败不致命，renderer 退化为显示画布旧 title）
+      const title = await readProjectTitle(dir)
       const canvas = await canvasStore.get()
+      if (title !== null && canvas.title !== title) {
+        await canvasStore.withCanvas(c => {
+          c.title = title
+        })
+      }
+      const fresh = await canvasStore.get()
       for (const wc of canvasSubscribers) {
-        if (!wc.isDestroyed()) wc.send('canvas:changed', canvas)
+        if (!wc.isDestroyed()) wc.send('canvas:changed', fresh)
       }
     } catch {
       // 新项目目录异常时忽略，renderer 保持当前态
     }
     return res
   })
+})
+
+// B-19：项目改名/删除（原契约之外最小增补，K8 已批）
+// 改名当前项目时顺带 canvasStore.withCanvas 同步 canvas.title（persist+广播，顶栏即时刷新）
+ipcMain.handle('project:rename', (_e, arg: unknown) => {
+  if (!isRecord(arg) || typeof arg.dir !== 'string' || typeof arg.title !== 'string') {
+    throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { dir: string, title: string }')
+  }
+  // 提取为局部 const：属性收窄不进 .then 闭包
+  const dir = arg.dir
+  const title = arg.title
+  return renameProject(dir, title).then(async res => {
+    let activeDir: string | null = null
+    try {
+      activeDir = getActiveProjectDir()
+    } catch {
+      activeDir = null // 无当前项目：不同步画布
+    }
+    if (activeDir !== null && activeDir === path.resolve(dir)) {
+      try {
+        await canvasStore.withCanvas(c => {
+          c.title = res.title
+        })
+      } catch {
+        // 画布同步失败不致命：.session.json 已改名
+      }
+    }
+    return res
+  })
+})
+ipcMain.handle('project:delete', (_e, dir: unknown) => {
+  if (typeof dir !== 'string') {
+    throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为项目目录字符串')
+  }
+  return deleteProject(dir)
+})
+
+// D-017：修改立项面板直写（原则六 · 系统优先；K1 加 'ui' / K8 恰 1 IPC 已批）
+// patch 仅受理六控件字段白名单（kind 枚举校验，其余逐键 typeof string）；approve.by 恒 'ui'、decisions 恒全 'mark'；
+// 画布经 persistInQueue → canvasStore.subscribe 自动广播 canvas:changed，无需手动推送。
+ipcMain.handle('brief:update', (_e, arg: unknown) => {
+  if (!isRecord(arg)) {
+    throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { kind?, fiveElements?, style? }')
+  }
+  const patch: BriefUpdatePatch = {}
+  if (arg.kind !== undefined) {
+    if (arg.kind !== 'commercial' && arg.kind !== 'memorial') {
+      throw makeRuntimeError('INVALID_ARGUMENT', "kind 必须为 'commercial' | 'memorial'")
+    }
+    patch.kind = arg.kind
+  }
+  if (arg.fiveElements !== undefined) {
+    if (!isRecord(arg.fiveElements)) {
+      throw makeRuntimeError('INVALID_ARGUMENT', 'fiveElements 必须为对象')
+    }
+    const fe: NonNullable<BriefUpdatePatch['fiveElements']> = {}
+    for (const key of ['episodeDuration', 'episodeCount', 'aspectRatio'] as const) {
+      const v = arg.fiveElements[key]
+      if (v !== undefined) {
+        if (typeof v !== 'string') {
+          throw makeRuntimeError('INVALID_ARGUMENT', `fiveElements.${key} 必须为字符串`)
+        }
+        fe[key] = v
+      }
+    }
+    patch.fiveElements = fe
+  }
+  if (arg.style !== undefined) {
+    if (!isRecord(arg.style)) {
+      throw makeRuntimeError('INVALID_ARGUMENT', 'style 必须为对象')
+    }
+    const st: NonNullable<BriefUpdatePatch['style']> = {}
+    for (const key of ['mainStyleId', 'auxiliaryStyleId'] as const) {
+      const v = arg.style[key]
+      if (v !== undefined) {
+        if (typeof v !== 'string') {
+          throw makeRuntimeError('INVALID_ARGUMENT', `style.${key} 必须为字符串`)
+        }
+        st[key] = v
+      }
+    }
+    patch.style = st
+  }
+  if (patch.kind === undefined && patch.fiveElements === undefined && patch.style === undefined) {
+    throw makeRuntimeError('INVALID_ARGUMENT', 'patch 不能为空：至少提供 kind / fiveElements / style 一组字段')
+  }
+  return updateBriefFields(getActiveProjectDir(), patch).then(res => ({ ok: true as const, ...res }))
 })
 
 // feature-808：当前项目绑定会话的读/写双态（不经 withRuntime，绝不因读绑定拉起 opencode）
@@ -186,7 +287,7 @@ ipcMain.handle('app:config-status', () => ({ arkConfigured: isConfigured() }))
 // ============================================================================
 // feature-008 · Agent 运行时（opencode 基座）IPC —— 严格匹配契约 §3/§5/§6/§8
 // 命名空间 runtime:* 与既有通道完全隔离。
-// feature-022：旧壳 IPC（project:save/template/session/chat/archive/workflow）已全部下线。
+// 旧壳 IPC（project:save/template/session/chat/archive/workflow）已全部下线。
 // ============================================================================
 
 const runtimeClient = new OpencodeRuntimeClient({
@@ -502,7 +603,7 @@ gateBridge.setGateListener((e: { gate: CanvasGate; title?: string }) => {
   }
 })
 
-// feature-022 真机修复：无项目时返回空画布而非抛异常，避免启动白屏
+// 真机修复：无项目时返回空画布而非抛异常，避免启动白屏
 ipcMain.handle('canvas:get', async () => {
   try {
     return await canvasStore.get()
@@ -561,7 +662,7 @@ ipcMain.handle('asset:list', (_e, arg?: unknown) => {
   return listAssets(kind)
 })
 
-// feature-022 · 只读产物查看（契约 §2，D-022-01）：renderer 唯一读文件通道
+// 只读产物查看：renderer 唯一读文件通道
 ipcMain.handle('file:read', async (_e, arg: unknown) => {
   const rel = typeof arg === 'object' && arg !== null && 'path' in arg
     ? (arg as { path: unknown }).path

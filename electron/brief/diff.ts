@@ -1,6 +1,6 @@
 // feature-001 立项模型重建 · 立项单字段级 diff（契约 §5，纯函数）
 // 比较范围：kind / fiveElements.*（platforms 排序后顿号串）/ premise.* /
-//          style.mainStyleId、catalogVersion、auxiliaryStyleId / diagnosisSummary。
+//          style.mainStyleId、catalogVersion、auxiliaryStyleId / diagnosisSummary / diagnosisDetail（D-018）。
 // 叶子统一转字符串比较；无上一版（prev===null）返回 []。
 import type {
   BriefChange, BriefDraft, ProjectBrief,
@@ -44,6 +44,7 @@ export function diffBrief(prev: ProjectBrief | null, draft: BriefDraft): BriefCh
   }
 
   push('diagnosisSummary', prev.diagnosisSummary ?? '', draft.diagnosisSummary)
+  push('diagnosisDetail', prev.diagnosisDetail ?? '', draft.diagnosisDetail)
 
   return changes
 }

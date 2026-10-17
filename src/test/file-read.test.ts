@@ -1,4 +1,4 @@
-// feature-022 · file:read 安全单测（契约 §2 / AC-4）
+// file:read 安全单测
 // 覆盖六类拒绝中的五类（FORBIDDEN_FORMAT/PATH_ESCAPE/TOO_LARGE/NOT_FOUND/INVALID_ARGUMENT）；
 // NO_PROJECT 由 main.ts 包装层（getActiveProjectDir 捕获）承担，真机验收覆盖。
 import fsp from 'node:fs/promises'

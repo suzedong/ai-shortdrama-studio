@@ -2,7 +2,7 @@
 // DAG 形态（对齐原型 #viewDag）：CanvasNode 无坐标，只有 step；
 // renderer 按 step 分列自动布局，列内纵向排布，SVG 贝塞尔边按源节点状态三态着色；
 // 支持缩放/平移与右下角小地图。renderer 不推导业务状态，状态一律取自 canvas 数据。
-// feature-022 · 有 ref.path 的节点可点击打开只读查看器（契约 §3）
+// 有 ref.path 的节点可点击打开只读查看器
 // feature-023 · 流程导航 STAGE 高亮（命中 step 的列染色 + 列标签加粗 + 节点描边）
 // feature-026 · 节点卡底部操作行（hover/selected 可见）：查看 / 重新生成 / 复制 / 标记失效
 // feature-027 · 节点可拖拽改位（仅本列内会话态摆位，不写盘；越界警告并回弹）
@@ -213,6 +213,7 @@ const DIRTY_FIELD_LABELS: Record<string, string> = {
   'style.auxiliaryStyleId': '辅助风格',
   kind: '项目性质',
   diagnosisSummary: '诊断摘要',
+  diagnosisDetail: '诊断明细', // D-018
   'premise.leads': '人物',
   'premise.time': '时间',
   'premise.place': '地点',
@@ -306,7 +307,7 @@ const EDGE_STYLE: Record<EdgeVisual, { stroke: string; cls: string; marker: 'arr
 
 interface Props {
   canvas: Canvas
-  // feature-022：有 ref.path 的节点可点击打开只读查看器（契约 §3）
+  // 有 ref.path 的节点可点击打开只读查看器
   onOpenNode?: (node: CanvasNode) => void
   // feature-023：流程导航 STAGE 高亮（命中 step 的列染色 + 列标签加粗 + 节点描边）
   activeStep?: string | null

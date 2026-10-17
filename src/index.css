@@ -1,3 +1,5 @@
+@import './assets/fonts/misans/misans.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,7 +14,7 @@ body {
   background-image: radial-gradient(#D9DCEA 1px, transparent 1px);
   background-size: 22px 22px;
   color: #1A1A2E;
-  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family: 'MiSans VF', 'MiSansLatin VF', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

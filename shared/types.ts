@@ -96,7 +96,7 @@ export interface BriefStyle {
 // 拍板记录（一键拍板 / 口头拍板等价，§2.6.5）
 export interface BriefApprove {
   at: string                   // ISO 时间戳
-  by: 'gate' | 'verbal'        // gate=点定案卡按钮；verbal=对话口头确认
+  by: 'gate' | 'verbal' | 'ui' // gate=点定案卡按钮；verbal=对话口头确认；ui=修改立项面板直改（系统直改通道，D-017）
   verbal?: { quote: string }   // by==='verbal' 时必填：用户原话
   note?: string                // 门裁决备注（gate 路径可选）
 }
@@ -116,7 +116,8 @@ export interface ProjectBrief {
   fiveElements: FiveElements
   premise: StoryPremise
   style: BriefStyle
-  diagnosisSummary?: string    // 选题诊断结论摘要（明细留在对话流）
+  diagnosisSummary?: string    // 选题诊断结论摘要
+  diagnosisDetail?: string     // 选题诊断完整明细（D-018：发布时随立项单落盘，卡①与 md 显示）
   approve: BriefApprove
   changesFromPrevious: BriefChange[]
   publishedAt: string          // ISO
@@ -151,6 +152,7 @@ export interface BriefDraft {
   premise: Partial<StoryPremise>
   style: Partial<BriefStyle>
   diagnosisSummary?: string  // 参与字段级 diff（契约 §5），可选
+  diagnosisDetail?: string   // D-018：诊断完整明细，参与字段级 diff，可选
 }
 
 // 故事大纲（编剧 Agent）

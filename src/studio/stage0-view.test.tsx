@@ -1,5 +1,5 @@
 // feature-003 · Stage0View 接线测试（契约 §6）
-// 纯函数 select/parse 用例 + 组件四态/叠加态用例；window.api 仅桩 fileRead。
+// 纯函数 select/parse 用例 + 组件四态/叠加态用例；window.api 桩 fileRead / updateBrief（D-017）。
 // 组件凭据为 data-stage0-*（非 data-testid），统一用容器选择器。
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
@@ -102,6 +102,18 @@ type ReadResult =
 function installFileRead(router: (path: string) => ReadResult | Promise<ReadResult>) {
   const spy = vi.fn(async ({ path }: { path: string }) => router(path))
   window.api = { fileRead: spy } as unknown as Window['api']
+  return spy
+}
+
+/** D-017：立项直改桩（在 installFileRead 之后叠加到 window.api） */
+function installUpdateBrief(impl?: (patch: unknown) => Promise<unknown>) {
+  const spy = vi.fn(async (patch: unknown) => impl ? impl(patch) : {
+    ok: true, version: 2,
+    jsonPath: '立项单.v2.json', mdPath: '立项单.v2.md',
+    impactReportPath: '影响清单.v1-v2.json',
+    changes: [] as unknown[], items: [] as unknown[], markedDirty: [] as string[],
+  })
+  ;(window.api as unknown as { updateBrief: unknown }).updateBrief = spy
   return spy
 }
 
@@ -432,5 +444,205 @@ describe('Stage0View · 读失败 / 加载 / 返回', () => {
     const buttons = screen.getAllByRole('button', { name: '← 返回画布' })
     fireEvent.click(buttons[0])
     expect(h.onBackToDag).toHaveBeenCalledTimes(1)
+  })
+})
+
+/* ── B-22 视觉风格名称 ── */
+
+describe('Stage0View · 视觉风格显示名称（B-22）', () => {
+  it('已知 ID → 主风格行与辅助徽标均显「ID · 名称」', async () => {
+    const b = brief({ style: { mainStyleId: 'A7', catalogVersion: 'v1.46', auxiliaryStyleId: 'D1' } })
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(b))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    expect(byStage0('style')?.textContent).toContain('A7 · 拟真人·仿真人动漫')
+    expect(byStage0('style')?.textContent).toContain('v1.46')
+    expect(screen.getByText('辅助 D1 · 冷调悬疑')).toBeInTheDocument()
+  })
+
+  it('未知 ID → 主风格回退只显 ID（不拼名称）', async () => {
+    const b = brief({ style: { mainStyleId: 'Z9', catalogVersion: 'v9.9' } })
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(b))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    const txt = byStage0('style')?.textContent ?? ''
+    expect(txt).toContain('主风格 Z9 · 谱系 v9.9')
+    expect(txt).not.toContain('拟真人')
+  })
+})
+
+/* ── D-018 定案区入口动作恒显 + 卡①诊断明细 ── */
+
+describe('Stage0View · 入口动作恒显与诊断明细（D-018）', () => {
+  it('gate 拍板：入口动作显「门批准入 · 一键拍板」，无原话块', async () => {
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(brief()))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    const entry = await findStage0('entry-action')
+    expect(entry.textContent).toContain('入口动作')
+    expect(entry.textContent).toContain('门批准入 · 一键拍板')
+    expect(byStage0('verbal-quote')).toBeNull()
+  })
+
+  it('verbal 拍板：入口动作标「用户原话」并显引用块', async () => {
+    const b = brief({
+      approve: { at: '2026-10-15T09:00:00.000Z', by: 'verbal', verbal: { quote: '就按这个方向做' } },
+    })
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(b))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    const entry = await findStage0('entry-action')
+    expect(entry.textContent).toContain('用户原话')
+    expect(byStage0('verbal-quote')?.textContent).toContain('就按这个方向做')
+  })
+
+  it('ui 直改：入口动作显「修改立项面板 · 系统直改再版」', async () => {
+    const b = brief({
+      approve: { at: '2026-10-15T09:00:00.000Z', by: 'ui', note: '改集数' },
+    })
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(b))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    const entry = await findStage0('entry-action')
+    expect(entry.textContent).toContain('系统直改')
+    expect(entry.textContent).toContain('修改立项面板 · 系统直改再版')
+    expect(byStage0('verbal-quote')).toBeNull()
+  })
+
+  it('卡①显诊断明细块（只读态与编辑态同显、恒只读无控件）', async () => {
+    const b = brief({ diagnosisDetail: '赛道×钩子明细\n合规通过' })
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(b))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    const detail = await findStage0('diagnosis-detail')
+    expect(detail.textContent).toContain('选题诊断明细')
+    expect(detail.textContent).toContain('赛道×钩子明细')
+    // 编辑态：明细块仍在编辑卡内且只读（无输入控件）
+    fireEvent.click(byStage0('edit-toggle') as HTMLElement)
+    await findStage0('edit-panel')
+    const detailInEdit = byStage0('diagnosis-detail')
+    expect(detailInEdit).not.toBeNull()
+    expect(detailInEdit!.querySelector('input,select,textarea')).toBeNull()
+  })
+
+  it('无 diagnosisDetail → 不渲染明细块', async () => {
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(brief()))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    expect(byStage0('diagnosis-detail')).toBeNull()
+  })
+})
+
+/* ── B-24/D-017 修改立项：卡①行内六字段直改 → 系统直写再版（原则六 · 不经 AI 对话）── */
+
+/** 编辑卡内按字段名取 input/select 控件 */
+function editField(panel: Element, name: string): HTMLInputElement | HTMLSelectElement {
+  const el = panel
+    .querySelector(`[data-stage0-edit-field="${name}"]`)
+    ?.querySelector('input,select')
+  expect(el).not.toBeNull()
+  return el as HTMLInputElement | HTMLSelectElement
+}
+
+describe('Stage0View · 修改立项（B-24/D-017 卡①行内系统直改）', () => {
+  it('published 态显「修改立项…」入口；点击后卡①原位变编辑卡并预填六控件；无变更时提交禁用', async () => {
+    const b = brief({ style: { mainStyleId: 'A7', catalogVersion: 'v1.46', auxiliaryStyleId: 'D1' } })
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(b))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+
+    const toggle = byStage0('edit-toggle') as HTMLElement
+    expect(toggle).not.toBeNull()
+    fireEvent.click(toggle)
+
+    const panel = await findStage0('edit-panel')
+    expect(panel.textContent).toContain('再版为 v2')
+    expect(panel.textContent).toContain('不经 AI 对话')
+    expect(editField(panel, 'kind').value).toBe('commercial')
+    expect(editField(panel, 'episodeDuration').value).toBe('90 秒')
+    expect(editField(panel, 'episodeCount').value).toBe('80 集')
+    expect(editField(panel, 'aspectRatio').value).toBe('竖屏 9:16')
+    expect(editField(panel, 'mainStyleId').value).toBe('A7')
+    expect(editField(panel, 'auxiliaryStyleId').value).toBe('D1')
+
+    expect((byStage0('edit-submit') as HTMLButtonElement).disabled).toBe(true)
+    expect(panel.textContent).toContain('尚未修改任何字段')
+  })
+
+  it('修改集数、主风格与项目性质 → 提交直调 updateBrief（patch 仅含变更字段），面板关闭', async () => {
+    const b = brief({
+      version: 2,
+      changesFromPrevious: [{ field: 'fiveElements.genre', from: '旧', to: '新' }],
+    })
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(b))
+    const updateBrief = installUpdateBrief()
+    renderView(canvas({ nodes: [doneBriefNode('v2')], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    fireEvent.click(byStage0('edit-toggle') as HTMLElement)
+    const panel = await findStage0('edit-panel')
+
+    fireEvent.change(editField(panel, 'episodeCount'), { target: { value: '100 集' } })
+    fireEvent.change(editField(panel, 'mainStyleId'), { target: { value: 'C1' } })
+    fireEvent.change(editField(panel, 'kind'), { target: { value: 'memorial' } })
+
+    expect(panel.textContent).toContain('共 3 处变更')
+    const submitBtn = byStage0('edit-submit') as HTMLButtonElement
+    expect(submitBtn.disabled).toBe(false)
+    fireEvent.click(submitBtn)
+
+    await waitFor(() => expect(updateBrief).toHaveBeenCalledTimes(1))
+    expect(updateBrief).toHaveBeenCalledWith({
+      kind: 'memorial',
+      fiveElements: { episodeCount: '100 集' },
+      style: { mainStyleId: 'C1' },
+    })
+
+    await waitFor(() => expect(byStage0('edit-panel')).toBeNull())
+    expect(byStage0('edit-toggle')).not.toBeNull()
+  })
+
+  it('取消 → 面板关闭且不调 updateBrief', async () => {
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(brief()))
+    const updateBrief = installUpdateBrief()
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    fireEvent.click(byStage0('edit-toggle') as HTMLElement)
+    await findStage0('edit-panel')
+    fireEvent.click(byStage0('edit-cancel') as HTMLElement)
+    await waitFor(() => expect(byStage0('edit-panel')).toBeNull())
+    expect(updateBrief).not.toHaveBeenCalled()
+  })
+
+  it('清空集数 → 提交禁用（ELEMENT_MISSING 红线）', async () => {
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(brief()))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    fireEvent.click(byStage0('edit-toggle') as HTMLElement)
+    const panel = await findStage0('edit-panel')
+
+    fireEvent.change(editField(panel, 'episodeCount'), { target: { value: '  ' } })
+    await waitFor(() => {
+      expect((byStage0('edit-submit') as HTMLButtonElement).disabled).toBe(true)
+    })
+  })
+
+  it('再版失败 → 错误条显原因，面板保持打开且按钮恢复可点', async () => {
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(brief()))
+    installUpdateBrief(() => Promise.reject(new Error('尚无已发布立项，不存在再版基线')))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    fireEvent.click(byStage0('edit-toggle') as HTMLElement)
+    const panel = await findStage0('edit-panel')
+
+    fireEvent.change(editField(panel, 'episodeCount'), { target: { value: '100 集' } })
+    fireEvent.click(byStage0('edit-submit') as HTMLElement)
+
+    const err = await findStage0('edit-error')
+    expect(err.textContent).toContain('再版失败')
+    expect(err.textContent).toContain('尚无已发布立项')
+    expect(byStage0('edit-panel')).not.toBeNull()
+    await waitFor(() => {
+      expect((byStage0('edit-submit') as HTMLButtonElement).disabled).toBe(false)
+    })
   })
 })

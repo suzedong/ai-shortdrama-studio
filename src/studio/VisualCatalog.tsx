@@ -23,6 +23,9 @@ const FAMILIES: Record<string, string> = {
   E: '材质工艺·3D 漫',
 }
 
+// B-35：谱系版本号单点导出，供对话内风格选项卡与 L170 头部徽章共用（不再多处硬编码）
+export const STYLE_CATALOG_VERSION = 'v1.46'
+
 // B-24：导出供立项视图「修改立项」风格下拉复用（数据源唯一，谱系校验天然成立）
 export const STYLES: StyleEntry[] = [
   // A · 写实影像系 6（3 主 3 备）
@@ -56,7 +59,8 @@ export function styleNameOf(id: string): string | null {
 }
 
 // 缩略图占位：每 family 独立渐变（图片缺失时兜底）
-const FAMILY_GRAD: Record<string, string> = {
+// B-35：导出供对话内风格选项卡缺图兜底复用（仅加 export，本体零改动）
+export const FAMILY_GRAD: Record<string, string> = {
   A: 'linear-gradient(135deg,#3A3F57 0%,#1E2233 100%)',
   B: 'linear-gradient(135deg,#A8DFC6 0%,#3E9E86 100%)',
   C: 'linear-gradient(135deg,#FFC6A0 0%,#E8744F 100%)',
@@ -71,7 +75,8 @@ const PREVIEW_MODULES = import.meta.glob<string>(
   { eager: true, query: '?url', import: 'default' },
 )
 // id（A1/A2/.../E1）→ 图片 URL
-const PREVIEW_URL: Record<string, string> = {}
+// B-35：导出供对话内风格选项卡缩略图复用（仅加 export，本体零改动）
+export const PREVIEW_URL: Record<string, string> = {}
 for (const [p, url] of Object.entries(PREVIEW_MODULES)) {
   const m = /([A-E]\d)_/.exec(p.replace(/\\/g, '/'))
   if (m) PREVIEW_URL[m[1]] = url
@@ -167,7 +172,7 @@ export default function VisualCatalog({ open, onClose, onAdopt }: Props) {
         <div className="flex items-center gap-2 border-b border-line bg-white px-4 py-3.5">
           <span className="text-[15px]">🎨</span>
           <span className="flex-1 text-[14px] font-extrabold text-ink">视觉风格谱系</span>
-          <span className="rounded-full border border-[#DED9FB] bg-violet-soft px-2 py-0.5 text-[10.5px] font-extrabold text-[#5A4FD8]">v1.46 · 2026-10-08</span>
+          <span className="rounded-full border border-[#DED9FB] bg-violet-soft px-2 py-0.5 text-[10.5px] font-extrabold text-[#5A4FD8]">{STYLE_CATALOG_VERSION} · 2026-10-08</span>
           <button
             type="button"
             onClick={onClose}

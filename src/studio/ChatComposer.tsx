@@ -5,9 +5,10 @@ import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-import { turnReasoning, turnText, type StreamingTurn } from '../lib/chat-runtime'
+import { turnReasoning, turnText, type StreamingTurn, type ToolView } from '../lib/chat-runtime'
 import type { CanvasGate } from '@shared/types'
 import GateCardView from './GateCardView'
+import { FAMILY_GRAD, PREVIEW_URL, STYLE_CATALOG_VERSION, STYLES } from './VisualCatalog'
 
 // ── Agent 气泡 Markdown 渲染（2026-10-15，K9 批准 react-markdown + remark-gfm；仅 Agent 侧） ──
 // 默认不渲染原始 HTML（XSS 面为零）；链接统一新窗打开，由主进程 setWindowOpenHandler 转交系统浏览器。
@@ -85,6 +86,193 @@ export interface ChatItem {
   agent?: AgentId // agent 消息的发言身份，默认 showrunner
   brief?: BriefRow[] // 立项单卡（kv）
   trace?: TraceData // 工具轨迹卡
+  label?: ChatLabel // 显式气泡标签；缺省时 agent 消息按前缀约定解析、用户消息固定「用户」
+}
+
+// ── 气泡标签（B-34 / 原型 .cmsg .src 三色：AI 紫 · 用户白底紫边 · 待确认琥珀） ──
+export interface ChatLabel {
+  text: string
+  tone: 'ai' | 'user' | 'infer'
+}
+
+// 前缀约定（showrunner 职责纪律 9）：Agent 协议消息以 `【标签】` 开头，渲染层剥离为气泡上沿浮动标签；
+// 标签含「待确认」按 infer 琥珀色；流式未闭合的 `【…` 暂作 pending（正文先不显示，等下一片闭合）。
+export function parseChatLabel(text: string): { label?: ChatLabel; rest: string; pending?: boolean } {
+  const m = /^【([^】\n]{1,16})】[ \t]*\n?/.exec(text)
+  if (m) {
+    const labelText = m[1].trim()
+    return { label: { text: labelText, tone: /待确认/.test(labelText) ? 'infer' : 'ai' }, rest: text.slice(m[0].length) }
+  }
+  if (/^【[^】\n]*$/.test(text)) return { rest: '', pending: true }
+  return { rest: text }
+}
+
+function LabelTag({ label, side }: { label: ChatLabel; side: 'left' | 'right' }) {
+  const toneCls =
+    label.tone === 'infer'
+      ? 'border-[#F6E6C4] bg-[#FFF4DE] text-[#C0841D]'
+      : label.tone === 'user'
+        ? 'border-violet bg-white text-[#5A4BC4]'
+        : 'border-[#D9D3FB] bg-violet-soft text-[#5A4BC4]'
+  return (
+    <span
+      data-chat-label={label.tone}
+      className={`absolute -top-2 ${side === 'left' ? 'left-2' : 'right-2'} whitespace-nowrap rounded-[5px] border px-1.5 py-px text-[8.5px] font-extrabold tracking-[0.3px] ${toneCls}`}
+    >
+      {label.text}
+    </span>
+  )
+}
+
+// ── 对话内选项卡（B-35 / showrunner 职责纪律 10 / 原型 .cmsg .opts） ──
+// 约定：Agent 消息末尾输出 `【选项】…【/选项】`（纯文本行）或 `【风格选项】…【/风格选项】`（裸风格 ID 行），
+// 渲染层剥离为可点按钮；点击 = 代发该选项编号（与手打「1」同一路径，quote 组装分流照旧）。
+export interface ChatOption {
+  num: string // 编号（"1"…"99" / "A"…"Z"），点击时代发
+  text: string // 纯文本选项文字；风格选项为原始行内容
+  styleId?: string // 【风格选项】块中命中谱系的 ID（未知 ID 降级纯文本选项）
+}
+
+const OPT_LINE = /^\s*(\d{1,2}|[A-Za-z])[.、．]\s*(\S.*)$/
+
+// 开/闭标签只在行首识别（正文中途提及约定文字不误判）；已闭合块必须位于消息末尾（允许尾部空白）。
+export function parseChatOptions(text: string): {
+  rest: string
+  options?: ChatOption[]
+  style?: boolean
+  pending?: boolean
+} {
+  const trimmed = text.replace(/\s+$/, '')
+  // ① 已闭合：消息以闭标签结尾
+  const closeM = /【\/(风格选项|选项)】$/.exec(trimmed)
+  if (closeM) {
+    const openTag = `【${closeM[1]}】`
+    const openIdx = trimmed.lastIndexOf(openTag)
+    if (openIdx >= 0 && (openIdx === 0 || trimmed[openIdx - 1] === '\n')) {
+      const body = trimmed.slice(openIdx + openTag.length, trimmed.length - closeM[0].length)
+      const options: ChatOption[] = []
+      for (const line of body.split('\n')) {
+        if (!line.trim()) continue
+        const m = OPT_LINE.exec(line)
+        if (!m) return { rest: text } // 任一行失配：整块不识别、原样显示（暴露格式错误）
+        options.push({ num: m[1], text: m[2].trim() })
+      }
+      if (options.length < 2) return { rest: text }
+      const style = closeM[1] === '风格选项'
+      if (style) {
+        for (const o of options) {
+          const idM = /^([A-E]\d{1,2})$/.exec(o.text)
+          if (idM && STYLES.some(s => s.id === idM[1])) o.styleId = idM[1]
+        }
+      }
+      return { rest: trimmed.slice(0, openIdx).replace(/\s+$/, ''), options, style }
+    }
+    return { rest: text }
+  }
+  // ② 流式未闭合：最后一个行首开标签之后没有对应闭标签 → pending（块内容暂不显示，等闭合）
+  const openRe = /(^|\n)(【(风格选项|选项)】)/g
+  let last: RegExpExecArray | null = null
+  let m: RegExpExecArray | null
+  while ((m = openRe.exec(text))) last = m
+  if (last) {
+    const tagStart = last.index + last[1].length
+    const after = text.slice(tagStart + last[2].length)
+    if (!after.includes(`【/${last[3]}】`)) {
+      return { rest: text.slice(0, tagStart).replace(/\s+$/, ''), pending: true }
+    }
+  }
+  // ③ 流式正在键入开标签（末尾是「【选」「【风格选」等前缀）→ pending
+  const tail = /(?:^|\n)(【[^】\n]*)$/.exec(text)
+  if (tail && ('【选项】'.startsWith(tail[1]) || '【风格选项】'.startsWith(tail[1]))) {
+    return { rest: text.slice(0, text.length - tail[1].length).replace(/\s+$/, ''), pending: true }
+  }
+  return { rest: text }
+}
+
+// 用户短回复 → 选项编号（「1」「选 2」「A」）；非编号类自由文本返回 undefined
+function pickNumOf(text?: string): string | undefined {
+  const t = (text ?? '').trim().replace(/^选\s*/, '')
+  return /^(\d{1,2}|[A-Za-z])$/.test(t) ? t : undefined
+}
+
+// 选项按钮列：对齐原型 .opt（白底 1.5px 边框圆角 9px、hover 紫底右移、 picked 紫底白字）；
+// 风格选项带 40px 缩略图（缺图落家族渐变兜底）+ 主·已验证 / 备·风险自担徽章 + ID@谱系版本。
+function OptionCard({
+  options,
+  disabled,
+  pickedNum,
+  onPick,
+}: {
+  options: ChatOption[]
+  disabled: boolean
+  pickedNum?: string
+  onPick: (num: string) => void
+}) {
+  return (
+    <div data-chat-options className="mt-[7px] flex flex-col gap-[5px]">
+      {options.map(opt => {
+        const picked = pickedNum === opt.num
+        const entry = opt.styleId ? STYLES.find(s => s.id === opt.styleId) : undefined
+        return (
+          <button
+            key={opt.num}
+            type="button"
+            data-chat-option={opt.num}
+            data-picked={picked || undefined}
+            disabled={disabled}
+            onClick={() => onPick(opt.num)}
+            className={`flex items-center gap-[7px] rounded-[9px] border-[1.5px] px-[9px] py-[7px] text-left text-[10.5px] font-bold transition ${
+              picked
+                ? 'border-violet bg-violet text-white'
+                : `border-line bg-white text-[#4A4F68] ${disabled ? 'opacity-40' : 'hover:translate-x-[2px] hover:border-violet hover:bg-violet-soft'}`
+            }`}
+          >
+            {entry ? (
+              <>
+                {PREVIEW_URL[entry.id] ? (
+                  <img
+                    src={PREVIEW_URL[entry.id]}
+                    alt={entry.id}
+                    className="h-10 w-10 shrink-0 rounded-[7px] border border-line object-cover"
+                  />
+                ) : (
+                  <i
+                    className="block h-10 w-10 shrink-0 rounded-[7px] border border-line"
+                    style={{ background: FAMILY_GRAD[entry.fam] }}
+                  />
+                )}
+                <span className={picked ? 'text-white' : 'text-ink'}>
+                  {entry.name} · {entry.id} @ {STYLE_CATALOG_VERSION}
+                </span>
+                <span
+                  className={`shrink-0 rounded px-[5px] py-px text-[8.5px] font-extrabold ${
+                    picked
+                      ? 'bg-white/20 text-white'
+                      : entry.st === '主'
+                        ? 'bg-[#E7F8F0] text-[#1E9E66]'
+                        : 'bg-[#FFF4DE] text-[#C0841D]'
+                  }`}
+                >
+                  {entry.st === '主' ? '主·已验证' : '备·风险自担'}
+                </span>
+              </>
+            ) : (
+              <>
+                <span
+                  className={`grid h-5 w-5 shrink-0 place-items-center rounded-md text-[10px] font-extrabold ${
+                    picked ? 'bg-white/20 text-white' : 'bg-violet-soft text-violet'
+                  }`}
+                >
+                  {opt.num}
+                </span>
+                <span>{opt.text}</span>
+              </>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 interface Props {
@@ -156,6 +344,24 @@ export function demoChatItems(): ChatItem[] {
       agent: 'showrunner',
       text: '整集镜头已全部生成，请过目确认。确认后剪辑 Agent 接管合流。',
     },
+    // B-35 选项卡演示：d6 已答（紧随用户「1」→ 选项 1 picked、其余置灰）；d8 待答（末条 → 可点）
+    {
+      id: 'd6',
+      role: 'agent',
+      agent: 'showrunner',
+      text: '【AI 反问】开干前先确认一个关键分叉——这决定选题诊断与合规口径方向：\n【选项】\n1. 商业短剧（要上平台 · 讲打法 · 走合规）\n2. 个人纪念（不以投放为目的 · 诊断弱化）\n【/选项】',
+    },
+    {
+      id: 'd7',
+      role: 'user',
+      text: '1',
+    },
+    {
+      id: 'd8',
+      role: 'agent',
+      agent: 'showrunner',
+      text: '【风格选型】按题材从《视觉风格谱系》匹配（不自创画风），点一个作为主风格：\n【风格选项】\n1. A7\n2. A3\n3. B1\n【/风格选项】',
+    },
   ]
 }
 
@@ -220,9 +426,72 @@ function TraceCard({ trace }: { trace: TraceData }) {
   )
 }
 
-function AgentTurn({ turn }: { turn: StreamingTurn }) {
-  const text = turnText(turn)
+// ── feature-809 · 流式活跃指示（契约 §2/§3；活跃不变式：running 全程气泡内 ≥1 个 CSS 动画元素） ──
+// 指示器由 turn.status 驱动、动画自持，与 token 到达频率解耦；终态（done/error）全撤。
+
+/** 工具耗时标签：起止齐备且非负 → `(差/1000).toFixed(1)+'s'`；缺任一端或负值 → null（契约 §2.1） */
+export function toolDurationLabel(tool: ToolView): string | null {
+  if (tool.startedAt == null || tool.endedAt == null) return null
+  const ms = tool.endedAt - tool.startedAt
+  if (ms < 0) return null
+  return `${(ms / 1000).toFixed(1)}s`
+}
+
+/** 流式光标：running 且已有正文 → true；其余一切组合 → false（契约 §2.2） */
+export function showStreamCursor(turn: StreamingTurn, text: string): boolean {
+  return turn.status === 'running' && text.length > 0
+}
+
+/** 三点打字动画（契约 §3.4）：animate-bounce + 0/150/300ms 延迟阶梯；占位气泡与空态思考行两处复用 */
+function TypingDots() {
+  return (
+    <span data-testid="chat-typing-dots" className="inline-flex items-center gap-[3px]" role="status">
+      {[0, 150, 300].map(delay => (
+        <span
+          key={delay}
+          className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted"
+          style={{ animationDelay: `${delay}ms` }}
+        />
+      ))}
+    </span>
+  )
+}
+
+/** 行内工具状态行（契约 §3.2）：running=spinner+「执行中」；completed=✓+耗时；error=✗+errorText 单行省略 */
+function ToolRow({ tool }: { tool: ToolView }) {
+  const duration = toolDurationLabel(tool)
+  return (
+    <div data-testid="chat-tool-row" className="flex items-center gap-1.5 text-[11px] leading-4 text-muted">
+      {tool.status === 'running' && (
+        <>
+          <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-line border-t-violet" />
+          <span className="truncate">{tool.tool}</span>
+          <span className="shrink-0">执行中</span>
+        </>
+      )}
+      {tool.status === 'completed' && (
+        <>
+          <span className="shrink-0 text-ok">✓</span>
+          <span className="truncate">{tool.tool}</span>
+          {duration && <span className="shrink-0">{duration}</span>}
+        </>
+      )}
+      {tool.status === 'error' && (
+        <>
+          <span className="shrink-0 text-bad">✗</span>
+          <span className="truncate">{tool.tool}</span>
+          <span className="truncate text-bad" title={tool.errorText || '执行失败'}>
+            {tool.errorText || '执行失败'}
+          </span>
+        </>
+      )}
+    </div>
+  )
+}
+
+function AgentTurn({ turn, text }: { turn: StreamingTurn; text: string }) {
   const reasoning = turnReasoning(turn)
+  const tools = Object.values(turn.tools)
   return (
     <div className="space-y-2">
       {reasoning && (
@@ -231,9 +500,26 @@ function AgentTurn({ turn }: { turn: StreamingTurn }) {
           <p className="mt-1 whitespace-pre-wrap">{reasoning}</p>
         </details>
       )}
-      {text && <MarkdownText text={text} />}
-      {!text && !reasoning && turn.status === 'running' && (
-        <span className="text-muted">主控 Agent 正在思考…</span>
+      {text && (
+        <>
+          <MarkdownText text={text} />
+          {showStreamCursor(turn, text) && (
+            <span data-testid="chat-stream-cursor" className="animate-cursor-blink text-violet">▍</span>
+          )}
+        </>
+      )}
+      {tools.length > 0 && (
+        <div className="space-y-1">
+          {tools.map(tool => (
+            <ToolRow key={tool.callId} tool={tool} />
+          ))}
+        </div>
+      )}
+      {!text && turn.status === 'running' && (
+        <span className="inline-flex items-center gap-2 text-muted">
+          <TypingDots />
+          主控 Agent 正在思考…
+        </span>
       )}
     </div>
   )
@@ -255,6 +541,13 @@ export default function ChatComposer({
     if (!text || sending || generating || historyLoading) return
     setDraft('')
     onSend(text)
+  }
+
+  // B-35：选项点击 = 代发编号（与手打同路径）；忙态（发送/生成/回放/流式进行中）禁点
+  const busy = sending || generating || historyLoading || !!stream
+  const pickOption = (num: string): void => {
+    if (busy) return
+    onSend(num)
   }
 
   return (
@@ -293,28 +586,45 @@ export default function ChatComposer({
             正在载入历史对话…
           </div>
         )}
-        {items.length === 0 && !stream && (
+        {items.length === 0 && !stream && !generating && (
           <div className="text-xs leading-6 text-muted">
             输入一句灵感（如「重生复仇都市女频」），主控 Agent 会理解拆解，并按当前阶段依次请你裁决确认门。
           </div>
         )}
 
-        {items.map(item =>
+        {items.map((item, index) =>
           item.role === 'user' ? (
             <div key={item.id} className="flex flex-row-reverse gap-[9px]">
               <Avatar user />
-              <div className="max-w-[85%] rounded-[12px] rounded-tr-[4px] bg-violet px-3 py-[9px] text-[12px] leading-[1.6] text-white">
+              <div className="relative max-w-[85%] rounded-[12px] rounded-tr-[4px] bg-violet px-3 py-[9px] text-[12px] leading-[1.6] text-white">
+                <LabelTag label={item.label ?? { text: '用户', tone: 'user' }} side="right" />
                 {item.text}
               </div>
             </div>
           ) : (
             <div key={item.id} className="flex gap-[9px]">
               <Avatar agent={item.agent} />
-              <div className="max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
-                {item.text && <MarkdownText text={item.text} />}
-                {item.brief && <BriefCard rows={item.brief} />}
-                {item.trace && <TraceCard trace={item.trace} />}
-              </div>
+              {(() => {
+                const parsed = item.label
+                  ? { label: item.label, rest: item.text ?? '' }
+                  : parseChatLabel(item.text ?? '')
+                const opt = parseChatOptions(parsed.rest)
+                // B-35：其后出现新消息或忙态 → 选项置灰禁用；紧随的用户编号回复 → 对应选项 picked
+                const consumed = busy || index < items.length - 1
+                const next = items[index + 1]
+                const pickedNum = next?.role === 'user' ? pickNumOf(next.text) : undefined
+                return (
+                  <div className="relative max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
+                    {parsed.label && <LabelTag label={parsed.label} side="left" />}
+                    {opt.rest && <MarkdownText text={opt.rest} />}
+                    {opt.options && (
+                      <OptionCard options={opt.options} disabled={consumed} pickedNum={pickedNum} onPick={pickOption} />
+                    )}
+                    {item.brief && <BriefCard rows={item.brief} />}
+                    {item.trace && <TraceCard trace={item.trace} />}
+                  </div>
+                )
+              })()}
             </div>
           ),
         )}
@@ -322,11 +632,32 @@ export default function ChatComposer({
         {stream && (
           <div className="flex gap-[9px]">
             <Avatar agent="showrunner" />
-            <div className="max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
-              <AgentTurn turn={stream} />
+            <div className="relative max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
+              {(() => {
+                const parsed = parseChatLabel(turnText(stream))
+                const opt = parseChatOptions(parsed.rest)
+                return (
+                  <>
+                    {parsed.label && <LabelTag label={parsed.label} side="left" />}
+                    <AgentTurn turn={stream} text={opt.rest} />
+                    {/* 流式进行中选项只展不点（busy 天然为真），回合落定入 items 后才可点 */}
+                    {opt.options && <OptionCard options={opt.options} disabled onPick={pickOption} />}
+                  </>
+                )
+              })()}
               {pendingGate && (
                 <GateCardView gate={pendingGate} deciding={deciding} onDecide={onDecide} />
               )}
+            </div>
+          </div>
+        )}
+
+        {/* feature-809 §3.3：发送→首事件窗口占位气泡（与流式气泡同壳），与 {stream && …} 块并列、互斥 */}
+        {!stream && generating && (
+          <div data-testid="chat-turn-placeholder" className="flex gap-[9px]">
+            <Avatar agent="showrunner" />
+            <div className="relative max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
+              <TypingDots />
             </div>
           </div>
         )}

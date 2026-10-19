@@ -395,7 +395,7 @@
     <li><b>流程导航快捷入口</b>（方案 A 左栏流程导航分区）：点 STAGE 0 步骤进入 v1.9 视图，步骤旁显示当前版本号 + 待对齐计数（<code>✓ v3</code> / <code>v1 ⚠️2</code>）。</li>
     <li><b>生产中实测反补</b>：STAGE 3 资产规格不符、STAGE 4 分镜时长不匹配等实测问题，可在产出节点旁"反补到立项"按钮发起变更。</li>
   </ul>
-  <p><b>字段改动与影响范围映射</b>（v1.10 现状；具体阈值后续在 feature-005/006 任务包细化）：</p>
+  <p><b>字段改动与影响范围映射</b>（v1.10 现状；具体阈值已随 feature-002 落地）：</p>
   <table>
   <tr><th>字段分类</th><th>字段举例</th><th>可能影响的下游产物</th></tr>
   <tr><td>项目名 / 标签</td><td><code>name</code> / <code>tags</code></td><td>仅元数据；下游无感</td></tr>
@@ -412,7 +412,7 @@
     <li>脏读 = 产物内部 <code>parentReference: { briefVersion: vN }</code> 字段保留，运行时不报错，提示文案出现。</li>
     <li>一次重新打开产物编辑 = 触发"是否按 v(N+1) 重新对齐"二次确认。</li>
   </ul>
-  <p><b>历史版本与回滚</b>：立项单全量保留 v1..vN（<code>立项/立项单.vN.json</code>，每次发布生成一份，永不覆盖）；"查看历史"按钮 = 左右两栏 diff 视图（vN vs v(N+1)）+ 任选历史版回滚；回滚 = 新发一版 <code>立项单.v(N+1) = 立项单.vK 的内容</code>。</p>
+  <p><b>历史版本与回滚</b>：立项单全量保留 v1..vN（<code>立项单.vN.json</code>，项目根，每次发布生成一份，永不覆盖）；"查看历史"按钮 = 左右两栏 diff 视图（vN vs v(N+1)）+ 任选历史版回滚；回滚 = 新发一版 <code>立项单.v(N+1) = 立项单.vK 的内容</code>。</p>
   <p><b>STAGE 0 步骤的视觉</b>（方案 A 左栏流程导航 + titlebar 进度轨）：</p>
   <table>
   <tr><th>状态</th><th>流程导航步骤显示</th><th>titlebar 进度轨步骤显示</th></tr>
@@ -424,7 +424,7 @@
   <p>详见 §2.6.7 影响评估机制、§2.6.8 画布布局与界面对应。</p>
 
   <h4>2.6.7 影响评估机制：追溯算法、面板与三选一动作（v1.10 新增）</h4>
-  <div class="note">本节细化 §2.6.6 提出的"影响必标记 + 决策归用户"，给出可执行算法与 UI 草图。落地包后续在 feature-005/006/008 任务包分别承接（数据模型 / Agent 提示词 / 影响评估面板 UI）。</div>
+  <div class="note">本节细化 §2.6.6 提出的"影响必标记 + 决策归用户"，给出可执行算法与 UI 草图。数据模型与 Agent 提示词已随 feature-002 落地；影响评估面板 UI 尚未建包（现状为对话态呈报 + 系统直改恒 mark，D-017）。</div>
   <div class="chain">
     <span class="c">① diff 提取</span><span class="ca">→</span>
     <span class="c">② 依赖图反向遍历</span><span class="ca">→</span>
@@ -436,7 +436,7 @@
     <li><b>diff 提取</b>：对比 <code>立项单.vN.json</code> 与 <code>立项单.v(N+1).json</code>，得到变更字段集合 Δ = {<code>集数: 8→10</code>, <code>主风格: A7→A3</code>, ...}。</li>
     <li><b>依赖图反向遍历</b>：从 <code>project.manifest.json</code> 的 <code>nodes[*].parentReference</code> 出发，遍历所有 <code>parentReference.briefVersion == vN</code> 的产物节点；不限于 STAGE 0 直接下游，覆盖全链路（剧本分场、角色、场景、道具、镜头、音乐、剪辑成片等）。</li>
     <li><b>影响字段命中</b>：对每个候选产物，比对其 <code>parentReference.fields[*]</code> 与 Δ 的交集；非空 = 受影响，加入"待对齐清单"。</li>
-    <li><b>清单落盘</b>：写入 <code>立项/影响清单.vN→v(N+1).json</code>（含时间戳、改动字段、影响产物列表、分级、用户最终决策），供回溯与 Harness 校验。</li>
+    <li><b>清单落盘</b>：写入 <code>影响清单.vN-v(N+1).json</code>（项目根；含时间戳、改动字段、影响产物列表、分级、用户最终决策），供回溯与 Harness 校验。</li>
   </ul>
   <table>
   <tr><th>级别</th><th>触发条件</th><th>视觉</th><th>默认动作</th></tr>
@@ -473,7 +473,7 @@
     <div class="card"><div class="ct">取消</div><div class="cb">v(N+1) 不落盘，字段改动只在内存中保留——用户放弃本次发布。</div></div>
   </div>
   <p><b>脏读运行时表现</b>：产物使用旧立项版本生成，运行时照常；UI 顶部出现黄色提示条："当前基于 vN 立项，与最新 v(N+1) 不一致；点此查看差异 [查看影响评估] [一键对齐]"。Agent 引用产物时自动在提示词中追加"⚠️ 此产物基于 vN，与项目最新立项 v(N+1) 不一致"标记。不阻止用户继续创作——用户主权优先。</p>
-  <p><b>Harness 校验补充</b>（§9 质量层联动）：影响清单 <code>立项/影响清单.vN→v(N+1).json</code> 永久留底，下次发布 v(N+2) 时一并作为历史参考；用户选择"仅标记脏"超过 30 天未处理，Harness 给出"立项基线已漂移 N 天"提醒（不阻塞）。</p>
+  <p><b>Harness 校验补充</b>（§9 质量层联动）：影响清单 <code>影响清单.vN-v(N+1).json</code>（项目根）永久留底，下次发布 v(N+2) 时一并作为历史参考；用户选择"仅标记脏"超过 30 天未处理，Harness 给出"立项基线已漂移 N 天"提醒（不阻塞）。</p>
 
   <h4>2.6.8 画布布局与界面对应（原 §2.6.7 升级）</h4>
   <p>立项画布是一条<b>线性收敛链</b>（非 DAG），两个节点：</p>
@@ -492,7 +492,7 @@
   <div class="note"><b>设计原则</b>：立项阶段用户只做<b>回答 / 纠正</b>和<b>拍板</b>，不做检索、不做字段搬运、不做格式整理。</div>
   <p><b>与文档其他部分的对应</b>：</p>
   <ul>
-    <li><b>数据模型</b>：<code>project.manifest.json</code> 存六要素终值 + 风格引用（风格 ID + 谱系版本）+ 当前立项版本号 <code>briefVersion</code>；<code>立项/选题诊断.json</code>、<code>立项/故事背景档案.md</code>（人确认的原始事实）、<code>立项/立项单.vN.json</code>（定案卡快照，含拍板方式与用户原话，全量保留 v1..vN）、<code>立项/影响清单.vN→v(N+1).json</code>（改动 + 影响产物列表 + 用户决策）。每个下游产物节点 <code>parentReference: { briefVersion, fields[*] }</code> 记录生成时所用版本。</li>
+    <li><b>数据模型</b>（v1.13 按磁盘实况回流修订，2026-10-19）：项目根 <code>manifest.json</code> 存六要素终值 + 风格引用（风格 ID + 谱系版本）+ 当前立项版本号 <code>briefVersion</code>；项目根 <code>已捕获口径.json</code>（立项对话中持续累积的事实库：来源 user/infer × 状态 confirmed/pending，feature-005）；项目根 <code>故事背景档案.md</code>（人确认的原始事实）；项目根 <code>立项单.vN.json</code> + <code>立项单.vN.md</code> 双写（定案卡快照，含拍板方式与用户原话；选题诊断结论/明细并入 <code>diagnosisSummary</code>/<code>diagnosisDetail</code> 字段，不单独立项诊断文件；全量保留 v1..vN）；项目根 <code>影响清单.vN-v(N+1).json</code>（改动 + 影响产物列表 + 用户决策）。每个下游产物节点 <code>parentReference: { briefVersion, fields[*] }</code> 记录生成时所用版本。</li>
     <li><b>外部数据源</b>：视觉风格谱系的路径注册与版本跟踪见 §8.3，与 ComfyUI 接入同级管理。</li>
     <li><b>Skill 沉淀</b>：一次完整立项可沉淀为「赛道立项模板」Skill（口径取值 + 风格选型 + 对标案例）。</li>
     <li><b>Harness 校验</b>：定案前校验就绪条件；校验风格锚词在提示词 Base 中一致出现、画幅口径在资产目录结构中落实、合规红线已标记。</li>
@@ -701,7 +701,7 @@
     <span class="c">script-dialogue</span><span class="ca">→</span><span class="c">script-storyboard</span><span class="ca">→</span>
     <span class="c hl">storyboard-done</span>
   </div>
-  <p><b>约束</b>：生成动作只读已定稿上游文件，缺上游由 Agent 报告缺料（runtime 错误码，见 §5.1），不静默产出；产物 JSON 源 + MD 镜像双写。立项后变更按 §2.6.6 / §2.6.7 全字段可改 + 影响评估 + 用户决策（<code>manifest.briefVersion</code> + <code>parentReference</code> + <code>影响清单.vN→v(N+1).json</code>，feature-005/006 包落地）。</p>
+  <p><b>约束</b>：生成动作只读已定稿上游文件，缺上游由 Agent 报告缺料（runtime 错误码，见 §5.1），不静默产出；产物 JSON 源 + MD 镜像双写。立项后变更按 §2.6.6 / §2.6.7 全字段可改 + 影响评估 + 用户决策（<code>manifest.briefVersion</code> + <code>parentReference</code> + <code>影响清单.vN-v(N+1).json</code>，feature-002 包落地）。</p>
   <div class="grid g3">
     <div class="card"><div class="ct">版本归档区（持久化机制）</div><div class="cb"><b>目录约定</b>：任何产物文件被覆盖前，旧文件自动移入同目录 <code>版本/&lt;basename&gt;.&lt;YYYYMMDD-HHmmss&gt;&lt;ext&gt;</code>；同秒冲突追加 <code>.N</code> 序号。<code>manifest.json</code> 永不归档。<b>副本语义</b>：归档失败（rename/mkdir 异常）向上抛错阻断本次写入——宁可写入失败也不做无备份覆盖。<b>触发点</b>：立项单定稿、剧本 / 分镜 .json/.md 双写、背景档案保存。<b>消费方式</b>：消息历史复用 opencode 原生会话存储（平台不另建消息 JSON，<code>chat.messages.json</code> 终态作废，R-001）；<code>.session.json</code> 仅持久化 <code>activeSessionId</code> 绑定，重开项目经 SDK <code>session.messages</code> 回放消息流，其中 unlock 消息对 source 为 idea/background 的 unlock 取 <code>newIdea</code>/档案全文，从 <code>版本/</code> 目录反查对应历史版本文件作为 diff 参照；UI 历史角标点击展示同目录版本快照。</div></div>
     <div class="card"><div class="ct">视觉风格谱系（外部数据源）</div><div class="cb">系统级外部数据源（注册路径 / 版本跟踪 / 引用风格 ID + 谱系版本），完整约定见 §8.3；当前实现 <code>electron/style-catalog.ts</code> 固化谱系（<code>CATALOG_VERSION</code> + <code>assertInCatalog</code> 校验，失败即拒），与 §8.3 机制并存。辅助风格仅允许 B/D 候选域（§2.6.4）。</div></div>

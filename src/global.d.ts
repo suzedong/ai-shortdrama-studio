@@ -1,7 +1,8 @@
 /// <reference types="vite/client" />
 // 渲染进程全局类型声明 —— 对应 electron/preload.ts 暴露的 API
 import type {
-  Canvas, CanvasGate, ComfyInstance, AssetIndexItem, BriefChange,
+  Canvas, CanvasGate, ComfyInstance, AssetIndexItem, BriefChange, ProjectBrief, ProjectKind,
+  CaptureFile, CapturedFact,
 } from '../shared/types'
 import type {
   RuntimeAgent,
@@ -49,6 +50,42 @@ declare global {
         }[]
         markedDirty: string[]
       }>
+      // feature-004：立项单历史与回滚（K8 已批；DTO 镜像 electron/brief/history.ts、rollback.ts，不进 shared）
+      briefHistory(): Promise<{
+        versions: {
+          version: number
+          path: string
+          publishedAt: string
+          kind: ProjectKind
+          approveBy: 'gate' | 'verbal' | 'ui'
+          changeCount: number
+          note?: string
+        }[]
+        latestVersion: number | null
+        warnings: string[]
+      }>
+      briefVersionRead(version: number): Promise<{
+        brief: ProjectBrief
+        diffToLatest: BriefChange[]
+      }>
+      briefRollback(version: number): Promise<{
+        ok: true
+        version: number
+        rolledBackFrom: number
+        changesFromPrevious: BriefChange[]
+      }>
+      // feature-005：「已捕获口径」（K8 已批；DTO 镜像 shared/types.ts Capture*，与 MCP capture.* 同库同追溯）
+      captureList(): Promise<CaptureFile>
+      captureUpsert(input: {
+        id?: string
+        topic?: string
+        value?: string
+        source?: 'user' | 'infer'
+        status?: 'pending' | 'confirmed'
+        quote?: string
+      }): Promise<CapturedFact>
+      captureRemove(id: string): Promise<{ removed: true }>
+      onCaptureChanged(cb: (file: CaptureFile) => void): () => void
       // feature-808：项目绑定会话读（无参）/写（string 绑定 / null 清空）双态
       activeSession(sessionId?: string | null): Promise<{ sessionId: string | null }>
       configStatus: () => Promise<{ arkConfigured: boolean }>

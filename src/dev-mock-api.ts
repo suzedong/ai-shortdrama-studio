@@ -1,7 +1,9 @@
 // 浏览器预览用 mock：当 Electron preload 未注入 window.api 时，提供空态实现，
 // 方便脱离 Electron 直接在浏览器迭代 UI。生产 Electron 环境下 preload 会覆盖此 mock。
-import type { Canvas } from '../shared/types'
+import type { Canvas, ProjectBrief, CaptureFile, CapturedFact } from '../shared/types'
 import type { RuntimeStatus } from './lib/runtime-types'
+// feature-004：复用主进程 diff 纯函数（type-only 依赖、零 node API，契约 §1 复用表），保证 mock 与真实语义一致
+import { diffBrief } from '../electron/brief/diff'
 
 // 浏览器预览用 DAG 演示数据：跨 0 立项 → 5 后期六个步骤，
 // 节点无坐标，由 CanvasBoard 按 step 自动分列布局。
@@ -9,7 +11,10 @@ function demoCanvas(): Canvas {
   const now = new Date().toISOString()
   const nodes = [
     { id: 'n-brief', step: '0', kind: 'brief', title: '立项单 · 安妮的夏天', status: 'done', ref: { path: '/demo/anni/立项单.v3.json', format: 'json' }, meta: { version: 'v3' }, updatedAt: now },
-    { id: 'n-outline', step: '1', kind: 'outline', title: '故事大纲 · 钩子 → 相遇 → 心动', status: 'done', ref: { path: '/demo/anni/outline.json', format: 'json' }, meta: { version: 'v6' }, updatedAt: now },
+    // feature-004 AC9 目验：预置 feature-002 脏读演示态——大纲基于 v2 定稿，v2→v3 直改命中季边界(high)/集数(medium) 后挂脏
+    { id: 'n-outline', step: '1', kind: 'outline', title: '故事大纲 · 钩子 → 相遇 → 心动', status: 'done', ref: { path: '/demo/anni/outline.json', format: 'json' }, meta: { version: 'v6' }, updatedAt: now,
+      parentReference: { briefVersion: 2, fields: ['premise.leads', 'premise.coreEvent', 'premise.seasonBoundary', 'fiveElements.episodeCount'] },
+      dirty: { sinceBriefVersion: 2, latestBriefVersion: 3, fields: ['premise.seasonBoundary', 'fiveElements.episodeCount'], severity: 'high', impactReport: '影响清单.v2-v3.json' } },
     { id: 'n-scenes', step: '2', kind: 'scenes', title: '第一集分场 · 5 场 42 句台词', status: 'done', ref: { path: '/demo/anni/scenes.json', format: 'json' }, meta: { version: 'v6' }, updatedAt: now },
     { id: 'n-char-anni', step: '3', kind: 'profiles', title: '安妮 · 女主定妆（配方已锁定）', status: 'active', ref: { path: '/demo/anni/char-anni.json', format: 'json' }, meta: { version: 'v4' }, updatedAt: now },
     { id: 'n-scene-dorm', step: '3', kind: 'visual-style', title: '宿舍外景 · 蝉鸣午后', status: 'done', ref: { path: '/demo/anni/scene-dorm.json', format: 'json' }, meta: { version: 'v2' }, updatedAt: now },
@@ -52,8 +57,112 @@ function getDemoCanvas(): Canvas {
   return structuredClone(demoState)
 }
 
+// ── feature-005：「已捕获口径」演示库（内存单例 + capture:changed 广播，语义对齐主进程 store.ts U1–U5）──
+let demoCaptureFacts: CapturedFact[] | null = null
+let demoCaptureNextId: number | null = null
+const demoCaptureListeners = new Set<(f: CaptureFile) => void>()
+
+function getDemoCaptureFacts(): CapturedFact[] {
+  if (!demoCaptureFacts) {
+    const now = new Date().toISOString()
+    demoCaptureFacts = [
+      { id: 'f1', topic: 'genre', value: '校园 / 恋爱 / 夏日', source: 'user', status: 'confirmed', quote: '想做校园恋爱题材的夏日短剧', updatedAt: now },
+      { id: 'f2', topic: 'platforms', value: '抖音、快手、红果短剧', source: 'user', status: 'confirmed', quote: '平台就抖音快手红果三个', updatedAt: now },
+      { id: 'f3', topic: 'episodeCount', value: '第一季 8 集（先做 E01）', source: 'infer', status: 'confirmed', updatedAt: now },
+      { id: 'f4', topic: 'seasonBoundary', value: '第一季只讲到夏日祭确认心意，灯塔悬念留第二季', source: 'infer', status: 'pending', updatedAt: now },
+      { id: 'f5', topic: 'tone', value: '清新治愈 · 轻喜剧节奏', source: 'infer', status: 'pending', updatedAt: now },
+    ]
+  }
+  return demoCaptureFacts
+}
+
+function demoCaptureFile(): CaptureFile {
+  return {
+    schemaVersion: 1,
+    ...(demoCaptureNextId !== null ? { nextId: demoCaptureNextId } : {}),
+    facts: structuredClone(getDemoCaptureFacts()),
+  }
+}
+
+// D-002 方案 A：高水位分配，对齐主进程 store.ts（缺省时由 facts max+1 推导，之后单调推进不复用）
+function allocDemoCaptureId(facts: CapturedFact[]): string {
+  if (demoCaptureNextId === null) {
+    let max = 0
+    for (const f of facts) {
+      const m = /^f(\d+)$/.exec(f.id)
+      if (m) max = Math.max(max, Number(m[1]))
+    }
+    demoCaptureNextId = max + 1
+  }
+  return `f${demoCaptureNextId++}`
+}
+
+function broadcastDemoCapture(): void {
+  const file = demoCaptureFile()
+  demoCaptureListeners.forEach(cb => cb(file))
+}
+
+function demoCaptureInvalid(message: string): Error {
+  return Object.assign(new Error(message), { code: 'INVALID_ARGUMENT' })
+}
+
+// upsert U1–U5 对齐主进程 store.ts：id 精确更新 / topic trim 匹配更新或新建 /
+// 新建缺省 source='infer'、status 推导 user→confirmed / infer→pending / user 必带 quote
+function demoCaptureUpsert(input: {
+  id?: string; topic?: string; value?: string
+  source?: 'user' | 'infer'; status?: 'pending' | 'confirmed'; quote?: string
+}): Promise<CapturedFact> {
+  if (input.topic !== undefined && input.topic.trim() === '') return Promise.reject(demoCaptureInvalid('topic trim 后为空'))
+  if (input.value !== undefined && input.value.trim() === '') return Promise.reject(demoCaptureInvalid('value trim 后为空'))
+  const facts = getDemoCaptureFacts()
+  const now = new Date().toISOString()
+
+  let idx = -1
+  if (input.id !== undefined) {
+    idx = facts.findIndex(f => f.id === input.id)
+    if (idx < 0) return Promise.reject(Object.assign(new Error(`口径条目不存在：${input.id}`), { code: 'CAPTURE_FACT_NOT_FOUND' }))
+  } else {
+    if (input.topic === undefined) return Promise.reject(demoCaptureInvalid('无 id 时 topic 必填'))
+    idx = facts.findIndex(f => f.topic === input.topic!.trim())
+  }
+
+  let result: CapturedFact
+  if (idx >= 0) {
+    const old = facts[idx]!
+    const next: CapturedFact = {
+      ...old,
+      ...(input.topic !== undefined ? { topic: input.topic.trim() } : {}),
+      ...(input.value !== undefined ? { value: input.value.trim() } : {}),
+      ...(input.source !== undefined ? { source: input.source } : {}),
+      ...(input.status !== undefined ? { status: input.status } : {}),
+      ...(input.quote !== undefined ? { quote: input.quote } : {}),
+      updatedAt: now,
+    }
+    if (next.source === 'user' && !next.quote) return Promise.reject(demoCaptureInvalid("source='user' 必须带 quote 举证"))
+    facts[idx] = next
+    result = next
+  } else {
+    if (input.value === undefined) return Promise.reject(demoCaptureInvalid('新建时 value 必填'))
+    const source = input.source ?? 'infer'
+    if (source === 'user' && !input.quote) return Promise.reject(demoCaptureInvalid("source='user' 必须带 quote 举证"))
+    const status = input.status ?? (source === 'user' ? 'confirmed' : 'pending')
+    result = {
+      id: allocDemoCaptureId(facts),
+      topic: input.topic!.trim(),
+      value: input.value.trim(),
+      source,
+      status,
+      ...(input.quote !== undefined ? { quote: input.quote } : {}),
+      updatedAt: now,
+    }
+    facts.push(result)
+  }
+  broadcastDemoCapture()
+  return Promise.resolve(structuredClone(result))
+}
+
 // ── file:read 演示产物（仅浏览器 mock 通道；真实 Electron 走主进程文件读取）──
-function demoBrief() {
+function demoBrief(): ProjectBrief {
   return {
     schemaVersion: 2 as const,
     version: 3,
@@ -96,6 +205,78 @@ function demoBrief() {
     ],
     publishedAt: '2026-09-12T10:24:00+08:00',
   }
+}
+
+// feature-004：v1 首版（单平台 / 12 集 / 无男主；首版 changesFromPrevious 恒空）
+function demoBriefV1(): ProjectBrief {
+  return {
+    schemaVersion: 2,
+    version: 1,
+    kind: 'commercial',
+    fiveElements: {
+      genre: '校园 / 恋爱 / 夏日',
+      platforms: ['抖音'],
+      episodeDuration: '约 90 秒',
+      episodeCount: '第一季 12 集',
+      tone: '清新治愈 · 暗恋心动 · 轻喜剧节奏',
+      aspectRatio: '竖屏 9:16',
+    },
+    premise: {
+      leads: '安妮（18，大一新生）',
+      time: '现代 · 某个盛夏暑假',
+      place: '海边小城（校园 / 海堤 / 废弃灯塔）',
+      coreEvent: '安妮骑车迷路撞翻林屿的相机，因一张老灯塔照片结缘',
+      seasonBoundary: '',
+    },
+    style: { mainStyleId: 'A7', catalogVersion: 'v1.46', auxiliaryStyleId: undefined },
+    diagnosisSummary: '校园恋爱赛道近 90 天热度上行，前 3 秒钩子为完播率关键变量；建议立项。',
+    approve: { at: '2026-09-01T09:00:00+08:00', by: 'gate', note: '初版立项，六要素齐备。' },
+    changesFromPrevious: [],
+    publishedAt: '2026-09-01T09:00:00+08:00',
+  }
+}
+
+// feature-004：v2 口头拍板版（补男主 / 平台扩三端；与 v3 changesFromPrevious 的 from 值衔接）
+function demoBriefV2(): ProjectBrief {
+  return {
+    schemaVersion: 2,
+    version: 2,
+    kind: 'commercial',
+    fiveElements: {
+      genre: '校园 / 恋爱 / 夏日',
+      platforms: ['抖音', '快手', '红果短剧'],
+      episodeDuration: '约 90 秒',
+      episodeCount: '第一季 12 集',
+      tone: '清新治愈 · 暗恋心动 · 轻喜剧节奏',
+      aspectRatio: '竖屏 9:16',
+    },
+    premise: {
+      leads: '安妮（18，大一新生）× 林屿（19，本地摄影社少年）',
+      time: '现代 · 某个盛夏暑假',
+      place: '海边小城（校园 / 海堤 / 废弃灯塔）',
+      coreEvent: '安妮骑车迷路撞翻林屿的相机，因一张老灯塔照片结缘',
+      seasonBoundary: '',
+    },
+    style: { mainStyleId: 'A7', catalogVersion: 'v1.46', auxiliaryStyleId: undefined },
+    diagnosisSummary: '同类校园恋爱短剧头部完播率 38%，钩子前置验证有效；补男主设定后人物关系成立。',
+    approve: {
+      at: '2026-09-08T15:40:00+08:00',
+      by: 'verbal',
+      verbal: { quote: '男主就定林屿吧，平台也加上快手和红果，其他不变。' },
+    },
+    changesFromPrevious: [
+      { field: 'fiveElements.platforms', from: '抖音', to: '快手、抖音、红果短剧' },
+      { field: 'premise.leads', from: '安妮（18，大一新生）', to: '安妮（18，大一新生）× 林屿（19，本地摄影社少年）' },
+    ],
+    publishedAt: '2026-09-08T15:40:00+08:00',
+  }
+}
+
+// feature-004：立项单多版本内存库（懒初始化；rollback 向其 push 新版，fileRead 特判供数）
+let demoBriefLib: ProjectBrief[] | null = null
+function getDemoBriefs(): ProjectBrief[] {
+  if (!demoBriefLib) demoBriefLib = [demoBriefV1(), demoBriefV2(), demoBrief()]
+  return demoBriefLib
 }
 
 function demoOutline() {
@@ -313,9 +494,87 @@ export function installDevMockApi(): void {
       items: [],
       markedDirty: [],
     }),
+    // feature-004：立项单历史/读版/回滚（契约 §2.1-2.3；语义对齐主进程，内存库演示）
+    briefHistory: () => {
+      const lib = getDemoBriefs()
+      return resolve({
+        versions: lib.map(b => ({
+          version: b.version,
+          path: `立项单.v${b.version}.json`,
+          publishedAt: b.publishedAt,
+          kind: b.kind,
+          approveBy: b.approve.by,
+          changeCount: b.changesFromPrevious.length,
+          ...(b.approve.note ? { note: b.approve.note } : {}),
+        })),
+        latestVersion: lib.length ? lib[lib.length - 1].version : null,
+        warnings: [] as string[],
+      })
+    },
+    briefVersionRead: (version: number) => {
+      const lib = getDemoBriefs()
+      const brief = lib.find(b => b.version === version)
+      if (!brief) return Promise.reject(new Error(`BRIEF_VERSION_NOT_FOUND：立项单 v${version} 不存在`))
+      const latest = lib[lib.length - 1]
+      return resolve({
+        brief: structuredClone(brief),
+        diffToLatest: version === latest.version ? [] : diffBrief(brief, latest),
+      })
+    },
+    briefRollback: (version: number) => {
+      const lib = getDemoBriefs()
+      const brief = lib.find(b => b.version === version)
+      if (!brief) return Promise.reject(new Error(`BRIEF_VERSION_NOT_FOUND：立项单 v${version} 不存在`))
+      const latest = lib[lib.length - 1]
+      if (version === latest.version) return Promise.reject(new Error('BRIEF_ROLLBACK_LATEST：该版本即当前最新，无需回滚'))
+      const now = new Date().toISOString()
+      // 回滚 = 以历史版内容发新版（对齐主进程 rollback.ts R1-R5；历史版永不覆盖）
+      const next: ProjectBrief = {
+        ...structuredClone(brief),
+        version: latest.version + 1,
+        approve: { at: now, by: 'ui', note: `回滚自 v${version}` },
+        changesFromPrevious: diffBrief(latest, brief),
+        publishedAt: now,
+      }
+      lib.push(next)
+      // 画布 n-brief 节点指向新版并广播（对齐主进程 canvasStore.persistInQueue upsert）
+      if (demoState) {
+        const n = demoState.nodes.find(nd => nd.id === 'n-brief')
+        if (n) {
+          n.ref = { path: `/demo/anni/立项单.v${next.version}.json`, format: 'json' }
+          n.meta = { ...n.meta, version: `v${next.version}` }
+          n.updatedAt = now
+        }
+        demoState.updatedAt = now
+        const snapshot = structuredClone(demoState)
+        demoCanvasListeners.forEach(cb => cb(snapshot))
+      }
+      return resolve({
+        ok: true as const,
+        version: next.version,
+        rolledBackFrom: version,
+        changesFromPrevious: next.changesFromPrevious,
+      })
+    },
     // feature-808：项目-会话绑定双态（mock 恒为未绑定）
     activeSession: (_sessionId?: string | null) => resolve({ sessionId: null as string | null }),
     configStatus: () => resolve({ arkConfigured: false }),
+
+    // feature-005：「已捕获口径」（语义对齐主进程 store.ts；面板直改/对话纠正同库同广播）
+    captureList: () => resolve(demoCaptureFile()),
+    captureUpsert: demoCaptureUpsert,
+    captureRemove: (id: string) => {
+      const facts = getDemoCaptureFacts()
+      const idx = facts.findIndex(f => f.id === id)
+      if (idx < 0) return Promise.reject(Object.assign(new Error(`口径条目不存在：${id}`), { code: 'CAPTURE_FACT_NOT_FOUND' }))
+      facts.splice(idx, 1)
+      broadcastDemoCapture()
+      return resolve({ removed: true as const })
+    },
+    onCaptureChanged: (cb: (f: CaptureFile) => void) => {
+      demoCaptureListeners.add(cb)
+      return () => { demoCaptureListeners.delete(cb) }
+    },
 
     runtime: {
       start: () => resolve(stoppedStatus()),
@@ -364,6 +623,12 @@ export function installDevMockApi(): void {
     },
 
     fileRead: ({ path }: { path: string }) => {
+      // feature-004：立项单版本文件先查内存库（回滚后画布指向的新版 vN 不在静态 DEMO_FILES）
+      const briefVer = /立项单\.v(\d+)\.json$/.exec(path)
+      if (briefVer) {
+        const brief = getDemoBriefs().find(b => b.version === Number(briefVer[1]))
+        if (brief) return resolve({ ok: true as const, format: 'json' as const, content: JSON.stringify(brief) })
+      }
       const factory = DEMO_FILES[path]
       if (!factory) {
         return resolve({ ok: false as const, error: { code: 'DEV_MOCK', message: `浏览器预览 mock：演示产物库中无 ${path}` } })

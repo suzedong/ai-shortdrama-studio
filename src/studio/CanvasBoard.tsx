@@ -221,7 +221,8 @@ const DIRTY_FIELD_LABELS: Record<string, string> = {
   'premise.seasonBoundary': '季边界',
 }
 
-function dirtyFieldLabel(f: string): string {
+// feature-004：加 export 供 BriefHistoryView 差异摘要条复用（契约 §1 复用表；本体零改动）
+export function dirtyFieldLabel(f: string): string {
   return DIRTY_FIELD_LABELS[f] ?? f
 }
 

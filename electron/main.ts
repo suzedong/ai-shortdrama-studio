@@ -20,8 +20,13 @@ import { listAssets } from './asset/index.js'
 import { readProjectFile } from './fs/read.js'
 import { getActiveProjectDir } from './project/current.js'
 import { updateBriefFields, type BriefUpdatePatch } from './brief/update.js'
+import { readBriefHistory, readBriefVersion } from './brief/history.js'
+import { rollbackBriefToVersion } from './brief/rollback.js'
+import { captureStore, type CaptureUpsertInput } from './capture/store.js'
 import { listInstances, upsertInstance, removeInstance } from './comfy/settings.js'
-import type { Canvas, CanvasGate, ComfyInstance, AssetIndexItem } from '../shared/types.js'
+import type {
+  Canvas, CanvasGate, ComfyInstance, AssetIndexItem, CaptureFile,
+} from '../shared/types.js'
 import { runtimeManager } from './runtime/manager.js'
 import { OpencodeRuntimeClient } from './runtime/client.js'
 import { subscribeEvents, type EventStreamHandle } from './runtime/projection.js'
@@ -255,6 +260,72 @@ ipcMain.handle('brief:update', (_e, arg: unknown) => {
     throw makeRuntimeError('INVALID_ARGUMENT', 'patch 不能为空：至少提供 kind / fiveElements / style 一组字段')
   }
   return updateBriefFields(getActiveProjectDir(), patch).then(res => ({ ok: true as const, ...res }))
+})
+
+// feature-004：立项单历史与回滚（设计 §2.6.5 末条/§2.6.7；D-016 系统直做不经 AI；K8 恰 3 IPC 已批）
+// 复用零 diff：history=逐版全文提取元数据，version-read=diffBrief(vK, 最新)，rollback=复刻 update.ts 编排发新版。
+ipcMain.handle('brief:history', () => {
+  return readBriefHistory(getActiveProjectDir())
+})
+ipcMain.handle('brief:version-read', (_e, arg: unknown) => {
+  if (!isRecord(arg) || typeof arg.version !== 'number' || !Number.isInteger(arg.version) || arg.version < 1) {
+    throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { version: 正整数 }')
+  }
+  return readBriefVersion(getActiveProjectDir(), arg.version)
+})
+ipcMain.handle('brief:rollback', (_e, arg: unknown) => {
+  if (!isRecord(arg) || typeof arg.version !== 'number' || !Number.isInteger(arg.version) || arg.version < 1) {
+    throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { version: 正整数 }')
+  }
+  return rollbackBriefToVersion(getActiveProjectDir(), arg.version).then(res => ({ ok: true as const, ...res }))
+})
+
+// feature-005：「已捕获口径」（设计 §2.6.1/§2.6.8；D-016 双通道同库同追溯；K8 恰 3 IPC + 1 推送已批）
+// 薄壳调 captureStore（与 MCP capture.* 同一读写点）；写成功后经 subscribe 向全部窗口广播 capture:changed（全量 CaptureFile）。
+captureStore.subscribe((file: CaptureFile) => {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send('capture:changed', file)
+  }
+})
+
+ipcMain.handle('capture:list', () => {
+  return captureStore.list()
+})
+ipcMain.handle('capture:upsert', (_e, arg: unknown) => {
+  if (!isRecord(arg)) {
+    throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { id?, topic?, value?, source?, status?, quote? }')
+  }
+  const input: CaptureUpsertInput = {}
+  if (arg.id !== undefined) {
+    if (typeof arg.id !== 'string') throw makeRuntimeError('INVALID_ARGUMENT', 'id 必须为字符串')
+    input.id = arg.id
+  }
+  for (const key of ['topic', 'value', 'quote'] as const) {
+    const v = arg[key]
+    if (v !== undefined) {
+      if (typeof v !== 'string') throw makeRuntimeError('INVALID_ARGUMENT', `${key} 必须为字符串`)
+      input[key] = v
+    }
+  }
+  if (arg.source !== undefined) {
+    if (arg.source !== 'user' && arg.source !== 'infer') {
+      throw makeRuntimeError('INVALID_ARGUMENT', "source 必须为 'user' | 'infer'")
+    }
+    input.source = arg.source
+  }
+  if (arg.status !== undefined) {
+    if (arg.status !== 'pending' && arg.status !== 'confirmed') {
+      throw makeRuntimeError('INVALID_ARGUMENT', "status 必须为 'pending' | 'confirmed'")
+    }
+    input.status = arg.status
+  }
+  return captureStore.upsert(input)
+})
+ipcMain.handle('capture:remove', (_e, arg: unknown) => {
+  if (!isRecord(arg) || typeof arg.id !== 'string' || arg.id.length === 0) {
+    throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { id: 非空字符串 }')
+  }
+  return captureStore.remove(arg.id)
 })
 
 // feature-808：当前项目绑定会话的读/写双态（不经 withRuntime，绝不因读绑定拉起 opencode）

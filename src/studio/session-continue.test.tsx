@@ -104,6 +104,9 @@ function installApi(initial: Canvas): Harness {
     activeSession: h.activeSession,
     fileRead: vi.fn(async () => ({ ok: false as const, error: { code: 'X', message: 'x' } })),
     // 省略 window 块：WindowControls 走 api.window 缺省防御分支（同 studio-flow 套件）
+    // feature-005：CaptureBar 挂载桥（空库 + 无推送；本套件不操作口径条）
+    captureList: vi.fn(async () => ({ schemaVersion: 1 as const, facts: [] })),
+    onCaptureChanged: vi.fn(() => () => undefined),
   } as unknown as Window['api']
 
   return h

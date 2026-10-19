@@ -1,9 +1,10 @@
-// feature-017 / feature-001 / feature-801 / feature-802 / feature-002 / feature-807 · MCP 纯工具注册（主进程）
-// 22 个零 LLM 工具：文件 / 画布 / 裁决门 / 资产 / ComfyUI 实例 / 立项单（brief.plan/publish/list）
+// feature-017 / feature-001 / feature-801 / feature-802 / feature-002 / feature-807 / feature-005 · MCP 纯工具注册（主进程）
+// 25 个零 LLM 工具：文件 / 画布 / 裁决门 / 资产 / ComfyUI 实例 / 立项单（brief.plan/publish/list）
 //   / manifest 状态机（manifest.get/advance）/ 视觉风格谱系（17–19 style.catalog/get/validate）
-//   / 立项后变更（20–22 brief.impact.assess/commit、canvas.align）。
+//   / 立项后变更（20–22 brief.impact.assess/commit、canvas.align）
+//   / 已捕获口径（23–25 capture.list/upsert/remove，feature-005）。
 // feature-807：brief.publish 写盘前经 gate/guard 做门态防护（4 个 BRIEF_GATE_* 信封码，工具数不变）。
-// 纪律：只 import zod、MCP SDK、shared types 与 fs/project/canvas/gate/asset/comfy/brief 模块。
+// 纪律：只 import zod、MCP SDK、shared types 与 fs/project/canvas/gate/asset/comfy/brief/capture 模块。
 import path from 'node:path'
 import fsp from 'node:fs/promises'
 import { z } from 'zod'
@@ -33,6 +34,7 @@ import type { ImpactDecision, ImpactReportFile } from '../brief/impact.js'
 import type { ManifestEvent } from '../../shared/types.js'
 import { loadStyleCatalog } from '../style/loader.js'
 import { validateStyleRefs } from '../style/validate.js'
+import { captureStore } from '../capture/store.js'
 
 type ToolErr = { ok: false; error: { code: string; message: string } }
 type ToolResult<T> = ({ ok: true } & T) | ToolErr
@@ -818,6 +820,63 @@ export function registerPureTools(server: McpServer): void {
           return { nodeId: args.nodeId, briefVersion: target, canvas }
         })
         return respond({ ok: true as const, ...result })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+
+  // ---- feature-005 · 已捕获口径（23–25；薄壳调 captureStore，与 IPC 同库同追溯）----
+
+  // 23. capture.list
+  server.tool(
+    'capture.list',
+    '读取当前项目「已捕获口径」全量（立项对话中持续累积的事实库；文件不存在返回空库）。',
+    {},
+    async () => {
+      try {
+        const file = await captureStore.list()
+        return respond<{ file: typeof file }>({ ok: true, file })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+
+  // 24. capture.upsert
+  server.tool(
+    'capture.upsert',
+    '写入/更新一条已捕获口径：有 id 精确更新；无 id 按 topic（trim 精确匹配）更新或新建。新建缺省 source=\'infer\'（推断·待确认）；source=\'user\' 必须带 quote（用户逐字原句）。status 缺省推导 user→confirmed / infer→pending。',
+    {
+      id: z.string().min(1).optional(),
+      topic: z.string().optional(),
+      value: z.string().optional(),
+      source: z.enum(['user', 'infer']).optional(),
+      status: z.enum(['pending', 'confirmed']).optional(),
+      quote: z.string().optional(),
+    },
+    async (args: {
+      id?: string; topic?: string; value?: string
+      source?: 'user' | 'infer'; status?: 'pending' | 'confirmed'; quote?: string
+    }) => {
+      try {
+        const fact = await captureStore.upsert(args)
+        return respond<{ fact: typeof fact }>({ ok: true, fact })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+
+  // 25. capture.remove
+  server.tool(
+    'capture.remove',
+    '按 id 删除一条已捕获口径（id 不存在报 CAPTURE_FACT_NOT_FOUND，零写盘）。',
+    { id: z.string().min(1) },
+    async (args: { id: string }) => {
+      try {
+        const result = await captureStore.remove(args.id)
+        return respond<{ removed: true }>({ ok: true, ...result })
       } catch (e) {
         return respond(normalize(e))
       }

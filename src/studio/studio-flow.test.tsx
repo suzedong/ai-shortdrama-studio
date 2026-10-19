@@ -62,6 +62,9 @@ function installApi(initial: Canvas): Harness {
     // feature-808：项目-会话绑定（默认无绑定 → 不回放、不启 runtime）
     activeSession: vi.fn(async () => ({ sessionId: null as string | null })),
     fileRead: vi.fn(async () => ({ ok: true as const, content: '{"a":1}', format: 'json' as const })),
+    // feature-005：CaptureBar 挂载桥（空库 + 无推送；本套件不操作口径条）
+    captureList: vi.fn(async () => ({ schemaVersion: 1 as const, facts: [] })),
+    onCaptureChanged: vi.fn(() => () => undefined),
   } as unknown as Window['api']
 
   return {

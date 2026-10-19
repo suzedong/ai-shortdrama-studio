@@ -23,6 +23,19 @@ contextBridge.exposeInMainWorld('api', {
     fiveElements?: { episodeDuration?: string; episodeCount?: string; aspectRatio?: string }
     style?: { mainStyleId?: string; auxiliaryStyleId?: string }
   }) => ipcRenderer.invoke('brief:update', patch),
+  // feature-004：立项单历史与回滚（K8 已批，3 桥；D-016 系统直做）
+  briefHistory: () => ipcRenderer.invoke('brief:history'),
+  briefVersionRead: (version: number) => ipcRenderer.invoke('brief:version-read', { version }),
+  briefRollback: (version: number) => ipcRenderer.invoke('brief:rollback', { version }),
+  // feature-005：「已捕获口径」（K8 已批，3 桥 + 1 订阅；与 MCP capture.* 同库同追溯）
+  captureList: () => ipcRenderer.invoke('capture:list'),
+  captureUpsert: (input: unknown) => ipcRenderer.invoke('capture:upsert', input),
+  captureRemove: (id: string) => ipcRenderer.invoke('capture:remove', { id }),
+  onCaptureChanged: (cb: (file: unknown) => void): (() => void) => {
+    const listener = (_event: unknown, payload: unknown) => cb(payload)
+    ipcRenderer.on('capture:changed', listener)
+    return () => ipcRenderer.removeListener('capture:changed', listener)
+  },
   // feature-808：项目绑定会话读（无参）/写（{ sessionId } 或 { sessionId: null }）双态（D-005 顶层暴露）
   activeSession: (sessionId?: string | null): Promise<{ sessionId: string | null }> =>
     ipcRenderer.invoke(

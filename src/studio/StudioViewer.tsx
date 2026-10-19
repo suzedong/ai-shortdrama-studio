@@ -15,6 +15,7 @@ import type {
 
 import { styleNameOf } from './VisualCatalog'
 import { BACKGROUND_PATH, BackgroundMd, DiagnosisSections, EntryQuoteCard, formatAt } from './Stage0View'
+import BriefHistoryView from './BriefHistoryView'
 
 /** 谱系风格引用：ID · 名称；未知/未来版本 ID 回退只显 ID */
 function styleRefLabel(id: string): string {
@@ -538,6 +539,8 @@ function StructuredBody({ kind, data, node, entryQuote = '' }: { kind: string; d
 
 export default function StudioViewer({ node, kindLabel, onClose, entryQuote = '' }: Props) {
   const [state, setState] = useState<State>({ phase: 'loading' })
+  // feature-004：立项单历史与回滚覆盖层开关（契约 §3.2，仅 brief 节点可见入口）
+  const [historyOpen, setHistoryOpen] = useState(false)
   const refPath = node.ref?.path
 
   useEffect(() => {
@@ -578,13 +581,25 @@ export default function StudioViewer({ node, kindLabel, onClose, entryQuote = ''
           <span className="truncate text-sm font-medium text-ink">{node.title}</span>
           {version && <span className="shrink-0 rounded-full bg-violet-soft px-1.5 py-px text-[10px] font-bold text-violet">{version}</span>}
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="shrink-0 rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink"
-        >
-          关闭
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          {node.kind === 'brief' && (
+            <button
+              type="button"
+              data-testid="brief-history-entry"
+              onClick={() => setHistoryOpen(true)}
+              className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink"
+            >
+              查看历史
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink"
+          >
+            关闭
+          </button>
+        </div>
       </div>
       {refPath && (
         <div className="flex items-center gap-2 border-b border-line px-5 py-2">
@@ -613,6 +628,9 @@ export default function StudioViewer({ node, kindLabel, onClose, entryQuote = ''
           </pre>
         )}
       </div>
+      {historyOpen && node.kind === 'brief' && (
+        <BriefHistoryView onClose={() => setHistoryOpen(false)} />
+      )}
     </div>
   )
 }

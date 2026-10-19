@@ -155,6 +155,28 @@ export interface BriefDraft {
   diagnosisDetail?: string   // D-018：诊断完整明细，参与字段级 diff，可选
 }
 
+// ---- feature-005 · 「已捕获口径」（§2.6.1/§2.6.8；K1 已批，契约 §1）----
+// 落盘：项目根 `已捕获口径.json`，覆盖式更新、不版本化（草稿非定案产物）。
+
+export type CaptureSource = 'user' | 'infer'
+export type CaptureStatus = 'pending' | 'confirmed'
+
+export interface CapturedFact {
+  id: string              // 'f1'/'f2'… 全库递增，删除不复用
+  topic: string           // 开放主题词，trim 后非空；推荐词表（六要素 6 + 前提 5）不闭集校验
+  value: string           // trim 后非空
+  source: CaptureSource   // user=用户原话（须 quote 举证）；infer=Agent 推断
+  status: CaptureStatus   // 缺省推导：user→confirmed、infer→pending；显式传入优先
+  quote?: string          // source='user' 时逐字原句（B-15 来源回溯精神：user 须举证）
+  updatedAt: string       // ISO 8601
+}
+
+export interface CaptureFile {
+  schemaVersion: 1
+  nextId?: number        // id 高水位：下一个待分配编号，单调不减；缺省 = facts max+1（D-002 方案 A）
+  facts: CapturedFact[]   // 按 id 升序
+}
+
 // 故事大纲（编剧 Agent）
 export interface StoryOutline {
   logline: string        // 一句话故事

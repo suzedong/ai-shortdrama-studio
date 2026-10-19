@@ -9,6 +9,7 @@ import { reduceRuntimeEvent, turnText, type StreamingTurn } from '../lib/chat-ru
 import { replayMessages } from '../lib/history-replay'
 import CanvasBoard, { kindLabel, type NodeAction } from './CanvasBoard'
 import ChatComposer, { demoChatItems, type ChatItem } from './ChatComposer'
+import CaptureBar from './CaptureBar'
 import ProjectNav, { type ProjectNavHandle } from './ProjectNav'
 import { AssetsPanel, PluginsPanel, SkillsPanel } from './LeftPanels'
 import StageNavPanel from './StageNavPanel'
@@ -731,7 +732,7 @@ export default function StudioApp() {
         )}
 
         {/* ── 右栏对话（左缘拖拽调宽 300–640px）── */}
-        <aside className="relative shrink-0 border-l border-line bg-white" style={{ width: chatWidth }}>
+        <aside className="relative flex shrink-0 flex-col border-l border-line bg-white" style={{ width: chatWidth }}>
           <div
             className="absolute inset-y-0 -left-[3px] z-30 w-[6px] cursor-col-resize transition-colors hover:bg-violet/40"
             onPointerDown={onChatResizerDown}
@@ -744,19 +745,23 @@ export default function StudioApp() {
             aria-label="拖拽调整对话区宽度"
             title="拖拽调整对话区宽度"
           />
-          <ChatComposer
-            items={items}
-            stream={stream}
-            pendingGate={pendingGate}
-            deciding={deciding}
-            sending={sending}
-            generating={generating}
-            error={error}
-            historyLoading={historyLoading}
-            onSend={handleSend}
-            onStop={handleStop}
-            onDecide={handleDecide}
-          />
+          {/* feature-005：「已捕获口径」常驻条（契约 §3.2；项目未打开不渲染，与右栏同生命周期） */}
+          {canvas.projectId ? <CaptureBar /> : null}
+          <div className="min-h-0 flex-1">
+            <ChatComposer
+              items={items}
+              stream={stream}
+              pendingGate={pendingGate}
+              deciding={deciding}
+              sending={sending}
+              generating={generating}
+              error={error}
+              historyLoading={historyLoading}
+              onSend={handleSend}
+              onStop={handleStop}
+              onDecide={handleDecide}
+            />
+          </div>
         </aside>
       </div>
 

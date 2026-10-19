@@ -515,7 +515,7 @@ describe('listAgents 与连接缓存', () => {
       ],
     })
 
-    // 省略 tools map（实测 REST 行为）→ showrunner 兜底声明常量（17 个物理 ID）
+    // 省略 tools map（实测 REST 行为）→ showrunner 兜底声明常量（20 个物理 ID，feature-005 口径三工具补登）
     state.next.agents = [
       { name: 'showrunner', description: 's', mode: 'primary', permission: {}, options: {} },
       { name: 'director', description: 'd', mode: 'primary', permission: {}, options: {} },
@@ -524,8 +524,9 @@ describe('listAgents 与连接缓存', () => {
     expect(agents2).toHaveLength(1)
     expect(agents2[0]!.name).toBe('showrunner')
     expect(agents2[0]!.model).toBeNull()
-    expect(agents2[0]!.tools).toHaveLength(17)
+    expect(agents2[0]!.tools).toHaveLength(20)
     expect(agents2[0]!.tools).toContain('shortdrama_canvas.align')
+    expect(agents2[0]!.tools).toContain('shortdrama_capture.upsert')
   })
 
   it('连接信息变化（每次重启新口令）→ 重新经工厂创建句柄；口令不进任何结果', async () => {

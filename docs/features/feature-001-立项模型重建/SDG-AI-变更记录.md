@@ -84,3 +84,10 @@
 - 联动修订（showrunner.md 六处）：① frontmatter tools + permission 各增 `shortdrama_capture.list/upsert/remove`（白名单 17→20 物理名，全仓工具 22→25，K8 归 feature-005 登记）；② 纪律 2 末句收窄——候选态只留对话流，**唯一例外是「已捕获口径」**即时经 `shortdrama_capture.upsert` 落盘；③ 新增纪律 11「口径落盘纪律」——提取即 upsert 不攒批、`source:'user'` 必带逐字 `quote`（工具强校）、`source:'infer'` 缺省待确认、topic 开放词表但同事实用词一致（推荐六要素 6 字段 + 前提 5 项词表）、不建门不建画布节点；④ 第 0 步铁律收窄为「除『已捕获口径』外，候选态不落盘、不建门、不建画布节点」（口径条目同样不建门不建节点，§2.6.8）；⑤ step 2「先记入对话中的『已捕获口径』」改为「立即经 `shortdrama_capture.upsert` 落盘」；⑥ step 6 就绪自检与 step 7 字段来源回溯增加「先 `capture.list` 对照口径文件」纪律（共同数据源语义，提示词层对齐，plan.ts/publish.ts 零 diff）。
 - 边界注明：收窄仅限「口径」一类事实条目；诊断卡、风格选型等其余候选态不落盘铁律逐字保留，L99「诊断与草案只在对话中呈现」未动；`已捕获口径.json` 是过程态事实底座（覆盖式更新、不版本化），不是立项单版本化体系的产物，不挂画布节点、不进影响清单血缘。
 - 交叉指针：[feature-005 需求规格 §3.4](../feature-005-已捕获口径常驻区/SDG-RE-需求规格.md)、[feature-005 变更记录](../feature-005-已捕获口径常驻区/SDG-AI-变更记录.md)、[偏差清单 B-38](../../设计现状与偏差清单.md)、[showrunner.md](../../../resources/opencode/agents/showrunner.md) 纪律 2/11 与第 0 步铁律。
+
+### R-007 · showrunner step 3 选题诊断接入公开数据检索（2026-10-20，feature-006 / B-39 联动）
+
+- 原文口径：本包 T5 重写的 [showrunner.md](../../../resources/opencode/agents/showrunner.md) 第 0 步 step 3「节点① 选题诊断」为「基于已捕获口径**自身推理**产出选题诊断卡」——五区块全凭模型内置知识，无外部数据通道，对标案例 / 钩子模式可能陈旧或臆造（[偏差清单 B-39](../../设计现状与偏差清单.md)）。
+- 联动修订：[feature-006](../feature-006-选题诊断公开数据检索/) 契约 §3 联动——step 3 修订为「基于已捕获口径 + 公开数据检索」：商业类「对标案例」「钩子模式」两块必须先检索（S1）；检索词仅取题材类型维度口径字段脱敏拼成，严禁用户原话 / 姓名地名机构名（S2）；诊断卡五区块结构不变、卡尾追加「检索来源」附录含检索词 / URL / 日期，未检索须显式标注原因（S3）；检索失败诚实降级为自身推理、严禁编造 URL（S4）。配套通道：全仓 MCP 工具 25→27（新增 `shortdrama_web.search/fetch`，零 Key 公开搜索源），showrunner frontmatter 与白名单 20→22（K8 归 feature-006 登记）。
+- 边界注明：修订仅限 step 3 诊断产出的数据来源与附录标注；诊断卡候选态不独立落盘、不建门、不建画布节点铁律逐字不变；「检索来源」为卡尾追溯元数据附录，五区块结构未动，随既有 `diagnosisDetail` 机制入立项单（D-018，零新代码，`electron/brief/*` 零 diff）；纪念类默认不检索的弱化口径不变。
+- 交叉指针：[feature-006 契约 §3](../feature-006-选题诊断公开数据检索/SDG-RE-契约.md)、[feature-006 变更记录](../feature-006-选题诊断公开数据检索/SDG-AI-变更记录.md)、[偏差清单 B-39](../../设计现状与偏差清单.md)、[showrunner.md](../../../resources/opencode/agents/showrunner.md) 第 0 步 step 3。

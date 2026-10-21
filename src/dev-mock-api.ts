@@ -467,6 +467,91 @@ function stoppedStatus(): RuntimeStatus {
   }
 }
 
+// ── feature-810：谱系升级差异演示（浏览器预览 mock）──
+// mock 谱系假装已升 v1.47，demo 立项单（v3）引用 v1.46 → 升级面板可验；
+// 采纳（updateBrief style.catalogVersion）同步内存立项单 → styleUpgradeDiff 刷新转「已是最新」，闭环可演。
+// 演示变更条目仅存于本 mock，不写入真实谱系 md（契约 §3 / D2：B-35 演示假数据不污染真实谱系）。
+const DEMO_STYLE_CATALOG_VERSION = 'v1.47'
+// feature-811：演示谱系自具十键表（STYLES 硬编码已退役）；条目口径对齐主进程 STYLE_REGISTRY（role/feasibility/辅助候选）+ J.2 锚点词
+const DEMO_STYLE_CATALOG_ENTRIES: StyleCatalogEntryDto[] = [
+  { id: 'A1', name: '数字电影写实', familyCode: 'A', familyLabel: '写实影像系', role: 'main', feasibility: 'high', auxiliaryCandidate: false, visualTraits: '', anchorWords: 'cinematic still, anamorphic', textureRecipe: '' },
+  { id: 'A2', name: '胶片电影感', familyCode: 'A', familyLabel: '写实影像系', role: 'main', feasibility: 'high', auxiliaryCandidate: false, visualTraits: '', anchorWords: 'Kodak Gold, film grain', textureRecipe: '' },
+  { id: 'A3', name: '年代胶片（千禧·90s·80s）', familyCode: 'A', familyLabel: '写实影像系', role: 'backup', feasibility: 'high', auxiliaryCandidate: false, visualTraits: '', anchorWords: '2000s film still, faded', textureRecipe: '' },
+  { id: 'A4', name: 'DV·CCD 数码复古', familyCode: 'A', familyLabel: '写实影像系', role: 'backup', feasibility: 'high', auxiliaryCandidate: false, visualTraits: '', anchorWords: 'old DV camcorder, CCD', textureRecipe: '' },
+  { id: 'A5', name: '黑白电影', familyCode: 'A', familyLabel: '写实影像系', role: 'backup', feasibility: 'high', auxiliaryCandidate: false, visualTraits: '', anchorWords: 'black and white, film noir', textureRecipe: '' },
+  { id: 'A7', name: '拟真人·仿真人动漫', familyCode: 'A', familyLabel: '写实影像系', role: 'main', feasibility: 'high', auxiliaryCandidate: false, visualTraits: '', anchorWords: 'realistic human-like anime', textureRecipe: '' },
+  { id: 'B1', name: '清新生活流', familyCode: 'B', familyLabel: '青春治愈系', role: 'main', feasibility: 'high', auxiliaryCandidate: true, visualTraits: '', anchorWords: 'bright, low saturation, airy', textureRecipe: '' },
+  { id: 'C1', name: '日式动漫', familyCode: 'C', familyLabel: '动画插画系', role: 'main', feasibility: 'high', auxiliaryCandidate: false, visualTraits: '', anchorWords: 'anime, cel shading', textureRecipe: '' },
+  { id: 'C2', name: '国漫·新中式插画', familyCode: 'C', familyLabel: '动画插画系', role: 'main', feasibility: 'high', auxiliaryCandidate: false, visualTraits: '', anchorWords: 'Chinese animation, ink-wash', textureRecipe: '' },
+  { id: 'C5', name: '美式卡通', familyCode: 'C', familyLabel: '动画插画系', role: 'backup', feasibility: 'high', auxiliaryCandidate: false, visualTraits: '', anchorWords: 'American cartoon, bold line', textureRecipe: '' },
+  { id: 'C6', name: '扁平矢量·低多边形', familyCode: 'C', familyLabel: '动画插画系', role: 'backup', feasibility: 'high', auxiliaryCandidate: false, visualTraits: '', anchorWords: 'flat vector, geometric', textureRecipe: '' },
+  { id: 'C7', name: '韩漫·精致美型', familyCode: 'C', familyLabel: '动画插画系', role: 'main', feasibility: 'high', auxiliaryCandidate: false, visualTraits: '', anchorWords: 'Korean manhwa, webtoon', textureRecipe: '' },
+  { id: 'D1', name: '冷调悬疑', familyCode: 'D', familyLabel: '类型氛围系', role: 'main', feasibility: 'high', auxiliaryCandidate: true, visualTraits: '', anchorWords: 'cold blue tone, thriller', textureRecipe: '' },
+  { id: 'D2', name: '赛博·科幻', familyCode: 'D', familyLabel: '类型氛围系', role: 'main', feasibility: 'high', auxiliaryCandidate: true, visualTraits: '', anchorWords: 'cyberpunk, neon', textureRecipe: '' },
+  { id: 'D3', name: '奇幻童话', familyCode: 'D', familyLabel: '类型氛围系', role: 'backup', feasibility: 'high', auxiliaryCandidate: true, visualTraits: '', anchorWords: 'fantasy, fairytale', textureRecipe: '' },
+  { id: 'D4', name: '暗黑·哥特', familyCode: 'D', familyLabel: '类型氛围系', role: 'backup', feasibility: 'high', auxiliaryCandidate: true, visualTraits: '', anchorWords: 'gothic, dark chiaroscuro', textureRecipe: '' },
+  { id: 'D5', name: '神话国风', familyCode: 'D', familyLabel: '类型氛围系', role: 'main', feasibility: 'high', auxiliaryCandidate: true, visualTraits: '', anchorWords: 'Chinese mythology, oriental', textureRecipe: '' },
+  { id: 'E1', name: '3D CG', familyCode: 'E', familyLabel: '材质工艺系', role: 'main', feasibility: 'medium', auxiliaryCandidate: false, visualTraits: '', anchorWords: '3D render, Pixar style', textureRecipe: '' },
+]
+
+function demoStyleUpgradeDiff() {
+  const lib = getDemoBriefs()
+  const latest = lib[lib.length - 1]
+  const registered = latest?.style?.catalogVersion?.trim()
+  const mainId = latest?.style?.mainStyleId?.trim()
+  if (!latest || !mainId || !registered) {
+    return {
+      hasUpgrade: false,
+      currentVersion: DEMO_STYLE_CATALOG_VERSION,
+      referenced: [] as ReturnType<typeof refOf>[],
+      blocking: false,
+      changelog: [] as { version: string; date?: string; items: string[] }[],
+      changelogUnavailable: false,
+      noBrief: true,
+    }
+  }
+  function refOf(id: string, role: 'main' | 'auxiliary') {
+    const e = DEMO_STYLE_CATALOG_ENTRIES.find(x => x.id === id)
+    return {
+      id,
+      role,
+      removed: !e,
+      ...(e
+        ? {
+            current: {
+              role: e.role,
+              auxiliaryCandidate: e.auxiliaryCandidate,
+              feasibility: e.feasibility,
+              anchorWords: e.anchorWords.split(/[,，、]/).map(w => w.trim()).filter(Boolean),
+            },
+          }
+        : {}),
+    }
+  }
+  const hasUpgrade = registered !== DEMO_STYLE_CATALOG_VERSION
+  const referenced = [refOf(mainId, 'main')]
+  const auxId = latest.style.auxiliaryStyleId?.trim()
+  if (auxId) referenced.push(refOf(auxId, 'auxiliary'))
+  return {
+    hasUpgrade,
+    ...(hasUpgrade ? { registeredVersion: registered } : {}),
+    currentVersion: DEMO_STYLE_CATALOG_VERSION,
+    referenced,
+    blocking: referenced.some(r => r.removed),
+    changelog: hasUpgrade
+      ? [{
+          version: 'v1.47',
+          date: '2026-10-11',
+          items: [
+            '（浏览器演示数据）A7 拟真人·仿真人动漫：备 → 主（已由新项目验证）',
+            '（浏览器演示数据）C6 扁平矢量·低多边形：锚点词新增「几何」变体',
+          ],
+        }]
+      : [],
+    changelogUnavailable: false,
+  }
+}
+
 export function installDevMockApi(): void {
   if (typeof window === 'undefined' || (window as unknown as { api?: unknown }).api) return
 
@@ -484,16 +569,25 @@ export function installDevMockApi(): void {
     renameProject: (_dir: string, title: string) => resolve({ ok: true as const, title }),
     deleteProject: (_dir: string) => resolve({ ok: true as const }),
     // D-017：立项直改桩（mock 恒成功，空影响清单）
-    updateBrief: (_patch: unknown) => resolve({
-      ok: true as const,
-      version: 2,
-      jsonPath: '立项单.v2.json',
-      mdPath: '立项单.v2.md',
-      impactReportPath: '影响清单.v1-v2.json',
-      changes: [],
-      items: [],
-      markedDirty: [],
-    }),
+    // feature-810：采纳谱系升级时同步内存立项单 catalogVersion，使 styleUpgradeDiff 刷新转「已是最新」（闭环演示）
+    updateBrief: (patch: unknown) => {
+      const cv = (patch as { style?: { catalogVersion?: unknown } } | null | undefined)?.style?.catalogVersion
+      if (typeof cv === 'string') {
+        const lib = getDemoBriefs()
+        const latest = lib[lib.length - 1]
+        if (latest) latest.style = { ...latest.style, catalogVersion: cv }
+      }
+      return resolve({
+        ok: true as const,
+        version: 2,
+        jsonPath: '立项单.v2.json',
+        mdPath: '立项单.v2.md',
+        impactReportPath: '影响清单.v1-v2.json',
+        changes: [],
+        items: [],
+        markedDirty: [],
+      })
+    },
     // feature-004：立项单历史/读版/回滚（契约 §2.1-2.3；语义对齐主进程，内存库演示）
     briefHistory: () => {
       const lib = getDemoBriefs()
@@ -575,6 +669,14 @@ export function installDevMockApi(): void {
       demoCaptureListeners.add(cb)
       return () => { demoCaptureListeners.delete(cb) }
     },
+
+    // feature-810：谱系目录 / 升级差异（K8 +2 IPC 的浏览器 mock；演示升级面板与采纳闭环）
+    styleCatalog: () => resolve({
+      version: DEMO_STYLE_CATALOG_VERSION,
+      count: DEMO_STYLE_CATALOG_ENTRIES.length,
+      entries: DEMO_STYLE_CATALOG_ENTRIES.map(e => ({ ...e })),
+    }),
+    styleUpgradeDiff: () => resolve(demoStyleUpgradeDiff()),
 
     runtime: {
       start: () => resolve(stoppedStatus()),

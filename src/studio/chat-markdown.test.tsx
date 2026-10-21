@@ -1,10 +1,27 @@
 // 对话气泡 Markdown 渲染（2026-10-15，K9 批准 react-markdown + remark-gfm，仅 Agent 侧）
 // 断言：Agent 气泡渲染粗体/行内代码/GFM 列表/链接 target=_blank；用户气泡保持纯文本不解析。
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ChatComposer, { parseChatLabel, parseChatOptions, type ChatItem } from './ChatComposer'
-import { STYLE_CATALOG_VERSION } from './VisualCatalog'
+import { _setStyleCatalogSnapshotForTest } from './style-catalog-store'
+
+// feature-811：风格选项卡与谱系校验消费 style:catalog 快照——prime ok 态后首订阅懒 ensure no-op（store 契约）
+const PRIME_ENTRIES: StyleCatalogEntryDto[] = [
+  {
+    id: 'A7', name: '拟真人·仿真人动漫', familyCode: 'A', familyLabel: '写实影像系',
+    role: 'main', feasibility: 'high', auxiliaryCandidate: false,
+    visualTraits: '', anchorWords: 'realistic human-like anime, lifelike expression', textureRecipe: '',
+  },
+]
+
+beforeEach(() => {
+  _setStyleCatalogSnapshotForTest({ status: 'ok', version: 'v9.99-test', entries: PRIME_ENTRIES })
+})
+
+afterEach(() => {
+  act(() => { _setStyleCatalogSnapshotForTest(null) })
+})
 
 function renderComposer(items: ChatItem[], props: { onSend?: (text: string) => void; sending?: boolean } = {}) {
   return render(
@@ -187,7 +204,7 @@ describe('对话内选项卡（B-35 选项块约定）', () => {
     ])
     const rich = container.querySelector('[data-chat-option="1"]')
     expect(rich?.textContent).toContain('拟真人·仿真人动漫')
-    expect(rich?.textContent).toContain(`A7 @ ${STYLE_CATALOG_VERSION}`)
+    expect(rich?.textContent).toContain('A7 @ v9.99-test')
     expect(rich?.textContent).toContain('主·已验证')
     const plain = container.querySelector('[data-chat-option="2"]')
     expect(plain?.textContent).toContain('E99')

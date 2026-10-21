@@ -16,7 +16,7 @@ import { evaluateDraft, listBriefVersions } from './plan.js'
 import { assessImpact, type ImpactItem, type ImpactReportFile } from './impact.js'
 import { publishBriefFiles, type ReadyBriefDraft } from './publish.js'
 
-/** 修改立项面板可直改的字段（六控件；premise / catalogVersion 不在面板范围，沿用上一版） */
+/** 修改立项面板可直改的字段（六控件 + feature-810 谱系升级采纳升版 catalogVersion；premise 沿用上一版） */
 export interface BriefUpdatePatch {
   kind?: ProjectKind
   fiveElements?: {
@@ -27,6 +27,7 @@ export interface BriefUpdatePatch {
   style?: {
     mainStyleId?: string
     auxiliaryStyleId?: string // 空串 = 清除辅助风格
+    catalogVersion?: string   // feature-810：谱系升级采纳仅升版本号（K8 已批扩键）
   }
 }
 
@@ -65,7 +66,7 @@ export async function updateBriefFields(
       await fsp.readFile(path.join(projectDir, latestEntry.path), 'utf-8'),
     ) as ProjectBrief
 
-    // 合并 patch：仅面板六控件字段；premise / catalogVersion / diagnosisSummary / diagnosisDetail 沿用 prev
+    // 合并 patch：仅面板六控件 + catalogVersion（feature-810）；premise / diagnosisSummary / diagnosisDetail 沿用 prev
     const auxPatch = patch.style?.auxiliaryStyleId
     const draft: BriefDraft = {
       kind: patch.kind ?? prev.kind,
@@ -84,7 +85,7 @@ export async function updateBriefFields(
       premise: prev.premise,
       style: {
         mainStyleId: patch.style?.mainStyleId ?? prev.style.mainStyleId,
-        catalogVersion: prev.style.catalogVersion,
+        catalogVersion: patch.style?.catalogVersion ?? prev.style.catalogVersion,
         ...(auxPatch !== undefined
           ? (auxPatch === '' ? {} : { auxiliaryStyleId: auxPatch })
           : (prev.style.auxiliaryStyleId ? { auxiliaryStyleId: prev.style.auxiliaryStyleId } : {})),

@@ -18,9 +18,11 @@
 
 `electron/runtime/provider.ts` `SHOWRUNNER_DECLARED_TOOLS` +N 个内置工具实际 ID（占位名 `webfetch`/`websearch`，以 T0 为准），仅 showrunner 一组放行；`writer`/`media-director`/`comfyui-operator` 三组零 diff。注释按既有格式记 feature-006 沿革。非新 MCP 工具——Agent 请求级工具面变更，按 K8 登记（本节约束即工具契约）。
 
-### 2.2 方案 B（降级）：自建 MCP 工具（定案 B 时补登本节）
+### 2.2 方案 B（降级）：自建 MCP 工具（T0 定案 B，本节已补登填实）
 
-预留条目（探测后填实）：`shortdrama_web.search { query } → { results: [{title,url,snippet}] }`、`shortdrama_web.fetch { url } → { text }`；主进程原生 fetch 实现，不依赖激活项目；搜索源零 Key 优先（无 Key 公开源），须 Key 或新依赖 → 停手补登 K9。showrunner 白名单 +2，其余三组零 diff。
+- **工具 26 `web.search`**：`{ query } → { results: [{ title, url, snippet }] }`。搜索源 = DuckDuckGo html 端点 `https://html.duckduckgo.com/html/?q=`（零 Key 公开源，K9 零触发）；解析 `result__a` 链接（`uddg` 重定向解码、仅放行 http/https）配对同区块 `result__snippet` 摘要；至多 8 条；网络/HTTP 失败报 `WEB_SEARCH_FAILED`；`query` 空报 `INVALID_ARGUMENT`。
+- **工具 27 `web.fetch`**：`{ url } → { text }`。仅 http/https；HTML→正文文本（去脚本/样式/注释/标签 + 实体解码 + 空白折叠）；超 `WEB_FETCH_MAX_CHARS=20000` 截断；失败报 `WEB_FETCH_FAILED`；非 http/https 报 `INVALID_ARGUMENT`。
+- **实现**：`electron/mcp/tools.ts` 尾部导出纯函数（`decodeHtmlEntities`/`htmlToText`/`parseDdgResults`/`webSearch`/`webFetchText`，`fetchImpl` 依赖注入供单测零外网）+ handler 薄壳；常量 `WEB_UA`/`WEB_TIMEOUT_MS=15000`/`WEB_FETCH_MAX_CHARS`。主进程原生 fetch（Node 22 全局），**零新依赖**，不依赖激活项目。showrunner 白名单 +2（`shortdrama_web.search`/`shortdrama_web.fetch`），其余三组 agent 零 diff。
 
 ## 3. 指令层契约（showrunner.md step 3 修订）
 

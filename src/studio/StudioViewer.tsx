@@ -13,13 +13,13 @@ import type {
   VisualStyle,
 } from '@shared/types'
 
-import { styleNameOf } from './VisualCatalog'
+import { getStyleName } from './style-catalog-store'
 import { BACKGROUND_PATH, BackgroundMd, DiagnosisSections, EntryQuoteCard, formatAt } from './Stage0View'
 import BriefHistoryView from './BriefHistoryView'
 
 /** 谱系风格引用：ID · 名称；未知/未来版本 ID 回退只显 ID */
 function styleRefLabel(id: string): string {
-  const name = styleNameOf(id)
+  const name = getStyleName(id)
   return name ? `${id} · ${name}` : id
 }
 

@@ -238,6 +238,8 @@ describe('T8-1/T8-2 · mock provider 端到端（真 opencode serve + 本机桩�
       'shortdrama_style.catalog',
       'shortdrama_style.get',
       'shortdrama_style.validate',
+      'shortdrama_web.fetch',
+      'shortdrama_web.search',
     ])
   })
 

@@ -2,11 +2,11 @@
 
 > 执行顺序自上而下；每步完成立即勾记并回写变更记录。卡口预案见契约 §7。**批准前不触碰任何代码（铁律 1）。**
 
-- [ ] **T1 基线实测冻结**：`npx tsc --noEmit`（预期仅 3 条历史基线）+ 全量测试（预期 53 文件 586 passed / 0 failed / 1 skipped），数字记入变更记录
-- [ ] **T2 主进程**：`electron/style/types.ts` +DTO（契约 §1）；新建 `electron/style/upgrade.ts`（差异检测 + J.3 解析，契约 §1/§3）；`electron/main.ts` +2 handle（`style:catalog` / `style:upgrade-diff`）+ `brief:update` style 白名单 +1 键 `catalogVersion`（含 `BriefUpdatePatch` 类型同步）；`electron/preload.ts` +2 桥；`src/global.d.ts` DTO 镜像 + 桥声明
-- [ ] **T3 谱系文件**：`resources/H3-Style/AI短剧制作视觉风格谱系.md` 增设 J.3 空段骨架（v1.46 节 + 格式约定注释；演示假数据不写入）
-- [ ] **T4 renderer**：VisualCatalog 真实化 V1–V6（徽章 IPC 化 / 四态入口 / 差异面板真实数据 / 采纳前置校验 + 调用 / 忽略零调用 / 删演示硬编码与旧凭据）；`src/dev-mock-api.ts` 增补 style mock（catalog + upgrade-diff 多态）
-- [ ] **T5 单测**：`src/test/style-upgrade.test.ts`（AC1–AC4）+ `src/studio/visual-catalog.test.tsx`（AC5）——恰净增 2；`brief-update.test.ts` 增补 `catalogVersion` 键用例（不改既有断言）
-- [ ] **T6 全量回归**：typecheck 零新增；全量 passed 不减少、skip 不增、文件净增恰 2（AC6）
-- [ ] **T7 真机目验**（AC7）：立项单 `catalogVersion` 改旧模拟 → 面板真实差异提示 → 采纳 → 立项单版本 +1 且版本号升、面板转已最新 → 再改旧 → 忽略 → 再开仍提示；截图存证
-- [ ] **T8 治理收尾**：README 总表增 810 行；偏差清单 B-40 登记 + B-41（面板全量真实化）另立包登记；版本记录增行；变更记录闭环
+- [x] **T1 基线实测冻结**（2026-10-20 完成：typecheck 恰 3 条历史基线零新增；全量 54 文件 600 passed / 0 failed / 1 skipped，红线冻结）
+- [x] **T2 主进程**（2026-10-20 完成：types.ts +3 DTO；upgrade.ts 新建（差异检测 + J.3 解析）；main.ts +2 handle + 白名单 +catalogVersion；update.ts BriefUpdatePatch +1 键 + 合并行消费 patch（L1 自决留痕 ×2 见变更记录 T2 节）；preload +2 桥；global.d.ts DTO 镜像 + 桥声明。typecheck 零新增、既有 brief-update+style-catalog 27/27 通过）
+- [x] **T3 谱系文件**（2026-10-20 完成：契约 §3 字面骨架插入 E 系表后；parse-md J.2 切片逐字不变，style-catalog 21/21 通过）
+- [x] **T4 renderer**（2026-10-20 完成：VisualCatalog V1–V6 全落地——徽章 IPC 化（style:catalog 真实版本）/ 四态入口（同 testid、disabled 区分）/ 差异面板真实数据（版本对 + 引用现况 + 变更记录两态 + blocking 警示 + 采纳/忽略钮）/ 采纳前置校验（重取版本不一致则提示刷新）+ 调用 brief:update catalogVersion / 忽略零调用纯收起 / 删演示硬编码与旧凭据（Grep 零外部引用实证）；STYLE_CATALOG_VERSION 常量物理保留 + 注释改写（L1 自决留痕三，见变更记录 T4 节）；dev-mock-api 增补 style mock（catalog + upgrade-diff 多态 + updateBrief catalogVersion 特判闭环）。typecheck 零新增；brief-update(6)+style-catalog(21)+chat-markdown(18) 45/45 通过）
+- [x] **T5 单测**（2026-10-20 完成：style-upgrade.test.ts 新建 22 用例（parse 5 / 空态 4 / 现况比对 4 / 区间降级 6 / style:catalog 形状 1 / 采纳闭环 2，AC1–AC4+§2.3）；visual-catalog.test.tsx 新建 14 用例（徽章 2 / 入口 4 / 面板 4 / 采纳 3 / 忽略 1，AC5，三桥全 mock 逐字对齐 T4 凭据）；brief-update.test.ts 尾部 +2 用例（catalogVersion 直改通道语义 + 同值 INVALID_ARGUMENT 零写盘，既有 6 用例零 diff）——恰净增 2 文件。三文件 44/44 通过；typecheck 恰 3 条历史基线零新增（首跑 7 条假新增系 dist-electron 产物过时，build:electron 刷新后全消未改源码，L1 自决留痕四见变更记录 T5 节））
+- [x] **T6 全量回归**（2026-10-20 完成：typecheck 恰 3 条历史基线零新增；全量 56 文件（54→56 净增恰 2）、638 passed / 0 failed / 1 skipped（基线 600→638，+38 = style-upgrade 22 + visual-catalog 14 + brief-update 2，passed 不减、skip 不增，AC6 达标））
+- [x] **T7 真机目验**（2026-10-20 完成，AC7 全达成：独立沙箱 project-20261020-999999-t7ac 建制（复制 eai6 真实项目 + session-state 临时指向 + 立项单 v5 改旧 v1.45）→ 七步全过——改旧模拟 / 🔔 横幅真实提示（v1.45 → v1.46）/ 差异面板完整（版本对 + 口径文案 + A7 引用现况 + 锚点词 + J.3 记录 + 双钮）/ 采纳 → 立项单 v6 落盘三件套验证（版本 +1、catalogVersion 升、by ui、changesFromPrevious 正确、未改字段继承、manifest briefVersion 6、影响清单 items 空语义正确）且面板转已最新 / 再改旧重开横幅再现 / 忽略零写盘纯收起 / 再开仍提示；逐步截图存证；dev 首载白屏 = vite 冷启动 chunk 404、Ctrl+R 恢复非源码缺陷（L1 自决留痕五）；目验后停 dev、删沙箱、session-state 恢复原值，真实项目零污染。详见变更记录 T7 节）
+- [x] **T8 治理收尾**（2026-10-20 全项完成：README 总表 810 行翻 ✅（B-40 登记并关闭 + 状态「已落地：真机目验七步全过 + 56 文件 638 passed」）；偏差清单 B-40 登记并关闭（谱系升级差异工作流缺失，盘点缺口 #2）+ B-41 另立包登记（面板全量真实化——TABS/条目卡片数据驱动 + 对话内风格选项卡版本号真实化与 STYLE_CATALOG_VERSION 常量退役，L1 自决留痕三范围）；版本记录 2026-10-20 条目新增（2026-10 区块顶部）；变更记录 D-001 / T1–T7 全入账 + X 节零修复标注闭环）

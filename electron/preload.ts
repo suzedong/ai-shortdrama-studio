@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld('api', {
   updateBrief: (patch: {
     kind?: 'commercial' | 'memorial'
     fiveElements?: { episodeDuration?: string; episodeCount?: string; aspectRatio?: string }
-    style?: { mainStyleId?: string; auxiliaryStyleId?: string }
+    style?: { mainStyleId?: string; auxiliaryStyleId?: string; catalogVersion?: string }
   }) => ipcRenderer.invoke('brief:update', patch),
   // feature-004：立项单历史与回滚（K8 已批，3 桥；D-016 系统直做）
   briefHistory: () => ipcRenderer.invoke('brief:history'),
@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('capture:changed', listener)
     return () => ipcRenderer.removeListener('capture:changed', listener)
   },
+  // feature-810：谱系升级差异工作流（K8 已批，2 桥；零推送，面板打开时主动拉取）
+  styleCatalog: () => ipcRenderer.invoke('style:catalog'),
+  styleUpgradeDiff: () => ipcRenderer.invoke('style:upgrade-diff'),
   // feature-808：项目绑定会话读（无参）/写（{ sessionId } 或 { sessionId: null }）双态（D-005 顶层暴露）
   activeSession: (sessionId?: string | null): Promise<{ sessionId: string | null }> =>
     ipcRenderer.invoke(

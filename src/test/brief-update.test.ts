@@ -228,3 +228,49 @@ describe('D-017 修改立项面板直写（updateBriefFields）', () => {
     expect(v2.fiveElements.episodeCount).toBe('80 集') // 未改字段原样继承
   })
 })
+
+describe('feature-810 style.catalogVersion 键（谱系升级采纳 · 直改通道语义）', () => {
+  it('采纳升级写盘：catalogVersion v1.45→v1.46，by=ui、decision 恒 mark、severity high、未改字段原样继承', async () => {
+    // 立项单谱系引用回退 v1.45（模拟谱系升级待采纳）+ scenes 血缘登记消费该键
+    const briefPath = path.join(projDir, '立项单.v1.json')
+    const b0 = JSON.parse(await fsp.readFile(briefPath, 'utf-8')) as ProjectBrief
+    b0.style = { ...b0.style, catalogVersion: 'v1.45' }
+    await fsp.writeFile(briefPath, JSON.stringify(b0, null, 2), 'utf-8')
+    const canvasPath = path.join(projDir, 'canvas.json')
+    const c0 = JSON.parse(await fsp.readFile(canvasPath, 'utf-8')) as Canvas
+    c0.nodes.find(n => n.id === 'step-1-scenes')!.parentReference!.fields.push('style.catalogVersion')
+    await fsp.writeFile(canvasPath, JSON.stringify(c0, null, 2), 'utf-8')
+    canvasStore.reset()
+
+    const r = await updateBriefFields(projDir, { style: { catalogVersion: 'v1.46' } })
+    expect(r.version).toBe(2)
+    expect(r.changes).toEqual([
+      { field: 'style.catalogVersion', from: 'v1.45', to: 'v1.46' },
+    ])
+    // style.catalogVersion 在 impact.ts 高优先级表 → severity high / defaultAction regenerate
+    expect(r.items).toEqual([
+      expect.objectContaining({
+        nodeId: 'step-1-scenes', severity: 'high', defaultAction: 'regenerate', fields: ['style.catalogVersion'],
+      }),
+    ])
+    expect(r.markedDirty).toEqual(['step-1-scenes'])
+    const v2 = JSON.parse(await fsp.readFile(path.join(projDir, '立项单.v2.json'), 'utf-8')) as ProjectBrief
+    expect(v2.approve.by).toBe('ui')
+    expect(v2.style).toEqual({ mainStyleId: 'A7', catalogVersion: 'v1.46' })
+    expect(v2.fiveElements.episodeCount).toBe('80 集') // 未改字段原样继承
+    // 影响清单落盘：直改通道 decision 恒 'mark'（仅挂脏，不自动重生成）
+    const impact = JSON.parse(await fsp.readFile(path.join(projDir, '影响清单.v1-v2.json'), 'utf-8')) as { items: Array<{ decision: string }> }
+    expect(impact.items.length).toBe(1)
+    expect(impact.items[0]!.decision).toBe('mark')
+    const manifest = JSON.parse(await fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')) as ProjectManifest
+    expect(manifest.briefVersion).toBe(2)
+  })
+
+  it('catalogVersion 同基线（值同 v1.46）→ INVALID_ARGUMENT，零写盘', async () => {
+    const before = await fsp.readdir(projDir)
+    await expect(
+      updateBriefFields(projDir, { style: { catalogVersion: 'v1.46' } }),
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' })
+    await expect(fsp.readdir(projDir)).resolves.toEqual(before)
+  })
+})

@@ -72,3 +72,54 @@ export interface StyleIssue {
   /** 人读可操作原因 */
   message: string
 }
+
+// ---- feature-810 谱系升级差异工作流（契约 §1）----
+// DTO 仅主进程 / renderer 两端消费（K1 零触发）：此处定义 + src/global.d.ts 镜像，不进 shared。
+
+/** 项目引用条目在当前谱系中的现况 */
+export interface StyleUpgradeRefEntry {
+  /** 项目引用的风格 ID（mainStyleId / auxiliaryStyleId） */
+  id: string
+  /** 引用角色：主风格 / 辅助风格 */
+  role: 'main' | 'auxiliary'
+  /** 该 ID 是否已不在当前谱系 */
+  removed: boolean
+  /** removed=false 时存在：当前谱系中的现况 */
+  current?: {
+    role: StyleRole
+    auxiliaryCandidate: boolean
+    feasibility: StyleFeasibility
+    /** 锚点词明细当前值（J.2 原文按逗号/顿号切分，面板展示用） */
+    anchorWords: string[]
+  }
+}
+
+/** J.3「谱系变更记录」单版本节 */
+export interface StyleChangelogEntry {
+  /** 'v1.47' */
+  version: string
+  /** 'YYYY-MM-DD'（节内可缺省） */
+  date?: string
+  /** 变更条目，一行一条自由中文简述 */
+  items: string[]
+}
+
+/** 谱系升级差异（style:upgrade-diff IPC 返回） */
+export interface StyleUpgradeDiff {
+  /** catalogVersion ≠ 当前谱系 version（逐字比较，同 STYLE_VERSION_MISMATCH 语义） */
+  hasUpgrade: boolean
+  /** 项目引用版本（hasUpgrade=true 时存在） */
+  registeredVersion?: string
+  /** 当前谱系版本 */
+  currentVersion: string
+  /** 引用条目现况（主 + 辅，无辅则仅主） */
+  referenced: StyleUpgradeRefEntry[]
+  /** 任一引用条目 removed=true → 采纳禁用 */
+  blocking: boolean
+  /** 版本区间 (registered, current] 内条目 */
+  changelog: StyleChangelogEntry[]
+  /** 谱系无 J.3 段 / 解析失败 → true，面板明示「谱系未提供变更明细」 */
+  changelogUnavailable: boolean
+  /** 未立项 / 无 style 字段空态 → true（面板禁用采纳并提示「立项后可采纳」） */
+  noBrief?: boolean
+}

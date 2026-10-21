@@ -17,6 +17,41 @@ import type {
 declare global {
   // feature-804 · 平台标识（与主进程 WindowPlatform 同形三字符串，两端各自声明、不跨层 import）
   type StudioPlatform = 'darwin' | 'win32' | 'linux'
+  // feature-810 · 谱系升级差异工作流 DTO（镜像 electron/style/types.ts，不进 shared；K1 零触发）
+  type StyleUpgradeRefEntry = {
+    id: string
+    role: 'main' | 'auxiliary'
+    removed: boolean
+    current?: {
+      role: 'main' | 'backup'
+      auxiliaryCandidate: boolean
+      feasibility: 'high' | 'medium' | 'low'
+      anchorWords: string[]
+    }
+  }
+  type StyleChangelogEntry = { version: string; date?: string; items: string[] }
+  type StyleUpgradeDiff = {
+    hasUpgrade: boolean
+    registeredVersion?: string
+    currentVersion: string
+    referenced: StyleUpgradeRefEntry[]
+    blocking: boolean
+    changelog: StyleChangelogEntry[]
+    changelogUnavailable: boolean
+    noBrief?: boolean
+  }
+  type StyleCatalogEntryDto = {
+    id: string
+    name: string
+    familyCode: 'A' | 'B' | 'C' | 'D' | 'E'
+    familyLabel: string
+    role: 'main' | 'backup'
+    feasibility: 'high' | 'medium' | 'low'
+    auxiliaryCandidate: boolean
+    visualTraits: string
+    anchorWords: string
+    textureRecipe: string
+  }
   interface Window {
     api: {
       // 项目库（feature-011 F13）
@@ -32,7 +67,7 @@ declare global {
       updateBrief(patch: {
         kind?: 'commercial' | 'memorial'
         fiveElements?: { episodeDuration?: string; episodeCount?: string; aspectRatio?: string }
-        style?: { mainStyleId?: string; auxiliaryStyleId?: string }
+        style?: { mainStyleId?: string; auxiliaryStyleId?: string; catalogVersion?: string }
       }): Promise<{
         ok: true
         version: number
@@ -86,6 +121,9 @@ declare global {
       }): Promise<CapturedFact>
       captureRemove(id: string): Promise<{ removed: true }>
       onCaptureChanged(cb: (file: CaptureFile) => void): () => void
+      // feature-810：谱系升级差异工作流（K8 已批，2 桥；零推送，面板打开时主动拉取）
+      styleCatalog(): Promise<{ version: string; count: number; entries: StyleCatalogEntryDto[] }>
+      styleUpgradeDiff(): Promise<StyleUpgradeDiff>
       // feature-808：项目绑定会话读（无参）/写（string 绑定 / null 清空）双态
       activeSession(sessionId?: string | null): Promise<{ sessionId: string | null }>
       configStatus: () => Promise<{ arkConfigured: boolean }>

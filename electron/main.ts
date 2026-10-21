@@ -20,6 +20,8 @@ import { listAssets } from './asset/index.js'
 import { readProjectFile } from './fs/read.js'
 import { getActiveProjectDir } from './project/current.js'
 import { updateBriefFields, type BriefUpdatePatch } from './brief/update.js'
+import { loadStyleCatalog } from './style/loader.js'
+import { computeStyleUpgradeDiff } from './style/upgrade.js'
 import { readBriefHistory, readBriefVersion } from './brief/history.js'
 import { rollbackBriefToVersion } from './brief/rollback.js'
 import { captureStore, type CaptureUpsertInput } from './capture/store.js'
@@ -245,7 +247,8 @@ ipcMain.handle('brief:update', (_e, arg: unknown) => {
       throw makeRuntimeError('INVALID_ARGUMENT', 'style 必须为对象')
     }
     const st: NonNullable<BriefUpdatePatch['style']> = {}
-    for (const key of ['mainStyleId', 'auxiliaryStyleId'] as const) {
+    // feature-810：白名单 +catalogVersion（谱系升级采纳仅升版本号，K8 已批扩键）
+    for (const key of ['mainStyleId', 'auxiliaryStyleId', 'catalogVersion'] as const) {
       const v = arg.style[key]
       if (v !== undefined) {
         if (typeof v !== 'string') {
@@ -326,6 +329,23 @@ ipcMain.handle('capture:remove', (_e, arg: unknown) => {
     throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { id: 非空字符串 }')
   }
   return captureStore.remove(arg.id)
+})
+
+// feature-810：谱系升级差异工作流（设计 §2.6.4/§8.3；K8 恰 2 IPC 已批；零推送，面板打开时主动拉取）
+// style:catalog 与 MCP style.catalog 同形状、同经 loadStyleCatalog()（不依赖激活项目）；
+// style:upgrade-diff 无项目/无立项按契约 §1 空态返回（noBrief:true），谱系装载失败三码不降级直接抛。
+ipcMain.handle('style:catalog', async () => {
+  const catalog = await loadStyleCatalog()
+  return { version: catalog.version, count: catalog.entries.length, entries: catalog.entries }
+})
+ipcMain.handle('style:upgrade-diff', async () => {
+  let dir: string | null = null
+  try {
+    dir = getActiveProjectDir()
+  } catch {
+    dir = null // 无激活项目 → 空态（契约 §1）
+  }
+  return computeStyleUpgradeDiff(dir)
 })
 
 // feature-808：当前项目绑定会话的读/写双态（不经 withRuntime，绝不因读绑定拉起 opencode）

@@ -13,11 +13,11 @@ import {
   PREMISE_FIELDS,
   selectStage0State,
 } from './stage0/select'
-import { STYLES, styleNameOf } from './VisualCatalog'
+import { getStyleName, useStyleCatalog } from './style-catalog-store'
 
 /** 谱系风格引用：ID · 名称；未知/未来版本 ID 或空值原样返回（外层 || '—' 兜底） */
 function styleRefLabel(id: string): string {
-  const name = styleNameOf(id)
+  const name = getStyleName(id)
   return name ? `${id} · ${name}` : id
 }
 
@@ -294,14 +294,17 @@ function BriefEditPanel({ brief, onClose }: {
   const aspectOptions = old.aspectRatio && !ASPECT_OPTIONS.includes(old.aspectRatio)
     ? [old.aspectRatio, ...ASPECT_OPTIONS]
     : ASPECT_OPTIONS
+  // feature-811：风格选项 = style:catalog 快照 entries（订阅懒加载；快照未到位时仅 extra 兜底项）
+  const styleCatalog = useStyleCatalog()
   const styleOptions = useMemo(() => {
-    const known = new Set(STYLES.map(s => s.id))
+    const ids = styleCatalog.entries.map(e => e.id)
+    const known = new Set(ids)
     const extra: string[] = []
     for (const cur of [old.mainStyleId, old.auxiliaryStyleId]) {
       if (cur && !known.has(cur) && !extra.includes(cur)) extra.push(cur)
     }
-    return [...extra, ...STYLES.map(s => s.id)]
-  }, [old.mainStyleId, old.auxiliaryStyleId])
+    return [...extra, ...ids]
+  }, [styleCatalog.entries, old.mainStyleId, old.auxiliaryStyleId])
 
   const fmtStyle = (id: string) => (id ? styleRefLabel(id) : '无')
   const fmtKind = (k: ProjectKind) => (k === 'commercial' ? '商业短剧' : '个人纪念')

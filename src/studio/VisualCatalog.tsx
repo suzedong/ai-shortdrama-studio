@@ -1,62 +1,10 @@
 // feature-024 · 视觉风格谱系抽屉（原型 L720-750 .catalog-drawer / L1564-1595 / L2444-2465）
-// 形态：右侧 430px 抽屉滑入，5 tabs（全部 18 / A 6 / B 1 / C 5 / D 5），cat-item 缩略图卡
-// 升级差异面板（v1.46 → v1.47 演示）默认折叠
-// 数据源自 resources/H3-Style/AI短剧制作视觉风格谱系.md v1.46
-import { useEffect, useState } from 'react'
-
-interface StyleEntry {
-  id: string
-  fam: 'A' | 'B' | 'C' | 'D' | 'E'
-  name: string
-  st: '主' | '备'
-  feat: '●高' | '●中' | '●低'
-  /** 缩略图占位：family 决定基础渐变色调 */
-  family: string
-  anchor: string
-}
-
-const FAMILIES: Record<string, string> = {
-  A: '写实影像·仿真人',
-  B: '青春治愈·跨形态氛围',
-  C: '动画插画·2D 漫',
-  D: '类型氛围·跨形态氛围',
-  E: '材质工艺·3D 漫',
-}
-
-// B-35：谱系版本号单点导出，供对话内风格选项卡与 L170 头部徽章共用（不再多处硬编码）
-export const STYLE_CATALOG_VERSION = 'v1.46'
-
-// B-24：导出供立项视图「修改立项」风格下拉复用（数据源唯一，谱系校验天然成立）
-export const STYLES: StyleEntry[] = [
-  // A · 写实影像系 6（3 主 3 备）
-  { id: 'A1', fam: 'A', name: '数字电影写实',         st: '主', feat: '●高', family: FAMILIES.A, anchor: 'cinematic still, anamorphic' },
-  { id: 'A2', fam: 'A', name: '胶片电影感',           st: '主', feat: '●高', family: FAMILIES.A, anchor: 'Kodak Gold, film grain' },
-  { id: 'A7', fam: 'A', name: '拟真人·仿真人动漫',     st: '主', feat: '●高', family: FAMILIES.A, anchor: 'realistic human-like anime' },
-  { id: 'A3', fam: 'A', name: '年代胶片（千禧·90s·80s）', st: '备', feat: '●高', family: FAMILIES.A, anchor: '2000s film still, faded' },
-  { id: 'A4', fam: 'A', name: 'DV·CCD 数码复古',      st: '备', feat: '●高', family: FAMILIES.A, anchor: 'old DV camcorder, CCD' },
-  { id: 'A5', fam: 'A', name: '黑白电影',             st: '备', feat: '●高', family: FAMILIES.A, anchor: 'black and white, film noir' },
-  // B · 青春治愈系 1
-  { id: 'B1', fam: 'B', name: '清新生活流', st: '主', feat: '●高', family: FAMILIES.B, anchor: 'bright, low saturation, airy' },
-  // C · 动画插画系 5（3 主 2 备）
-  { id: 'C1', fam: 'C', name: '日式动漫',         st: '主', feat: '●高', family: FAMILIES.C, anchor: 'anime, cel shading' },
-  { id: 'C2', fam: 'C', name: '国漫·新中式插画', st: '主', feat: '●高', family: FAMILIES.C, anchor: 'Chinese animation, ink-wash' },
-  { id: 'C7', fam: 'C', name: '韩漫·精致美型',   st: '主', feat: '●高', family: FAMILIES.C, anchor: 'Korean manhwa, webtoon' },
-  { id: 'C5', fam: 'C', name: '美式卡通',         st: '备', feat: '●高', family: FAMILIES.C, anchor: 'American cartoon, bold line' },
-  { id: 'C6', fam: 'C', name: '扁平矢量·低多边形', st: '备', feat: '●高', family: FAMILIES.C, anchor: 'flat vector, geometric' },
-  // D · 类型氛围系 5（3 主 2 备）
-  { id: 'D1', fam: 'D', name: '冷调悬疑',  st: '主', feat: '●高', family: FAMILIES.D, anchor: 'cold blue tone, thriller' },
-  { id: 'D2', fam: 'D', name: '赛博·科幻', st: '主', feat: '●高', family: FAMILIES.D, anchor: 'cyberpunk, neon' },
-  { id: 'D5', fam: 'D', name: '神话国风',  st: '主', feat: '●高', family: FAMILIES.D, anchor: 'Chinese mythology, oriental' },
-  { id: 'D3', fam: 'D', name: '奇幻童话',  st: '备', feat: '●高', family: FAMILIES.D, anchor: 'fantasy, fairytale' },
-  { id: 'D4', fam: 'D', name: '暗黑·哥特', st: '备', feat: '●高', family: FAMILIES.D, anchor: 'gothic, dark chiaroscuro' },
-  // E · 材质工艺系 1
-  { id: 'E1', fam: 'E', name: '3D CG', st: '主', feat: '●中', family: FAMILIES.E, anchor: '3D render, Pixar style' },
-]
-
-/** 谱系 id → 中文名称（未知/未来版本 ID 返回 null，调用方回退只显 ID） */
-export function styleNameOf(id: string): string | null {
-  return STYLES.find(s => s.id === id)?.name ?? null
-}
+// 形态：右侧 430px 抽屉滑入，tabs（全部 + 五家族，计数自 style:catalog entries 实算），cat-item 缩略图卡
+// feature-810：头部徽章 + 升级差异面板真实化（style:catalog / style:upgrade-diff）
+// feature-811（B-41 收尾）：TABS 计数 / 18 条目卡片 / 弹层明细全量数据驱动——数据源 = style:catalog 实时谱系
+// （renderer 单点缓存 ./style-catalog-store）；STYLES / FAMILIES / STYLE_CATALOG_VERSION / styleNameOf 硬编码三件套已退役
+import { useEffect, useMemo, useState } from 'react'
+import { ensureStyleCatalog, getStyleName, useStyleCatalog } from './style-catalog-store'
 
 // 缩略图占位：每 family 独立渐变（图片缺失时兜底）
 // B-35：导出供对话内风格选项卡缺图兜底复用（仅加 export，本体零改动）
@@ -119,20 +67,32 @@ interface Props {
   onAdopt?: (style: { id: string; name: string; family: string }) => void
 }
 
-const TABS: { key: 'all' | 'A' | 'B' | 'C' | 'D' | 'E'; label: string; count: number }[] = [
-  { key: 'all', label: '全部', count: 18 },
-  { key: 'A', label: 'A 写实影像', count: 6 },
-  { key: 'B', label: 'B 青春治愈', count: 1 },
-  { key: 'C', label: 'C 动画插画', count: 5 },
-  { key: 'D', label: 'D 类型氛围', count: 5 },
-  { key: 'E', label: 'E 材质工艺', count: 1 },
+const TABS: { key: 'all' | 'A' | 'B' | 'C' | 'D' | 'E'; label: string }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'A', label: 'A 写实影像' },
+  { key: 'B', label: 'B 青春治愈' },
+  { key: 'C', label: 'C 动画插画' },
+  { key: 'D', label: 'D 类型氛围' },
+  { key: 'E', label: 'E 材质工艺' },
 ]
+
+// feature-811：可行度浮标（谱系 feasibility 枚举 → 原型 ●高/●中/●低 文案）
+const FEAT_LABEL: Record<StyleCatalogEntryDto['feasibility'], string> = {
+  high: '●高',
+  medium: '●中',
+  low: '●低',
+}
 
 export default function VisualCatalog({ open, onClose, onAdopt }: Props) {
   const [tab, setTab] = useState<'all' | 'A' | 'B' | 'C' | 'D' | 'E'>('all')
   const [diffOpen, setDiffOpen] = useState(false)
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [vidTier, setVidTier] = useState<VidTier>('std')
+  // feature-811：谱系版本/条目同源——单点 store（徽章与卡片一次拉取；810 差异工作流直连保留）
+  const catalog = useStyleCatalog()
+  const [diff, setDiff] = useState<StyleUpgradeDiff | null>(null)
+  const [adopting, setAdopting] = useState(false)
+  const [adoptError, setAdoptError] = useState<string | null>(null)
 
   // 切换预览画风时重置档位
   useEffect(() => { setVidTier('std') }, [previewId])
@@ -147,8 +107,54 @@ export default function VisualCatalog({ open, onClose, onAdopt }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose, previewId])
 
-  const visible = STYLES.filter(s => tab === 'all' || s.fam === tab)
-  const previewItem = previewId ? STYLES.find(s => s.id === previewId) ?? null : null
+  // feature-810/811：抽屉打开时拉取升级差异 + force 刷新谱系快照（与 810 拉取时机统一；零新推送，契约 §2.4）
+  useEffect(() => {
+    if (!open) {
+      setDiff(null)
+      setDiffOpen(false)
+      setAdoptError(null)
+      return
+    }
+    ensureStyleCatalog(true)
+    let alive = true
+    window.api.styleUpgradeDiff()
+      .then(d => { if (alive) setDiff(d) })
+      .catch(() => { if (alive) setDiff(null) })
+    return () => { alive = false }
+  }, [open])
+
+  // feature-810 V4：采纳 = 仅升版本号（契约 §2.3 前置校验：采纳时谱系未再升级才写）
+  const adoptUpgrade = async () => {
+    if (!diff?.hasUpgrade || diff.blocking || diff.noBrief || adopting) return
+    setAdopting(true)
+    setAdoptError(null)
+    try {
+      const cat = await window.api.styleCatalog()
+      if (cat.version !== diff.currentVersion) {
+        setAdoptError('谱系已再升级，请刷新差异')
+        return
+      }
+      await window.api.updateBrief({ style: { catalogVersion: diff.currentVersion } })
+      setDiff(await window.api.styleUpgradeDiff())
+      setDiffOpen(false)
+    } catch (e) {
+      setAdoptError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setAdopting(false)
+    }
+  }
+
+  const { entries } = catalog
+  // TABS 计数实算（快照未到位/不可用 → 不显计数）
+  const counts = useMemo(() => {
+    if (catalog.status !== 'ok') return null
+    const c: Record<string, number> = { all: entries.length, A: 0, B: 0, C: 0, D: 0, E: 0 }
+    for (const e of entries) c[e.familyCode] += 1
+    return c
+  }, [catalog.status, entries])
+
+  const visible = entries.filter(e => tab === 'all' || e.familyCode === tab)
+  const previewItem = previewId ? entries.find(e => e.id === previewId) ?? null : null
 
   return (
     <>
@@ -172,7 +178,10 @@ export default function VisualCatalog({ open, onClose, onAdopt }: Props) {
         <div className="flex items-center gap-2 border-b border-line bg-white px-4 py-3.5">
           <span className="text-[15px]">🎨</span>
           <span className="flex-1 text-[14px] font-extrabold text-ink">视觉风格谱系</span>
-          <span className="rounded-full border border-[#DED9FB] bg-violet-soft px-2 py-0.5 text-[10.5px] font-extrabold text-[#5A4FD8]">{STYLE_CATALOG_VERSION} · 2026-10-08</span>
+          {/* feature-810 V1 / feature-811：徽章读单点 store（与条目同源；失败/不可用显「谱系不可用」降级态） */}
+          <span data-testid="style-catalog-version" className="rounded-full border border-[#DED9FB] bg-violet-soft px-2 py-0.5 text-[10.5px] font-extrabold text-[#5A4FD8]">
+            {catalog.status === 'failed' || catalog.status === 'unavailable' ? '谱系不可用' : (catalog.version ?? '…')}
+          </span>
           <button
             type="button"
             onClick={onClose}
@@ -182,35 +191,94 @@ export default function VisualCatalog({ open, onClose, onAdopt }: Props) {
           >×</button>
         </div>
 
-        {/* cat-actions：升级差异演示按钮（折叠面板） */}
+        {/* cat-actions：feature-810 谱系升级差异工作流（真实数据：V2 四态入口 + V3 差异面板；旧演示硬编码已替换） */}
         <div className="border-b border-line px-3.5 pb-0 pt-2.5">
-          <button
-            type="button"
-            onClick={() => setDiffOpen(v => !v)}
-            className="mb-2 w-full rounded-[9px] border border-[#F5E0B8] bg-[#FFF7E8] px-2.5 py-1.5 text-left text-[11px] font-bold text-[#B26A00] hover:bg-[#FFF0D4]"
-            data-catalog-upg
-          >
-            🔔 查看谱系升级差异（v1.46 → v1.47 演示）
-          </button>
-          {diffOpen && (
-            <div className="mt-2 mb-2 rounded-[10px] border-[1.5px] border-[#F5E0B8] bg-[#FFFDF5] px-2.5 py-2 text-[11px] leading-[1.6] text-[#7A5C1D]">
-              <div className="mb-1 text-[11px] font-extrabold text-[#B26A00]">谱系 v1.47 · 升级差异（人决定是否采纳）</div>
-              <div className="py-0.5">① A7 拟真人·仿真人动漫：<b>备 → 主</b>（已由新项目验证）</div>
-              <div className="py-0.5">② C6 扁平矢量·低多边形：锚点词新增「几何」变体</div>
-              <div className="py-0.5">③ 版本：v1.46 → v1.47（2026-10-11）</div>
+          {diff && (
+            <button
+              type="button"
+              disabled={!diff.hasUpgrade}
+              onClick={() => diff.hasUpgrade && setDiffOpen(v => !v)}
+              className={`mb-2 w-full rounded-[9px] border px-2.5 py-1.5 text-left text-[11px] font-bold ${
+                diff.hasUpgrade
+                  ? 'border-[#F5E0B8] bg-[#FFF7E8] text-[#B26A00] hover:bg-[#FFF0D4]'
+                  : 'cursor-default border-[#E6E8F1] bg-[#F7F8FB] text-[#9AA0B5]'
+              }`}
+              data-testid="style-upgrade-entry"
+            >
+              {diff.hasUpgrade
+                ? `🔔 谱系有升级（${diff.registeredVersion} → ${diff.currentVersion}），点击查看差异`
+                : diff.noBrief
+                  ? '谱系当前已是最新（立项后可采纳升级）'
+                  : '谱系当前已是最新'}
+            </button>
+          )}
+          {diffOpen && diff?.hasUpgrade && (
+            <div
+              className="mt-2 mb-2 rounded-[10px] border-[1.5px] border-[#F5E0B8] bg-[#FFFDF5] px-2.5 py-2 text-[11px] leading-[1.6] text-[#7A5C1D]"
+              data-testid="style-upgrade-panel"
+            >
+              <div className="mb-1 text-[11px] font-extrabold text-[#B26A00]">
+                谱系升级差异 · 版本 <span data-testid="style-upgrade-versions">{diff.registeredVersion} → {diff.currentVersion}</span>（人决定是否采纳）
+              </div>
+              <div className="mb-1 text-[10px] text-[#A6873B]">差异 = 引用条目现况 + 谱系变更记录，非逐字段 diff</div>
+              {diff.blocking && (
+                <div className="mb-1 rounded-md bg-[#FDECEC] px-2 py-1 text-[10.5px] font-bold text-[#C0392B]">
+                  ⚠ 引用风格已被谱系移除，请先在立项中重选风格后再采纳
+                </div>
+              )}
+              {diff.referenced.map(r => (
+                <div key={r.id} className="py-0.5" data-testid="style-upgrade-ref" data-style-id={r.id}>
+                  {r.role === 'main' ? '主风格' : '辅助风格'} {r.id}{getStyleName(r.id) ? ` ${getStyleName(r.id)}` : ''}：
+                  {r.removed || !r.current ? (
+                    <b className="text-[#C0392B]">已移除</b>
+                  ) : (
+                    <>
+                      {r.current.role === 'main' ? '主' : '备'}
+                      {r.current.auxiliaryCandidate ? ' · 可作辅助' : ''}
+                      {' · 可行度'}{r.current.feasibility === 'high' ? '高' : r.current.feasibility === 'medium' ? '中' : '低'}
+                      {r.current.anchorWords.length > 0 && (
+                        <span className="block text-[10px] text-[#A6873B]">锚点词现况：{r.current.anchorWords.join('、')}</span>
+                      )}
+                    </>
+                  )}
+                </div>
+              ))}
+              {diff.changelogUnavailable ? (
+                <div className="py-0.5 text-[10.5px] text-[#A6873B]" data-testid="style-upgrade-changelog-empty">
+                  谱系未提供变更明细
+                </div>
+              ) : (
+                <div className="py-0.5" data-testid="style-upgrade-changelog">
+                  {diff.changelog.map(entry => (
+                    <div key={entry.version} className="py-0.5">
+                      <div className="font-extrabold">{entry.version}{entry.date ? `（${entry.date}）` : ''}</div>
+                      {entry.items.map((item, i) => (
+                        <div key={i} className="pl-3">· {item}</div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {adoptError && (
+                <div className="mt-1 rounded-md bg-[#FDECEC] px-2 py-1 text-[10.5px] font-bold text-[#C0392B]">{adoptError}</div>
+              )}
               <div className="mt-1.5 flex gap-1.5">
                 <button
                   type="button"
-                  onClick={() => { setDiffOpen(false) }}
-                  className="rounded-md bg-ok px-2.5 py-1 text-[10.5px] font-bold text-white hover:opacity-90"
-                  data-catalog-adopt
-                >采纳（项目引用升 v1.47）</button>
+                  disabled={diff.blocking || !!diff.noBrief || adopting}
+                  onClick={adoptUpgrade}
+                  title={diff.blocking ? '引用风格已被谱系移除，请先重选风格' : diff.noBrief ? '立项后可采纳' : undefined}
+                  className={`rounded-md px-2.5 py-1 text-[10.5px] font-bold text-white ${
+                    diff.blocking || diff.noBrief || adopting ? 'cursor-not-allowed bg-[#C9CEDD]' : 'bg-ok hover:opacity-90'
+                  }`}
+                  data-testid="style-upgrade-adopt"
+                >{adopting ? '采纳中…' : `采纳（项目引用升 ${diff.currentVersion}）`}</button>
                 <button
                   type="button"
-                  onClick={() => { setDiffOpen(false) }}
+                  onClick={() => setDiffOpen(false)}
                   className="rounded-md bg-[#F1F2F8] px-2.5 py-1 text-[10.5px] font-bold text-[#7A8098] hover:bg-[#E5E7F2]"
-                  data-catalog-ignore
-                >忽略（保持 v1.46）</button>
+                  data-testid="style-upgrade-ignore"
+                >忽略（保持 {diff.registeredVersion}）</button>
               </div>
             </div>
           )}
@@ -230,13 +298,18 @@ export default function VisualCatalog({ open, onClose, onAdopt }: Props) {
               }`}
               data-cat-tab={t.key}
             >
-              {t.label} {t.count}
+              {t.label}{counts ? ` ${counts[t.key]}` : ''}
             </button>
           ))}
         </div>
 
-        {/* cat-body：2 列 cat-grid，每张卡 3:4 缩略图 + 名称 + chip + 可行度 + 采用按钮 */}
+        {/* cat-body：2 列 cat-grid，每张卡 3:4 缩略图 + 名称 + chip + 可行度 + 采用按钮（feature-811：entries 数据驱动） */}
         <div className="min-h-0 flex-1 overflow-y-auto px-3.5 pb-3 pt-2.5">
+          {catalog.status !== 'ok' ? (
+            <div className="px-2 py-8 text-center text-[11px] text-[#9AA0B5]" data-catalog-empty>
+              {catalog.status === 'loading' || catalog.status === 'idle' ? '谱系加载中…' : '谱系不可用'}
+            </div>
+          ) : (
           <div className="grid grid-cols-2 gap-2">
             {visible.map(s => (
               <div
@@ -247,7 +320,7 @@ export default function VisualCatalog({ open, onClose, onAdopt }: Props) {
                 {/* 3:4 缩略图（真实预览 PNG，缺失时 family 渐变兜底） */}
                 <div
                   className="relative aspect-[3/4] w-full cursor-zoom-in overflow-hidden"
-                  style={PREVIEW_URL[s.id] ? undefined : { background: FAMILY_GRAD[s.fam] }}
+                  style={PREVIEW_URL[s.id] ? undefined : { background: FAMILY_GRAD[s.familyCode] }}
                   onClick={() => setPreviewId(s.id)}
                   title="点击查看预览"
                 >
@@ -266,20 +339,20 @@ export default function VisualCatalog({ open, onClose, onAdopt }: Props) {
                     </span>
                   )}
                   {/* 可行度浮标 */}
-                  <span className="absolute right-1 top-1 rounded bg-black/35 px-1.5 py-px text-[9.5px] font-extrabold text-white">{s.feat}</span>
+                  <span className="absolute right-1 top-1 rounded bg-black/35 px-1.5 py-px text-[9.5px] font-extrabold text-white">{FEAT_LABEL[s.feasibility]}</span>
                 </div>
                 <div className="px-2 py-1.5">
                   <div className="flex flex-wrap items-center gap-1 text-[10.5px] font-extrabold text-ink">
                     <span className="min-w-0 truncate">{s.name}</span>
                     <span className={`shrink-0 rounded px-1 py-px text-[8.5px] font-extrabold ${
-                      s.st === '主' ? 'bg-[#E7F8F0] text-[#1E9E66]' : 'bg-[#FFF4DE] text-[#C0841D]'
-                    }`}>{s.st === '主' ? '主·已验证' : '备·风险自担'}</span>
+                      s.role === 'main' ? 'bg-[#E7F8F0] text-[#1E9E66]' : 'bg-[#FFF4DE] text-[#C0841D]'
+                    }`}>{s.role === 'main' ? '主·已验证' : '备·风险自担'}</span>
                   </div>
-                  <div className="mt-0.5 text-[9px] text-[#A6ABC0]">{s.id} · {s.family.split('·')[0]}</div>
+                  <div className="mt-0.5 text-[9px] text-[#A6ABC0]">{s.id} · {s.familyLabel}</div>
                   <button
                     type="button"
                     onClick={() => {
-                      onAdopt?.({ id: s.id, name: s.name, family: s.family })
+                      onAdopt?.({ id: s.id, name: s.name, family: s.familyLabel })
                       onClose()
                     }}
                     className="mt-1.5 w-full rounded-md border border-[#DED9FB] bg-violet-soft px-1 py-1 text-[10px] font-bold text-[#5A4FD8] transition hover:bg-violet hover:text-white"
@@ -289,6 +362,7 @@ export default function VisualCatalog({ open, onClose, onAdopt }: Props) {
               </div>
             ))}
           </div>
+          )}
         </div>
 
         {/* cat-foot */}
@@ -352,7 +426,7 @@ export default function VisualCatalog({ open, onClose, onAdopt }: Props) {
               return (
                 <div
                   className="grid min-h-[200px] place-items-center overflow-hidden rounded-[10px]"
-                  style={{ background: `${FAMILY_GRAD[previewItem.fam]} padding-box, #15161D` }}
+                  style={{ background: `${FAMILY_GRAD[previewItem.familyCode]} padding-box, #15161D` }}
                 >
                   <span className="text-[44px] font-extrabold text-white/80">{previewItem.id}</span>
                 </div>
@@ -361,23 +435,26 @@ export default function VisualCatalog({ open, onClose, onAdopt }: Props) {
             <div className="flex flex-wrap items-center gap-1.5 text-[14px] font-extrabold text-ink">
               {previewItem.name}
               <span className={`rounded px-1.5 py-px text-[10px] ${
-                previewItem.st === '主' ? 'bg-[#E7F8F0] text-[#1E9E66]' : 'bg-[#FFF4DE] text-[#C0841D]'
-              }`}>{previewItem.st === '主' ? '主·已验证' : '备·风险自担'}</span>
-              <span className="rounded bg-[#E7F8F0] px-1.5 py-px text-[10px] font-extrabold text-[#1E9E66]">可行度 {previewItem.feat}</span>
+                previewItem.role === 'main' ? 'bg-[#E7F8F0] text-[#1E9E66]' : 'bg-[#FFF4DE] text-[#C0841D]'
+              }`}>{previewItem.role === 'main' ? '主·已验证' : '备·风险自担'}</span>
+              <span className="rounded bg-[#E7F8F0] px-1.5 py-px text-[10px] font-extrabold text-[#1E9E66]">可行度 {FEAT_LABEL[previewItem.feasibility]}</span>
             </div>
-            <div className="text-[10.5px] text-[#A6ABC0]">{previewItem.id} · {previewItem.family}</div>
+            <div className="text-[10.5px] text-[#A6ABC0]">{previewItem.id} · {previewItem.familyLabel}</div>
             <div>
               <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.4px] text-[#9AA0B5]">锚点词示例</div>
               <div className="rounded-md border border-line bg-[#F8F9FC] p-2 text-[10.5px] leading-[1.5] text-[#4A4F68]">
-                {previewItem.anchor}
+                {previewItem.anchorWords}
               </div>
             </div>
-            <div>
-              <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.4px] text-[#9AA0B5]">质感配方</div>
-              <div className="rounded-md border border-line bg-[#F8F9FC] p-2 text-[10.5px] leading-[1.5] text-[#4A4F68]">
-                Qwen-Image 系：预览档 Lightning 4 步 / euler / normal / CFG 2.0；标准档 euler / normal / 20 步 / CFG 2.5
+            {/* feature-811：质感配方 = 谱系 J.2 textureRecipe 原文（空串 → 该块不显） */}
+            {previewItem.textureRecipe && (
+              <div>
+                <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.4px] text-[#9AA0B5]">质感配方</div>
+                <div className="rounded-md border border-line bg-[#F8F9FC] p-2 text-[10.5px] leading-[1.5] text-[#4A4F68]">
+                  {previewItem.textureRecipe}
+                </div>
               </div>
-            </div>
+            )}
             {/* 三档实测视频（仅主画风）；备画风禁用并提示 */}
             <div className="flex flex-wrap gap-1.5" data-preview-vids={previewItem.id}>
               {VID_TABS.map(t => {
@@ -410,7 +487,7 @@ export default function VisualCatalog({ open, onClose, onAdopt }: Props) {
               <button
                 type="button"
                 onClick={() => {
-                  onAdopt?.({ id: previewItem.id, name: previewItem.name, family: previewItem.family })
+                  onAdopt?.({ id: previewItem.id, name: previewItem.name, family: previewItem.familyLabel })
                   setPreviewId(null)
                   onClose()
                 }}

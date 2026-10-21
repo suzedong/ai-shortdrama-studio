@@ -3,7 +3,7 @@
 // 组件凭据为 data-stage0-*（非 data-testid），统一用容器选择器。
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Canvas, CanvasGate, CanvasNode, ProjectBrief, StepId } from '@shared/types'
 import Stage0View from './Stage0View'
@@ -12,6 +12,38 @@ import {
   parseBriefJson,
   selectStage0State,
 } from './stage0/select'
+import { _setStyleCatalogSnapshotForTest } from './style-catalog-store'
+
+// feature-811：风格显示名/编辑面板选项消费 style:catalog 快照——prime 全 18 条（编辑面板 select 须含 C1 option），懒 ensure no-op
+const primeEntry = (
+  id: string, name: string,
+  familyCode: StyleCatalogEntryDto['familyCode'], familyLabel: string,
+  role: StyleCatalogEntryDto['role'],
+): StyleCatalogEntryDto => ({
+  id, name, familyCode, familyLabel, role,
+  feasibility: 'high', auxiliaryCandidate: false,
+  visualTraits: '', anchorWords: '', textureRecipe: '',
+})
+const PRIME_ENTRIES: StyleCatalogEntryDto[] = [
+  primeEntry('A1', '数字电影写实', 'A', '写实影像系', 'main'),
+  primeEntry('A2', '胶片电影感', 'A', '写实影像系', 'main'),
+  primeEntry('A3', '年代胶片（千禧·90s·80s）', 'A', '写实影像系', 'backup'),
+  primeEntry('A4', 'DV·CCD 数码复古', 'A', '写实影像系', 'backup'),
+  primeEntry('A5', '黑白电影', 'A', '写实影像系', 'backup'),
+  primeEntry('A7', '拟真人·仿真人动漫', 'A', '写实影像系', 'main'),
+  primeEntry('B1', '清新生活流', 'B', '青春治愈系', 'main'),
+  primeEntry('C1', '日式动漫', 'C', '动画插画系', 'main'),
+  primeEntry('C2', '国漫·新中式插画', 'C', '动画插画系', 'main'),
+  primeEntry('C5', '美式卡通', 'C', '动画插画系', 'backup'),
+  primeEntry('C6', '扁平矢量·低多边形', 'C', '动画插画系', 'backup'),
+  primeEntry('C7', '韩漫·精致美型', 'C', '动画插画系', 'main'),
+  primeEntry('D1', '冷调悬疑', 'D', '类型氛围系', 'main'),
+  primeEntry('D2', '赛博·科幻', 'D', '类型氛围系', 'main'),
+  primeEntry('D3', '奇幻童话', 'D', '类型氛围系', 'backup'),
+  primeEntry('D4', '暗黑·哥特', 'D', '类型氛围系', 'backup'),
+  primeEntry('D5', '神话国风', 'D', '类型氛围系', 'main'),
+  primeEntry('E1', '3D CG', 'E', '材质工艺系', 'main'),
+]
 
 const BRIEF_PATH = '立项单.v1.json'
 const BG_PATH = '故事背景档案.md'
@@ -133,6 +165,11 @@ function renderView(c: Canvas) {
 
 beforeEach(() => {
   vi.restoreAllMocks()
+  _setStyleCatalogSnapshotForTest({ status: 'ok', version: 'v1.46', entries: PRIME_ENTRIES })
+})
+
+afterEach(() => {
+  act(() => { _setStyleCatalogSnapshotForTest(null) })
 })
 
 /* ── §6.1 selectStage0State ── */

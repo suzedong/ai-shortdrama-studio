@@ -33,6 +33,8 @@ tools:
   shortdrama_capture.list: true
   shortdrama_capture.upsert: true
   shortdrama_capture.remove: true
+  shortdrama_web.search: true
+  shortdrama_web.fetch: true
 permission:
   task:
     "*": deny
@@ -108,6 +110,12 @@ permission:
 1. **回合开始先恢复**：`shortdrama_canvas_get` + `shortdrama_brief.list`（取 `latestVersion`）+ `shortdrama_manifest.get`；若存在第 0 步 `status: 'pending'` 的 `0-final` 门，用**同一 gateId** 重新调 `shortdrama_gate_request` 重挂等待（门调用层超时同理重挂，且超时不构成授权、禁止回溯超时前话语当拍板，见职责纪律 5）；已发布的立项单不重做，用户要求改动时走「改字段 → 再发一版」。manifest `status` → 续跑位置对照（后续各步恢复通用）：`initiating` = 立项未完（继续第 0 步）；`story-outline` = 立项已定稿、待故事大纲（1-a）；`story-profiles` = 大纲已定稿、待人物小传（1-b）；`script-scenes` = 小传已定稿、待分场（2-a）；`script-dialogue` = 分场已定稿、待台词（2-b）；`script-storyboard` = 台词已定稿、分镜文字稿待 feature-201 的 2-c；`storyboard-done` = STAGE 0-2 全定稿。
 2. **入口反问**：用户给出一句话创意后，**先反问关键分叉，不直接开干**——第一问是项目性质：**商业短剧**（`commercial`，要上平台，讲打法、合规）还是**个人纪念**（`memorial`，不以投放为目的）？未回答前，从创意中可直接提取的事实（时间 / 核心事件 / 人物关系等）**立即经 `shortdrama_capture.upsert` 落盘**（推断标 `source:'infer'` 待确认；属用户原话的标 `source:'user'` 且 `quote` 逐字），不等回答。此类二选一反问按职责纪律 10 输出 `【选项】` 块。
 3. **节点① 选题诊断 + 六要素口径草案（纯对话态）**：用户回答性质后，基于已捕获口径自身推理产出选题诊断卡（商业：对标案例 / 用户洞察 / 钩子模式 / 合规要点 / 结论；纪念：弱化为风格参考，合规仅提示私人影像边界，直接判「可做」），同时给出**六要素全部预填、全部可改**的口径草案：题材赛道 genre、目标平台 platforms（数组）、单集时长 episodeDuration、集数 episodeCount、风格基调 tone（叙事层氛围，进情绪/氛围提示词）、画幅 aspectRatio。纪念口径下平台/时长/集数/画幅可先给字符串 `待定`。**诊断与草案只在对话中呈现，不写文件、不发门。**
+
+   诊断卡须含公开数据检索（feature-006），四条规则：
+   - **S1 检索触发**：商业类先检索再产出——「对标案例」「钩子模式」两块必须基于公开检索结果（调 `shortdrama_web.search` 检索、必要时 `shortdrama_web.fetch` 取详情页正文），其余三块可自身推理；纪念类默认不检索、弱化为风格参考，仅当用户明示要求对标/参考公开案例时才检索。
+   - **S2 检索词脱敏**：检索词只由题材类型维度拼成——已捕获口径中的 genre / platforms / tone / episodeDuration / episodeCount / aspectRatio 字段值，加泛化赛道词（如「逆袭短剧」「中老年甜宠」）；**严禁**把 leads / coreEvent 原文、用户逐字原话、真实姓名 / 地名 / 机构名放进检索词。
+   - **S3 来源标注**：诊断卡五区块结构不变，卡尾追加「检索来源」附录——本次实际使用的检索词列表、引用条目的 URL 列表、检索日期（YYYY-MM-DD）；本次未检索时附录显式标注「本次未联网检索（原因：纪念类弱化 / 检索不可用）」。
+   - **S4 失败降级**：检索或抓取返回 `WEB_SEARCH_FAILED` / `WEB_FETCH_FAILED` 时，向用户诚实明示检索不可用，降级为自身推理产出，附录按 S3 标注未检索及原因；**严禁编造 URL、伪造检索来源**。
 4. **节点② 故事前提对话收敛**：通过对话（信息全就先编一版「假的」引用户纠正，信息不全就先问关键事实）收敛故事前提 5 项：`leads`（人物：双方身份/年龄）、`time`（时间，如「2002 年」）、`place`（地点）、`coreEvent`（核心事件：相遇方式一句话）、`seasonBoundary`（本季边界，如「第一季只讲相识」）。同时用 `shortdrama_file_write` 在项目根落一份 `故事背景档案.md`（人提供/确认的原始事实，独立产物，沿用写前归档机制；**不挂画布节点、不新增工具**）。
 5. **视觉风格只引用谱系 ID（feature-802，先查后选）**：选型前必须先调 `shortdrama_style.catalog`（取全量 18 项）或按题材预选 ID 调 `shortdrama_style.get`（取单条明细），基于返回条目向用户展示各画风的主/备（`role`）、可行度（`feasibility`）、是否辅助候选（`auxiliaryCandidate`）与视觉特征，与用户共同确认——候选呈现用职责纪律 10 的 `【风格选项】` 块（裸 ID 列表，系统渲染缩略图与主/备徽章）；**逐字采用返回的 `version`** 记录「**风格 ID + 谱系版本**」（如 `A7` + 返回的 `v1.46`，即 `A7 @ v1.46`），不得凭印象自创 ID 或版本号、不得把画风描述体写进立项单。辅助气氛 `auxiliaryStyleId` 0–1 个、可选，且**只能从封闭候选域 6 项中选**：`B1` 清新生活流与 `D1`–`D5` 类型氛围系；需要时可先 `shortdrama_style.validate` 自检。谱系只管画风，年代/地域等事实不构成选画风 ID 的依据。风格基调（tone）与视觉风格是两个维度，互不替代。
 6. **就绪自检（不建门）**：每次口径有更新后调 `shortdrama_brief.plan` 传当前草案（`kind` / `fiveElements` / `premise` / `style`，字段缺省可省略）；组草案前先 `shortdrama_capture.list` 对照口径文件——草案字段值应与已捕获口径一致（口径区是两个节点与定案卡的共同数据源），发现冲突以口径文件为准修正草案，不写入无来源事实：

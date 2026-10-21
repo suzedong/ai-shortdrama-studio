@@ -1,8 +1,9 @@
-// feature-017 / feature-001 / feature-801 / feature-802 / feature-002 / feature-807 / feature-005 · MCP 纯工具注册（主进程）
-// 25 个零 LLM 工具：文件 / 画布 / 裁决门 / 资产 / ComfyUI 实例 / 立项单（brief.plan/publish/list）
+// feature-017 / feature-001 / feature-801 / feature-802 / feature-002 / feature-807 / feature-005 / feature-006 · MCP 纯工具注册（主进程）
+// 27 个零 LLM 工具：文件 / 画布 / 裁决门 / 资产 / ComfyUI 实例 / 立项单（brief.plan/publish/list）
 //   / manifest 状态机（manifest.get/advance）/ 视觉风格谱系（17–19 style.catalog/get/validate）
 //   / 立项后变更（20–22 brief.impact.assess/commit、canvas.align）
-//   / 已捕获口径（23–25 capture.list/upsert/remove，feature-005）。
+//   / 已捕获口径（23–25 capture.list/upsert/remove，feature-005）
+//   / 公开数据检索（26–27 web.search/fetch，feature-006；零 Key 公开搜索源，不依赖激活项目）。
 // feature-807：brief.publish 写盘前经 gate/guard 做门态防护（4 个 BRIEF_GATE_* 信封码，工具数不变）。
 // 纪律：只 import zod、MCP SDK、shared types 与 fs/project/canvas/gate/asset/comfy/brief/capture 模块。
 import path from 'node:path'
@@ -882,4 +883,152 @@ export function registerPureTools(server: McpServer): void {
       }
     },
   )
+
+  // ---- feature-006 · 公开数据检索（26–27；T0 定案 B：薄壳调下方纯函数，不依赖激活项目）----
+
+  // 26. web.search
+  server.tool(
+    'web.search',
+    '检索公开网页（选题诊断用；零 Key 公开搜索源，不依赖激活项目）。入参 query 检索词，返回 results（title/url/snippet 列表）；网络或搜索源失败报 WEB_SEARCH_FAILED。',
+    { query: z.string().min(1) },
+    async (args: { query: string }) => {
+      try {
+        const results = await webSearch(args.query)
+        return respond<{ results: WebSearchResultItem[] }>({ ok: true, results })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+
+  // 27. web.fetch
+  server.tool(
+    'web.fetch',
+    '抓取公开网页并提取正文文本（超长截断保护；仅 http/https；不依赖激活项目）。入参 url，返回 text；抓取失败报 WEB_FETCH_FAILED。',
+    { url: z.string().min(1) },
+    async (args: { url: string }) => {
+      try {
+        const text = await webFetchText(args.url)
+        return respond<{ text: string }>({ ok: true, text })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+}
+
+// ---- feature-006 · 公开数据检索纯函数（契约 §2.2 补登；零 Key 公开源 + 主进程原生 fetch，K9 零新依赖）----
+// 导出供 src/test/web-tools.test.ts 直接单测；fetchImpl 依赖注入，单测零外网。
+
+export const WEB_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) shortdrama-studio/1.0'
+export const WEB_TIMEOUT_MS = 15_000
+export const WEB_FETCH_MAX_CHARS = 20_000
+const WEB_SEARCH_MAX_RESULTS = 8
+const DDG_HTML_ENDPOINT = 'https://html.duckduckgo.com/html/'
+
+type FetchImpl = typeof fetch
+
+export interface WebSearchResultItem {
+  title: string
+  url: string
+  snippet: string
+}
+
+/** 常见 HTML 实体解码（命名实体 + 十/十六进制数字实体；单层替换防二次展开） */
+export function decodeHtmlEntities(s: string): string {
+  const named: Record<string, string> = {
+    amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
+    ndash: '–', mdash: '—', hellip: '…', middot: '·',
+    lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”',
+  }
+  return s
+    .replace(/&#x([0-9a-fA-F]+);/g, (_m, h: string) => String.fromCodePoint(Number.parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_m, d: string) => String.fromCodePoint(Number.parseInt(d, 10)))
+    .replace(/&([a-zA-Z]+);/g, (m, name: string) => named[name] ?? m)
+}
+
+/** HTML → 纯文本：去脚本/样式/注释/标签，实体解码，折叠空白 */
+export function htmlToText(html: string): string {
+  const stripped = html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<[^>]+>/g, ' ')
+  return decodeHtmlEntities(stripped).replace(/\s+/g, ' ').trim()
+}
+
+/** 结果链接解码：`//duckduckgo.com/l/?uddg=<encoded>` 重定向取 uddg；仅放行 http/https 直链 */
+function resolveDdgUrl(href: string): string | null {
+  let u = href.trim()
+  if (u.startsWith('//')) u = `https:${u}`
+  try {
+    const uddg = new URL(u).searchParams.get('uddg')
+    if (uddg) u = uddg
+  } catch {
+    return null
+  }
+  return /^https?:\/\//i.test(u) ? u : null
+}
+
+/**
+ * 解析 DuckDuckGo html 端点结果页：逐条 result__a 链接（uddg 解码）配对同区块 result__snippet 摘要。
+ * 无法解码为 http/https 的条目剔除；不足 maxResults 条按实际返回。
+ */
+export function parseDdgResults(html: string, maxResults = WEB_SEARCH_MAX_RESULTS): WebSearchResultItem[] {
+  const linkRe = /<a\b[^>]*class="[^"]*\bresult__a\b[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi
+  const links = [...html.matchAll(linkRe)]
+  const items: WebSearchResultItem[] = []
+  for (let i = 0; i < links.length && items.length < maxResults; i++) {
+    const link = links[i]
+    const url = resolveDdgUrl(decodeHtmlEntities(link[1]))
+    if (!url) continue
+    const blockStart = (link.index ?? 0) + link[0].length
+    const blockEnd = i + 1 < links.length ? (links[i + 1].index ?? html.length) : html.length
+    const block = html.slice(blockStart, blockEnd)
+    const snip = /<[a-z]+\b[^>]*class="[^"]*\bresult__snippet\b[^"]*"[^>]*>([\s\S]*?)<\/[a-z]+>/i.exec(block)
+    items.push({ title: htmlToText(link[2]), url, snippet: snip ? htmlToText(snip[1]) : '' })
+  }
+  return items
+}
+
+/** 拉取页面 HTML（UA/超时/重定向统一在此；非 2xx 抛 HTTP 状态） */
+async function fetchHtml(url: string, fetchImpl: FetchImpl): Promise<string> {
+  const res = await fetchImpl(url, {
+    headers: { 'user-agent': WEB_UA, accept: 'text/html,application/xhtml+xml' },
+    signal: AbortSignal.timeout(WEB_TIMEOUT_MS),
+    redirect: 'follow',
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.text()
+}
+
+/** 公开网页检索：DuckDuckGo html 端点（零 Key）；网络/HTTP 失败一律报 WEB_SEARCH_FAILED */
+export async function webSearch(query: string, fetchImpl: FetchImpl = fetch): Promise<WebSearchResultItem[]> {
+  const q = query.trim()
+  if (!q) throw Object.assign(new Error('检索词为空'), { code: 'INVALID_ARGUMENT' })
+  let html: string
+  try {
+    html = await fetchHtml(`${DDG_HTML_ENDPOINT}?q=${encodeURIComponent(q)}`, fetchImpl)
+  } catch (e) {
+    throw Object.assign(new Error(`公开检索失败：${(e as Error).message}`), { code: 'WEB_SEARCH_FAILED' })
+  }
+  return parseDdgResults(html)
+}
+
+/** 公开网页抓取：仅 http/https，HTML→正文文本，超 maxChars 截断；失败一律报 WEB_FETCH_FAILED */
+export async function webFetchText(
+  url: string,
+  fetchImpl: FetchImpl = fetch,
+  maxChars = WEB_FETCH_MAX_CHARS,
+): Promise<string> {
+  const u = url.trim()
+  if (!/^https?:\/\//i.test(u)) throw Object.assign(new Error('仅支持 http/https 链接'), { code: 'INVALID_ARGUMENT' })
+  let html: string
+  try {
+    html = await fetchHtml(u, fetchImpl)
+  } catch (e) {
+    throw Object.assign(new Error(`网页抓取失败：${(e as Error).message}`), { code: 'WEB_FETCH_FAILED' })
+  }
+  const text = htmlToText(html)
+  return text.length > maxChars ? text.slice(0, maxChars) : text
 }

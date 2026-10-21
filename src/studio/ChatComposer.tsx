@@ -8,7 +8,8 @@ import remarkGfm from 'remark-gfm'
 import { turnReasoning, turnText, type StreamingTurn, type ToolView } from '../lib/chat-runtime'
 import type { CanvasGate } from '@shared/types'
 import GateCardView from './GateCardView'
-import { FAMILY_GRAD, PREVIEW_URL, STYLE_CATALOG_VERSION, STYLES } from './VisualCatalog'
+import { FAMILY_GRAD, PREVIEW_URL } from './VisualCatalog'
+import { getStyleEntry, useStyleCatalog } from './style-catalog-store'
 
 // ── Agent 气泡 Markdown 渲染（2026-10-15，K9 批准 react-markdown + remark-gfm；仅 Agent 侧） ──
 // 默认不渲染原始 HTML（XSS 面为零）；链接统一新窗打开，由主进程 setWindowOpenHandler 转交系统浏览器。
@@ -162,7 +163,7 @@ export function parseChatOptions(text: string): {
       if (style) {
         for (const o of options) {
           const idM = /^([A-E]\d{1,2})$/.exec(o.text)
-          if (idM && STYLES.some(s => s.id === idM[1])) o.styleId = idM[1]
+          if (idM && getStyleEntry(idM[1])) o.styleId = idM[1]
         }
       }
       return { rest: trimmed.slice(0, openIdx).replace(/\s+$/, ''), options, style }
@@ -208,11 +209,13 @@ function OptionCard({
   pickedNum?: string
   onPick: (num: string) => void
 }) {
+  // feature-811：风格选项卡数据 = style:catalog 快照（订阅到位后重渲染；版本号显快照 version）
+  const catalog = useStyleCatalog()
   return (
     <div data-chat-options className="mt-[7px] flex flex-col gap-[5px]">
       {options.map(opt => {
         const picked = pickedNum === opt.num
-        const entry = opt.styleId ? STYLES.find(s => s.id === opt.styleId) : undefined
+        const entry = opt.styleId ? getStyleEntry(opt.styleId) : undefined
         return (
           <button
             key={opt.num}
@@ -238,22 +241,22 @@ function OptionCard({
                 ) : (
                   <i
                     className="block h-10 w-10 shrink-0 rounded-[7px] border border-line"
-                    style={{ background: FAMILY_GRAD[entry.fam] }}
+                    style={{ background: FAMILY_GRAD[entry.familyCode] }}
                   />
                 )}
                 <span className={picked ? 'text-white' : 'text-ink'}>
-                  {entry.name} · {entry.id} @ {STYLE_CATALOG_VERSION}
+                  {entry.name} · {entry.id} @ {catalog.version ?? '…'}
                 </span>
                 <span
                   className={`shrink-0 rounded px-[5px] py-px text-[8.5px] font-extrabold ${
                     picked
                       ? 'bg-white/20 text-white'
-                      : entry.st === '主'
+                      : entry.role === 'main'
                         ? 'bg-[#E7F8F0] text-[#1E9E66]'
                         : 'bg-[#FFF4DE] text-[#C0841D]'
                   }`}
                 >
-                  {entry.st === '主' ? '主·已验证' : '备·风险自担'}
+                  {entry.role === 'main' ? '主·已验证' : '备·风险自担'}
                 </span>
               </>
             ) : (

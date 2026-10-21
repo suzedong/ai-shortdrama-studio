@@ -2,11 +2,26 @@
 // 缺陷根因：changes 分支复用 KV（键列 w-[64px] 定宽），英文点路径必然折行与值穿插成叠字。
 // 修复（方案 A）：该分支每项改纵向两行块——字段路径独立一行完整显示，from → to 在下一行。
 // KV 组件本体与其他区块（六要素/故事前提/视觉风格）零改动。
-import { fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { CanvasNode, ProjectBrief, StepId } from '@shared/types'
 import StudioViewer from './StudioViewer'
+import { _setStyleCatalogSnapshotForTest } from './style-catalog-store'
+
+// feature-811：风格显示名消费 style:catalog 快照——prime ok 态后首订阅懒 ensure no-op（store 契约）
+const PRIME_ENTRIES: StyleCatalogEntryDto[] = [
+  {
+    id: 'A7', name: '拟真人·仿真人动漫', familyCode: 'A', familyLabel: '写实影像系',
+    role: 'main', feasibility: 'high', auxiliaryCandidate: false,
+    visualTraits: '', anchorWords: '', textureRecipe: '',
+  },
+  {
+    id: 'D1', name: '冷调悬疑', familyCode: 'D', familyLabel: '类型氛围系',
+    role: 'main', feasibility: 'high', auxiliaryCandidate: true,
+    visualTraits: '', anchorWords: '', textureRecipe: '',
+  },
+]
 
 /* ── 夹具 ── */
 
@@ -73,6 +88,11 @@ function renderViewer(data: ProjectBrief, opts: { bg?: string | null; entryQuote
 
 beforeEach(() => {
   vi.restoreAllMocks()
+  _setStyleCatalogSnapshotForTest({ status: 'ok', version: 'v1.46', entries: PRIME_ENTRIES })
+})
+
+afterEach(() => {
+  act(() => { _setStyleCatalogSnapshotForTest(null) })
 })
 
 /* ── B-20 相对上一版改动 ── */

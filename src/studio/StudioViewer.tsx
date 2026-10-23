@@ -14,6 +14,7 @@ import type {
 } from '@shared/types'
 
 import { getStyleName } from './style-catalog-store'
+import { dirtyFieldLabel } from './CanvasBoard'
 import { BACKGROUND_PATH, BackgroundMd, DiagnosisSections, EntryQuoteCard, formatAt } from './Stage0View'
 import BriefHistoryView from './BriefHistoryView'
 
@@ -34,6 +35,8 @@ interface Props {
   onClose: () => void
   /** B-33：入口动作 · 用户原话（会话首条 user 消息，由 StudioApp 传入；仅 brief 视图显示） */
   entryQuote?: string
+  /** feature-007：脏读黄条「一键对齐」回调（未传 → 黄条无钮） */
+  onRequestAlign?: () => void
 }
 
 // ── 通用视觉件 ──────────────────────────────────────────────
@@ -537,7 +540,7 @@ function StructuredBody({ kind, data, node, entryQuote = '' }: { kind: string; d
 
 // ── 外壳 ────────────────────────────────────────────────────
 
-export default function StudioViewer({ node, kindLabel, onClose, entryQuote = '' }: Props) {
+export default function StudioViewer({ node, kindLabel, onClose, entryQuote = '', onRequestAlign }: Props) {
   const [state, setState] = useState<State>({ phase: 'loading' })
   // feature-004：立项单历史与回滚覆盖层开关（契约 §3.2，仅 brief 节点可见入口）
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -608,6 +611,24 @@ export default function StudioViewer({ node, kindLabel, onClose, entryQuote = ''
             <span className="shrink-0 rounded bg-canvas px-1.5 py-0.5 text-[10px] uppercase text-muted">
               {state.format}
             </span>
+          )}
+        </div>
+      )}
+      {/* feature-007：脏读黄条（§2.6.7 L359 简版，无 [查看影响评估] 钮；onRequestAlign 未传则无钮） */}
+      {node.dirty && (
+        <div className="flex items-center gap-2 border-b border-line bg-[#FFF4DE] px-5 py-2">
+          <span className="min-w-0 flex-1 break-words text-[11px] font-semibold leading-5 text-[#C0841D]">
+            当前基于 v{node.dirty.sinceBriefVersion} 立项，与最新 v{node.dirty.latestBriefVersion} 不一致：
+            {node.dirty.fields.map(dirtyFieldLabel).join('、')}
+          </span>
+          {onRequestAlign && (
+            <button
+              type="button"
+              onClick={onRequestAlign}
+              className="shrink-0 rounded-lg border border-[#C0841D]/40 bg-white/70 px-2.5 py-0.5 text-[11px] font-bold text-[#C0841D] hover:bg-white"
+            >
+              一键对齐
+            </button>
           )}
         </div>
       )}

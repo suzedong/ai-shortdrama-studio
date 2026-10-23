@@ -134,6 +134,9 @@ type ReadResult =
 function installFileRead(router: (path: string) => ReadResult | Promise<ReadResult>) {
   const spy = vi.fn(async ({ path }: { path: string }) => router(path))
   window.api = { fileRead: spy } as unknown as Window['api']
+  // feature-008：capture 空 facts 桩（链态条订阅兼容；同 installUpdateBrief 叠加模式）
+  ;(window.api as unknown as { captureList: unknown }).captureList = vi.fn(async () => ({ schemaVersion: 1 as const, facts: [] }))
+  ;(window.api as unknown as { onCaptureChanged: unknown }).onCaptureChanged = vi.fn(() => () => undefined)
   return spy
 }
 

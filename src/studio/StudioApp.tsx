@@ -15,6 +15,7 @@ import { AssetsPanel, PluginsPanel, SkillsPanel } from './LeftPanels'
 import StageNavPanel from './StageNavPanel'
 import Stage0View from './Stage0View'
 import StudioViewer from './StudioViewer'
+import RealignConfirm, { buildRealignPrompt } from './RealignConfirm'
 import VisualCatalog from './VisualCatalog'
 import WindowControls from './WindowControls'
 
@@ -103,6 +104,8 @@ export default function StudioApp() {
   const [deciding, setDeciding] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [viewerNode, setViewerNode] = useState<CanvasNode | null>(null)
+  // feature-007：重开脏产物的三选一确认节点（非空即弹 RealignConfirm）
+  const [confirmNode, setConfirmNode] = useState<CanvasNode | null>(null)
   const [leftView, setLeftView] = useState<LeftView>('resource')
   const [panTab, setPanTab] = useState<PanTab>('projects')
   const [leftQuery, setLeftQuery] = useState('')
@@ -272,6 +275,7 @@ export default function StudioApp() {
       // 仅切项目（projectId 变化）时关闭 viewer（契约 §6.3）；常规节点/门推送不关
       if (projectIdRef.current && c.projectId !== projectIdRef.current) {
         setViewerNode(null)
+        setConfirmNode(null)
       }
       syncProjectSession(c.projectId)
     })
@@ -374,8 +378,33 @@ export default function StudioApp() {
   }, [pendingGate])
 
   // ---- 节点查看 ----
-  const handleOpenNode = useCallback((node: CanvasNode) => setViewerNode(node), [])
+  // feature-007：带脏节点先弹三选一确认（查看器暂不开）；无脏直通（契约 §3.2 单点拦截）
+  const handleOpenNode = useCallback((node: CanvasNode) => {
+    if (node.dirty) setConfirmNode(node)
+    else setViewerNode(node)
+  }, [])
   const handleCloseViewer = useCallback(() => setViewerNode(null), [])
+  // 确认三动作：重新对齐 = 关确认与查看器 + 模板消息经 handleSend 既有链路送 Agent（D3，UI 不直调 align）
+  const handleRealign = useCallback(() => {
+    if (!confirmNode?.dirty) return
+    const input = {
+      nodeId: confirmNode.id,
+      title: confirmNode.title,
+      sinceBriefVersion: confirmNode.dirty.sinceBriefVersion,
+      latestBriefVersion: confirmNode.dirty.latestBriefVersion,
+      fields: confirmNode.dirty.fields,
+    }
+    setViewerNode(null)
+    setConfirmNode(null)
+    void handleSend(buildRealignPrompt(input))
+  }, [confirmNode, handleSend])
+  // 保持现状查看 = 关确认 + 开查看器（黄条仍在，不阻断创作）
+  const handleKeepView = useCallback(() => {
+    if (confirmNode) setViewerNode(confirmNode)
+    setConfirmNode(null)
+  }, [confirmNode])
+  // 取消 = 仅关确认
+  const handleConfirmCancel = useCallback(() => setConfirmNode(null), [])
 
   // ---- 节点操作（feature-026 · UI 演示，dev-mock 未接 IPC）----
   // dev-mock 暂不支持变更节点状态；这里只把动作反馈到 toast 与 console
@@ -703,6 +732,15 @@ export default function StudioApp() {
                   kindLabel={kindLabel(viewerNode.kind)}
                   onClose={handleCloseViewer}
                   entryQuote={entryQuote}
+                  onRequestAlign={viewerNode.dirty ? () => setConfirmNode(viewerNode) : undefined}
+                />
+              )}
+              {confirmNode && (
+                <RealignConfirm
+                  node={confirmNode}
+                  onRealign={handleRealign}
+                  onKeepView={handleKeepView}
+                  onCancel={handleConfirmCancel}
                 />
               )}
             </>

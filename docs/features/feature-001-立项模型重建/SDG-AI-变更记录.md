@@ -91,3 +91,10 @@
 - 联动修订：[feature-006](../feature-006-选题诊断公开数据检索/) 契约 §3 联动——step 3 修订为「基于已捕获口径 + 公开数据检索」：商业类「对标案例」「钩子模式」两块必须先检索（S1）；检索词仅取题材类型维度口径字段脱敏拼成，严禁用户原话 / 姓名地名机构名（S2）；诊断卡五区块结构不变、卡尾追加「检索来源」附录含检索词 / URL / 日期，未检索须显式标注原因（S3）；检索失败诚实降级为自身推理、严禁编造 URL（S4）。配套通道：全仓 MCP 工具 25→27（新增 `shortdrama_web.search/fetch`，零 Key 公开搜索源），showrunner frontmatter 与白名单 20→22（K8 归 feature-006 登记）。
 - 边界注明：修订仅限 step 3 诊断产出的数据来源与附录标注；诊断卡候选态不独立落盘、不建门、不建画布节点铁律逐字不变；「检索来源」为卡尾追溯元数据附录，五区块结构未动，随既有 `diagnosisDetail` 机制入立项单（D-018，零新代码，`electron/brief/*` 零 diff）；纪念类默认不检索的弱化口径不变。
 - 交叉指针：[feature-006 契约 §3](../feature-006-选题诊断公开数据检索/SDG-RE-契约.md)、[feature-006 变更记录](../feature-006-选题诊断公开数据检索/SDG-AI-变更记录.md)、[偏差清单 B-39](../../设计现状与偏差清单.md)、[showrunner.md](../../../resources/opencode/agents/showrunner.md) 第 0 步 step 3。
+
+### R-008 · showrunner 脏读纪律新增第三条「单产物重对齐承接」（2026-10-21，feature-007 / B-42 联动）
+
+- 原文口径：本包 T5 重写的 [showrunner.md](../../../resources/opencode/agents/showrunner.md) 脏读纪律段（L168-171）仅两条——①打开 / 引用 / 汇报脏节点时复读警告；②委派下游交接物写明脏态。「立项后变更（再版）剧本」第 6 步虽含串行委派 + align 清脏纪律，但那是**再版全量影响清单驱动**的路径；用户经界面三选一确认、点名重对齐**单个脏产物**的入口（【产物重新对齐】前缀模板消息）无专条承接。
+- 联动修订：[feature-007](../feature-007-产物重开对齐二次确认/) 需求规格 §3.5——脏读纪律段追加第三条：用户经界面确认发来【产物重新对齐】前缀消息时，先 `shortdrama_canvas_get` 核实该节点脏态（无脏 → 告知已对齐，不动作）；核实后按再版剧本第 6 步同款纪律串行委派专职 agent 重生成（提示词 base 用最新立项单 vM，交接物写明旧产物基于 vN 与命中字段）；重生成定稿后调 `shortdrama_canvas.align({ nodeId })` 清脏并推进血缘；用户选「保持现状」时不做任何动作。
+- 边界注明：新增条仅承接 renderer 三选一确认注入的模板消息（feature-007，UI 不直调 align，D-016 / K8 零）；既有两条脏读纪律与再版六步剧本逐字不变；showrunner frontmatter tools 白名单零新增（`canvas.align` 为 feature-002 既有工具）。
+- 交叉指针：[feature-007 需求规格 §3.5](../feature-007-产物重开对齐二次确认/SDG-RE-需求规格.md)、[feature-007 变更记录](../feature-007-产物重开对齐二次确认/SDG-AI-变更记录.md)、[偏差清单 B-42](../../设计现状与偏差清单.md)、[showrunner.md](../../../resources/opencode/agents/showrunner.md) 脏读纪律段。

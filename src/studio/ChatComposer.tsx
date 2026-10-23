@@ -128,6 +128,7 @@ function LabelTag({ label, side }: { label: ChatLabel; side: 'left' | 'right' })
 // ── 对话内选项卡（B-35 / showrunner 职责纪律 10 / 原型 .cmsg .opts） ──
 // 约定：Agent 消息末尾输出 `【选项】…【/选项】`（纯文本行）或 `【风格选项】…【/风格选项】`（裸风格 ID 行），
 // 渲染层剥离为可点按钮；点击 = 代发该选项编号（与手打「1」同一路径，quote 组装分流照旧）。
+// `【追问选项】…【/追问选项】`（纯文本候选答复行、无编号，feature-010）渲染为横向胶囊 chips，点击代发该行原文。
 export interface ChatOption {
   num: string // 编号（"1"…"99" / "A"…"Z"），点击时代发
   text: string // 纯文本选项文字；风格选项为原始行内容
@@ -141,16 +142,23 @@ export function parseChatOptions(text: string): {
   rest: string
   options?: ChatOption[]
   style?: boolean
+  chips?: string[] // 【追问选项】块：逐非空行 trim 后的候选答复原文（≥2 条）
   pending?: boolean
 } {
   const trimmed = text.replace(/\s+$/, '')
   // ① 已闭合：消息以闭标签结尾
-  const closeM = /【\/(风格选项|选项)】$/.exec(trimmed)
+  const closeM = /【\/(风格选项|选项|追问选项)】$/.exec(trimmed)
   if (closeM) {
     const openTag = `【${closeM[1]}】`
     const openIdx = trimmed.lastIndexOf(openTag)
     if (openIdx >= 0 && (openIdx === 0 || trimmed[openIdx - 1] === '\n')) {
       const body = trimmed.slice(openIdx + openTag.length, trimmed.length - closeM[0].length)
+      // 【追问选项】：每非空行 trim 整体即一条 chip 原文（不经 OPT_LINE 编号解析）；<2 行整块不识别
+      if (closeM[1] === '追问选项') {
+        const chips = body.split('\n').map((l) => l.trim()).filter(Boolean)
+        if (chips.length < 2) return { rest: text }
+        return { rest: trimmed.slice(0, openIdx).replace(/\s+$/, ''), chips }
+      }
       const options: ChatOption[] = []
       for (const line of body.split('\n')) {
         if (!line.trim()) continue
@@ -171,7 +179,7 @@ export function parseChatOptions(text: string): {
     return { rest: text }
   }
   // ② 流式未闭合：最后一个行首开标签之后没有对应闭标签 → pending（块内容暂不显示，等闭合）
-  const openRe = /(^|\n)(【(风格选项|选项)】)/g
+  const openRe = /(^|\n)(【(风格选项|选项|追问选项)】)/g
   let last: RegExpExecArray | null = null
   let m: RegExpExecArray | null
   while ((m = openRe.exec(text))) last = m
@@ -184,7 +192,7 @@ export function parseChatOptions(text: string): {
   }
   // ③ 流式正在键入开标签（末尾是「【选」「【风格选」等前缀）→ pending
   const tail = /(?:^|\n)(【[^】\n]*)$/.exec(text)
-  if (tail && ('【选项】'.startsWith(tail[1]) || '【风格选项】'.startsWith(tail[1]))) {
+  if (tail && ('【选项】'.startsWith(tail[1]) || '【风格选项】'.startsWith(tail[1]) || '【追问选项】'.startsWith(tail[1]))) {
     return { rest: text.slice(0, text.length - tail[1].length).replace(/\s+$/, ''), pending: true }
   }
   return { rest: text }
@@ -278,6 +286,59 @@ function OptionCard({
   )
 }
 
+// 追问选项胶囊列（feature-010 / 契约 §3.1 / 原型 .cr .chip）：横向 flex-wrap 胶囊，点击代发 chip 原文；
+// picked = 紧随用户消息与 chip 原文全等 → 紫底白字（picked 态不压暗，同 OptionCard 哲学）；disabled → opacity-40。
+function ChipRow({
+  chips,
+  disabled,
+  pickedChip,
+  onPick,
+}: {
+  chips: string[]
+  disabled: boolean
+  pickedChip?: string
+  onPick: (text: string) => void
+}) {
+  return (
+    <div className="mt-[6px] flex flex-wrap gap-[5px]" data-chat-chips>
+      {chips.map(chip => {
+        const picked = pickedChip === chip
+        return (
+          <button
+            key={chip}
+            type="button"
+            data-chat-chip={chip}
+            data-picked={picked || undefined}
+            disabled={disabled}
+            onClick={() => onPick(chip)}
+            className={
+              picked
+                ? 'rounded-full border border-violet bg-violet px-2 py-[3px] text-[10px] font-bold text-white transition-colors'
+                : 'rounded-full border border-[#DED9FB] bg-violet-soft px-2 py-[3px] text-[10px] font-bold text-[#5A4BC4] transition-colors hover:bg-violet hover:text-white disabled:cursor-default disabled:opacity-40 disabled:hover:bg-violet-soft disabled:hover:text-[#5A4BC4]'
+            }
+          >
+            {chip}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// 发卡拍板提示（feature-010 / 契约 §3.2 / 原型 .qh）：零 props 固定文案琥珀条；
+// 系统直做——渲染层识别 pendingGate.gateId === '0-final'（就绪·发卡定案卡）时紧随 GateCardView 自动挂载，零指令负担。
+function GateHint() {
+  return (
+    <div
+      data-chat-gate-hint
+      className="mt-[6px] rounded-[8px] border border-[#F6E6C4] bg-[#FFF9EC] px-2 py-1.5 text-[10px] leading-[1.6] text-[#9A7420]"
+    >
+      <div className="mb-[1px] flex items-center gap-1 text-[9.5px] font-extrabold">💡 拍板提示</div>
+      直接说「行，就按这版发布」= 按钮拍板（系统记录原话与定案卡版本）
+    </div>
+  )
+}
+
 interface Props {
   items: ChatItem[]
   stream: StreamingTurn | null
@@ -364,6 +425,13 @@ export function demoChatItems(): ChatItem[] {
       role: 'agent',
       agent: 'showrunner',
       text: '【风格选型】按题材从《视觉风格谱系》匹配（不自创画风），点一个作为主风格：\n【风格选项】\n1. A7\n2. A3\n3. B1\n【/风格选项】',
+    },
+    // d9：追问选项 chips 待答演示（末条可点；前条 picked 演示由 d6 承担，d9 本身不预置回答）
+    {
+      id: 'd9',
+      role: 'agent',
+      agent: 'showrunner',
+      text: '【缺口追问】\n还缺**核心冲突**——男女主之间的主要阻力是什么？\n【追问选项】\n家族反对，门第差距\n前任回归，旧情未了\n身份秘密，真相将揭\n【/追问选项】',
     },
   ]
 }
@@ -616,12 +684,17 @@ export default function ChatComposer({
                 const consumed = busy || index < items.length - 1
                 const next = items[index + 1]
                 const pickedNum = next?.role === 'user' ? pickNumOf(next.text) : undefined
+                // feature-010：紧随的用户回复与 chip 原文全等 → 该 chip picked（B-35 pickedNum 哲学的文字版）
+                const pickedChip = next?.role === 'user' ? next.text?.trim() : undefined
                 return (
                   <div className="relative max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
                     {parsed.label && <LabelTag label={parsed.label} side="left" />}
                     {opt.rest && <MarkdownText text={opt.rest} />}
                     {opt.options && (
                       <OptionCard options={opt.options} disabled={consumed} pickedNum={pickedNum} onPick={pickOption} />
+                    )}
+                    {opt.chips && (
+                      <ChipRow chips={opt.chips} disabled={consumed} pickedChip={pickedChip} onPick={pickOption} />
                     )}
                     {item.brief && <BriefCard rows={item.brief} />}
                     {item.trace && <TraceCard trace={item.trace} />}
@@ -645,12 +718,14 @@ export default function ChatComposer({
                     <AgentTurn turn={stream} text={opt.rest} />
                     {/* 流式进行中选项只展不点（busy 天然为真），回合落定入 items 后才可点 */}
                     {opt.options && <OptionCard options={opt.options} disabled onPick={pickOption} />}
+                    {opt.chips && <ChipRow chips={opt.chips} disabled onPick={pickOption} />}
                   </>
                 )
               })()}
               {pendingGate && (
                 <GateCardView gate={pendingGate} deciding={deciding} onDecide={onDecide} />
               )}
+              {pendingGate?.gateId === '0-final' && <GateHint />}
             </div>
           </div>
         )}
@@ -670,6 +745,7 @@ export default function ChatComposer({
             <Avatar agent="showrunner" />
             <div className="max-w-[85%]">
               <GateCardView gate={pendingGate} deciding={deciding} onDecide={onDecide} />
+              {pendingGate.gateId === '0-final' && <GateHint />}
             </div>
           </div>
         )}

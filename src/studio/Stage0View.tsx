@@ -14,6 +14,8 @@ import {
   selectStage0State,
 } from './stage0/select'
 import { getStyleName, useStyleCatalog } from './style-catalog-store'
+import Stage0Chain, { useCaptureFacts } from './Stage0Chain'
+import { selectPremiseConfirmation } from './stage0/premise-facts'
 
 /** 谱系风格引用：ID · 名称；未知/未来版本 ID 或空值原样返回（外层 || '—' 兜底） */
 function styleRefLabel(id: string): string {
@@ -168,7 +170,8 @@ function EmptyStage0({ state, projectTitle, onBackToDag, entryQuote = '' }: {
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#FAFBFE]" data-view="stage0">
       <Header projectTitle={projectTitle} onBackToDag={onBackToDag} />
-      <div className="absolute inset-0 top-[38px] overflow-y-auto px-[26px] py-[26px]">
+      <Stage0Chain state={state} />
+      <div className="absolute inset-0 top-[84px] overflow-y-auto px-[26px] py-[26px]">
         <div className="mx-auto flex max-w-[680px] flex-col gap-4 pt-[9vh]">
           <EntryQuoteCard quote={entryQuote} />
           {state.gate0 && state.gate0.status !== 'approved' && <GatePendingStrip gate0={state.gate0} />}
@@ -452,6 +455,8 @@ function PublishedBody({ brief, state, bg, entryQuote = '' }: {
 }) {
   const [bgOpen, setBgOpen] = useState(false)
   const [editing, setEditing] = useState(false)
+  const { facts } = useCaptureFacts()
+  const confirmMap = useMemo(() => selectPremiseConfirmation(facts), [facts])
   const kindLabel = brief.kind === 'commercial' ? '商业短剧' : '个人纪念'
   const platforms = Array.isArray(brief.fiveElements.platforms) ? brief.fiveElements.platforms.join(' · ') : ''
   const isV1 = brief.version === 1
@@ -517,13 +522,29 @@ function PublishedBody({ brief, state, bg, entryQuote = '' }: {
             <span className="text-[12px] font-extrabold text-ink">故事前提</span>
           </div>
           <div className="flex flex-1 flex-col gap-3 px-3.5 py-3">
-            <div className="rounded-md border border-line">
-              {PREMISE_FIELDS.map(({ key, label }) => (
-                <div key={key} className="flex items-start gap-2 border-b border-[#F6F7FB] px-2.5 py-1.5 text-[11px] last:border-b-0">
+            <div className="overflow-hidden rounded-md border border-line">
+              {PREMISE_FIELDS.map(({ key, label }) => {
+                const conf = confirmMap[key]
+                return (
+                <div
+                  key={key}
+                  className={`flex items-start gap-2 border-b border-[#F6F7FB] px-2.5 py-1.5 text-[11px] last:border-b-0${conf === 'human' ? ' bg-[#F2FBF6]' : conf === 'ai' ? ' bg-[#FDF8EE]' : ''}`}
+                  data-stage0-premise-row={key}
+                  data-stage0-premise-confirmation={conf}
+                >
                   <span className="mt-px w-[58px] shrink-0 text-[10px] font-semibold text-[#9AA0B5]">{label}</span>
                   <LeafValue value={brief.premise[key]} />
+                  {conf !== 'none' && (
+                    <span
+                      className={conf === 'human'
+                        ? 'ml-auto shrink-0 rounded-full border border-[#B9E8D2] bg-[#E7F8F0] px-1.5 py-px text-[9.5px] font-bold text-[#1E9E66]'
+                        : 'ml-auto shrink-0 rounded-full border border-[#F0E2C0] bg-[#FBF3E2] px-1.5 py-px text-[9.5px] font-bold text-[#B07E2A]'}
+                      data-stage0-premise-seal
+                    >{conf === 'human' ? '不可篡改' : 'AI 拟稿'}</span>
+                  )}
                 </div>
-              ))}
+                )
+              })}
             </div>
             {bg.phase !== 'absent' && (
               <div className="rounded-md border border-line" data-stage0-background>
@@ -534,6 +555,10 @@ function PublishedBody({ brief, state, bg, entryQuote = '' }: {
                   aria-expanded={bgOpen}
                 >
                   <span className="text-[#A6ABC0]">{bgOpen ? '▾' : '▸'}</span>故事背景档案.md
+                  <span
+                    className="ml-auto shrink-0 rounded-full border border-[#B9E8D2] bg-[#E7F8F0] px-1.5 py-px text-[9.5px] font-bold text-[#1E9E66]"
+                    data-stage0-background-seal
+                  >不可篡改</span>
                 </button>
                 {bgOpen && (
                   bg.phase === 'ok'
@@ -642,10 +667,11 @@ function useBriefDocuments(refPath: string): { brief: BriefDocState; bg: BgDocSt
   return { brief, bg }
 }
 
-function BriefError({ projectTitle, onBackToDag, doc }: {
+function BriefError({ projectTitle, onBackToDag, doc, state }: {
   projectTitle: string
   onBackToDag: () => void
   doc: Extract<BriefDocState, { phase: 'error' }>
+  state: ReturnType<typeof selectStage0State>
 }) {
   const message =
     doc.reason === 'MISSING_REF' ? '立项产物引用缺失（画布节点未指向立项单文件）'
@@ -656,7 +682,8 @@ function BriefError({ projectTitle, onBackToDag, doc }: {
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#FAFBFE]" data-view="stage0">
       <Header projectTitle={projectTitle} onBackToDag={onBackToDag} />
-      <div className="absolute inset-0 top-[38px] overflow-y-auto px-[26px] py-[26px]">
+      <Stage0Chain state={state} />
+      <div className="absolute inset-0 top-[84px] overflow-y-auto px-[26px] py-[26px]">
         <div className="mx-auto max-w-[680px] pt-[9vh]">
           <div className="rounded-[14px] border border-[#F0CFCF] bg-white p-7 text-center" data-stage0-brief-error>
             <div className="text-[14px] font-extrabold text-[#C0453B]">立项单无法展示</div>
@@ -680,7 +707,8 @@ export default function Stage0View({ canvas, projectTitle, onBackToDag, entryQuo
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#FAFBFE]" data-view="stage0">
       <Header projectTitle={projectTitle} onBackToDag={onBackToDag} />
-      <div className="absolute inset-0 top-[38px] overflow-y-auto px-[26px] py-[22px]">
+      <Stage0Chain state={state} />
+      <div className="absolute inset-0 top-[84px] overflow-y-auto px-[26px] py-[22px]">
         <div className="mx-auto flex max-w-[920px] flex-col gap-[18px]" data-stage0-brief>
           <PublishedLoaded state={state} refPath={refPath} projectTitle={projectTitle} onBackToDag={onBackToDag} entryQuote={entryQuote} />
         </div>
@@ -700,7 +728,7 @@ function PublishedLoaded({ state, refPath, projectTitle, onBackToDag, entryQuote
   const { brief, bg } = useBriefDocuments(refPath)
 
   if (!refPath) {
-    return <BriefError projectTitle={projectTitle} onBackToDag={onBackToDag} doc={{ phase: 'error', reason: 'MISSING_REF', path: state.briefNode?.id ?? 'step-0-brief' }} />
+    return <BriefError projectTitle={projectTitle} onBackToDag={onBackToDag} doc={{ phase: 'error', reason: 'MISSING_REF', path: state.briefNode?.id ?? 'step-0-brief' }} state={state} />
   }
   if (brief.phase === 'loading') {
     return (
@@ -711,7 +739,7 @@ function PublishedLoaded({ state, refPath, projectTitle, onBackToDag, entryQuote
     )
   }
   if (brief.phase === 'error') {
-    return <BriefError projectTitle={projectTitle} onBackToDag={onBackToDag} doc={brief} />
+    return <BriefError projectTitle={projectTitle} onBackToDag={onBackToDag} doc={brief} state={state} />
   }
 
   // 展示版本以文件内 brief.version 为准（D-004）

@@ -571,6 +571,30 @@ describe('Stage0View · 入口动作恒显与诊断明细（D-018）', () => {
     await findStage0('brief')
     expect(byStage0('diagnosis-detail')).toBeNull()
   })
+
+  it('卡①诊断明细分节可折叠：默认仅「结论」节展开，节题行点击开合（B-35 遗留切片）', async () => {
+    const b = brief({
+      diagnosisDetail: '【对标案例】\n案例 A 播放破亿。\n【爆点钩子】\n钩子库三条。\n【结论】\n可做。',
+    })
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(b))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    const detail = await findStage0('diagnosis-detail')
+    // 默认：长文节收起、结论节展开；节题行恒渲染
+    const toggle = () => detail.querySelector('[data-diagnosis-section-toggle="对标案例"]') as HTMLElement
+    expect(toggle()).not.toBeNull()
+    expect(detail.textContent).not.toContain('案例 A 播放破亿。')
+    expect(detail.textContent).not.toContain('钩子库三条。')
+    expect(detail.textContent).toContain('可做。')
+    // 点击节题行展开；再点收起
+    fireEvent.click(toggle())
+    expect(detail.textContent).toContain('案例 A 播放破亿。')
+    expect(detail.textContent).not.toContain('钩子库三条。')
+    fireEvent.click(toggle())
+    expect(detail.textContent).not.toContain('案例 A 播放破亿。')
+    // 结论节也可手动收起
+    fireEvent.click(detail.querySelector('[data-diagnosis-section-toggle="结论"]') as HTMLElement)
+    expect(detail.textContent).not.toContain('可做。')
+  })
 })
 
 /* ── B-24/D-017 修改立项：卡①行内六字段直改 → 系统直写再版（原则六 · 不经 AI 对话）── */

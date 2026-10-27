@@ -210,10 +210,16 @@ describe('BriefView · 落盘字段完整（B-32）', () => {
     // 结论小节仍在
     expect(screen.getByText('选题诊断结论')).toBeTruthy()
     expect(screen.getByText('选题方向明确，平台适配度高。')).toBeTruthy()
-    // 分节标题与正文均渲染（与 Stage0View 卡①同源 DiagnosisSections）
+    // 分节标题恒渲染（与 Stage0View 卡①同源 DiagnosisSections）
     expect(screen.getByText('对标案例')).toBeTruthy()
-    expect(screen.getByText('案例 A 播放破亿。')).toBeTruthy()
     expect(screen.getByText('合规提示')).toBeTruthy()
+    // B-35 遗留切片（可折叠）：长文节默认收起，节题行点击展开、再点收起
+    expect(screen.queryByText('案例 A 播放破亿。')).toBeNull()
+    expect(screen.queryByText('校园题材注意规避。')).toBeNull()
+    fireEvent.click(screen.getByText('对标案例'))
+    expect(screen.getByText('案例 A 播放破亿。')).toBeTruthy()
+    expect(screen.queryByText('校园题材注意规避。')).toBeNull()
+    fireEvent.click(screen.getByText('合规提示'))
     expect(screen.getByText('校园题材注意规避。')).toBeTruthy()
   })
 

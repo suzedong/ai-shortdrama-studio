@@ -25,6 +25,16 @@
 - **卡口预判**：K1 / K8 / K9 全不触发（设计说明自查表）；测试文件净增恰 1（60→61）为包内登记事项。
 - **状态**：五文件齐备，**待用户批准**。
 
+### D-002 卡①备案切片闭环（2026-10-27）
+
+- **事项**：D-001「卡①核对结论（备案）」遗留两项差异，用户另行指示已到——拍板「**直接修 + 登记偏差**」（循 B-35/B-36 先例，不建包）。
+- **用户拍板**（两项）：
+  1. **五区块折叠 = 做**：`DiagnosisSections` 节题行点击开合（Stage0View.tsx，三消费点同源：只读卡 / BriefEditPanel 编辑卡 / StudioViewer 立项单），默认仅「结论」节展开、其余长文节收起，无题节（兜底/前置段）恒展开；
+  2. **「内嵌六要素可改」= 已满足不改**：用户认定 D-017 BriefEditPanel 卡①原位切换编辑态即设计书 §2.6.8「字段直接可改，不再设独立 tab 审批页」之本意落地。
+- **落地**：纯 renderer 单组件改造（▸/▾ 开合 + `data-diagnosis-section-toggle` 凭据 + aria-expanded），shared/electron/package 零 diff，**K1/K8/K9 零触发**；stage0-view.test.tsx 新增 1 例（默认态/开合/结论可收），studio-viewer.test.tsx B-32 例改折叠语义。
+- **验证**：全量 **61 文件 722 passed / 0 failed / 1 skipped**（721+1 净增），typecheck 恰 3 条历史基线零新增；过程中发现 runtime-integration 环境性失败（pnpm 拦截 opencode-ai postinstall → spawn ENOEXEC，与本改无关），按官方指引 `node postinstall.mjs` 修复后全绿。
+- **偏差登记**：同步更新 [设计现状与偏差清单.md](../../设计现状与偏差清单.md) B-45 行尾。
+
 ---
 
 ## T 节 · 任务实测留痕

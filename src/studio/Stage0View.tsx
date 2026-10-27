@@ -101,21 +101,36 @@ function parseDiagnosisSections(detail: string): Array<{ title: string; body: st
 }
 
 // B-32 起导出：StudioViewer 立项单「选题诊断明细」共用本分节排版
+// B-35 遗留切片（2026-10-27 闭环，设计书 §2.6.8「可折叠」）：节题行点击开合——
+// 默认仅「结论」节展开、其余长文节收起；无题节（兜底/前置段）无节题可点，恒展开。
 export function DiagnosisSections({ detail }: { detail: string }) {
   const sections = useMemo(() => parseDiagnosisSections(detail), [detail])
+  const [toggled, setToggled] = useState<Record<number, boolean>>({})
+  const defaultOpen = (title: string) => /结论/.test(title)
+  const isOpen = (i: number, title: string) => toggled[i] ?? defaultOpen(title)
   return (
     <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
-      {sections.map((s, i) => (
-        <div key={i}>
-          {s.title && (
-            <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-extrabold text-[#4A4F68]">
-              <span className="h-2.5 w-[3px] rounded-full bg-violet/70" />
-              {s.title}
-            </div>
-          )}
-          <div className="whitespace-pre-wrap pl-[9px]">{s.body}</div>
-        </div>
-      ))}
+      {sections.map((s, i) => {
+        const open = !s.title || isOpen(i, s.title)
+        return (
+          <div key={i}>
+            {s.title && (
+              <button
+                type="button"
+                onClick={() => setToggled(prev => ({ ...prev, [i]: !isOpen(i, s.title) }))}
+                className="mb-0.5 flex w-full items-center gap-1.5 text-left text-[10px] font-extrabold text-[#4A4F68] transition-colors hover:text-violet"
+                data-diagnosis-section-toggle={s.title}
+                aria-expanded={open}
+              >
+                <span className="w-2.5 shrink-0 text-center text-[8px] text-[#9AA0B5]">{open ? '▾' : '▸'}</span>
+                <span className="h-2.5 w-[3px] rounded-full bg-violet/70" />
+                {s.title}
+              </button>
+            )}
+            {open && <div className="whitespace-pre-wrap pl-[9px]">{s.body}</div>}
+          </div>
+        )
+      })}
     </div>
   )
 }

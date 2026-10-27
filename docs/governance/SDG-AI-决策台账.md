@@ -101,7 +101,7 @@
     - > 📌 **路径注记（2026-10-09，D-005 后）**：上述两个 feature 包已于 2026-10-08 整体移入归档区，现行路径为 [../archive/features-pre-rebuild/feature-018-摄制组profiles与主控链路/SDG-RE-契约.md](../archive/features-pre-rebuild/feature-018-摄制组profiles与主控链路/SDG-RE-契约.md) 与 [../archive/features-pre-rebuild/feature-019-立项切片/SDG-RE-契约.md](../archive/features-pre-rebuild/feature-019-立项切片/SDG-RE-契约.md)；原 `docs/features/` 路径失效，内容随包冻结。
     - > 📌 **路径注记（2026-10-10）**：归档区 `docs/archive/features-pre-rebuild/` 已按用户拍板删除（"已有最新整体的设计，旧的可删除"）；上述两包历史内容见 git 提交 `ef4a175`（init），上述归档路径不再有效。
   - 代码：`electron/gate/bridge.ts`；测试：`src/test/gate-bridge.test.ts`
-- **遗留项**：只读探测开口子与否，待用户后续裁决；不影响 019 闭环。
+- **遗留项（2026-10-27 裁决关闭）**：只读探测开口子议题——用户裁决**维持 §1.2 命名空间禁令**，放行与否随 [feature-803-ComfyUI统一媒体引擎](../features/README.md)（⬜ 未建包）建包时一并评估；新立项体系（D-005 后）已无 0-d 预检门，本挂起态终结。
 
 ---
 

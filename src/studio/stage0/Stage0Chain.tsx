@@ -4,9 +4,9 @@
 // 🚪 镜像不审批：待拍板点击展开只读摘要，批准 / 驳回单点在右栏门卡（D4）。
 // feature-009：useCaptureFacts 导出供 Stage0View PublishedBody 复用（前提卡分色订阅）
 import { useEffect, useState } from 'react'
-import type { CapturedFact } from '../../shared/types'
-import { selectChainNodes, type ChainGateNode, type ChainStepNode } from './stage0/chain'
-import type { Stage0State } from './stage0/select'
+import type { CapturedFact } from '../../../shared/types'
+import { selectChainNodes, type ChainGateNode, type ChainStepNode } from './chain'
+import type { Stage0State } from './select'
 
 export interface Stage0ChainProps {
   state: Stage0State

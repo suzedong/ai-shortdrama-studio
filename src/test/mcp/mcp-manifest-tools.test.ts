@@ -8,8 +8,8 @@ vi.mock('electron', () => ({
   app: { getPath: () => holder.userData },
 }))
 
-import { registerPureTools } from '../../electron/mcp/tools'
-import { createProject, writeSessionState } from '../../electron/project/library'
+import { registerPureTools } from '../../../electron/mcp/tools'
+import { createProject, writeSessionState } from '../../../electron/project/library'
 import type { ProjectManifest } from '@shared/types'
 
 type Handler = (args: Record<string, unknown>) => Promise<{

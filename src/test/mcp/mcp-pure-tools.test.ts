@@ -4,7 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
-const toolsSrc = fs.readFileSync(path.join(here, '../../electron/mcp/tools.ts'), 'utf-8')
+const toolsSrc = fs.readFileSync(path.join(here, '../../../electron/mcp/tools.ts'), 'utf-8')
 
 describe('T8 mcp/tools.ts 静态护栏', () => {
   it('不含 ark / prompts / style-catalog / session 依赖与对话调用', () => {

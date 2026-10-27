@@ -2,7 +2,7 @@ import { describe, expect, it, beforeAll } from 'vitest'
 import path from 'node:path'
 import fsp from 'node:fs/promises'
 import os from 'node:os'
-import { archiveExisting } from '../../electron/fs/archive'
+import { archiveExisting } from '../../../electron/fs/archive'
 
 let tmpRoot = ''
 

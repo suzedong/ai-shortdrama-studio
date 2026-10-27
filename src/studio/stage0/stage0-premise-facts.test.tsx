@@ -8,8 +8,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Canvas, CanvasNode, CaptureFile, CapturedFact, ProjectBrief, StepId } from '@shared/types'
 import Stage0View from './Stage0View'
-import { selectPremiseConfirmation } from './stage0/premise-facts'
-import { _setStyleCatalogSnapshotForTest } from './style-catalog-store'
+import { selectPremiseConfirmation } from './premise-facts'
+import { _setStyleCatalogSnapshotForTest } from '../style/style-catalog-store'
 
 /* ── 选择器（组件凭据为 data-stage0-*，非 data-testid）── */
 

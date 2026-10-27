@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import type { CanvasGate } from '../../shared/types'
+import type { CanvasGate } from '../../../shared/types'
 import {
   assertBriefPublishable,
   findBriefGate,
   gateVersion,
-} from '../../electron/gate/guard'
+} from '../../../electron/gate/guard'
 
 function gate(
   status: CanvasGate['status'],

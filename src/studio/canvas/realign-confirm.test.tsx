@@ -6,10 +6,10 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Canvas, CanvasNode, StepId } from '@shared/types'
-import type { RuntimeEvent } from '../lib/runtime-types'
+import type { RuntimeEvent } from '../../lib/runtime-types'
 import RealignConfirm, { buildRealignPrompt } from './RealignConfirm'
-import StudioViewer from './StudioViewer'
-import StudioApp from './StudioApp'
+import StudioViewer from '../viewer/StudioViewer'
+import StudioApp from '../shell/StudioApp'
 
 /* ── 夹具 ── */
 

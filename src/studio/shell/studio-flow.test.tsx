@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Canvas, CanvasGate } from '@shared/types'
-import type { RuntimeEvent } from '../lib/runtime-types'
+import type { RuntimeEvent } from '../../lib/runtime-types'
 import StudioApp from './StudioApp'
 
 interface Harness {

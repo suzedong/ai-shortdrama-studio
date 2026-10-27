@@ -15,9 +15,9 @@ import {
   matchChainTopic,
   selectChainNodes,
   selectChainProgress,
-} from './stage0/chain'
-import type { Stage0State } from './stage0/select'
-import { _setStyleCatalogSnapshotForTest } from './style-catalog-store'
+} from './chain'
+import type { Stage0State } from './select'
+import { _setStyleCatalogSnapshotForTest } from '../style/style-catalog-store'
 
 /* ── 选择器（querySelector 取首个匹配，兼容 brief-error 嵌套双链态条）── */
 

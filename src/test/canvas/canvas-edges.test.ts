@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CanvasEdge } from '@shared/types'
-import { deriveAutoEdges, type CanvasUpsertNode } from '../../electron/canvas/edges'
+import { deriveAutoEdges, type CanvasUpsertNode } from '../../../electron/canvas/edges'
 
 function node(id: string, linksTo?: string[]): CanvasUpsertNode {
   return {

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { OpencodeRuntimeClient, type SdkHandle } from '../../electron/runtime/client'
-import type { RuntimePromptRequest } from '../../electron/runtime/types'
+import { OpencodeRuntimeClient, type SdkHandle } from '../../../electron/runtime/client'
+import type { RuntimePromptRequest } from '../../../electron/runtime/types'
 
 // -- fake SDK -----------------------------------------------------------------
 

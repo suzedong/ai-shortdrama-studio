@@ -8,10 +8,10 @@ vi.mock('electron', () => ({
   app: { getPath: () => holder.userData, isPackaged: false },
 }))
 
-import { registerPureTools } from '../../electron/mcp/tools'
-import { writeSessionState } from '../../electron/project/library'
-import { canvasStore } from '../../electron/canvas/store'
-import { clearStyleCatalogCache, STYLE_CATALOG_MISSING } from '../../electron/style/loader'
+import { registerPureTools } from '../../../electron/mcp/tools'
+import { writeSessionState } from '../../../electron/project/library'
+import { canvasStore } from '../../../electron/canvas/store'
+import { clearStyleCatalogCache, STYLE_CATALOG_MISSING } from '../../../electron/style/loader'
 import type { BriefDraft } from '@shared/types'
 
 type Handler = (args: Record<string, unknown>) => Promise<{

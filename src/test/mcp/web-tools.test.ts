@@ -8,7 +8,7 @@ import {
   parseDdgResults,
   webFetchText,
   webSearch,
-} from '../../electron/mcp/tools'
+} from '../../../electron/mcp/tools'
 
 function mockFetchWithHtml(html: string) {
   return vi.fn(async () => ({ ok: true, status: 200, text: async () => html })) as unknown as typeof fetch

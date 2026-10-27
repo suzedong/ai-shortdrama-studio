@@ -8,8 +8,8 @@ vi.mock('electron', () => ({
   app: { getPath: () => holder.userData },
 }))
 
-import { registerAsset, listAssets } from '../../electron/asset/index'
-import { writeSessionState } from '../../electron/project/library'
+import { registerAsset, listAssets } from '../../../electron/asset/index'
+import { writeSessionState } from '../../../electron/project/library'
 
 let projDir = ''
 

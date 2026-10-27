@@ -11,10 +11,10 @@ vi.mock('electron', () => ({
   app: { getPath: () => holder.userData },
 }))
 
-import { updateBriefFields } from '../../electron/brief/update'
-import { writeSessionState } from '../../electron/project/library'
-import { canvasStore } from '../../electron/canvas/store'
-import { MANIFEST_FILE } from '../../electron/project/manifest'
+import { updateBriefFields } from '../../../electron/brief/update'
+import { writeSessionState } from '../../../electron/project/library'
+import { canvasStore } from '../../../electron/canvas/store'
+import { MANIFEST_FILE } from '../../../electron/project/manifest'
 import type { Canvas, ProjectBrief, ProjectManifest } from '@shared/types'
 
 const baseBrief: ProjectBrief = {

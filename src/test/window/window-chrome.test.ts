@@ -1,6 +1,6 @@
 // feature-804 · 窗口外壳平台分支纯函数（契约 §8.1）
 import { describe, expect, it } from 'vitest'
-import { windowChromeOptions, type WindowPlatform } from '../../electron/window/chrome'
+import { windowChromeOptions, type WindowPlatform } from '../../../electron/window/chrome'
 
 describe('feature-804 windowChromeOptions 平台分支（契约 §1.1）', () => {
   it("darwin → { titleBarStyle: 'hiddenInset' }，不含 frame 键", () => {

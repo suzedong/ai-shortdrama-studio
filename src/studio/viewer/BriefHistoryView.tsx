@@ -5,8 +5,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { BriefChange, ProjectBrief } from '@shared/types'
 
-import { dirtyFieldLabel } from './CanvasBoard'
-import { formatAt } from './Stage0View'
+import { dirtyFieldLabel } from '../canvas/CanvasBoard'
+import { formatAt } from '../stage0/Stage0View'
 
 type HistoryResult = Awaited<ReturnType<typeof window.api.briefHistory>>
 type HistoryItem = HistoryResult['versions'][number]

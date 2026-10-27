@@ -8,10 +8,10 @@ vi.mock('electron', () => ({
   app: { getPath: () => holder.userData },
 }))
 
-import { GateBridge } from '../../electron/gate/bridge'
-import { canvasStore } from '../../electron/canvas/store'
-import { writeSessionState } from '../../electron/project/library'
-import type { CanvasGate } from '../../shared/types'
+import { GateBridge } from '../../../electron/gate/bridge'
+import { canvasStore } from '../../../electron/canvas/store'
+import { writeSessionState } from '../../../electron/project/library'
+import type { CanvasGate } from '../../../shared/types'
 
 let projDir = ''
 

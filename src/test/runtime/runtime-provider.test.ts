@@ -22,7 +22,7 @@ import {
   setupRuntimeFiles,
   resolveAgentTemplatePath,
   runtimeConfigDir,
-} from '../../electron/runtime/provider'
+} from '../../../electron/runtime/provider'
 
 let tmpRoot: string
 let userDataDir: string

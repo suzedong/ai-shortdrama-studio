@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import ErrorBoundary from './studio/ErrorBoundary'
-import StudioApp from './studio/StudioApp'
+import ErrorBoundary from './studio/shell/ErrorBoundary'
+import StudioApp from './studio/shell/StudioApp'
 import { installDevMockApi } from './dev-mock-api'
 import './index.css'
 

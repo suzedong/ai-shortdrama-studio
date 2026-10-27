@@ -8,10 +8,10 @@ vi.mock('electron', () => ({
   app: { getPath: () => holder.userData },
 }))
 
-import { listInstances, upsertInstance, removeInstance } from '../../electron/comfy/settings'
-import { setComfyClient } from '../../electron/comfy/client'
-import { registerPureTools } from '../../electron/mcp/tools'
-import { writeSessionState } from '../../electron/project/library'
+import { listInstances, upsertInstance, removeInstance } from '../../../electron/comfy/settings'
+import { setComfyClient } from '../../../electron/comfy/client'
+import { registerPureTools } from '../../../electron/mcp/tools'
+import { writeSessionState } from '../../../electron/project/library'
 
 type Handler = (args: Record<string, unknown>) => Promise<{
   content: { text: string }[]

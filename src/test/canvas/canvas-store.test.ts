@@ -8,10 +8,10 @@ vi.mock('electron', () => ({
   app: { getPath: () => holder.userData },
 }))
 
-import { CanvasStore } from '../../electron/canvas/store'
-import { writeSessionState } from '../../electron/project/library'
+import { CanvasStore } from '../../../electron/canvas/store'
+import { writeSessionState } from '../../../electron/project/library'
 import type { CanvasNode } from '@shared/types'
-import type { CanvasUpsertNode } from '../../electron/canvas/edges'
+import type { CanvasUpsertNode } from '../../../electron/canvas/edges'
 
 let tmpRoot = ''
 let projDir = ''

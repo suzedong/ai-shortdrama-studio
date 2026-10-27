@@ -24,7 +24,7 @@ import {
   deleteProject,
   renameProject,
   writeSessionState,
-} from '../../electron/project/library'
+} from '../../../electron/project/library'
 
 let wsRoot: string
 

@@ -10,7 +10,7 @@
 // - 角色 id 引用小传、台词场号引用分场；全程不触媒体（comfyui/asset）；
 // - 缺故事产物不启动；pending 门恢复重挂同一 gateId，不重做已完成产物。
 import { describe, expect, it, vi } from 'vitest'
-import { deriveAutoEdges, edgeId } from '../../electron/canvas/edges.js'
+import { deriveAutoEdges, edgeId } from '../../../electron/canvas/edges.js'
 
 type GateId = '2-a' | '2-b'
 

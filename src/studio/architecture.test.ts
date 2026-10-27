@@ -28,7 +28,7 @@ const FORBIDDEN_CONTENT_PATTERNS = [
 ]
 
 async function readSourceFiles(): Promise<{ file: string; content: string }[]> {
-  const entries = await fsp.readdir(STUDIO_DIR)
+  const entries = await fsp.readdir(STUDIO_DIR, { recursive: true })
   const files = entries.filter(f => /\.(ts|tsx)$/.test(f) && !/\.(test|spec)\.(ts|tsx)$/.test(f))
   return Promise.all(files.map(async f => ({
     file: f,

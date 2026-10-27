@@ -13,11 +13,11 @@ vi.mock('electron', () => ({
   app: { getPath: () => holder.userData },
 }))
 
-import { readBriefHistory, readBriefVersion } from '../../electron/brief/history'
-import { rollbackBriefToVersion } from '../../electron/brief/rollback'
-import { writeSessionState } from '../../electron/project/library'
-import { canvasStore } from '../../electron/canvas/store'
-import { MANIFEST_FILE } from '../../electron/project/manifest'
+import { readBriefHistory, readBriefVersion } from '../../../electron/brief/history'
+import { rollbackBriefToVersion } from '../../../electron/brief/rollback'
+import { writeSessionState } from '../../../electron/project/library'
+import { canvasStore } from '../../../electron/canvas/store'
+import { MANIFEST_FILE } from '../../../electron/project/manifest'
 import type { Canvas, ProjectBrief, ProjectManifest } from '@shared/types'
 
 const v1: ProjectBrief = {

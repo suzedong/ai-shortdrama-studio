@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BriefChange, Canvas, CanvasNode } from '@shared/types'
-import { assessImpact, classifyChanges, classifyField } from '../../electron/brief/impact'
+import { assessImpact, classifyChanges, classifyField } from '../../../electron/brief/impact'
 
 function change(field: string): BriefChange {
   return { field, from: '旧', to: '新' }

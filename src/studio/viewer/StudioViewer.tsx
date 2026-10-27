@@ -13,9 +13,9 @@ import type {
   VisualStyle,
 } from '@shared/types'
 
-import { getStyleName } from './style-catalog-store'
-import { dirtyFieldLabel } from './CanvasBoard'
-import { BACKGROUND_PATH, BackgroundMd, DiagnosisSections, EntryQuoteCard, formatAt } from './Stage0View'
+import { getStyleName } from '../style/style-catalog-store'
+import { dirtyFieldLabel } from '../canvas/CanvasBoard'
+import { BACKGROUND_PATH, BackgroundMd, DiagnosisSections, EntryQuoteCard, formatAt } from '../stage0/Stage0View'
 import BriefHistoryView from './BriefHistoryView'
 
 /** 谱系风格引用：ID · 名称；未知/未来版本 ID 回退只显 ID */

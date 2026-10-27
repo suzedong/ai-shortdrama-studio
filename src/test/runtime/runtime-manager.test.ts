@@ -14,8 +14,8 @@ import {
   resolveOpencodeBinaryPath,
   PORT_RANGE_START,
   PORT_RANGE_ATTEMPTS,
-} from '../../electron/runtime/manager'
-import type { RuntimeStatus } from '../../electron/runtime/types'
+} from '../../../electron/runtime/manager'
+import type { RuntimeStatus } from '../../../electron/runtime/types'
 
 // -- 假子进程 / 假 spawn -------------------------------------------------------
 

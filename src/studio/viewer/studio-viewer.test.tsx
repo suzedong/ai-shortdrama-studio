@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { CanvasNode, ProjectBrief, StepId } from '@shared/types'
 import StudioViewer from './StudioViewer'
-import { _setStyleCatalogSnapshotForTest } from './style-catalog-store'
+import { _setStyleCatalogSnapshotForTest } from '../style/style-catalog-store'
 
 // feature-811：风格显示名消费 style:catalog 快照——prime ok 态后首订阅懒 ensure no-op（store 契约）
 const PRIME_ENTRIES: StyleCatalogEntryDto[] = [

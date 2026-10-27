@@ -11,8 +11,8 @@ import {
   dirtyFieldLabel,
   parseBriefJson,
   selectStage0State,
-} from './stage0/select'
-import { _setStyleCatalogSnapshotForTest } from './style-catalog-store'
+} from './select'
+import { _setStyleCatalogSnapshotForTest } from '../style/style-catalog-store'
 
 // feature-811：风格显示名/编辑面板选项消费 style:catalog 快照——prime 全 18 条（编辑面板 select 须含 C1 option），懒 ensure no-op
 const primeEntry = (

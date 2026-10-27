@@ -4,7 +4,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { StreamingTurn, ToolView } from '../lib/chat-runtime'
+import type { StreamingTurn, ToolView } from '../../lib/chat-runtime'
 import ChatComposer, { showStreamCursor, toolDurationLabel } from './ChatComposer'
 
 function makeTurn(partial: Partial<StreamingTurn> = {}): StreamingTurn {

@@ -3,7 +3,7 @@
 // 数据自拉 captureList + 订阅 onCaptureChanged 全量替换；面板直改系统直写（D-016），
 // 与对话纠正通道同落 store 单点、同 capture:changed 广播（用户裁决②）。
 import { useEffect, useState } from 'react'
-import type { CapturedFact } from '../../shared/types'
+import type { CapturedFact } from '../../../shared/types'
 
 // C3 来源三色（复用 B-34 LabelTag 三色语义）
 function sourceTag(f: CapturedFact): { text: string; cls: string } {

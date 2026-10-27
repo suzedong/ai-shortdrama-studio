@@ -1,4 +1,4 @@
-import type { ChatItem } from '../studio/ChatComposer'
+import type { ChatItem } from '../studio/chat/ChatComposer'
 
 /** IPC runtime:session:messages 的单条记录（runtime-types 镜像，主进程从 SDK {info,parts} 映射） */
 export interface ReplayMessageRecord {

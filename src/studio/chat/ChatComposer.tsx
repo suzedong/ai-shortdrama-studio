@@ -5,11 +5,11 @@ import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-import { turnReasoning, turnText, type StreamingTurn, type ToolView } from '../lib/chat-runtime'
+import { turnReasoning, turnText, type StreamingTurn, type ToolView } from '../../lib/chat-runtime'
 import type { CanvasGate } from '@shared/types'
 import GateCardView from './GateCardView'
-import { FAMILY_GRAD, PREVIEW_URL } from './VisualCatalog'
-import { getStyleEntry, useStyleCatalog } from './style-catalog-store'
+import { FAMILY_GRAD, PREVIEW_URL } from '../style/VisualCatalog'
+import { getStyleEntry, useStyleCatalog } from '../style/style-catalog-store'
 
 // ── Agent 气泡 Markdown 渲染（2026-10-15，K9 批准 react-markdown + remark-gfm；仅 Agent 侧） ──
 // 默认不渲染原始 HTML（XSS 面为零）；链接统一新窗打开，由主进程 setWindowOpenHandler 转交系统浏览器。

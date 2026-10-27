@@ -17,7 +17,7 @@ import {
   readActiveSession,
   readProjectTitle,
   setActiveSession,
-} from '../../electron/project/library'
+} from '../../../electron/project/library'
 
 let wsRoot: string
 const dirs: string[] = []

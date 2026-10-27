@@ -6,7 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { readProjectFile } from '../../electron/fs/read'
+import { readProjectFile } from '../../../electron/fs/read'
 
 let root: string
 

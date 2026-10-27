@@ -5,8 +5,8 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Canvas } from '@shared/types'
-import type { ReplayMessageRecord } from '../lib/history-replay'
-import type { RuntimeEvent } from '../lib/runtime-types'
+import type { ReplayMessageRecord } from '../../lib/history-replay'
+import type { RuntimeEvent } from '../../lib/runtime-types'
 import StudioApp from './StudioApp'
 
 function canvasOf(projectId: string, title = ''): Canvas {

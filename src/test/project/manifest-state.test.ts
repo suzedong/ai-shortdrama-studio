@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ManifestEvent, ManifestStatus } from '@shared/types'
-import { MANIFEST_TRANSITIONS, advanceStatus, parseManifest } from '../../electron/project/manifest'
+import { MANIFEST_TRANSITIONS, advanceStatus, parseManifest } from '../../../electron/project/manifest'
 
 const EVENTS: ManifestEvent[] = [
   'brief-published', 'outline-approved', 'profiles-approved',

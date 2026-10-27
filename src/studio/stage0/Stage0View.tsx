@@ -5,17 +5,17 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-import type { Canvas, ProjectBrief, ProjectKind } from '../../shared/types'
+import type { Canvas, ProjectBrief, ProjectKind } from '../../../shared/types'
 import {
   dirtyFieldLabel,
   FIVE_ELEMENT_FIELDS,
   parseBriefJson,
   PREMISE_FIELDS,
   selectStage0State,
-} from './stage0/select'
-import { getStyleName, useStyleCatalog } from './style-catalog-store'
+} from './select'
+import { getStyleName, useStyleCatalog } from '../style/style-catalog-store'
 import Stage0Chain, { useCaptureFacts } from './Stage0Chain'
-import { selectPremiseConfirmation } from './stage0/premise-facts'
+import { selectPremiseConfirmation } from './premise-facts'
 
 /** 谱系风格引用：ID · 名称；未知/未来版本 ID 或空值原样返回（外层 || '—' 兜底） */
 function styleRefLabel(id: string): string {

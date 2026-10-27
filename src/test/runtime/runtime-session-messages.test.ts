@@ -3,7 +3,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 
-import { OpencodeRuntimeClient, toMessageRecord, type SdkHandle } from '../../electron/runtime/client'
+import { OpencodeRuntimeClient, toMessageRecord, type SdkHandle } from '../../../electron/runtime/client'
 
 function makeClient(opts: {
   messages?: unknown[]

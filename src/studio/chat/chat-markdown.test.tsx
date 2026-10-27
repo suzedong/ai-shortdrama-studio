@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ChatComposer, { parseChatLabel, parseChatOptions, type ChatItem } from './ChatComposer'
-import { _setStyleCatalogSnapshotForTest } from './style-catalog-store'
+import { _setStyleCatalogSnapshotForTest } from '../style/style-catalog-store'
 
 // feature-811：风格选项卡与谱系校验消费 style:catalog 快照——prime ok 态后首订阅懒 ensure no-op（store 契约）
 const PRIME_ENTRIES: StyleCatalogEntryDto[] = [

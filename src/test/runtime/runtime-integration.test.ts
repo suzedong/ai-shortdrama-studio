@@ -19,14 +19,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   OpencodeRuntimeManager,
   resolveOpencodeBinaryPath,
-} from '../../electron/runtime/manager'
-import { OpencodeRuntimeClient } from '../../electron/runtime/client'
-import { subscribeEvents, type EventStreamHandle } from '../../electron/runtime/projection'
+} from '../../../electron/runtime/manager'
+import { OpencodeRuntimeClient } from '../../../electron/runtime/client'
+import { subscribeEvents, type EventStreamHandle } from '../../../electron/runtime/projection'
 import {
   MOCK_API_KEY,
   MOCK_MODEL_ID,
-} from '../../electron/runtime/provider'
-import type { RuntimeEvent } from '../../electron/runtime/types'
+} from '../../../electron/runtime/provider'
+import type { RuntimeEvent } from '../../../electron/runtime/types'
 
 // -- 最小 OpenAI 兼容桩（固定 4099，与 provider.ts MOCK_BASE_URL_DEFAULT 对齐） -
 

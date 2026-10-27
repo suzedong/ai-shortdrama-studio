@@ -8,13 +8,13 @@ vi.mock('electron', () => ({ app: { isPackaged: false } }))
 import {
   STYLE_REGISTRY, CATALOG_IDS, AUXILIARY_CANDIDATE_IDS,
   isKnownStyleId, isAuxiliaryCandidate, getRegisteredEntry,
-} from '../../electron/style/catalog'
-import { parseStyleCatalogMd, STYLE_CATALOG_PARSE_ERROR } from '../../electron/style/parse-md'
+} from '../../../electron/style/catalog'
+import { parseStyleCatalogMd, STYLE_CATALOG_PARSE_ERROR } from '../../../electron/style/parse-md'
 import {
   loadStyleCatalog, clearStyleCatalogCache, resolveStyleCatalogPath,
   STYLE_CATALOG_MISSING, STYLE_CATALOG_DRIFT,
-} from '../../electron/style/loader'
-import { validateStyleRefs } from '../../electron/style/validate'
+} from '../../../electron/style/loader'
+import { validateStyleRefs } from '../../../electron/style/validate'
 
 const REAL_MD = path.join(process.cwd(), 'resources', 'H3-Style', 'AI短剧制作视觉风格谱系.md')
 

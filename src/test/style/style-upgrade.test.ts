@@ -12,12 +12,12 @@ vi.mock('electron', () => ({
   app: { isPackaged: false, getPath: () => holder.userData },
 }))
 
-import { loadStyleCatalog, clearStyleCatalogCache, STYLE_CATALOG_MISSING } from '../../electron/style/loader'
-import { computeStyleUpgradeDiff, parseStyleChangelog } from '../../electron/style/upgrade'
-import { updateBriefFields } from '../../electron/brief/update'
-import { writeSessionState } from '../../electron/project/library'
-import { canvasStore } from '../../electron/canvas/store'
-import { MANIFEST_FILE } from '../../electron/project/manifest'
+import { loadStyleCatalog, clearStyleCatalogCache, STYLE_CATALOG_MISSING } from '../../../electron/style/loader'
+import { computeStyleUpgradeDiff, parseStyleChangelog } from '../../../electron/style/upgrade'
+import { updateBriefFields } from '../../../electron/brief/update'
+import { writeSessionState } from '../../../electron/project/library'
+import { canvasStore } from '../../../electron/canvas/store'
+import { MANIFEST_FILE } from '../../../electron/project/manifest'
 import type { Canvas, ProjectBrief, ProjectManifest } from '@shared/types'
 
 const REAL_MD = path.join(process.cwd(), 'resources', 'H3-Style', 'AI短剧制作视觉风格谱系.md')

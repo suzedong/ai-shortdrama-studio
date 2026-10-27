@@ -5,8 +5,8 @@ import {
   EventProjector,
   subscribeEvents,
   truncatePreview,
-} from '../../electron/runtime/projection'
-import type { RuntimeEvent } from '../../electron/runtime/types'
+} from '../../../electron/runtime/projection'
+import type { RuntimeEvent } from '../../../electron/runtime/types'
 
 const NOW = new Date('2026-10-04T12:00:00.000Z')
 const ctx = { version: '1.18.34', now: () => NOW }

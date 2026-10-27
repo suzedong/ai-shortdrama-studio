@@ -11,10 +11,10 @@ vi.mock('electron', () => ({
   app: { getPath: () => holder.userData },
 }))
 
-import { registerPureTools } from '../../electron/mcp/tools'
-import { writeSessionState } from '../../electron/project/library'
-import { canvasStore } from '../../electron/canvas/store'
-import { MANIFEST_FILE } from '../../electron/project/manifest'
+import { registerPureTools } from '../../../electron/mcp/tools'
+import { writeSessionState } from '../../../electron/project/library'
+import { canvasStore } from '../../../electron/canvas/store'
+import { MANIFEST_FILE } from '../../../electron/project/manifest'
 import type { BriefDraft, ProjectManifest } from '@shared/types'
 
 type Handler = (args: Record<string, unknown>) => Promise<{

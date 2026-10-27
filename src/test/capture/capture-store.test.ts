@@ -12,8 +12,8 @@ vi.mock('electron', () => ({
   app: { getPath: () => holder.userData },
 }))
 
-import { captureStore, CAPTURE_FILE_NAME } from '../../electron/capture/store'
-import { writeSessionState } from '../../electron/project/library'
+import { captureStore, CAPTURE_FILE_NAME } from '../../../electron/capture/store'
+import { writeSessionState } from '../../../electron/project/library'
 import type { CaptureFile } from '@shared/types'
 
 let projDir = ''

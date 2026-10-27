@@ -3,10 +3,10 @@ import path from 'node:path'
 import fsp from 'node:fs/promises'
 import os from 'node:os'
 import type { BriefDraft, ProjectBrief } from '@shared/types'
-import { diffBrief } from '../../electron/brief/diff'
-import { evaluateDraft, listBriefVersions, planBrief } from '../../electron/brief/plan'
-import { renderBriefMd } from '../../electron/brief/render-md'
-import type { LoadedStyleCatalog } from '../../electron/style/types'
+import { diffBrief } from '../../../electron/brief/diff'
+import { evaluateDraft, listBriefVersions, planBrief } from '../../../electron/brief/plan'
+import { renderBriefMd } from '../../../electron/brief/render-md'
+import type { LoadedStyleCatalog } from '../../../electron/style/types'
 
 function fullBrief(version: number, overrides: Partial<ProjectBrief> = {}): ProjectBrief {
   return {

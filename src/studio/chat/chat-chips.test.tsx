@@ -4,9 +4,9 @@ import { act, fireEvent, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { CanvasGate } from '@shared/types'
-import type { StreamingTurn } from '../lib/chat-runtime'
+import type { StreamingTurn } from '../../lib/chat-runtime'
 import ChatComposer, { parseChatOptions, type ChatItem } from './ChatComposer'
-import { _setStyleCatalogSnapshotForTest } from './style-catalog-store'
+import { _setStyleCatalogSnapshotForTest } from '../style/style-catalog-store'
 
 // 与 chat-markdown.test.tsx 同款 prime：OptionCard 订阅 style:catalog 快照（2-10 回归例触达）
 const PRIME_ENTRIES: StyleCatalogEntryDto[] = [

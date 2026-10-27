@@ -570,7 +570,7 @@
     <div class="card"><div class="ct">无 Key 行为</div><div class="cb">未配置火山方舟 Key → 显式报 <code>UPSTREAM_AUTH_MISSING</code> 提示配置，<b>不静默降级 mock</b>（旧 mock 降级策略随旧 IPC 退役）。</div></div>
   </div>
   <h3>5.2 工具族（MCP 网关：已落地 + 目标）</h3>
-  <p>平台内置 MCP 网关（仅本机），工具以 schema 声明、统一鉴权审计。<b>已落地（磁盘实况，22 个纯工具 / 8 族；物理 ID = <code>shortdrama_&lt;tool&gt;</code>）</b>：</p>
+  <p>平台内置 MCP 网关（仅本机），工具以 schema 声明、统一鉴权审计。<b>已落地（磁盘实况，27 个纯工具 / 10 族；物理 ID = <code>shortdrama_&lt;tool&gt;</code>）</b>：</p>
   <div class="grid g4">
     <div class="card"><div class="ct">画布 3 <code>canvas.get / update / align</code></div><div class="cb">画布节点与连线读写；align 为重生成定稿后清脏并推进血缘版本（feature-002）。</div></div>
     <div class="card"><div class="ct">文件 3 <code>file.list / read / write</code></div><div class="cb">项目内文本产物读写（路径白名单）。</div></div>
@@ -580,8 +580,10 @@
     <div class="card"><div class="ct">立项 5 <code>brief.plan / publish / list / impact.assess / impact.commit</code></div><div class="cb">就绪校验 + diff、版本化发布、历史列出（feature-001）；再版影响评估与提交（feature-002）。</div></div>
     <div class="card"><div class="ct">状态机 2 <code>manifest.get / advance</code></div><div class="cb">阶段状态指针读取与定稿推进（feature-801）。</div></div>
     <div class="card"><div class="ct">视觉风格 3 <code>style.catalog / get / validate</code></div><div class="cb">谱系 18 项读取、单条取明细、立项风格引用校验（feature-802，读 <code>resources/H3-Style/</code>）。</div></div>
+    <div class="card"><div class="ct">已捕获口径 3 <code>capture.list / upsert / remove</code></div><div class="cb">立项对话事实库读写：来源 user/infer × 状态 confirmed/pending，常驻区行内编辑与对话纠正共用（feature-005）。</div></div>
+    <div class="card"><div class="ct">公开数据检索 2 <code>web.search / fetch</code></div><div class="cb">选题诊断公开数据检索与页面抓取（feature-006）。</div></div>
   </div>
-  <p class="dim">showrunner 请求级白名单放行其中 <b>17 个</b>；asset 2 与 comfyui 3 不在其列（22 − 5 = 17），由 subagent 持有——writer 持文件/画布最小集，media-director 另持 asset 2 + <code>comfyui.queue/status</code>，comfyui-operator 持 asset 2 + comfyui 3 全集。subagent 仅经 <code>task</code> 接受 showrunner 委派。client 层取消 <code>shortdrama_</code> 前缀整体放行，逐物理 ID 判定（v1.12）。</p>
+  <p class="dim">showrunner 请求级白名单放行其中 <b>22 个</b>；asset 2 与 comfyui 3 不在其列（27 − 5 = 22），由 subagent 持有——writer 持文件/画布最小集，media-director 另持 asset 2 + <code>comfyui.queue/status</code>，comfyui-operator 持 asset 2 + comfyui 3 全集。subagent 仅经 <code>task</code> 接受 showrunner 委派。client 层取消 <code>shortdrama_</code> 前缀整体放行，逐物理 ID 判定（v1.12）。</p>
   <p><b>目标族（随 feature 包逐步落地，§11 路线）</b>：</p>
   <div class="grid g4">
     <div class="card"><div class="ct">项目 <span class="src s-c">自研新增</span></div><div class="cb"><code>project.manifest / events / timeline</code>：元信息、事件流、任务地图。</div></div>
@@ -704,7 +706,7 @@
   <p><b>约束</b>：生成动作只读已定稿上游文件，缺上游由 Agent 报告缺料（runtime 错误码，见 §5.1），不静默产出；产物 JSON 源 + MD 镜像双写。立项后变更按 §2.6.6 / §2.6.7 全字段可改 + 影响评估 + 用户决策（<code>manifest.briefVersion</code> + <code>parentReference</code> + <code>影响清单.vN-v(N+1).json</code>，feature-002 包落地）。</p>
   <div class="grid g3">
     <div class="card"><div class="ct">版本归档区（持久化机制）</div><div class="cb"><b>目录约定</b>：任何产物文件被覆盖前，旧文件自动移入同目录 <code>版本/&lt;basename&gt;.&lt;YYYYMMDD-HHmmss&gt;&lt;ext&gt;</code>；同秒冲突追加 <code>.N</code> 序号。<code>manifest.json</code> 永不归档。<b>副本语义</b>：归档失败（rename/mkdir 异常）向上抛错阻断本次写入——宁可写入失败也不做无备份覆盖。<b>触发点</b>：立项单定稿、剧本 / 分镜 .json/.md 双写、背景档案保存。<b>消费方式</b>：消息历史复用 opencode 原生会话存储（平台不另建消息 JSON，<code>chat.messages.json</code> 终态作废，R-001）；<code>.session.json</code> 仅持久化 <code>activeSessionId</code> 绑定，重开项目经 SDK <code>session.messages</code> 回放消息流，其中 unlock 消息对 source 为 idea/background 的 unlock 取 <code>newIdea</code>/档案全文，从 <code>版本/</code> 目录反查对应历史版本文件作为 diff 参照；UI 历史角标点击展示同目录版本快照。</div></div>
-    <div class="card"><div class="ct">视觉风格谱系（外部数据源）</div><div class="cb">系统级外部数据源（注册路径 / 版本跟踪 / 引用风格 ID + 谱系版本），完整约定见 §8.3；当前实现 <code>electron/style-catalog.ts</code> 固化谱系（<code>CATALOG_VERSION</code> + <code>assertInCatalog</code> 校验，失败即拒），与 §8.3 机制并存。辅助风格仅允许 B/D 候选域（§2.6.4）。</div></div>
+    <div class="card"><div class="ct">视觉风格谱系（外部数据源）</div><div class="cb">系统级外部数据源（注册路径 / 版本跟踪 / 引用风格 ID + 谱系版本），完整约定见 §8.3；当前实现 <code>electron/style/catalog.ts</code> 固化谱系（<code>CATALOG_VERSION</code> + <code>assertInCatalog</code> 校验，失败即拒），与 §8.3 机制并存。辅助风格仅允许 B/D 候选域（§2.6.4）。</div></div>
     <div class="card"><div class="ct">术语对齐</div><div class="cb">「立项五要素」统一更名为「<b>立项六要素</b>」（题材/平台/集数/单集时长/风格基调/画幅），画幅由 <code>deriveFiveElements</code> 按平台规则派生；<code>FiveElements.aspectRatio</code> 为必填字段，旧数据回退竖屏。</div></div>
   </div>
 </section>
@@ -733,7 +735,7 @@
   <tr><td>项目引用</td><td>每个项目记录「<b>风格 ID + 谱系版本</b>」（如 <code>A7 @ v1.46</code>）；主风格 1 个、辅助 0–1 个（候选域见 §2.6.4）</td></tr>
   <tr><td>使用边界</td><td>谱系只管画风；风格影响提示词生成，改风格 → 全链路提示词重出。年代 / 地域等事实进入提示词内容，不决定画风 ID</td></tr>
   </table>
-  <div class="note">当前实现：<code>electron/style-catalog.ts</code> 固化谱系（<code>CATALOG_VERSION</code> + <code>assertInCatalog</code> 校验，失败即拒），与本节机制并存（见 §7.1「视觉风格谱系」）。</div>
+  <div class="note">当前实现：<code>electron/style/catalog.ts</code> 固化谱系（<code>CATALOG_VERSION</code> + <code>assertInCatalog</code> 校验，失败即拒），与本节机制并存（见 §7.1「视觉风格谱系」）。</div>
 </section>
 
 <!-- ═══ 9 Harness 质量层 ═══ -->
@@ -802,6 +804,10 @@
       <div class="vb">用户拍板"旧对话链路不回退、以磁盘实况为终态、所有设计要最后状态"。① §5 改写为「<b>MCP 工具层与对话生成网关</b>」——§5.1 runtime 单轨（runtime:start/stop/status、runtime:session:*、runtime:prompt/async、runtime:event:*；旧 8 个 <code>agent:*</code> IPC 与 <code>shortdrama_*</code> 生成工具不再重建；统一 runtime 错误码 14 个，旧 <code>STORY_CTX_MISSING</code>/<code>REVISE_*</code>/<code>STYLE_NOT_IN_CATALOG</code> 退役；无 Key 显式报 <code>UPSTREAM_AUTH_MISSING</code>，不 mock 降级）；§5.2 工具族按磁盘实况定稿（已落地 11 个纯工具 + 目标族 7 族）。② §7.1 改写为「<b>数据血缘、状态机与版本归档（最终设计）</b>」——删除旧 8 确认门与"待重建"框架；brief.json 由立项单.vN.json 取代；谱系小节并入 §8.3；补 §2.6.6/§2.6.7 影响评估字段落点。③ 旧通道快照 docs/SDG-OD-legacy/feature-010-ark对话IPC快照.md 有用内容并入本文后删除；平台全景图.html 引用改指 §5.1。</div></div>
     <div class="tl"><div class="vh">v1.12 <span class="vd">2026-10-14 · 反向同步</span></div>
       <div class="vb">实现实况反向同步（无新决策编号，依据提交 8114e84 + 用户拍板）。① <b>director profile 退役，showrunner 为唯一 primary 主控</b>——实现层固定 4 个 profile（showrunner + writer / media-director / comfyui-operator 三个 subagent，经 <code>task</code> 调度）；§4.1 表后补「实现层摄制组（磁盘实况）」注记，7 角色目标态表不变。② §5.2 已落地工具由 <b>11 个 / 5 族更正为 22 个 / 8 族</b>（补 canvas.align；新增立项 brief.* 5、状态机 manifest.* 2、视觉风格 style.* 3，随 feature-001/002/801/802 落地），注明物理 ID 规则 <code>shortdrama_&lt;tool&gt;</code> 与 showrunner 请求级白名单 17 个（asset 2 / comfyui 3 不开放给主控）。③ client 层取消 <code>shortdrama_</code> 前缀整体放行，改逐物理 ID 白名单判定（8 个幽灵工具名直接拒绝）。镜像与两张信息图磁盘实况卡同步。</div></div>
+    <div class="tl"><div class="vh">v1.13 <span class="vd">2026-10-19/20 · 回流 + 建包 · 补登</span></div>
+      <div class="vb">新建 feature-006（选题诊断公开数据检索 web.search / web.fetch）、feature-810 任务包；§2.6 数据模型对应段按磁盘实况回流标注；docs/README 与 features/README 计数同步。<b>本条目系 2026-10-27 补登——当时提交（6083652）漏记版本记录段</b>。</div></div>
+    <div class="tl"><div class="vh">v1.14 <span class="vd">2026-10-27 · 反向同步</span></div>
+      <div class="vb">实现实况反向同步（无新决策编号）。① §5.2 已落地工具由 <b>22 个 / 8 族更正为 27 个 / 10 族</b>——补「已捕获口径 capture.* 3」（feature-005）与「公开数据检索 web.* 2」（feature-006）两族卡；showrunner 请求级白名单 17 → <b>22</b>（27 − asset 2 − comfyui 3）。② §7.1 / §8.3 两处 <code>electron/style-catalog.ts</code> 旧平铺路径更正为 <code>electron/style/catalog.ts</code>（同日 src/studio 六组、src/test 十二组镜像分包完成，纯重构零行为变化）。</div></div>
   </div>
   <p class="dim">镜像纪律：md 改动同步 docs/design/ 同名 html；原型（docs/design/短剧Agent平台-原型.html）同步迭代。</p>
 </section>

@@ -9,7 +9,7 @@
   ⚠ 本文件仅为可视化呈现，不是事实源；进度与规划以 A 类 .md 文档为准。
   事实来源见页底「事实来源索引」。无构建、无外部依赖（Google Fonts 除外），仅含展示脚本。
   数据快照日期：2026-10-09（当日复核 test:run / typecheck，与 2026-10-08 首测结果一致）。
-  2026-10-14 再核（v1.12 反向同步）：磁盘实况更新为 22 个纯 MCP 工具 / 8 族、4 个 Agent profile（director 已退役，showrunner 单 primary）、5 个现行 feature 包；测试基线 369 通过 / 0 失败 / 1 跳过（35 文件，存量同日清零），typecheck 0 错误。
+  2026-10-27 再核（v1.14 反向同步）：磁盘实况更新为 27 个纯 MCP 工具 / 10 族、4 个 Agent profile（showrunner 单 primary）、20 个现行 feature 包（19 落地 / 201 部分）；测试基线 722 通过 / 0 失败 / 1 跳过（61 文件），typecheck 恰 3 条历史基线。
   D-005：旧 22 个 feature 包已整体作废归档，本看板内 F-001~F-010 均为旧包历史，新包从 feature-001 重建。
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -200,7 +200,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   <p class="lede">面向不读规格的人：<b>旧 10 个 Feature 已随 D-005 作废归档、八步闭环覆盖、测试质量与三期路线</b>，一眼看全局。对话通道已按 D-012 定稿 runtime 单轨终态；业务层从 feature-001 反向补录重建。</p>
   <div class="verline">
     <span class="chip">旧包 <b>22 个已作废归档（D-005）</b></span>
-    <span class="chip">新包 <b>5 个（feature-001/002/801/802/804）</b></span>
+    <span class="chip">新包 <b>20 个（001~010/101/801/802/804/807~811；19 落地 / 201 部分）</b></span>
     <span class="chip">当前焦点 <b>立项 → 故事 → 剧本分场反向补录</b></span>
     <span class="chip">画像 <b>P2</b></span>
   </div>
@@ -212,8 +212,8 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   </div>
 
   <div class="stats rv">
-    <div class="stat"><div class="num"><span data-to="22">0</span><small> 个旧包</small></div><div class="lbl">已整体作废归档（D-005）；现行新包 5 个（feature-001/002/801/802/804，2026-10-14）</div></div>
-    <div class="stat"><div class="num"><span data-to="369">0</span><small> 通过</small></div><div class="lbl">2026-10-14 再核（35 文件 · 1 跳过 · 0 失败，存量同日清零）；2026-10-09 快照为 197 通过 / 24 文件</div></div>
+    <div class="stat"><div class="num"><span data-to="22">0</span><small> 个旧包</small></div><div class="lbl">已整体作废归档（D-005）；现行新包 20 个（001~010/101/801/802/804/807~811，2026-10-27）</div></div>
+    <div class="stat"><div class="num"><span data-to="722">0</span><small> 通过</small></div><div class="lbl">2026-10-27 再核（61 文件 · 1 跳过 · 0 失败）；10-14 再核 369 通过 / 35 文件（存量同日清零）；10-09 快照 197 通过 / 24 文件</div></div>
     <div class="stat"><div class="num"><span data-to="0">0</span><small> /8 步</small></div><div class="lbl">新设计已落地步数；旧代码覆盖前 3 步形态（对话通道已定稿终态），业务层待反补重建</div></div>
     <div class="stat"><div class="num"><span data-to="0">0</span><small> 个</small></div><div class="lbl">typecheck 待清错误</div></div>
   </div>
@@ -420,7 +420,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="src-grid">
       <div class="src-row">
         <span class="si-base">A · 规划</span>
-        <div><div class="si-ti">短剧Agent平台设计.md（v1.12）</div><div class="si-sub">§2.6 新立项模型 · §4 多 Agent 架构（4 profile 实况） · §5.1 对话生成网关（runtime 单轨） · §5.2 已落地 22 工具 / 8 族 · §7.1 数据血缘（最终设计） · §8.3 系统级外部数据源 · §11 三期路线 · §13 版本记录</div></div>
+        <div><div class="si-ti">短剧Agent平台设计.md（v1.14）</div><div class="si-sub">§2.6 新立项模型 · §4 多 Agent 架构（4 profile 实况） · §5.1 对话生成网关（runtime 单轨） · §5.2 已落地 27 工具 / 10 族 · §7.1 数据血缘（最终设计） · §8.3 系统级外部数据源 · §11 三期路线 · §13 版本记录</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 归档</span>
@@ -428,11 +428,11 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </div>
       <div class="src-row">
         <span class="si-base">A · 决策</span>
-        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005 / D-011 / D-012）</div><div class="si-sub">立项模型重建 + 旧 22 包作废 + 谱系定位系统级外部数据源 + 对话通道定稿 runtime 单轨终态</div></div>
+        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005 / D-011 / D-012 … 最新 D-018）</div><div class="si-sub">立项模型重建 + 旧 22 包作废 + 谱系定位系统级外部数据源 + 对话通道定稿 runtime 单轨终态</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 新包</span>
-        <div><div class="si-ti">docs/features/（5 个现行包 · 2026-10-14）</div><div class="si-sub">feature-001 立项发布 / feature-002 立项后变更与影响评估 / feature-801 manifest 状态机 / feature-802 视觉风格谱系 / feature-804 窗口控制；按反向补录六步法建立</div></div>
+        <div><div class="si-ti">docs/features/（20 个现行包 · 2026-10-27）</div><div class="si-sub">feature-001~010 业务闭环 / 101 / 801·802·804·807~811 基建与体验；19 个已落地（201 部分落地）；按反向补录六步法建立</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">实测</span>
@@ -444,7 +444,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </div>
       <div class="src-row">
         <span class="si-base">代码核对</span>
-        <div><div class="si-ti">磁盘实况（只读核对 · 2026-10-14）</div><div class="si-sub"><code>electron/main.ts</code>（25 业务 IPC，另 4 窗口控制）· <code>electron/mcp/server.ts · tools.ts</code>（22 纯工具 / 8 族）· <code>resources/opencode/agents/</code>（4 profile：showrunner + writer/media-director/comfyui-operator）· <code>src/studio/</code>（StudioApp / CanvasBoard / ChatComposer 等）· <code>src/lib/chat-runtime.ts</code> · <code>electron/runtime/ · fs/ · comfy/</code></div></div>
+        <div><div class="si-ti">磁盘实况（只读核对 · 2026-10-27）</div><div class="si-sub"><code>electron/main.ts</code>（42 个 invoke 处理器，含 4 窗口控制）· <code>electron/mcp/server.ts · tools.ts</code>（27 纯工具 / 10 族）· <code>resources/opencode/agents/</code>（4 profile：showrunner 持 22 白名单 + writer/media-director/comfyui-operator）· <code>src/studio/</code>（七组分包 shell/canvas/chat/viewer/stage0/style/contracts）· <code>src/lib/chat-runtime.ts</code> · <code>electron/runtime/ · fs/ · comfy/</code></div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 治理</span>
@@ -454,7 +454,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   </div>
 </details>
 
-<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准（设计 v1.12 / 决策台账 D-005·D-012）· 2026-10-09 快照保留，2026-10-14 随 v1.12 反向同步（4 profile · 22 工具 / 8 族 · 5 现行包）</div>
+<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准（设计 v1.14 / 决策台账 D-005·D-018）· 2026-10-09 / 10-14 快照保留，2026-10-27 随 v1.14 反向同步（4 profile · 27 工具 / 10 族 · 20 现行包）</div>
 </main>
 </div>
 

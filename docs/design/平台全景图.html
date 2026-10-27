@@ -292,7 +292,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
   <h1>一块画布 = 一条生产线<br><em>一个指令</em> = 一支摄制组</h1>
   <p class="lede">这是一个 Agent 驱动的短剧内容生产桌面应用：用户只表达创作目标，<b>主控 Agent 像导演一样</b>把任务拆给虚拟摄制组——编剧、美术、镜头、声音、引擎在同一块画布上并行作业，从立项到成片全自动推进，人只在关键节点"拍板"。</p>
   <div class="verline">
-    <span class="chip">设计 <b>v1.12</b>（2026-10-14 反向同步）</span>
+    <span class="chip">设计 <b>v1.14</b>（2026-10-27 反向同步）</span>
     <span class="chip">Electron + React 18 + TS</span>
     <span class="chip">opencode-ai <b>1.18.34</b></span>
     <span class="chip">纯 JSON 持久化 · 无数据库</span>
@@ -300,10 +300,10 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
   </div>
 
   <div class="stats">
-    <div class="stat"><div class="num">22<small> 个旧包</small></div><div class="lbl">已整体作废归档（D-005）；新包已反补落地 5 个（feature-001/002/801/802/804 · 2026-10-14）</div></div>
-    <div class="stat"><div class="num" data-to="369">0</div><div class="lbl">2026-10-14 再核：369 通过 / 0 失败 / 1 跳过（35 测试文件，存量同日清零，typecheck 全绿）；10-09 快照为 197 通过 / 24 文件</div></div>
+    <div class="stat"><div class="num">22<small> 个旧包</small></div><div class="lbl">已整体作废归档（D-005）；新包已反补落地 20 个（001~010/101/801/802/804/807~811 · 2026-10-27，19 落地 / 201 部分）</div></div>
+    <div class="stat"><div class="num" data-to="722">0</div><div class="lbl">2026-10-27 再核：722 通过 / 0 失败 / 1 跳过（61 测试文件，typecheck 恰 3 条历史基线）；10-14 再核 369 通过 / 35 文件；10-09 快照 197 通过 / 24 文件</div></div>
     <div class="stat"><div class="num">0<small>/8 步</small></div><div class="lbl">2026-10-09 快照：新设计尚未反补；2026-10-14 已反补 0~2 步文本侧（feature-001/002/801/802）</div></div>
-    <div class="stat"><div class="num">25<small> 个IPC</small></div><div class="lbl">现行通道实况（runtime 单轨 · D-012 终态；另 4 窗口控制）</div></div>
+    <div class="stat"><div class="num">42<small> 个IPC</small></div><div class="lbl">现行通道实况（runtime 单轨 · D-012 终态；含 4 窗口控制）</div></div>
   </div>
 </header>
 
@@ -353,7 +353,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
         <span class="sr-files">
           <a href="../../AGENTS.md">AGENTS.md §1·§4</a><span class="sep">·</span>
           <a href="../governance/AI-SDG-AI工具执行指令.md">AI-SDG 执行指令.md</a><span class="sep">·</span>
-          <a href="../governance/SDG-AI-决策台账.md">决策台账（D-001~D-012）</a>
+          <a href="../governance/SDG-AI-决策台账.md">决策台账（D-001~D-018）</a>
         </span>
         <span class="sr-cap">三铁律 / K1–K10 / 绞杀者双轨 / 三期路线</span>
       </div>
@@ -362,9 +362,9 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
         <span class="sr-ch">04 进度</span>
         <span class="sr-files">
           <a href="../archive/README.md">archive/README.md（旧包已删 · git 可恢复）</a><span class="sep">·</span>
-          <a href="../features/">docs/features/（5 个现行包 · 2026-10-14）</a>
+          <a href="../features/">docs/features/（20 个现行包 · 2026-10-27）</a>
         </span>
-        <span class="sr-cap">旧 22 包 2026-10-10 已删除（历史见 git）；新包已反补落地 feature-001/002/801/802/804</span>
+        <span class="sr-cap">旧 22 包 2026-10-10 已删除（历史见 git）；新包已反补落地 20 个（001~010/101/801/802/804/807~811）</span>
       </div>
 
       <div class="src-row">
@@ -384,8 +384,8 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
       ·
       <a href="file:///Users/szd/Documents/WPS/Vibe%20Coding/AI-SDG-Trae-Vibe-Coding-%E5%9B%A2%E9%98%9F%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%B5%81%E7%A8%8B%E6%96%B9%E6%A1%88.md">团队架构与流程方案.md</a>
       （目录：/Users/szd/Documents/WPS/Vibe Coding，2026-10-05 v1.4）。项目内副本见
-      <a href="../governance/AI-SDG-AI工具执行指令.md">docs/governance/AI-SDG-AI工具执行指令.md</a>，AGENTS.md 在其基础上补充了本项目上下文；本页为 B 类可视化文档（v1.3 三层模型），v1.4 起按项目画像（本项目 <b>P2</b>）配置、Feature 闭环后直接重渲染；全局决策见 <a href="../governance/SDG-AI-决策台账.md">台账 D-001 ~ D-012</a>。<br>
-      <b>规格文件命名约定（每个 Feature 任务包）：</b>SDG-RE-需求规格.md（为什么做）· SDG-RE-契约.md（接口/字段/IPC）· SDG-RE-任务清单.md（原子任务与 AC）· SDG-OD-设计说明.md（视觉验收）· SDG-AI-变更记录.md（K1–K10 决策留痕）。目录：<a href="../features/">docs/features/</a>（2026-10-14 实况：5 个现行包 feature-001/002/801/802/804）
+      <a href="../governance/AI-SDG-AI工具执行指令.md">docs/governance/AI-SDG-AI工具执行指令.md</a>，AGENTS.md 在其基础上补充了本项目上下文；本页为 B 类可视化文档（v1.3 三层模型），v1.4 起按项目画像（本项目 <b>P2</b>）配置、Feature 闭环后直接重渲染；全局决策见 <a href="../governance/SDG-AI-决策台账.md">台账 D-001 ~ D-018</a>。<br>
+      <b>规格文件命名约定（每个 Feature 任务包）：</b>SDG-RE-需求规格.md（为什么做）· SDG-RE-契约.md（接口/字段/IPC）· SDG-RE-任务清单.md（原子任务与 AC）· SDG-OD-设计说明.md（视觉验收）· SDG-AI-变更记录.md（K1–K10 决策留痕）。目录：<a href="../features/">docs/features/</a>（2026-10-27 实况：20 个现行包 001~010/101/801/802/804/807~811）
     </div>
   </div>
 </details>
@@ -420,11 +420,11 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
   <p class="sec-sub">四层关键设计：技术架构 → 八步生产闭环 → 多 Agent 摄制组 → 数据模型与血缘。</p>
 
   <h3>2.1 技术架构（磁盘实况 · runtime 单轨，D-012 定稿终态）</h3>
-  <p class="mut" style="font-size:13px">实线/绿色 = 现存代码已建成；琥珀色 = 规划中（媒体侧）；对话通道已按 D-012 定稿 runtime 单轨终态（不回退、不重建旧 IPC/工具）；业务层按设计 v1.12 口径认定。</p>
+  <p class="mut" style="font-size:13px">实线/绿色 = 现存代码已建成；琥珀色 = 规划中（媒体侧）；对话通道已按 D-012 定稿 runtime 单轨终态（不回退、不重建旧 IPC/工具）；业务层按设计 v1.14 口径认定。</p>
   <div class="grid g4 rv" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">
     <div class="card"><h4>渲染进程</h4><p>项目库 / 中央画布（10 节点 Stage）/ ChatPanel / 流式 UI；经 contextBridge 安全桥走 IPC，不直连外部服务。</p></div>
-    <div class="card"><h4>主进程（信任边界）</h4><p>JSON 会话持久化（单写队列）、RuntimeManager（opencode 端口 4096 · 随机口令）、MCP 工具服务（22 纯工具 / 8 族）、ark.ts 工具内复用。</p></div>
-    <div class="card"><h4>opencode 子进程</h4><p>showrunner 单主控：意图理解 → 拆解 → 调工具 → 合流；经 22 个纯 MCP 工具（8 族）产出业务产物（§5.2）；writer / media-director / comfyui-operator 为 subagent，经 task 调度（director 已退役）。</p></div>
+    <div class="card"><h4>主进程（信任边界）</h4><p>JSON 会话持久化（单写队列）、RuntimeManager（opencode 端口 4096 · 随机口令）、MCP 工具服务（27 纯工具 / 10 族）、ark.ts 工具内复用。</p></div>
+    <div class="card"><h4>opencode 子进程</h4><p>showrunner 单主控：意图理解 → 拆解 → 调工具 → 合流；经 27 个纯 MCP 工具（10 族）产出业务产物（§5.2）；writer / media-director / comfyui-operator 为 subagent，经 task 调度（director 已退役）。</p></div>
     <div class="card"><h4>外部世界</h4><p>火山方舟（唯一出公网文本 LLM）；局域网 ComfyUI 池（媒体零公网）+ FFmpeg/MediaKit 后期。</p></div>
   </div>
   <p class="more"><a href="./架构模块关系图.html">完整四层架构 → 架构模块关系图.html</a><span class="sep">·</span><a href="./短剧Agent平台设计.html#sec-5">§5 对话生成网关</a><span class="sep">·</span><a href="./短剧Agent平台设计.html#sec-8">§8 引擎与生成通道 →</a></p>
@@ -441,7 +441,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
       <div class="step todo"><div class="bar"></div><div class="dot">6</div><div class="sn">后期</div></div>
       <div class="step todo"><div class="bar"></div><div class="dot">7</div><div class="sn">发布</div></div>
     </div>
-    <p class="mut" style="font-size:12.5px;margin-top:14px">红色 0/1/2 = <b style="color:var(--red)">旧代码曾覆盖的形态</b>（与 §2.6 新模型不符），按反向补录六步法对照设计 v1.12 重建（对话通道已定稿终态）；3-7 待建。各步产物明细见设计书 §2 与进度看板。</p>
+    <p class="mut" style="font-size:12.5px;margin-top:14px">红色 0/1/2 = <b style="color:var(--red)">旧代码曾覆盖的形态</b>（与 §2.6 新模型不符），按反向补录六步法对照设计 v1.14 重建（对话通道已定稿终态）；3-7 待建。各步产物明细见设计书 §2 与进度看板。</p>
   </div>
   <p class="more"><a href="./进度看板与路线图.html">八步覆盖与落地进度 → 进度看板与路线图.html</a><span class="sep">·</span><a href="./短剧Agent平台设计.html#sec-0-1">§0.1 原则三 · 八步闭环完整性 →</a></p>
 
@@ -465,7 +465,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
     </div>
   </div>
   <p class="mut" style="font-size:12.5px;margin-top:10px">协作铁则：无依赖任务并行、失败单镜隔离、产物只写新版本、不可逆动作必须过人审确认门。</p>
-  <p class="mut" style="font-size:12.5px;margin-top:6px;color:var(--amber)">磁盘实况（2026-10-14 · 设计 v1.12）：上图摄制组为目标态；当前实现共 <b>4 个 profile</b>——<b>showrunner 为唯一 primary</b>（即主控，持 17 个纯工具白名单），writer / media-director / comfyui-operator 为 subagent 经 task 调度；早期 director profile 已退役（提交 8114e84）。编剧对应 writer，美术/镜头/声音/引擎/剪辑角色随后续 feature 包演进。</p>
+  <p class="mut" style="font-size:12.5px;margin-top:6px;color:var(--amber)">磁盘实况（2026-10-27 · 设计 v1.14）：上图摄制组为目标态；当前实现共 <b>4 个 profile</b>——<b>showrunner 为唯一 primary</b>（即主控，持 22 个纯工具白名单），writer / media-director / comfyui-operator 为 subagent 经 task 调度；早期 director profile 已退役（提交 8114e84）。编剧对应 writer，美术/镜头/声音/引擎/剪辑角色随后续 feature 包演进。</p>
 
   <p class="more"><a href="./短剧Agent平台设计.html#sec-4">详见设计书 §4 多 Agent 架构 →</a></p>
 
@@ -564,7 +564,8 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
     <div class="tl" style="opacity:.6"><div class="date">2026-10-04</div><div class="tt">旧 feature-008 / 009（已归档）</div><div class="td">opencode 运行时集成（旧包级通道裁决）· 运行时调试抽屉</div></div>
     <div class="tl" style="opacity:.6"><div class="date">2026-10-05</div><div class="tt">旧 feature-010 对话通道全量接入（已归档）</div><div class="td">流式正文/推理分轨/工具卡/停止 · 删旧 8 对话 IPC</div></div>
     <div class="tl" style="opacity:.6"><div class="date">2026-10-09</div><div class="tt">D-005：立项模型重建 + 旧 22 包整体作废归档；D-012：对话通道 runtime 单轨定稿终态</div><div class="td">新设计 v1.11：2 节点 + 1 定案门、谱系定位系统级外部数据源；下一步从 feature-001 反向补录重建，再接资产/媒体引擎</div></div>
-    <div class="tl cur"><div class="date">2026-10-14 · 现在</div><div class="tt">设计升 v1.12（实现实况反向同步）：director 退役、showrunner 单 primary</div><div class="td">已反补落地 5 个新包 feature-001/002/801/802/804；22 个纯 MCP 工具 / 8 族、4 个 Agent profile；取消 shortdrama_ 前缀整体放行、8 个幽灵工具直接拒绝；35 文件 369 通过 / 0 失败 / 1 跳过（存量失败同日清零，typecheck 全绿）</div></div>
+    <div class="tl"><div class="date">2026-10-14</div><div class="tt">设计升 v1.12（实现实况反向同步）：director 退役、showrunner 单 primary</div><div class="td">已反补落地 5 个新包 feature-001/002/801/802/804；22 个纯 MCP 工具 / 8 族、4 个 Agent profile；取消 shortdrama_ 前缀整体放行、8 个幽灵工具直接拒绝；35 文件 369 通过 / 0 失败 / 1 跳过（存量失败同日清零，typecheck 全绿）</div></div>
+    <div class="tl cur"><div class="date">2026-10-27 · 现在</div><div class="tt">设计升 v1.14（文档集中回流）：八步业务闭环反补完成、工具族扩容</div><div class="td">已反补落地 19 个新包（001~010/101/801/802/804/807~811；201 部分）；27 个纯 MCP 工具 / 10 族（补 capture 3 / web 2）；showrunner 白名单 17 → 22；src/studio 七组分包、src/test 十二组分包；61 文件 722 通过 / 0 失败 / 1 跳过（typecheck 恰 3 条历史基线）</div></div>
   </div>
 </section>
 
@@ -575,12 +576,12 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
 
   <div class="grid g3 rv" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
     <div class="card"><h4>旧 22 包已整体作废</h4><p>F-001~F-010（及 F-011~F-022）随 D-005 归档冻结：立项链路 / 对话动态化 / 编剧 Agent / 剧本分镜 / 产物解锁 / 查看器 / 数据治理 / 运行时集成 / 调试抽屉 / 对话通道接入。</p></div>
-    <div class="card"><h4>新任务包从 feature-001 重建</h4><p>按反向补录六步法对照设计 v1.12 重建（对话通道已 D-012 定稿终态）；截至 2026-10-14 已落地 feature-001/002/801/802/804 共 5 个，逐卡验收以新包 AC 为准。</p></div>
+    <div class="card"><h4>新任务包从 feature-001 重建</h4><p>按反向补录六步法对照设计 v1.14 重建（对话通道已 D-012 定稿终态）；截至 2026-10-27 已落地 19 个（001~010/101/801/802/804/807~811；另 201 部分落地），逐卡验收以新包 AC 为准。</p></div>
     <div class="card"><h4>详情见进度看板</h4><p>Feature 看板 / 八步覆盖 / 质量实测 / 三期路线均在进度看板与路线图.html 展开。</p></div>
   </div>
 
   <div class="grid g4 rv" style="margin-top:16px">
-    <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--green)">35</div><div style="font-size:11.5px;color:var(--muted)">测试文件（2026-10-14 再核：369 passed / 0 failed / 1 skipped；10-09 快照为 24 文件 / 197 passed）</div></div>
+    <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--green)">61</div><div style="font-size:11.5px;color:var(--muted)">测试文件（2026-10-27 再核：722 passed / 0 failed / 1 skipped；10-14 再核 35 文件 / 369 passed；10-09 快照 24 文件 / 197 passed）</div></div>
     <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--violet)">10</div><div style="font-size:11.5px;color:var(--muted)">画布节点（Stage 枚举 · 现行实现）</div></div>
     <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--red)">1</div><div style="font-size:11.5px;color:var(--muted)">新立项定案门（取代旧 0-a…2-c 八道门）</div></div>
     <div class="card" style="text-align:center"><div style="font-family:var(--mono);font-size:22px;color:var(--cyan)">0</div><div style="font-size:11.5px;color:var(--muted)">媒体能力接入度（ComfyUI 待建）</div></div>
@@ -590,14 +591,14 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
 <!-- ══════════ PROBLEMS ══════════ -->
 <section id="problems">
   <div class="sec-head"><span class="sec-no">05</span><h2>有什么问题</h2></div>
-  <p class="sec-sub">首要风险是<b style="color:var(--red)">现存业务层与设计 v1.12 的系统性偏差</b>（对话通道已 D-012 定稿终态），按 feature 包反向补录重建——截至 2026-10-14 已反补落地 5 个包（feature-001/002/801/802/804）；其余为工程债与远期关口。</p>
+  <p class="sec-sub">首要风险是<b style="color:var(--red)">现存业务层与设计 v1.14 的系统性偏差</b>（对话通道已 D-012 定稿终态），按 feature 包反向补录重建——截至 2026-10-27 已反补落地 19 个包（001~010/101/801/802/804/807~811；201 部分）；其余为工程债与远期关口。</p>
 
   <div class="grid" style="gap:12px">
     <div class="pcard rv" style="border-color:rgba(240,98,93,.45)">
       <div class="plvl lvl-h">高</div>
       <div style="flex:1">
         <h4>现存代码整体基于旧模型，需反向补录重建（D-005）</h4>
-        <p>旧 22 包已作废归档，但其产物仍是现存代码全部：旧立项门（0-a~0-d 多 tab）、固化在 style-catalog 的谱系快照、10 节点画布（Stage）、25 个 IPC 的 runtime 单轨。代码可运行，但与设计 v1.12 §2.6/§8.3 不符，不能当作新设计已落地（对话通道例外：经 D-012 定稿终态；截至 2026-10-14 文本侧 0~2 步已反补 feature-001/002/801/802）。</p>
+        <p>旧 22 包已作废归档，但其产物仍构成现存代码基底：旧立项门（0-a~0-d 多 tab）、固化在 style-catalog 的谱系快照、10 节点画布（Stage）、runtime 单轨对话通道。代码可运行，但与设计 v1.14 §2.6/§8.3 仍有偏差，不能当作新设计已全部落地（对话通道例外：经 D-012 定稿终态；截至 2026-10-27 已反补落地 19 个包：001~010/101/801/802/804/807~811；201 部分）。</p>
         <div class="fix" style="background:rgba(240,98,93,.08);color:var(--red)">从 feature-001 起按《AI-SDG 执行指令》§7 存量功能反向补录六步法，逐步对照设计重建、改一项核一项。</div>
       </div>
     </div>
@@ -649,8 +650,8 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
 </section>
 
 <footer>
-  <span>短剧 Agent 平台 · 全景图 · 2026-10-14 再核（原快照 2026-10-09，B 类人读文档）</span>
-  <span>事实源：设计 v1.12 / 决策台账 D-005 · D-011 · D-012 / docs/archive/ / vitest：10-14 再核 369 passed · 0 failed · 1 skipped（10-09 快照 197 passed · 24 文件）；typecheck 0 错误</span>
+  <span>短剧 Agent 平台 · 全景图 · 2026-10-27 再核（前核 2026-10-14 / 原快照 2026-10-09，B 类人读文档）</span>
+  <span>事实源：设计 v1.14 / 决策台账 D-005 · D-011 · D-018 / docs/archive/ / vitest：10-27 再核 722 passed · 0 failed · 1 skipped（61 文件；10-14 再核 369 passed · 35 文件；10-09 快照 197 passed · 24 文件）；typecheck 3 条历史基线</span>
 </footer>
 
 </main>

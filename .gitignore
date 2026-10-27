@@ -5,3 +5,5 @@ dist-electron
 .DS_Store
 .env
 .env.local
+tsconfig.tsbuildinfo
+.trae-html-share-packages/

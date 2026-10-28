@@ -213,11 +213,11 @@ ipcMain.handle('project:delete', (_e, dir: unknown) => {
 })
 
 // D-017：修改立项面板直写（原则六 · 系统优先；K1 加 'ui' / K8 恰 1 IPC 已批）
-// patch 仅受理六控件字段白名单（kind 枚举校验，其余逐键 typeof string）；approve.by 恒 'ui'、decisions 恒全 'mark'；
+// patch 仅受理面板字段白名单（kind 枚举校验，其余逐键 typeof string；数组逐元素非空）；approve.by 恒 'ui'、decisions 恒全 'mark'；
 // 画布经 persistInQueue → canvasStore.subscribe 自动广播 canvas:changed，无需手动推送。
 ipcMain.handle('brief:update', (_e, arg: unknown) => {
   if (!isRecord(arg)) {
-    throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { kind?, fiveElements?, style? }')
+    throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { kind?, fiveElements?, premise?, style?, diagnosisSummary?, l0? }')
   }
   const patch: BriefUpdatePatch = {}
   if (arg.kind !== undefined) {
@@ -231,7 +231,7 @@ ipcMain.handle('brief:update', (_e, arg: unknown) => {
       throw makeRuntimeError('INVALID_ARGUMENT', 'fiveElements 必须为对象')
     }
     const fe: NonNullable<BriefUpdatePatch['fiveElements']> = {}
-    for (const key of ['episodeDuration', 'episodeCount', 'aspectRatio'] as const) {
+    for (const key of ['episodeDuration', 'episodeCount', 'aspectRatio', 'genre', 'tone'] as const) {
       const v = arg.fiveElements[key]
       if (v !== undefined) {
         if (typeof v !== 'string') {
@@ -240,7 +240,32 @@ ipcMain.handle('brief:update', (_e, arg: unknown) => {
         fe[key] = v
       }
     }
+    // feature-013：platforms 数组（逐元素非空字符串）
+    if (arg.fiveElements.platforms !== undefined) {
+      const v = arg.fiveElements.platforms
+      if (!Array.isArray(v) || v.some(x => typeof x !== 'string' || x.trim() === '')) {
+        throw makeRuntimeError('INVALID_ARGUMENT', 'fiveElements.platforms 必须为非空字符串数组')
+      }
+      fe.platforms = v as string[]
+    }
     patch.fiveElements = fe
+  }
+  // feature-013：premise 五子项（逐键字符串；空串由就绪闸 PREMISE_MISSING 拦截）
+  if (arg.premise !== undefined) {
+    if (!isRecord(arg.premise)) {
+      throw makeRuntimeError('INVALID_ARGUMENT', 'premise 必须为对象')
+    }
+    const pr: NonNullable<BriefUpdatePatch['premise']> = {}
+    for (const key of ['leads', 'time', 'place', 'coreEvent', 'seasonBoundary'] as const) {
+      const v = arg.premise[key]
+      if (v !== undefined) {
+        if (typeof v !== 'string') {
+          throw makeRuntimeError('INVALID_ARGUMENT', `premise.${key} 必须为字符串`)
+        }
+        pr[key] = v
+      }
+    }
+    patch.premise = pr
   }
   if (arg.style !== undefined) {
     if (!isRecord(arg.style)) {
@@ -259,8 +284,43 @@ ipcMain.handle('brief:update', (_e, arg: unknown) => {
     }
     patch.style = st
   }
-  if (patch.kind === undefined && patch.fiveElements === undefined && patch.style === undefined) {
-    throw makeRuntimeError('INVALID_ARGUMENT', 'patch 不能为空：至少提供 kind / fiveElements / style 一组字段')
+  // feature-013：诊断结论可直改（诊断明细保持只读，不在白名单）
+  if (arg.diagnosisSummary !== undefined) {
+    if (typeof arg.diagnosisSummary !== 'string') {
+      throw makeRuntimeError('INVALID_ARGUMENT', 'diagnosisSummary 必须为字符串')
+    }
+    patch.diagnosisSummary = arg.diagnosisSummary
+  }
+  // feature-013：L0 标签/备注（决策点 1 拍板 A 入模）
+  if (arg.l0 !== undefined) {
+    if (!isRecord(arg.l0)) {
+      throw makeRuntimeError('INVALID_ARGUMENT', 'l0 必须为对象')
+    }
+    const l0: NonNullable<BriefUpdatePatch['l0']> = {}
+    if (arg.l0.tags !== undefined) {
+      const v = arg.l0.tags
+      if (!Array.isArray(v) || v.some(x => typeof x !== 'string' || x.trim() === '')) {
+        throw makeRuntimeError('INVALID_ARGUMENT', 'l0.tags 必须为非空字符串数组')
+      }
+      l0.tags = v as string[]
+    }
+    if (arg.l0.notes !== undefined) {
+      if (typeof arg.l0.notes !== 'string') {
+        throw makeRuntimeError('INVALID_ARGUMENT', 'l0.notes 必须为字符串')
+      }
+      l0.notes = arg.l0.notes
+    }
+    patch.l0 = l0
+  }
+  if (
+    patch.kind === undefined &&
+    patch.fiveElements === undefined &&
+    patch.premise === undefined &&
+    patch.style === undefined &&
+    patch.diagnosisSummary === undefined &&
+    patch.l0 === undefined
+  ) {
+    throw makeRuntimeError('INVALID_ARGUMENT', 'patch 不能为空：至少提供 kind / fiveElements / premise / style / diagnosisSummary / l0 一组字段')
   }
   return updateBriefFields(getActiveProjectDir(), patch).then(res => ({ ok: true as const, ...res }))
 })

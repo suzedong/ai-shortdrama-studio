@@ -16,6 +16,7 @@ import {
 import { getStyleName, useStyleCatalog } from '../style/style-catalog-store'
 import Stage0Chain, { useCaptureFacts } from './Stage0Chain'
 import { selectPremiseConfirmation } from './premise-facts'
+import { driftDays, driftReminderLabel } from '../canvas/dirty-drift'
 
 /** 谱系风格引用：ID · 名称；未知/未来版本 ID 或空值原样返回（外层 || '—' 兜底） */
 function styleRefLabel(id: string): string {
@@ -229,7 +230,7 @@ function GatePendingStrip({ gate0 }: { gate0: NonNullable<ReturnType<typeof sele
 }
 
 /* ── 脏读黄条（纯文本，无按钮；文案/色值与 CanvasBoard 同源）── */
-function DirtyBar({ state }: { state: ReturnType<typeof selectStage0State> }) {
+function DirtyBar({ state, driftLabel }: { state: ReturnType<typeof selectStage0State>; driftLabel: string | null }) {
   if (state.dirtyCount === 0) return null
   return (
     <div
@@ -238,6 +239,7 @@ function DirtyBar({ state }: { state: ReturnType<typeof selectStage0State> }) {
     >
       <b className="text-[#C0841D]">有 {state.dirtyCount} 个产物基于旧版立项</b>
       <span className="ml-1.5">命中字段：{state.dirtyFields.map(dirtyFieldLabel).join('、')}</span>
+      {driftLabel && <div className="mt-0.5 font-semibold text-[#C0841D]">{driftLabel}</div>}
     </div>
   )
 }
@@ -287,24 +289,83 @@ function EditRow({ label, field, bare, children }: { label: string; field: strin
 const inputCls =
   'w-full rounded-md border border-line bg-white px-2 py-1 text-[11px] font-bold text-ink outline-none focus:border-violet'
 
-function BriefEditPanel({ brief, onClose }: {
+const textareaCls =
+  'w-full resize-y rounded-md border border-line bg-white px-2 py-1 text-[11px] font-bold leading-[1.6] text-ink outline-none focus:border-violet'
+
+/** 多值 chip 编辑器（feature-013：目标平台 / 项目标签）；回车或失焦追加，点击 × 删除 */
+function ChipEditor({ value, onChange, placeholder, testid }: {
+  value: string[]
+  onChange: (next: string[]) => void
+  placeholder?: string
+  testid?: string
+}) {
+  const [draft, setDraft] = useState('')
+  const add = () => {
+    const t = draft.trim()
+    setDraft('')
+    if (!t || value.includes(t)) return
+    onChange([...value, t])
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-1" data-stage0-edit-field={testid}>
+      {value.map(v => (
+        <span
+          key={v}
+          className="flex items-center gap-1 rounded-md bg-violet-soft px-1.5 py-[2px] text-[10.5px] font-bold text-[#5A4FD8]"
+        >
+          {v}
+          <button
+            type="button"
+            onClick={() => onChange(value.filter(x => x !== v))}
+            className="text-[#8A80E8] hover:text-[#5A4FD8]"
+            aria-label={`移除 ${v}`}
+          >×</button>
+        </span>
+      ))}
+      <input
+        className="min-w-[90px] flex-1 rounded-md border border-line bg-white px-2 py-1 text-[11px] font-bold text-ink outline-none focus:border-violet"
+        value={draft}
+        placeholder={placeholder}
+        onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }}
+        onBlur={add}
+      />
+    </div>
+  )
+}
+
+function BriefEditPanel({ brief, onClose, premiseDraft }: {
   brief: ProjectBrief
   onClose: () => void
+  /** 故事前提草稿（编辑态在卡②就地编辑，与本面板共享同一次提交） */
+  premiseDraft: Record<keyof ProjectBrief['premise'], string>
 }) {
   const old = {
     kind: brief.kind,
     episodeDuration: text(brief.fiveElements.episodeDuration),
     episodeCount: text(brief.fiveElements.episodeCount),
     aspectRatio: text(brief.fiveElements.aspectRatio),
+    genre: text(brief.fiveElements.genre),
+    tone: text(brief.fiveElements.tone),
+    platforms: Array.isArray(brief.fiveElements.platforms) ? brief.fiveElements.platforms : [],
     mainStyleId: text(brief.style.mainStyleId),
     auxiliaryStyleId: text(brief.style.auxiliaryStyleId),
+    diagnosisSummary: text(brief.diagnosisSummary),
+    l0Tags: brief.l0?.tags ?? [],
+    l0Notes: text(brief.l0?.notes),
   }
   const [kind, setKind] = useState<ProjectKind>(old.kind)
   const [episodeDuration, setEpisodeDuration] = useState(old.episodeDuration)
   const [episodeCount, setEpisodeCount] = useState(old.episodeCount)
   const [aspectRatio, setAspectRatio] = useState(old.aspectRatio)
+  const [genre, setGenre] = useState(old.genre)
+  const [tone, setTone] = useState(old.tone)
+  const [platforms, setPlatforms] = useState<string[]>(old.platforms)
   const [mainStyleId, setMainStyleId] = useState(old.mainStyleId)
   const [auxiliaryStyleId, setAuxiliaryStyleId] = useState(old.auxiliaryStyleId)
+  const [diagnosisSummary, setDiagnosisSummary] = useState(old.diagnosisSummary)
+  const [l0Tags, setL0Tags] = useState<string[]>(old.l0Tags)
+  const [l0Notes, setL0Notes] = useState(old.l0Notes)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -335,28 +396,63 @@ function BriefEditPanel({ brief, onClose }: {
     diffs.push(`- 集数（fiveElements.episodeCount）：「${episodeCount.trim()}」（原「${old.episodeCount}」）`)
   if (aspectRatio !== old.aspectRatio)
     diffs.push(`- 画幅（fiveElements.aspectRatio）：「${aspectRatio}」（原「${old.aspectRatio}」）`)
+  if (genre.trim() !== old.genre)
+    diffs.push(`- 题材赛道（fiveElements.genre）：「${genre.trim()}」（原「${old.genre}」）`)
+  if (tone.trim() !== old.tone)
+    diffs.push(`- 风格基调（fiveElements.tone）：「${tone.trim()}」（原「${old.tone}」）`)
+  if (platforms.join('、') !== old.platforms.join('、'))
+    diffs.push(`- 目标平台（fiveElements.platforms）：「${platforms.join('、')}」（原「${old.platforms.join('、')}」）`)
   if (mainStyleId !== old.mainStyleId)
     diffs.push(`- 主视觉风格（style.mainStyleId）：「${fmtStyle(mainStyleId)}」（原「${fmtStyle(old.mainStyleId)}」）`)
   if (auxiliaryStyleId !== old.auxiliaryStyleId)
     diffs.push(`- 辅助视觉风格（style.auxiliaryStyleId）：「${fmtStyle(auxiliaryStyleId)}」（原「${fmtStyle(old.auxiliaryStyleId)}」）`)
+  if (diagnosisSummary.trim() !== old.diagnosisSummary)
+    diffs.push(`- 选题诊断结论（diagnosisSummary）：「${diagnosisSummary.trim()}」（原「${old.diagnosisSummary}」）`)
+  for (const { key, label } of PREMISE_FIELDS) {
+    const cur = premiseDraft[key]
+    const prev = text(brief.premise[key])
+    if (cur.trim() !== prev) diffs.push(`- ${label}（premise.${key}）：「${cur.trim()}」（原「${prev}」）`)
+  }
+  if (l0Tags.join('、') !== old.l0Tags.join('、'))
+    diffs.push(`- 项目标签（l0.tags）：「${l0Tags.join('、')}」（原「${old.l0Tags.join('、')}」）`)
+  if (l0Notes.trim() !== old.l0Notes)
+    diffs.push(`- 项目备注（l0.notes）：「${l0Notes.trim()}」（原「${old.l0Notes}」）`)
 
-  // 就绪判定红线：主风格非空（MAIN_STYLE_MISSING）；时长/集数/画幅不为空串（ELEMENT_MISSING）
+  // 就绪判定红线（evaluateDraft 既有口径）：主风格非空（MAIN_STYLE_MISSING）；六要素 / 故事前提非空串
   const invalid =
-    !episodeDuration.trim() || !episodeCount.trim() || !aspectRatio || !mainStyleId
+    !episodeDuration.trim() || !episodeCount.trim() || !aspectRatio || !mainStyleId ||
+    !genre.trim() || !tone.trim() || platforms.filter(p => p.trim() !== '').length === 0 ||
+    PREMISE_FIELDS.some(({ key }) => premiseDraft[key].trim() === '')
 
   // D-017：系统直改——patch 只携带变更字段；approve.by 恒 'ui'、受影响节点全仅挂脏（主进程语义）
   const submit = async () => {
     const patch: Parameters<typeof window.api.updateBrief>[0] = {}
     if (kind !== old.kind) patch.kind = kind
-    const fe: { episodeDuration?: string; episodeCount?: string; aspectRatio?: string } = {}
+    const fe: {
+      episodeDuration?: string; episodeCount?: string; aspectRatio?: string
+      genre?: string; tone?: string; platforms?: string[]
+    } = {}
     if (episodeDuration.trim() !== old.episodeDuration) fe.episodeDuration = episodeDuration.trim()
     if (episodeCount.trim() !== old.episodeCount) fe.episodeCount = episodeCount.trim()
     if (aspectRatio !== old.aspectRatio) fe.aspectRatio = aspectRatio
+    if (genre.trim() !== old.genre) fe.genre = genre.trim()
+    if (tone.trim() !== old.tone) fe.tone = tone.trim()
+    if (platforms.join('、') !== old.platforms.join('、')) fe.platforms = platforms
     if (Object.keys(fe).length > 0) patch.fiveElements = fe
+    const pr: Record<string, string> = {}
+    for (const { key } of PREMISE_FIELDS) {
+      if (premiseDraft[key].trim() !== text(brief.premise[key])) pr[key] = premiseDraft[key].trim()
+    }
+    if (Object.keys(pr).length > 0) patch.premise = pr
     const st: { mainStyleId?: string; auxiliaryStyleId?: string } = {}
     if (mainStyleId !== old.mainStyleId) st.mainStyleId = mainStyleId
     if (auxiliaryStyleId !== old.auxiliaryStyleId) st.auxiliaryStyleId = auxiliaryStyleId
     if (Object.keys(st).length > 0) patch.style = st
+    if (diagnosisSummary.trim() !== old.diagnosisSummary) patch.diagnosisSummary = diagnosisSummary.trim()
+    const l0: { tags?: string[]; notes?: string } = {}
+    if (l0Tags.join('、') !== old.l0Tags.join('、')) l0.tags = l0Tags
+    if (l0Notes.trim() !== old.l0Notes) l0.notes = l0Notes.trim()
+    if (Object.keys(l0).length > 0) patch.l0 = l0
     setSubmitting(true)
     setError(null)
     try {
@@ -369,9 +465,7 @@ function BriefEditPanel({ brief, onClose }: {
     }
   }
 
-  const platforms = Array.isArray(brief.fiveElements.platforms) ? brief.fiveElements.platforms.join(' · ') : ''
-
-  // 卡①行内编辑态：六控件原位替换只读行；题材/平台/基调/诊断结论等开放式字段保持只读
+  // 卡①行内编辑态：全字段原位替换只读行（feature-013：L0 标签/备注 + 六要素 + 风格 + 诊断结论）
   return (
     <section className="flex flex-col overflow-hidden rounded-[12px] border border-violet bg-white" data-stage0-edit-panel>
       <div className="flex items-center gap-2 border-b border-[#F2F3F8] px-3.5 py-2.5">
@@ -386,6 +480,22 @@ function BriefEditPanel({ brief, onClose }: {
         >取消</button>
       </div>
       <div className="flex flex-col gap-3 px-3.5 py-3">
+        {/* feature-013：L0 区（项目标签 / 项目备注）——仅元数据，入模随再版留痕 */}
+        <div className="flex flex-col gap-1 rounded-md border border-line px-2.5 py-2">
+          <div className="text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">项目标签与备注（L0）</div>
+          <EditRow label="项目标签" field="l0.tags" bare>
+            <ChipEditor value={l0Tags} onChange={setL0Tags} placeholder="输入标签后回车" testid="l0.tags" />
+          </EditRow>
+          <EditRow label="项目备注" field="l0.notes" bare>
+            <textarea
+              className={textareaCls}
+              rows={2}
+              value={l0Notes}
+              onChange={e => setL0Notes(e.target.value)}
+              placeholder="项目备注（仅元数据，不入影响清单）"
+            />
+          </EditRow>
+        </div>
         <div className="rounded-md border border-line">
           <EditRow label="项目性质" field="kind">
             <select className={inputCls} value={kind} onChange={e => setKind(e.target.value as ProjectKind)}>
@@ -393,15 +503,21 @@ function BriefEditPanel({ brief, onClose }: {
               <option value="memorial">个人纪念</option>
             </select>
           </EditRow>
-          <FieldRow label="题材赛道"><LeafValue value={brief.fiveElements.genre} /></FieldRow>
-          <FieldRow label="目标平台"><LeafValue value={platforms} /></FieldRow>
+          <EditRow label="题材赛道" field="genre">
+            <input className={inputCls} value={genre} onChange={e => setGenre(e.target.value)} placeholder="如：甜宠 / 悬疑" />
+          </EditRow>
+          <EditRow label="目标平台" field="platforms">
+            <ChipEditor value={platforms} onChange={setPlatforms} placeholder="输入平台后回车" testid="platforms" />
+          </EditRow>
           <EditRow label="单集时长" field="episodeDuration">
             <input className={inputCls} value={episodeDuration} onChange={e => setEpisodeDuration(e.target.value)} placeholder="如：60 秒" />
           </EditRow>
           <EditRow label="集数" field="episodeCount">
             <input className={inputCls} value={episodeCount} onChange={e => setEpisodeCount(e.target.value)} placeholder="如：12 集" />
           </EditRow>
-          <FieldRow label="风格基调"><LeafValue value={brief.fiveElements.tone} /></FieldRow>
+          <EditRow label="风格基调" field="tone">
+            <input className={inputCls} value={tone} onChange={e => setTone(e.target.value)} placeholder="如：高甜 / 悬疑冷调" />
+          </EditRow>
           <EditRow label="画幅" field="aspectRatio">
             <select className={inputCls} value={aspectRatio} onChange={e => setAspectRatio(e.target.value)}>
               {aspectOptions.map(v => <option key={v} value={v}>{v}</option>)}
@@ -421,12 +537,17 @@ function BriefEditPanel({ brief, onClose }: {
             </select>
           </EditRow>
         </div>
-        {text(brief.diagnosisSummary) && (
-          <div className="rounded-md bg-[#F7F8FC] px-2.5 py-2 text-[10.5px] leading-[1.7] text-[#6A708A]">
-            <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">选题诊断结论</div>
-            {brief.diagnosisSummary}
-          </div>
-        )}
+        {/* feature-013：诊断结论直改（诊断明细恒只读，D-018 语义不变） */}
+        <div className="rounded-md border border-line px-2.5 py-2">
+          <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">选题诊断结论</div>
+          <textarea
+            className={textareaCls}
+            rows={3}
+            value={diagnosisSummary}
+            onChange={e => setDiagnosisSummary(e.target.value)}
+            data-stage0-edit-field="diagnosisSummary"
+          />
+        </div>
         {/* 诊断明细（D-018）：分节排版 + 长文限高滚动，恒只读 */}
         {text(brief.diagnosisDetail) && (
           <div className="rounded-md bg-[#F7F8FC] px-2.5 py-2 text-[10.5px] leading-[1.7] text-[#6A708A]" data-stage0-diagnosis-detail>
@@ -448,7 +569,7 @@ function BriefEditPanel({ brief, onClose }: {
             </span>
           </div>
           <p className="mt-1.5 text-[10px] leading-[1.6] text-[#A6ABC0]">
-            提交后系统直接再版为 v{brief.version + 1} 并完成影响追溯（不经 AI 对话）；题材、故事前提等开放式修改在右侧对话中提出
+            提交后系统直接再版为 v{brief.version + 1} 并完成影响追溯（不经 AI 对话）；右侧对话保留为开放式修改的补充入口
           </p>
           {error && (
             <p className="mt-2 rounded-md border border-[#F0C5CB] bg-[#FDF3F4] px-2.5 py-1.5 text-[10.5px] leading-[1.6] text-[#C23D4D]" data-stage0-edit-error>
@@ -462,30 +583,47 @@ function BriefEditPanel({ brief, onClose }: {
 }
 
 /* ── published 主体：双卡 + 定案/版本区 ── */
-function PublishedBody({ brief, state, bg, entryQuote = '' }: {
+function PublishedBody({ brief, state, bg, entryQuote = '', driftLabel }: {
   brief: ProjectBrief
   state: ReturnType<typeof selectStage0State>
   bg: BgDocState
   entryQuote?: string
+  driftLabel: string | null
 }) {
   const [bgOpen, setBgOpen] = useState(false)
   const [editing, setEditing] = useState(false)
+  // feature-013：故事前提五子项直改（编辑态与卡①编辑面板共享同一份草稿，一次提交一次再版）
+  const [premiseDraft, setPremiseDraft] = useState<Record<keyof ProjectBrief['premise'], string>>(() => ({
+    leads: text(brief.premise.leads),
+    time: text(brief.premise.time),
+    place: text(brief.premise.place),
+    coreEvent: text(brief.premise.coreEvent),
+    seasonBoundary: text(brief.premise.seasonBoundary),
+  }))
+  // feature-013：本人直改过的前提键 → 显示为 human 语义（009 数据流零 diff，仅展示层叠加）
+  const [editedPremise, setEditedPremise] = useState<string[]>([])
   const { facts } = useCaptureFacts()
   const confirmMap = useMemo(() => selectPremiseConfirmation(facts), [facts])
   const kindLabel = brief.kind === 'commercial' ? '商业短剧' : '个人纪念'
   const platforms = Array.isArray(brief.fiveElements.platforms) ? brief.fiveElements.platforms.join(' · ') : ''
   const isV1 = brief.version === 1
+  const l0Tags = brief.l0?.tags ?? []
+  const l0Notes = text(brief.l0?.notes)
 
   return (
     <div className="flex flex-col gap-3.5">
       <EntryQuoteCard quote={entryQuote} />
       {state.gate0 && state.gate0.status !== 'approved' && <GatePendingStrip gate0={state.gate0} />}
-      <DirtyBar state={state} />
+      <DirtyBar state={state} driftLabel={driftLabel} />
 
       <div className="grid grid-cols-2 gap-[14px]">
         {/* 卡① 选题诊断 + 六要素；修改立项时原位切换为行内编辑态（D-017） */}
         {editing ? (
-          <BriefEditPanel brief={brief} onClose={() => setEditing(false)} />
+          <BriefEditPanel
+            brief={brief}
+            onClose={() => setEditing(false)}
+            premiseDraft={premiseDraft}
+          />
         ) : (
         <section className="flex flex-col overflow-hidden rounded-[12px] border border-line bg-white" data-stage0-card-diagnosis>
           <div className="flex items-center gap-2 border-b border-[#F2F3F8] px-3.5 py-2.5">
@@ -513,6 +651,20 @@ function PublishedBody({ brief, state, bg, entryQuote = '' }: {
                 <span className="rounded bg-white/70 px-1.5 py-px text-[10px] font-bold text-[#5A4FD8]">辅助 {styleRefLabel(text(brief.style.auxiliaryStyleId))}</span>
               )}
             </div>
+            {/* feature-013：L0 标签与备注（仅元数据，低级不入影响清单） */}
+            {(l0Tags.length > 0 || l0Notes !== '') && (
+              <div className="rounded-md border border-line px-2.5 py-2 text-[10.5px] leading-[1.7] text-[#6A708A]" data-stage0-l0>
+                <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">项目标签与备注</div>
+                {l0Tags.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1" data-stage0-l0-tags>
+                    {l0Tags.map(t => (
+                      <span key={t} className="rounded bg-violet-soft px-1.5 py-px text-[10px] font-bold text-[#5A4FD8]">{t}</span>
+                    ))}
+                  </div>
+                )}
+                {l0Notes !== '' && <div className="mt-1 whitespace-pre-wrap" data-stage0-l0-notes>{l0Notes}</div>}
+              </div>
+            )}
             {text(brief.diagnosisSummary) && (
               <div className="rounded-md bg-[#F7F8FC] px-2.5 py-2 text-[10.5px] leading-[1.7] text-[#6A708A]">
                 <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">选题诊断结论</div>
@@ -539,7 +691,8 @@ function PublishedBody({ brief, state, bg, entryQuote = '' }: {
           <div className="flex flex-1 flex-col gap-3 px-3.5 py-3">
             <div className="overflow-hidden rounded-md border border-line">
               {PREMISE_FIELDS.map(({ key, label }) => {
-                const conf = confirmMap[key]
+                // feature-013：本人直改过的键按 human 语义展示（009 数据流零 diff，仅展示层叠加）
+                const conf = editedPremise.includes(key) ? 'human' : confirmMap[key]
                 return (
                 <div
                   key={key}
@@ -548,7 +701,20 @@ function PublishedBody({ brief, state, bg, entryQuote = '' }: {
                   data-stage0-premise-confirmation={conf}
                 >
                   <span className="mt-px w-[58px] shrink-0 text-[10px] font-semibold text-[#9AA0B5]">{label}</span>
-                  <LeafValue value={brief.premise[key]} />
+                  {editing ? (
+                    <input
+                      className="min-w-0 flex-1 rounded-md border border-line bg-white px-2 py-1 text-[11px] font-bold text-ink outline-none focus:border-violet"
+                      value={premiseDraft[key]}
+                      data-stage0-premise-edit={key}
+                      onChange={e => {
+                        const v = e.target.value
+                        setPremiseDraft(prev => ({ ...prev, [key]: v }))
+                        setEditedPremise(prev => (prev.includes(key) ? prev : [...prev, key]))
+                      }}
+                    />
+                  ) : (
+                    <LeafValue value={brief.premise[key]} />
+                  )}
                   {conf !== 'none' && (
                     <span
                       className={conf === 'human'
@@ -582,7 +748,7 @@ function PublishedBody({ brief, state, bg, entryQuote = '' }: {
                 )}
               </div>
             )}
-            <p className="mt-auto text-[10px] leading-[1.6] text-[#A6ABC0]">故事前提为开放式文本，修改请在右侧对话中提出；卡①六字段可点下方「修改立项…」行内直改再版。</p>
+            <p className="mt-auto text-[10px] leading-[1.6] text-[#A6ABC0]">故事前提可直接在卡②行内改；也可点下方「修改立项…」一次改完再版（不经 AI 对话）。</p>
           </div>
         </section>
       </div>
@@ -609,7 +775,18 @@ function PublishedBody({ brief, state, bg, entryQuote = '' }: {
           {!editing && (
             <button
               type="button"
-              onClick={() => setEditing(true)}
+              onClick={() => {
+                // feature-013：进入编辑态即以当前立项单为基线重置故事前提草稿
+                setPremiseDraft({
+                  leads: text(brief.premise.leads),
+                  time: text(brief.premise.time),
+                  place: text(brief.premise.place),
+                  coreEvent: text(brief.premise.coreEvent),
+                  seasonBoundary: text(brief.premise.seasonBoundary),
+                })
+                setEditedPremise([])
+                setEditing(true)
+              }}
               className="ml-auto rounded-lg border border-violet bg-violet-soft px-3 py-1.5 text-[11px] font-bold text-[#5A4FD8] hover:bg-[#DED9FB]"
               data-stage0-edit-toggle
             >修改立项…</button>
@@ -712,6 +889,10 @@ function BriefError({ projectTitle, onBackToDag, doc, state }: {
 
 export default function Stage0View({ canvas, projectTitle, onBackToDag, entryQuote = '' }: Stage0ViewProps) {
   const state = useMemo(() => selectStage0State(canvas), [canvas])
+  // feature-806 · B-46 漂移提醒：聚合态取各脏节点漂移天数 max（无 markedAt 按 0），超 30 天 DirtyBar 追加一行（不阻塞）
+  const dirtyDriftLabel = driftReminderLabel(
+    canvas.nodes.reduce((m, n) => Math.max(m, n.dirty ? (driftDays(n.dirty.markedAt) ?? 0) : 0), 0),
+  )
 
   if (state.phase === 'empty' || !state.briefNode) {
     return <EmptyStage0 state={state} projectTitle={projectTitle} onBackToDag={onBackToDag} entryQuote={entryQuote} />
@@ -725,7 +906,7 @@ export default function Stage0View({ canvas, projectTitle, onBackToDag, entryQuo
       <Stage0Chain state={state} />
       <div className="absolute inset-0 top-[84px] overflow-y-auto px-[26px] py-[22px]">
         <div className="mx-auto flex max-w-[920px] flex-col gap-[18px]" data-stage0-brief>
-          <PublishedLoaded state={state} refPath={refPath} projectTitle={projectTitle} onBackToDag={onBackToDag} entryQuote={entryQuote} />
+          <PublishedLoaded state={state} refPath={refPath} projectTitle={projectTitle} onBackToDag={onBackToDag} entryQuote={entryQuote} driftLabel={dirtyDriftLabel} />
         </div>
       </div>
     </div>
@@ -733,12 +914,13 @@ export default function Stage0View({ canvas, projectTitle, onBackToDag, entryQuo
 }
 
 /** 隔离读取 hook（保证 hooks 调用顺序不随主态切换变化） */
-function PublishedLoaded({ state, refPath, projectTitle, onBackToDag, entryQuote = '' }: {
+function PublishedLoaded({ state, refPath, projectTitle, onBackToDag, entryQuote = '', driftLabel }: {
   state: ReturnType<typeof selectStage0State>
   refPath: string
   projectTitle: string
   onBackToDag: () => void
   entryQuote?: string
+  driftLabel: string | null
 }) {
   const { brief, bg } = useBriefDocuments(refPath)
 
@@ -764,7 +946,7 @@ function PublishedLoaded({ state, refPath, projectTitle, onBackToDag, entryQuote
         <span className="rounded-full bg-[#E7F8F0] px-2 py-px text-[10px] font-bold text-[#1E9E66]" data-stage0-version={brief.brief.version}>立项单 v{brief.brief.version}</span>
         <span className="text-[10px] text-[#A6ABC0]">来源：{brief.path}</span>
       </div>
-      <PublishedBody brief={brief.brief} state={state} bg={bg} entryQuote={entryQuote} />
+      <PublishedBody brief={brief.brief} state={state} bg={bg} entryQuote={entryQuote} driftLabel={driftLabel} />
     </>
   )
 }

@@ -27,6 +27,21 @@ function stageOf(gate: CanvasGate): string | null {
   return payload?.stage ?? null
 }
 
+// feature-806 · 0-final 门 payload.harnessValidation 摘要上屏（契约 §2.3/D7；仅列 blocker，warning 不上屏）
+const HARNESS_CATEGORY_LABELS: Record<HarnessFindingDto['category'], string> = {
+  structure: '结构',
+  content: '内容',
+  spec: '规格',
+  consistency: '一致性',
+}
+
+function harnessBlockersOf(gate: CanvasGate): HarnessFindingDto[] {
+  const payload = gate.payload as { harnessValidation?: HarnessGateSummary } | undefined
+  const findings = payload?.harnessValidation?.findings
+  if (!Array.isArray(findings)) return []
+  return findings.filter(f => f.severity === 'blocker')
+}
+
 function PassIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.5} strokeLinecap="round" className="h-2 w-2 text-white">
@@ -52,20 +67,43 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
     onDecide('rejected', note.trim() ? note.trim() : undefined)
   }
 
-  // 已放行：成功态（剪辑/下游 Agent 接管）
+  // 已放行：成功态（剪辑/下游 Agent 接管）；feature-806：门 payload 挂有 harness 拦截摘要时下方列出待修复 blocker
   if (gate.status === 'approved') {
+    const blockers = harnessBlockersOf(gate)
     return (
-      <div className="mt-2 overflow-hidden rounded-[11px] border-[1.5px] border-[#BFE6D2] bg-gradient-to-b from-[#F4FCF8] to-white">
-        <div className="px-[11px] pb-3.5 pt-3.5 text-center">
-          <div className="mx-auto mb-2 grid h-[38px] w-[38px] place-items-center rounded-full bg-ok">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="h-[19px] w-[19px] text-white">
-              <path d="M20 6 9 17l-5-5" />
-            </svg>
+      <>
+        <div className="mt-2 overflow-hidden rounded-[11px] border-[1.5px] border-[#BFE6D2] bg-gradient-to-b from-[#F4FCF8] to-white">
+          <div className="px-[11px] pb-3.5 pt-3.5 text-center">
+            <div className="mx-auto mb-2 grid h-[38px] w-[38px] place-items-center rounded-full bg-ok">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="h-[19px] w-[19px] text-white">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            </div>
+            <div className="text-[12.5px] font-extrabold text-ink">已确认 · 下游 Agent 已接管</div>
+            <div className="mt-[3px] text-[10px] text-muted">后续产物完成后通知你</div>
           </div>
-          <div className="text-[12.5px] font-extrabold text-ink">已确认 · 下游 Agent 已接管</div>
-          <div className="mt-[3px] text-[10px] text-muted">后续产物完成后通知你</div>
         </div>
-      </div>
+        {blockers.length > 0 && (
+          <div
+            data-gate-harness-findings
+            className="mt-2 overflow-hidden rounded-[11px] border-[1.5px] border-bad/50 bg-gradient-to-b from-[#FDF6F5] to-white"
+          >
+            <div className="border-b border-bad/20 px-[11px] py-[9px] text-[11.5px] font-extrabold text-bad">
+              发布被基础校验拦截 · 待修复 {blockers.length} 项
+            </div>
+            <div className="flex flex-col gap-1.5 px-[11px] py-[9px]">
+              {blockers.map((f, i) => (
+                <div key={`${gate.gateId}-harness-${i}`} className="rounded-[7px] border border-bad/50 bg-white px-[9px] py-1.5">
+                  <span className="mb-1 inline-block rounded bg-[#F7E8E4] px-1.5 py-0.5 text-[9px] font-bold text-bad">
+                    {HARNESS_CATEGORY_LABELS[f.category] ?? f.category}
+                  </span>
+                  <div className="text-[10.5px] leading-4 text-ink">{f.message}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </>
     )
   }
 

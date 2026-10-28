@@ -1,11 +1,14 @@
-// feature-017 / feature-001 / feature-801 / feature-802 / feature-002 / feature-807 / feature-005 / feature-006 · MCP 纯工具注册（主进程）
-// 27 个零 LLM 工具：文件 / 画布 / 裁决门 / 资产 / ComfyUI 实例 / 立项单（brief.plan/publish/list）
+// feature-017 / feature-001 / feature-801 / feature-802 / feature-002 / feature-807 / feature-005 / feature-006 / feature-806 · MCP 纯工具注册（主进程）
+// 28 个零 LLM 工具：文件 / 画布 / 裁决门 / 资产 / ComfyUI 实例 / 立项单（brief.plan/publish/list）
 //   / manifest 状态机（manifest.get/advance）/ 视觉风格谱系（17–19 style.catalog/get/validate）
 //   / 立项后变更（20–22 brief.impact.assess/commit、canvas.align）
 //   / 已捕获口径（23–25 capture.list/upsert/remove，feature-005）
-//   / 公开数据检索（26–27 web.search/fetch，feature-006；零 Key 公开搜索源，不依赖激活项目）。
+//   / 公开数据检索（26–27 web.search/fetch，feature-006；零 Key 公开搜索源，不依赖激活项目）
+//   / Harness 基础校验（28 harness.validate，feature-806 批一；与 0-final 门写盘前拦截同一实现）。
 // feature-807：brief.publish 写盘前经 gate/guard 做门态防护（4 个 BRIEF_GATE_* 信封码，工具数不变）。
-// 纪律：只 import zod、MCP SDK、shared types 与 fs/project/canvas/gate/asset/comfy/brief/capture 模块。
+// feature-806：brief.publish 写盘前前置 harness 基础校验（契约 §2.2；HARNESS_VALIDATION_FAILED 携 findings，
+//   拦截零写盘不改门态，校验摘要经既有 gate 通道回流 0-final 门 payload 供 GateCardView 上屏）。
+// 纪律：只 import zod、MCP SDK、shared types 与 fs/project/canvas/gate/asset/comfy/brief/capture/harness 模块。
 import path from 'node:path'
 import fsp from 'node:fs/promises'
 import { z } from 'zod'
@@ -19,12 +22,14 @@ import { resolveInside } from '../fs/sandbox.js'
 import { getActiveProjectDir } from '../project/current.js'
 import { canvasStore } from '../canvas/store.js'
 import { gateBridge } from '../gate/bridge.js'
-import { assertBriefPublishable, findBriefGate } from '../gate/guard.js'
+import { assertBriefPublishable, findBriefGate, BRIEF_FINAL_GATE_ID } from '../gate/guard.js'
 import { registerAsset, listAssets } from '../asset/index.js'
 import { getComfyClient } from '../comfy/client.js'
 import { listInstances, requireInstance } from '../comfy/settings.js'
 import { diffBrief } from '../brief/diff.js'
-import { evaluateDraft, listBriefVersions } from '../brief/plan.js'
+import { evaluateDraft, listBriefVersions, readLatestBrief } from '../brief/plan.js'
+import { runHarnessValidation } from '../harness/validate.js'
+import type { HarnessFinding } from '../harness/types.js'
 import { renderBriefMd } from '../brief/render-md.js'
 import { publishV1InQueue, publishBriefFiles, type ReadyBriefDraft } from '../brief/publish.js'
 import {
@@ -37,16 +42,32 @@ import { loadStyleCatalog } from '../style/loader.js'
 import { validateStyleRefs } from '../style/validate.js'
 import { captureStore } from '../capture/store.js'
 
-type ToolErr = { ok: false; error: { code: string; message: string } }
+type ToolErr = { ok: false; error: { code: string; message: string; findings?: HarnessFinding[] } }
 type ToolResult<T> = ({ ok: true } & T) | ToolErr
 
-function fail(code: string, message: string): ToolErr {
-  return { ok: false, error: { code, message } }
+// feature-806：信封可携结构化 findings（当前仅 HARNESS_VALIDATION_FAILED 使用）
+function fail(code: string, message: string, findings?: HarnessFinding[]): ToolErr {
+  return { ok: false, error: findings === undefined ? { code, message } : { code, message, findings } }
 }
 
 function normalize(e: unknown): ToolErr {
   const code = (e as { code?: string }).code
   return fail(code ?? 'INTERNAL', (e as Error).message || '内部错误')
+}
+
+// feature-806：0-final 门 payload 校验摘要读写（契约 §2.3/D7；形状镜像 src/global.d.ts HarnessGateSummary。
+// shared CanvasGate.payload 为 unknown，摘要进出经既有 gate 通道，不触 K1、零新 IPC）
+const HARNESS_SUMMARY_KEY = 'harnessValidation'
+
+function harnessSummaryPresent(payload: unknown): boolean {
+  return typeof payload === 'object' && payload !== null && HARNESS_SUMMARY_KEY in payload
+}
+
+function payloadWithoutHarnessSummary(payload: unknown): unknown {
+  if (typeof payload !== 'object' || payload === null) return payload
+  const rest = { ...(payload as Record<string, unknown>) }
+  delete rest[HARNESS_SUMMARY_KEY]
+  return rest
 }
 
 interface McpReturn {
@@ -368,7 +389,7 @@ export function registerPureTools(server: McpServer): void {
   // 13. brief.publish（版本化双写 + upsert step-0-brief 节点）
   server.tool(
     'brief.publish',
-    '发布立项单：版本号按磁盘实况分配，双写 立项单.vN.json/md（永不覆盖、不归档），并 upsert 画布 step-0-brief 节点。',
+    '发布立项单：版本号按磁盘实况分配，双写 立项单.vN.json/md（永不覆盖、不归档），并 upsert 画布 step-0-brief 节点。feature-806：写盘前前置 harness 基础校验（七条 checkId），blocker 命中返 HARNESS_VALIDATION_FAILED 携 findings、零写盘不改门态，校验摘要回流 0-final 门 payload 供门卡上屏；全过后走 807 门态防护。',
     {
       kind: kindSchema,
       fiveElements: fiveElementsSchema,
@@ -409,11 +430,44 @@ export function registerPureTools(server: McpServer): void {
         const listing = await listBriefVersions(projectDir)
         const publishVersion = listing.latestVersion === null ? 1 : listing.latestVersion + 1
         const currentCanvas = await canvasStore.get()
-        const violation = assertBriefPublishable(
-          findBriefGate(currentCanvas.gates),
-          args.approve,
-          publishVersion,
-        )
+        const gate = findBriefGate(currentCanvas.gates)
+
+        // feature-806：harness 基础校验前置（契约 §2.2；与 harness.validate 工具同一 runHarnessValidation 实现，D3）。
+        // blocker 命中：零写盘（不写立项产物/版本/manifest）、不改门态，摘要经既有 gate 通道回流 0-final 门 payload 供门卡上屏
+        const report = await runHarnessValidation({
+          projectDir,
+          gateId: BRIEF_FINAL_GATE_ID,
+          subject: draft,
+          candidateVersion: publishVersion,
+        })
+        if (!report.passed) {
+          if (gate) {
+            const base = typeof gate.payload === 'object' && gate.payload !== null
+              ? { ...(gate.payload as Record<string, unknown>) }
+              : {}
+            await canvasStore.upsertGate({
+              ...gate,
+              payload: {
+                ...base,
+                [HARNESS_SUMMARY_KEY]: { checkedAt: report.checkedAt, findings: report.findings },
+              },
+            })
+          }
+          const blockers = report.findings.filter(f => f.severity === 'blocker').length
+          return respond(fail(
+            'HARNESS_VALIDATION_FAILED',
+            `harness 基础校验未通过（${blockers} 项 blocker），请按 findings 逐项修复后从同一入口重发；本次未写盘、未改门态`,
+            report.findings,
+          ))
+        }
+
+        // 全过且门 payload 挂有旧摘要时剥离（防门卡误显陈旧 blocker）；无摘要不写、payload 其余键原样保留
+        if (gate && harnessSummaryPresent(gate.payload)) {
+          await canvasStore.upsertGate({ ...gate, payload: payloadWithoutHarnessSummary(gate.payload) })
+        }
+
+        // feature-807 门态防护（语义不变；复用上方 gate，harness 摘要不影响 status/payload.version 判定）
+        const violation = assertBriefPublishable(gate, args.approve, publishVersion)
         if (violation) {
           return respond(fail(violation.code, violation.message))
         }
@@ -731,6 +785,8 @@ export function registerPureTools(server: McpServer): void {
           const regenerate = assessment.items.filter(
             i => decisionByNode.get(i.nodeId) === 'regenerate',
           )
+          // feature-806 B-46：挂脏写入 markedAt（整批同一时间戳；重复挂脏整体覆盖即刷新）
+          const markedAt = new Date().toISOString()
           const canvas = await canvasStore.persistInQueue(c => {
             for (const item of assessment.items) {
               const idx = c.nodes.findIndex(x => x.id === item.nodeId)
@@ -744,6 +800,7 @@ export function registerPureTools(server: McpServer): void {
                   fields: item.fields,
                   severity: item.severity,
                   impactReport: reportName,
+                  markedAt,
                 },
               }
             }
@@ -910,6 +967,30 @@ export function registerPureTools(server: McpServer): void {
       try {
         const text = await webFetchText(args.url)
         return respond<{ text: string }>({ ok: true, text })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+
+  // ---- feature-806 · Harness 基础校验（28；只读零写盘、零 LLM；与 0-final 门写盘前拦截共用 runHarnessValidation）----
+
+  // 28. harness.validate
+  server.tool(
+    'harness.validate',
+    '对项目跑 STAGE 0 harness 基础校验（契约 §1.3 七条 checkId：必填键/版本链/空值/枚举/风格引用/门版本/manifest 阶段），返回 HarnessReport（passed 仅看 blocker，warning 不拦截）。供 0-final 确认门前自查与拦截后复查；subject=磁盘最新立项单、candidateVersion=最新版号；尚无立项单时按空草案校验并据实报结构缺失。只读零写盘。',
+    { projectPath: z.string().min(1), gateId: z.literal('0-final') },
+    async (args: { projectPath: string; gateId: '0-final' }) => {
+      try {
+        const latest = await readLatestBrief(args.projectPath)
+        const subject: BriefDraft = latest ?? { kind: null, fiveElements: {}, premise: {}, style: {} }
+        const report = await runHarnessValidation({
+          projectDir: args.projectPath,
+          gateId: args.gateId,
+          subject,
+          candidateVersion: latest?.version ?? 1,
+        })
+        return respond({ ok: true as const, report })
       } catch (e) {
         return respond(normalize(e))
       }

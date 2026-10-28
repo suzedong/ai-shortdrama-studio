@@ -16,18 +16,33 @@ import { evaluateDraft, listBriefVersions } from './plan.js'
 import { assessImpact, type ImpactItem, type ImpactReportFile } from './impact.js'
 import { publishBriefFiles, type ReadyBriefDraft } from './publish.js'
 
-/** 修改立项面板可直改的字段（六控件 + feature-810 谱系升级采纳升版 catalogVersion；premise 沿用上一版） */
+/** 修改立项面板可直改的字段（D-017 六控件 + feature-810 谱系升级 catalogVersion；feature-013 全字段直改 + L0 标签/备注） */
 export interface BriefUpdatePatch {
   kind?: ProjectKind
   fiveElements?: {
     episodeDuration?: string
     episodeCount?: string
     aspectRatio?: string
+    genre?: string          // feature-013：题材赛道
+    tone?: string           // feature-013：风格基调
+    platforms?: string[]    // feature-013：目标平台
+  }
+  premise?: {              // feature-013：故事前提五子项
+    leads?: string
+    time?: string
+    place?: string
+    coreEvent?: string
+    seasonBoundary?: string
   }
   style?: {
     mainStyleId?: string
     auxiliaryStyleId?: string // 空串 = 清除辅助风格
     catalogVersion?: string   // feature-810：谱系升级采纳仅升版本号（K8 已批扩键）
+  }
+  diagnosisSummary?: string // feature-013：选题诊断结论（诊断明细保持只读，决策点 2 拍板 b）
+  l0?: {                    // feature-013：L0 元数据（决策点 1 拍板 A 入模）
+    tags?: string[]
+    notes?: string
   }
 }
 
@@ -66,8 +81,9 @@ export async function updateBriefFields(
       await fsp.readFile(path.join(projectDir, latestEntry.path), 'utf-8'),
     ) as ProjectBrief
 
-    // 合并 patch：仅面板六控件 + catalogVersion（feature-810）；premise / diagnosisSummary / diagnosisDetail 沿用 prev
+    // 合并 patch：面板全字段（feature-013）+ catalogVersion（feature-810）；未提交字段沿用 prev
     const auxPatch = patch.style?.auxiliaryStyleId
+    const premisePatch = patch.premise
     const draft: BriefDraft = {
       kind: patch.kind ?? prev.kind,
       fiveElements: {
@@ -81,8 +97,24 @@ export async function updateBriefFields(
         ...(patch.fiveElements?.aspectRatio !== undefined
           ? { aspectRatio: patch.fiveElements.aspectRatio }
           : {}),
+        ...(patch.fiveElements?.genre !== undefined
+          ? { genre: patch.fiveElements.genre.trim() }
+          : {}),
+        ...(patch.fiveElements?.tone !== undefined
+          ? { tone: patch.fiveElements.tone.trim() }
+          : {}),
+        ...(patch.fiveElements?.platforms !== undefined
+          ? { platforms: patch.fiveElements.platforms.map(p => p.trim()).filter(p => p !== '') }
+          : {}),
       },
-      premise: prev.premise,
+      premise: {
+        ...prev.premise,
+        ...(premisePatch?.leads !== undefined ? { leads: premisePatch.leads.trim() } : {}),
+        ...(premisePatch?.time !== undefined ? { time: premisePatch.time.trim() } : {}),
+        ...(premisePatch?.place !== undefined ? { place: premisePatch.place.trim() } : {}),
+        ...(premisePatch?.coreEvent !== undefined ? { coreEvent: premisePatch.coreEvent.trim() } : {}),
+        ...(premisePatch?.seasonBoundary !== undefined ? { seasonBoundary: premisePatch.seasonBoundary.trim() } : {}),
+      },
       style: {
         mainStyleId: patch.style?.mainStyleId ?? prev.style.mainStyleId,
         catalogVersion: patch.style?.catalogVersion ?? prev.style.catalogVersion,
@@ -90,8 +122,24 @@ export async function updateBriefFields(
           ? (auxPatch === '' ? {} : { auxiliaryStyleId: auxPatch })
           : (prev.style.auxiliaryStyleId ? { auxiliaryStyleId: prev.style.auxiliaryStyleId } : {})),
       },
-      ...(prev.diagnosisSummary ? { diagnosisSummary: prev.diagnosisSummary } : {}),
+      ...(patch.diagnosisSummary !== undefined
+        ? { diagnosisSummary: patch.diagnosisSummary.trim() }
+        : prev.diagnosisSummary ? { diagnosisSummary: prev.diagnosisSummary } : {}),
+      // feature-013：诊断明细（diagnosisDetail）本包保持只读，原样沿用
       ...(prev.diagnosisDetail ? { diagnosisDetail: prev.diagnosisDetail } : {}),
+      // feature-013：L0 标签/备注（决策点 1 拍板 A 入模；空数组等价未设置；未提交子键沿用上一版）
+      ...(patch.l0 !== undefined
+        ? {
+            l0: {
+              ...(patch.l0.tags !== undefined
+                ? { tags: patch.l0.tags.map(t => t.trim()).filter(t => t !== '') }
+                : prev.l0?.tags ? { tags: prev.l0.tags } : {}),
+              ...(patch.l0.notes !== undefined
+                ? { notes: patch.l0.notes.trim() }
+                : prev.l0?.notes !== undefined ? { notes: prev.l0.notes } : {}),
+            },
+          }
+        : prev.l0 ? { l0: prev.l0 } : {}),
     }
 
     const changes = diffBrief(prev, draft)
@@ -143,6 +191,8 @@ export async function updateBriefFields(
 
     // 画布单次写：全部 item 挂脏 + brief 节点 upsert（persistInQueue 自动广播 canvas:changed）
     const markedDirty = assessment.items.map(i => i.nodeId)
+    // feature-806 B-46：挂脏写入 markedAt（整批同一时间戳；重复挂脏整体覆盖即刷新）
+    const markedAt = new Date().toISOString()
     await canvasStore.persistInQueue(c => {
       for (const item of assessment.items) {
         const idx = c.nodes.findIndex(x => x.id === item.nodeId)
@@ -156,6 +206,7 @@ export async function updateBriefFields(
             fields: item.fields,
             severity: item.severity,
             impactReport: reportName,
+            markedAt,
           },
         }
       }

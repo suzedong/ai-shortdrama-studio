@@ -7,6 +7,7 @@
 import type { CanvasNode } from '@shared/types'
 
 import { dirtyFieldLabel, kindLabel } from './CanvasBoard'
+import { driftDays, driftReminderLabel } from './dirty-drift'
 
 export interface RealignPromptInput {
   nodeId: string
@@ -36,6 +37,8 @@ export default function RealignConfirm({ node, onRealign, onKeepView, onCancel }
   const fieldsText = dirty.fields.map(dirtyFieldLabel).join('、')
   const severityText =
     dirty.severity === 'high' ? '影响等级：高 · 建议重新生成' : '影响等级：中 · 可按需对齐'
+  // feature-806 · B-46 漂移提醒：超 30 天卡内追加一行（不阻断三按钮与既有流程）
+  const driftLabel = driftReminderLabel(driftDays(dirty.markedAt))
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center bg-ink/30 p-6">
       <div
@@ -52,6 +55,9 @@ export default function RealignConfirm({ node, onRealign, onKeepView, onCancel }
         </p>
         <p className="mt-1 text-[11.5px] leading-[1.7] text-[#4A4F68]">命中字段：{fieldsText}</p>
         <p className="mt-2 text-[11.5px] font-bold leading-[1.7] text-[#C0841D]">{severityText}</p>
+        {driftLabel && (
+          <p className="mt-1 text-[11.5px] font-bold leading-[1.7] text-[#C0841D]">{driftLabel}</p>
+        )}
         {dirty.impactReport && (
           <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-[1.7] text-muted">
             影响清单：{dirty.impactReport}

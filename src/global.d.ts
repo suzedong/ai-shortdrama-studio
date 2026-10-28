@@ -52,6 +52,15 @@ declare global {
     anchorWords: string
     textureRecipe: string
   }
+  // feature-806 · 0-final 门 payload 校验摘要镜像（主进程 electron/harness/types.ts 同形，不进 shared；K1 零触发）
+  type HarnessFindingDto = {
+    gateId: string
+    category: 'structure' | 'content' | 'spec' | 'consistency'
+    checkId: string
+    severity: 'blocker' | 'warning'
+    message: string
+  }
+  type HarnessGateSummary = { checkedAt: string; findings: HarnessFindingDto[] }
   interface Window {
     api: {
       // 项目库（feature-011 F13）
@@ -64,10 +73,27 @@ declare global {
       renameProject: (dir: string, title: string) => Promise<{ ok: true; title: string }>
       deleteProject: (dir: string) => Promise<{ ok: true }>
       // D-017：修改立项面板直写（K8 已批；approve.by 恒 'ui'，受影响节点全仅挂脏）
+      // feature-013：白名单扩键（全字段直改 + L0 标签/备注）
       updateBrief(patch: {
         kind?: 'commercial' | 'memorial'
-        fiveElements?: { episodeDuration?: string; episodeCount?: string; aspectRatio?: string }
+        fiveElements?: {
+          episodeDuration?: string
+          episodeCount?: string
+          aspectRatio?: string
+          genre?: string
+          tone?: string
+          platforms?: string[]
+        }
+        premise?: {
+          leads?: string
+          time?: string
+          place?: string
+          coreEvent?: string
+          seasonBoundary?: string
+        }
         style?: { mainStyleId?: string; auxiliaryStyleId?: string; catalogVersion?: string }
+        diagnosisSummary?: string
+        l0?: { tags?: string[]; notes?: string }
       }): Promise<{
         ok: true
         version: number

@@ -15,7 +15,7 @@ import { registerPureTools } from '../../../electron/mcp/tools'
 import { writeSessionState } from '../../../electron/project/library'
 import { canvasStore } from '../../../electron/canvas/store'
 import { MANIFEST_FILE } from '../../../electron/project/manifest'
-import type { BriefDraft, ProjectManifest } from '@shared/types'
+import type { BriefDraft, Canvas, ProjectManifest } from '@shared/types'
 
 type Handler = (args: Record<string, unknown>) => Promise<{
   content: { text: string }[]
@@ -334,17 +334,19 @@ describe('feature-002 立项后变更 MCP 工具（契约 §4/§9.2）', () => {
     expect(manifest.briefVersion).toBe(2)
     expect(manifest.statusHistory).toEqual([])
 
-    // 节点脏态五字段 + status 保持 done；未命中节点无脏
+    // 节点脏态五字段 + markedAt（feature-806 B-46）+ status 保持 done；未命中节点无脏
     const canvas = await canvasStore.get()
     const scenes = canvas.nodes.find(n => n.id === 'step-1-scenes')!
     expect(scenes.status).toBe('done')
-    expect(scenes.dirty).toEqual({
+    expect(scenes.dirty).toMatchObject({
       sinceBriefVersion: 1,
       latestBriefVersion: 2,
       fields: ['fiveElements.episodeCount'],
       severity: 'medium',
       impactReport: '影响清单.v1-v2.json',
     })
+    expect(typeof scenes.dirty?.markedAt).toBe('string')
+    expect(Number.isNaN(Date.parse(scenes.dirty!.markedAt!))).toBe(false)
     expect(scenes.parentReference).toEqual({
       briefVersion: 1,
       fields: ['premise.leads', 'fiveElements.episodeCount', 'fiveElements.genre'],
@@ -499,5 +501,41 @@ describe('feature-002 立项后变更 MCP 工具（契约 §4/§9.2）', () => {
     // 旧档 manifest 未被 assess 改动（无该字段）
     const raw = JSON.parse(await fsp.readFile(path.join(legacyDir, MANIFEST_FILE), 'utf-8')) as Record<string, unknown>
     expect('briefVersion' in raw).toBe(false)
+  })
+
+  it('feature-806 B-46 存量兼容：无 markedAt 的 dirty 读取不报错不臆造，align 清脏正常', async () => {
+    // session 已在 legacyDir（上一用例切换）；造一个无 markedAt 的存量脏节点
+    const legacyNow = new Date().toISOString()
+    const legacyCanvas: Canvas = {
+      schemaVersion: 2, projectId: 'project-legacy', title: '旧项目',
+      nodes: [{
+        id: 'step-1-outline', step: '1', kind: 'outline', title: '大纲', status: 'done',
+        parentReference: { briefVersion: 1, fields: ['premise.leads'] },
+        dirty: {
+          sinceBriefVersion: 1, latestBriefVersion: 2,
+          fields: ['premise.leads'], severity: 'high', impactReport: '影响清单.v1-v2.json',
+        },
+        updatedAt: legacyNow,
+      }],
+      edges: [], gates: [], updatedAt: legacyNow,
+    }
+    await fsp.writeFile(path.join(legacyDir, 'canvas.json'), JSON.stringify(legacyCanvas, null, 2), 'utf-8')
+    canvasStore.reset()
+
+    const canvas = await canvasStore.get()
+    const node = canvas.nodes.find(n => n.id === 'step-1-outline')!
+    expect(node.dirty).toBeDefined()
+    expect(node.dirty!.markedAt).toBeUndefined() // 存量无字段：原样保留，不补写不臆造
+
+    // align 清脏随脏对象整体消失（legacy manifest 无 briefVersion 指针，显式传目标版本）
+    const legacyFake = buildFakeServer()
+    registerPureTools(legacyFake.server)
+    const r = await call<{ nodeId: string; briefVersion: number }>(
+      legacyFake.handlers, 'canvas.align', { nodeId: 'step-1-outline', briefVersion: 2 },
+    )
+    expect(r.ok).toBe(true)
+    const aligned = (await canvasStore.get()).nodes.find(n => n.id === 'step-1-outline')!
+    expect(aligned.dirty).toBeUndefined()
+    expect(aligned.parentReference?.briefVersion).toBe(2)
   })
 })

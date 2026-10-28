@@ -15,7 +15,7 @@ describe('T8 mcp/tools.ts 静态护栏', () => {
     expect(toolsSrc).not.toMatch(/chat\(/)
   })
 
-  it('注册 27 个工具（含 brief 三件套、manifest 两件套、feature-802 style 三件套、feature-002 再版三件套、feature-005 capture 三件套、feature-006 web 两件套）', () => {
+  it('注册 28 个工具（含 brief 三件套、manifest 两件套、feature-802 style 三件套、feature-002 再版三件套、feature-005 capture 三件套、feature-006 web 两件套、feature-806 harness 一件套）', () => {
     const names = [
       'file.read', 'file.list', 'file.write',
       'canvas.get', 'canvas.update',
@@ -31,11 +31,13 @@ describe('T8 mcp/tools.ts 静态护栏', () => {
       'capture.list', 'capture.upsert', 'capture.remove',
       // feature-006：公开数据检索两件套（契约 §2.2 补登，K8 登记 25→27）
       'web.search', 'web.fetch',
+      // feature-806：STAGE 0 harness 基础校验（K8 登记 27→28，与 0-final 门写盘前拦截同一实现）
+      'harness.validate',
     ]
     for (const n of names) {
       expect(toolsSrc).toContain(`'${n}'`)
     }
-    expect((toolsSrc.match(/server\.tool\(/g) ?? []).length).toBe(27)
+    expect((toolsSrc.match(/server\.tool\(/g) ?? []).length).toBe(28)
   })
 
   it('统一 { ok } 结构：无旧信封字段', () => {

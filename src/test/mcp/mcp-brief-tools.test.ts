@@ -11,7 +11,8 @@ vi.mock('electron', () => ({
 import { registerPureTools } from '../../../electron/mcp/tools'
 import { writeSessionState } from '../../../electron/project/library'
 import { canvasStore } from '../../../electron/canvas/store'
-import type { BriefDraft, ProjectBrief } from '@shared/types'
+import { MANIFEST_FILE } from '../../../electron/project/manifest'
+import type { BriefDraft, ProjectBrief, ProjectManifest } from '@shared/types'
 
 type Handler = (args: Record<string, unknown>) => Promise<{
   content: { text: string }[]
@@ -30,6 +31,21 @@ function buildFakeServer() {
 
 let projDir = ''
 let handlers: Map<string, Handler>
+
+// feature-806：harness STRUCT_VERSION_CHAIN 要求磁盘最新立项单与 manifest.briefVersion 一致，
+// 夹具改用带 manifest 的正式项目形态（同 mcp-brief-impact-tools.test.ts 写法）
+async function writeManifest(briefVersion: number | null = null): Promise<void> {
+  const now = new Date().toISOString()
+  const manifest: ProjectManifest = {
+    status: 'initiating',
+    createdAt: now,
+    workflowVersion: 1,
+    updatedAt: now,
+    statusHistory: [],
+    briefVersion,
+  }
+  await fsp.writeFile(path.join(projDir, MANIFEST_FILE), JSON.stringify(manifest, null, 2), 'utf-8')
+}
 
 async function call<T = Record<string, unknown>>(name: string, args: Record<string, unknown> = {}): Promise<T & { ok: boolean; error?: { code: string; message: string } }> {
   const r = await handlers.get(name)!(args)
@@ -55,6 +71,7 @@ beforeAll(async () => {
   holder.userData = path.join(tmpRoot, 'userdata')
   projDir = path.join(tmpRoot, 'project-1')
   await fsp.mkdir(projDir, { recursive: true })
+  await writeManifest()
   writeSessionState({ currentDir: projDir })
   canvasStore.reset()
   const fake = buildFakeServer()
@@ -73,14 +90,14 @@ describe('feature-001 brief MCP 工具（契约 §3）', () => {
     expect(r.plan.nextVersion).toBe(1)
     expect(r.plan.latestVersion).toBeNull()
     expect(r.plan.missing.length).toBeGreaterThan(0)
-    await expect(fsp.readdir(projDir)).resolves.toEqual([])
+    await expect(fsp.readdir(projDir)).resolves.toEqual([MANIFEST_FILE])
   })
 
   it('未就绪 publish → BRIEF_NOT_READY，不落盘不建节点', async () => {
     const r = await call('brief.publish', { ...draft, fiveElements: { ...draft.fiveElements, genre: '' } })
     expect(r.ok).toBe(false)
     expect(r.error?.code).toBe('BRIEF_NOT_READY')
-    expect(await fsp.readdir(projDir)).toEqual([])
+    expect(await fsp.readdir(projDir)).toEqual([MANIFEST_FILE])
     expect((await canvasStore.get()).nodes).toEqual([])
   })
 
@@ -152,6 +169,9 @@ describe('feature-001 brief MCP 工具（契约 §3）', () => {
   })
 
   it('重复 publish 幂等 upsert，版本号继续单调递增（v3）', async () => {
+    // feature-806：brief.publish 不推进 manifest.briefVersion（v2+ 再版指针由 brief.impact.commit 推进）；
+    // harness STRUCT_VERSION_CHAIN 要求磁盘最新立项单与 manifest 指针一致，此处同步指针模拟真实再版链路
+    await writeManifest(2)
     const r = await call<{ version: number }>('brief.publish', {
       ...draft,
       fiveElements: { ...draft.fiveElements, episodeCount: '100 集' },

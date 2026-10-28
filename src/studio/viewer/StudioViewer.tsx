@@ -15,6 +15,7 @@ import type {
 
 import { getStyleName } from '../style/style-catalog-store'
 import { dirtyFieldLabel } from '../canvas/CanvasBoard'
+import { driftDays, driftReminderLabel } from '../canvas/dirty-drift'
 import { BACKGROUND_PATH, BackgroundMd, DiagnosisSections, EntryQuoteCard, formatAt } from '../stage0/Stage0View'
 import BriefHistoryView from './BriefHistoryView'
 
@@ -575,6 +576,8 @@ export default function StudioViewer({ node, kindLabel, onClose, entryQuote = ''
   }
 
   const version = typeof node.meta?.version === 'string' ? node.meta.version : null
+  // feature-806 · B-46 漂移提醒：单节点直取 dirty.markedAt，超 30 天黄条内追加一行（不阻塞）
+  const dirtyDriftLabel = node.dirty ? driftReminderLabel(driftDays(node.dirty.markedAt)) : null
 
   return (
     <div className="absolute inset-0 z-10 flex flex-col rounded-2xl border border-line bg-white shadow-card">
@@ -620,6 +623,7 @@ export default function StudioViewer({ node, kindLabel, onClose, entryQuote = ''
           <span className="min-w-0 flex-1 break-words text-[11px] font-semibold leading-5 text-[#C0841D]">
             当前基于 v{node.dirty.sinceBriefVersion} 立项，与最新 v{node.dirty.latestBriefVersion} 不一致：
             {node.dirty.fields.map(dirtyFieldLabel).join('、')}
+            {dirtyDriftLabel && <span className="block">{dirtyDriftLabel}</span>}
           </span>
           {onRequestAlign && (
             <button

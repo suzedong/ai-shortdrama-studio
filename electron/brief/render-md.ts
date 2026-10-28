@@ -24,11 +24,21 @@ export function renderBriefMd(brief: ProjectBrief): string {
     ? '首版立项。'
     : brief.changesFromPrevious.map(c => `- ${c.field}：${c.from || '（空）'} → ${c.to || '（空）'}`).join('\n')
 
+  // feature-013：L0 标签/备注区块（有值才渲染，置于头部）
+  const l0Tags = brief.l0?.tags?.filter(t => t.trim() !== '') ?? []
+  const l0Notes = brief.l0?.notes?.trim() ?? ''
+  const l0Block = l0Tags.length > 0 || l0Notes !== ''
+    ? `## 项目标签与备注
+${l0Tags.length > 0 ? `- 标签：${l0Tags.join('、')}` : ''}${l0Tags.length > 0 && l0Notes !== '' ? '\n' : ''}${l0Notes !== '' ? `- 备注：${l0Notes}` : ''}
+
+`
+    : ''
+
   return `# 立项单 v${brief.version}
 
 > 发布时间：${brief.publishedAt}　拍板方式：${approveLine}
 
-## 项目性质
+${l0Block}## 项目性质
 ${KIND_LABEL[brief.kind]}
 
 ## 立项六要素

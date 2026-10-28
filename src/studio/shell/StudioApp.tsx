@@ -13,6 +13,7 @@ import CaptureBar from '../stage0/CaptureBar'
 import ProjectNav, { type ProjectNavHandle } from './ProjectNav'
 import { AssetsPanel, PluginsPanel, SkillsPanel } from './LeftPanels'
 import StageNavPanel from '../canvas/StageNavPanel'
+import { deriveBriefDisplay, stage0Tooltip } from '../canvas/brief-display'
 import Stage0View from '../stage0/Stage0View'
 import StudioViewer from '../viewer/StudioViewer'
 import RealignConfirm, { buildRealignPrompt } from '../canvas/RealignConfirm'
@@ -489,6 +490,9 @@ export default function StudioApp() {
     return { step, state: 'active' as const }
   })
 
+  // feature-013：顶栏 STAGE 0 tooltip「立项 vN · X 产物已对齐 · Y 待处理」（与左栏徽标同源派生；未发布降级 null）
+  const stage0TooltipText = stage0Tooltip(deriveBriefDisplay(canvas.nodes))
+
   return (
     <div className="flex h-full flex-col overflow-hidden bg-win shadow-[0_18px_50px_rgba(40,42,80,0.18)]">
       {/* ═══ 顶栏 ═══ */}
@@ -526,7 +530,9 @@ export default function StudioApp() {
                     : s.state === 'active' ? 'text-violet hover:bg-violet-soft'
                     : 'text-[#9AA0B5] hover:bg-violet-soft'
                 }`}
-                title={`STAGE ${s.step} · ${STEP_LABELS[s.step]}`}
+                title={s.step === '0'
+                  ? (stage0TooltipText ?? `STAGE ${s.step} · ${STEP_LABELS[s.step]}`)
+                  : `STAGE ${s.step} · ${STEP_LABELS[s.step]}`}
                 data-stp={s.step}
               >
                 <span className={`h-[7px] w-[7px] shrink-0 rounded-full ${

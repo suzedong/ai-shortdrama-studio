@@ -233,6 +233,7 @@ describe('T8-1/T8-2 · mock provider 端到端（真 opencode serve + 本机桩�
       'shortdrama_file_read',
       'shortdrama_file_write',
       'shortdrama_gate_request',
+      'shortdrama_harness.validate',
       'shortdrama_manifest.advance',
       'shortdrama_manifest.get',
       'shortdrama_style.catalog',

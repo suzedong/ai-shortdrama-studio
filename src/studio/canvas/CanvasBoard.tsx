@@ -10,6 +10,8 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Canvas, CanvasEdge, CanvasNode, StepId } from '@shared/types'
 
+import { driftDays, driftReminderLabel } from './dirty-drift'
+
 export type NodeAction = 'view' | 'regen' | 'copy' | 'invalidate'
 
 // 节点只能在所属 step 列内会话态摆位，override 不携带 step（业务禁止跨步骤）
@@ -339,6 +341,10 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
   // feature-002 · 脏读：挂 dirty 的产物节点（brief 节点自身不挂脏）
   const dirtyNodes = useMemo(() => nodes.filter(n => n.dirty), [nodes])
   const dirtyLatest = dirtyNodes.reduce((m, n) => Math.max(m, n.dirty!.latestBriefVersion), 0)
+  // feature-806 · B-46 漂移提醒：聚合态取各脏节点漂移天数 max（无 markedAt 按 0），超 30 天黄条追加一行（不阻塞）
+  const dirtyDriftLabel = driftReminderLabel(
+    dirtyNodes.reduce((m, n) => Math.max(m, driftDays(n.dirty!.markedAt) ?? 0), 0),
+  )
 
   // 初始：保可读缩放（0.65 下限），从 STAGE 0 左侧开始，垂直居中；超出部分可横向拖动
   useLayoutEffect(() => {
@@ -618,6 +624,7 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
           className="pointer-events-none absolute left-3 top-3 z-20 max-w-[46%] rounded-lg bg-[#FFF4DE] px-3 py-1.5 text-[11px] font-semibold leading-snug text-[#C0841D] shadow-[0_4px_12px_rgba(192,132,29,0.18)]"
         >
           {`有 ${dirtyNodes.length} 个产物基于旧版立项（最新 v${dirtyLatest}），内容可能与最新立项不一致。`}
+          {dirtyDriftLabel && <div className="mt-0.5">{dirtyDriftLabel}</div>}
         </div>
       )}
 

@@ -296,3 +296,16 @@
   - **验证**：新增/改写 7 例——[stage0-view.test.tsx](../../src/studio/stage0-view.test.tsx) 新 describe 5 例（入口动作 gate / verbal / ui 三路径恒显 + 卡①明细块只读态与编辑态同显恒只读 + 无明细不渲染）；[brief.test.ts](../../src/test/brief.test.ts) diff 捕获 diagnosisDetail + render-md 明细区块两断言；[brief-impact.test.ts](../../src/test/brief-impact.test.ts) it.each 明细 → medium；[brief-update.test.ts](../../src/test/brief-update.test.ts) 面板直改明细原样沿用 + v2 md 渲染明细。全量 **48 文件 507 passed / 1 skipped**；typecheck 仅 3 条历史基线。
 - **波及文件**：shared/types.ts；electron（mcp/tools.ts、brief/publish.ts、brief/update.ts、brief/diff.ts、brief/impact.ts、brief/render-md.ts）；renderer（studio/Stage0View.tsx、studio/stage0/select.ts、studio/CanvasBoard.tsx）；resources/opencode/agents/showrunner.md；测试 4 文件（stage0-view.test.tsx、brief.test.ts、brief-impact.test.ts、brief-update.test.ts）；文档三写：本台账、偏差清单 B-25、版本记录 2026-10-17 条目。
 - **后续约束**：AI（showrunner 第 0 步）发布立项时应将节点①诊断卡完整明细经 brief.publish `diagnosisDetail` 入参落盘；`diagnosisSummary` 摘要口径不变（仍只写用户参与确认过的判断，B-15 纪律同适用于明细）；明细与摘要同为 medium 分级参与影响追溯，但不进 parentReference 字段表（下游不消费）。
+
+## D-019 ｜ K8 ｜ feature-806 启动建包：806 先于 803 排期调整 + 分批策略 + harness 工具面预案
+
+- **日期**：2026-10-27
+- **卡口**：K8（harness.validate 新 MCP 工具面预案，随包呈报批准生效；本次建包仅文档，代码零 diff）；关联 K1 预案（`CanvasDirty.markedAt` 可选字段，见 806 契约 §1.1）
+- **触发背景**：2026-10-27 立项阶段真机覆盖度排查确认「确认门全链路 + Harness 校验」为零落地缺口（设计书 §9 / §11 一期·4），B-46（超 30 天漂移提醒缺失）同日登记并经用户拍板归 806；用户同日批准启动 feature-806 建包（Spec 先行，不动代码）。
+- **决策与执行口径**：
+  1. **排期调整**：features/README §4 P2 原序「803 ComfyUI → 806 Harness」，现 806 先于 803 建包——806 批一仅 STAGE 0 文本侧校验与 0-final 门联动，不依赖媒体引擎；803 仍为 P3 媒体链前置、其相对顺序不变（循 D-014「规划基线而非编号锁定」先例）；
+  2. **分批策略**：批一 = STAGE 0 harness 基础校验 + 0-final 门联动 + B-46 漂移提醒；批二 = STAGE 1-2 门序（1-a/1-b、2-a/2-b，2-c 随 feature-201 分镜文字稿收尾）；批三起 = STAGE 3-7 随 P3 各段产物包与 803 节奏；**各批独立呈报批准**，批一批准不视为后续批次放行；
+  3. **工具面预案（随包呈报，批准生效）**：新增 `harness.validate` 单工具（MCP 27→28）+ showrunner 白名单 22→23；工具与写盘前拦截共用同一 `runHarnessValidation` 实现，四类七条 checkId 确定性校验、零 LLM（D-016）；**不设 harness.drift 独立工具**——漂移提醒系统直做（markedAt + 黄条/二次确认不阻塞提示，零新 IPC）；
+  4. **真机两缺口处置**：web.search 成功路径 = 环境限制登记（本机 DuckDuckGo 不可达，非代码缺陷，不阻塞验收）；capture 跨重启持久化 = 列入 806 批一 T8 真机目验必验项。
+- **波及文件**：docs/features/feature-806-Harness基础校验与确认门全链路/（五文件新建）；features/README 806 行；设计现状与偏差清单 B-46 行与 §3 路线表；本台账。代码零 diff。
+- **后续约束**：批一实施须待用户批准任务清单（铁律 1）；实施中触碰未登记卡口（新 IPC/推送、其他共享类型、新依赖、其他 Agent 白名单）立即停手呈报；1-a/1-b、2-a~2-c 及 3-7 门未建前不得宣称「确认门全链路」完成。

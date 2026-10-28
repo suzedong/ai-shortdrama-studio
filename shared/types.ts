@@ -108,6 +108,13 @@ export interface BriefChange {
   to: string                   // 新值
 }
 
+// L0 元数据（feature-013 决策点 1 拍板 A）：标签 + 备注
+// 分级=低（002 §L48）：不入影响清单、不挂脏，随再版直接落盘；参与字段级 diff（l0.tags / l0.notes）
+export interface BriefL0 {
+  tags?: string[]        // 项目标签；空数组等价未设置
+  notes?: string         // 项目备注；自由文本
+}
+
 // 立项单（立项单.vN.json 事实源；项目根目录版本化全量保留）
 export interface ProjectBrief {
   schemaVersion: 2
@@ -116,6 +123,7 @@ export interface ProjectBrief {
   fiveElements: FiveElements
   premise: StoryPremise
   style: BriefStyle
+  l0?: BriefL0                 // L0 元数据（feature-013；可选字段，存量立项单无此字段不破坏）
   diagnosisSummary?: string    // 选题诊断结论摘要
   diagnosisDetail?: string     // 选题诊断完整明细（D-018：发布时随立项单落盘，卡①与 md 显示）
   approve: BriefApprove
@@ -151,6 +159,7 @@ export interface BriefDraft {
   fiveElements: Partial<FiveElements>
   premise: Partial<StoryPremise>
   style: Partial<BriefStyle>
+  l0?: BriefL0          // L0 元数据（feature-013；参与字段级 diff，低级不入影响清单）
   diagnosisSummary?: string  // 参与字段级 diff（契约 §5），可选
   diagnosisDetail?: string   // D-018：诊断完整明细，参与字段级 diff，可选
 }
@@ -361,6 +370,8 @@ export interface CanvasDirty {
   fields: string[]            // 命中的 Δ 字段（= parentReference.fields ∩ Δ）
   severity: 'high' | 'medium' // 命中字段最高级
   impactReport: string        // 影响清单文件名（相对项目根），如 '影响清单.v2-v3.json'
+  /** 「仅标记脏」动作时间（ISO 8601）；超 30 天未处理触发漂移提醒（不阻塞）。存量数据无此字段 → 不提醒（feature-806 B-46） */
+  markedAt?: string
 }
 
 /** 画布节点：以 ref.path 引用产物文件，不内联大产物 */

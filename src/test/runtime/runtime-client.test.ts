@@ -347,6 +347,15 @@ describe('prompt / promptAsync 边界与透传', () => {
     })
   })
 
+  it('feature-806 · showrunner STAGE 0 harness 基础校验物理工具（harness.validate）放行', async () => {
+    const { client, state } = makeFakeClient()
+    const r = await client.promptAsync({ ...baseReq, agent: 'showrunner', tools: ['shortdrama_harness.validate'] })
+    expect(r.accepted).toBe(true)
+    const body = state.calls['session.promptAsync']!.at(-1).body
+    expect(body.agent).toBe('showrunner')
+    expect(body.tools).toEqual({ 'shortdrama_harness.validate': true })
+  })
+
   it('feature-018 · subagent 名作 agent → INVALID_ARGUMENT', async () => {
     const { client } = makeFakeClient()
     for (const agent of ['writer', 'media-director', 'comfyui-operator']) {
@@ -515,7 +524,7 @@ describe('listAgents 与连接缓存', () => {
       ],
     })
 
-    // 省略 tools map（实测 REST 行为）→ showrunner 兜底声明常量（22 个物理 ID，feature-006 检索两工具补登）
+    // 省略 tools map（实测 REST 行为）→ showrunner 兜底声明常量（23 个物理 ID，feature-006 检索两工具 + feature-806 校验一工具补登）
     state.next.agents = [
       { name: 'showrunner', description: 's', mode: 'primary', permission: {}, options: {} },
       { name: 'director', description: 'd', mode: 'primary', permission: {}, options: {} },
@@ -524,10 +533,11 @@ describe('listAgents 与连接缓存', () => {
     expect(agents2).toHaveLength(1)
     expect(agents2[0]!.name).toBe('showrunner')
     expect(agents2[0]!.model).toBeNull()
-    expect(agents2[0]!.tools).toHaveLength(22)
+    expect(agents2[0]!.tools).toHaveLength(23)
     expect(agents2[0]!.tools).toContain('shortdrama_canvas.align')
     expect(agents2[0]!.tools).toContain('shortdrama_capture.upsert')
     expect(agents2[0]!.tools).toContain('shortdrama_web.search')
+    expect(agents2[0]!.tools).toContain('shortdrama_harness.validate')
   })
 
   it('连接信息变化（每次重启新口令）→ 重新经工厂创建句柄；口令不进任何结果', async () => {

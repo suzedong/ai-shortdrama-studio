@@ -46,5 +46,12 @@ export function diffBrief(prev: ProjectBrief | null, draft: BriefDraft): BriefCh
   push('diagnosisSummary', prev.diagnosisSummary ?? '', draft.diagnosisSummary)
   push('diagnosisDetail', prev.diagnosisDetail ?? '', draft.diagnosisDetail)
 
+  // feature-013：L0 元数据命名空间（tags 数组按整体值比对，口径同 fiveElements.platforms）
+  // draft.l0 缺省 = 未提交（沿用上一版），不参与比较；显式给出（含清空后的空对象）才比对
+  if (draft.l0 !== undefined) {
+    push('l0.tags', prev.l0?.tags ?? [], draft.l0.tags)
+    push('l0.notes', prev.l0?.notes ?? '', draft.l0.notes)
+  }
+
   return changes
 }

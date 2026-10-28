@@ -570,12 +570,55 @@ export function installDevMockApi(): void {
     deleteProject: (_dir: string) => resolve({ ok: true as const }),
     // D-017：立项直改桩（mock 恒成功，空影响清单）
     // feature-810：采纳谱系升级时同步内存立项单 catalogVersion，使 styleUpgradeDiff 刷新转「已是最新」（闭环演示）
+    // feature-013：全字段直改 + L0 标签/备注同步内存立项单（浏览器预览可回看改后字段）
     updateBrief: (patch: unknown) => {
-      const cv = (patch as { style?: { catalogVersion?: unknown } } | null | undefined)?.style?.catalogVersion
-      if (typeof cv === 'string') {
-        const lib = getDemoBriefs()
-        const latest = lib[lib.length - 1]
-        if (latest) latest.style = { ...latest.style, catalogVersion: cv }
+      const p = (patch ?? {}) as {
+        kind?: unknown
+        fiveElements?: Record<string, unknown>
+        premise?: Record<string, unknown>
+        style?: Record<string, unknown>
+        diagnosisSummary?: unknown
+        l0?: { tags?: unknown; notes?: unknown }
+      }
+      const lib = getDemoBriefs()
+      const latest = lib[lib.length - 1]
+      if (latest) {
+        const fe = p.fiveElements ?? {}
+        const pr = p.premise ?? {}
+        const st = p.style ?? {}
+        latest.kind = (p.kind as ProjectBrief['kind']) ?? latest.kind
+        latest.fiveElements = {
+          ...latest.fiveElements,
+          ...(typeof fe.episodeDuration === 'string' ? { episodeDuration: fe.episodeDuration } : {}),
+          ...(typeof fe.episodeCount === 'string' ? { episodeCount: fe.episodeCount } : {}),
+          ...(typeof fe.aspectRatio === 'string' ? { aspectRatio: fe.aspectRatio } : {}),
+          ...(typeof fe.genre === 'string' ? { genre: fe.genre } : {}),
+          ...(typeof fe.tone === 'string' ? { tone: fe.tone } : {}),
+          ...(Array.isArray(fe.platforms) ? { platforms: fe.platforms as string[] } : {}),
+        }
+        latest.premise = {
+          ...latest.premise,
+          ...(typeof pr.leads === 'string' ? { leads: pr.leads } : {}),
+          ...(typeof pr.time === 'string' ? { time: pr.time } : {}),
+          ...(typeof pr.place === 'string' ? { place: pr.place } : {}),
+          ...(typeof pr.coreEvent === 'string' ? { coreEvent: pr.coreEvent } : {}),
+          ...(typeof pr.seasonBoundary === 'string' ? { seasonBoundary: pr.seasonBoundary } : {}),
+        }
+        latest.style = {
+          ...latest.style,
+          ...(typeof st.mainStyleId === 'string' ? { mainStyleId: st.mainStyleId } : {}),
+          ...(typeof st.catalogVersion === 'string' ? { catalogVersion: st.catalogVersion } : {}),
+          ...(typeof st.auxiliaryStyleId === 'string'
+            ? (st.auxiliaryStyleId === '' ? {} : { auxiliaryStyleId: st.auxiliaryStyleId })
+            : {}),
+        }
+        if (typeof p.diagnosisSummary === 'string') latest.diagnosisSummary = p.diagnosisSummary
+        if (p.l0) {
+          latest.l0 = {
+            ...(Array.isArray(p.l0.tags) ? { tags: p.l0.tags as string[] } : {}),
+            ...(typeof p.l0.notes === 'string' ? { notes: p.l0.notes } : {}),
+          }
+        }
       }
       return resolve({
         ok: true as const,

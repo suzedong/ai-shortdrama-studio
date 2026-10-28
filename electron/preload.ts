@@ -17,11 +17,27 @@ contextBridge.exposeInMainWorld('api', {
   // B-19：项目改名/删除（K8 已批）
   renameProject: (dir: string, title: string) => ipcRenderer.invoke('project:rename', { dir, title }),
   deleteProject: (dir: string) => ipcRenderer.invoke('project:delete', dir),
-  // D-017：修改立项面板直写（K8 已批）
+  // D-017：修改立项面板直写（K8 已批；feature-013 扩键：全字段 + L0）
   updateBrief: (patch: {
     kind?: 'commercial' | 'memorial'
-    fiveElements?: { episodeDuration?: string; episodeCount?: string; aspectRatio?: string }
+    fiveElements?: {
+      episodeDuration?: string
+      episodeCount?: string
+      aspectRatio?: string
+      genre?: string
+      tone?: string
+      platforms?: string[]
+    }
+    premise?: {
+      leads?: string
+      time?: string
+      place?: string
+      coreEvent?: string
+      seasonBoundary?: string
+    }
     style?: { mainStyleId?: string; auxiliaryStyleId?: string; catalogVersion?: string }
+    diagnosisSummary?: string
+    l0?: { tags?: string[]; notes?: string }
   }) => ipcRenderer.invoke('brief:update', patch),
   // feature-004：立项单历史与回滚（K8 已批，3 桥；D-016 系统直做）
   briefHistory: () => ipcRenderer.invoke('brief:history'),

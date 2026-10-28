@@ -170,17 +170,19 @@ describe('D-017 修改立项面板直写（updateBriefFields）', () => {
     const manifest = JSON.parse(await fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')) as ProjectManifest
     expect(manifest.briefVersion).toBe(2)
 
-    // 画布：scenes 挂脏五字段、status 仍 done；brief 节点指向 v2
+    // 画布：scenes 挂脏五字段 + markedAt（feature-806 B-46）、status 仍 done；brief 节点指向 v2
     const canvas = await canvasStore.get()
     const scenes = canvas.nodes.find(n => n.id === 'step-1-scenes')!
     expect(scenes.status).toBe('done')
-    expect(scenes.dirty).toEqual({
+    expect(scenes.dirty).toMatchObject({
       sinceBriefVersion: 1,
       latestBriefVersion: 2,
       fields: ['fiveElements.episodeCount'],
       severity: 'medium',
       impactReport: '影响清单.v1-v2.json',
     })
+    expect(typeof scenes.dirty?.markedAt).toBe('string')
+    expect(Number.isNaN(Date.parse(scenes.dirty!.markedAt!))).toBe(false)
     const briefNode = canvas.nodes.find(n => n.id === 'step-0-brief')!
     expect(briefNode).toMatchObject({
       status: 'done', ref: { path: '立项单.v2.json', format: 'json' }, meta: { version: 'v2' },
@@ -226,6 +228,25 @@ describe('D-017 修改立项面板直写（updateBriefFields）', () => {
     const v2 = JSON.parse(await fsp.readFile(path.join(projDir, '立项单.v2.json'), 'utf-8')) as ProjectBrief
     expect(v2.kind).toBe('memorial')
     expect(v2.fiveElements.episodeCount).toBe('80 集') // 未改字段原样继承
+  })
+
+  it('feature-806 B-46：同一节点重复挂脏 → markedAt 刷新为最新时间', async () => {
+    await updateBriefFields(projDir, { fiveElements: { episodeCount: '100 集' } })
+    const first = (await canvasStore.get()).nodes.find(n => n.id === 'step-1-scenes')!.dirty!.markedAt!
+    await new Promise(r => setTimeout(r, 5))
+    // 模拟 align 清脏（血缘指针跟进 v2）后再次变更 → 同一节点二次挂脏（assessImpact 候选要求 parentReference.briefVersion===fromVersion）
+    const c = await canvasStore.get()
+    const idx = c.nodes.findIndex(n => n.id === 'step-1-scenes')
+    const node = c.nodes[idx]!
+    const { dirty: _cleared, ...rest } = node
+    c.nodes[idx] = { ...rest, parentReference: { briefVersion: 2, fields: node.parentReference!.fields } }
+    await fsp.writeFile(path.join(projDir, 'canvas.json'), JSON.stringify(c, null, 2), 'utf-8')
+    canvasStore.reset()
+    await updateBriefFields(projDir, { fiveElements: { episodeCount: '120 集' } })
+    const dirty = (await canvasStore.get()).nodes.find(n => n.id === 'step-1-scenes')!.dirty!
+    expect(dirty.sinceBriefVersion).toBe(2)
+    expect(dirty.latestBriefVersion).toBe(3)
+    expect(Date.parse(dirty.markedAt!)).toBeGreaterThan(Date.parse(first))
   })
 })
 

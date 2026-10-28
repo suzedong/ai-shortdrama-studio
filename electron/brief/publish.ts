@@ -65,6 +65,14 @@ export async function publishBriefFiles(
     ? JSON.parse(await fsp.readFile(path.join(projectDir, prevEntry.path), 'utf-8')) as ProjectBrief
     : null
   const now = new Date().toISOString()
+  // feature-013：L0 元数据随再版落盘（draft 缺省时沿用上一版，避免 Agent 侧再版丢用户标签/备注；
+  // 空数组/空串等价未设置 → 不落 l0 键）
+  const l0Raw = draft.l0 ?? prev?.l0
+  const l0Tags = l0Raw?.tags?.filter(t => t.trim() !== '') ?? []
+  const l0Notes = l0Raw?.notes?.trim() ?? ''
+  const l0 = l0Tags.length > 0 || l0Notes !== ''
+    ? { ...(l0Tags.length > 0 ? { tags: l0Tags } : {}), ...(l0Notes !== '' ? { notes: l0Notes } : {}) }
+    : undefined
   const brief: ProjectBrief = {
     schemaVersion: 2,
     version,
@@ -72,6 +80,7 @@ export async function publishBriefFiles(
     fiveElements: draft.fiveElements,
     premise: draft.premise,
     style: draft.style,
+    ...(l0 ? { l0 } : {}),
     approve: {
       at: now,
       by: approve.by,

@@ -35,13 +35,14 @@ export const SHORTDRAMA_MCP_TIMEOUT_MS = 180_000
 export const SHOWRUNNER_AGENT = 'showrunner'
 
 /**
- * showrunner 请求级工具白名单（22 个纯工具物理 ID）。
+ * showrunner 请求级工具白名单（23 个纯工具物理 ID）。
  * `task` 由 profile 常驻（permission.task 白名单），不随请求 tools 传递。
  * feature-001：立项三工具 brief.plan/publish/list 随立项模型重建放行。
  * feature-801：状态机两工具 manifest.get/advance 放行。
  * feature-802：风格谱系三工具 style.catalog/get/validate 放行。
  * feature-005：已捕获口径三工具 capture.list/upsert/remove 放行。
  * feature-006：公开数据检索两工具 web.search/fetch 放行（T0 定案 B，契约 §2.2）。
+ * feature-806：STAGE 0 harness 基础校验工具 harness.validate 放行（K8 登记 27→28）。
  */
 export const SHOWRUNNER_DECLARED_TOOLS = [
   'shortdrama_file_read',
@@ -66,6 +67,7 @@ export const SHOWRUNNER_DECLARED_TOOLS = [
   'shortdrama_capture.remove',
   'shortdrama_web.search',
   'shortdrama_web.fetch',
+  'shortdrama_harness.validate',
 ] as const
 
 /** showrunner 工具放行判定：仅白名单内物理 ID */

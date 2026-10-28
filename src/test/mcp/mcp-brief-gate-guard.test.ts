@@ -137,7 +137,7 @@ describe('feature-807 brief.publish 门态防护（契约 §3，违例零写盘�
     expect((await briefFiles(dir)).sort()).toEqual(['立项单.v1.json', '立项单.v1.md'])
   })
 
-  it('approved v1 门 + 发 v2 → BRIEF_GATE_VERSION_MISMATCH：不落 v2', async () => {
+  it('approved v1 门 + 发 v2 → feature-806 harness 前置拦截（HARNESS_VALIDATION_FAILED）：不落 v2', async () => {
     const dir = await freshProject('p-version-mismatch')
     // 先无门发布 v1 形成磁盘实况
     const v1 = await call('brief.publish', { ...draft, approve: { by: 'gate' } })
@@ -145,13 +145,16 @@ describe('feature-807 brief.publish 门态防护（契约 §3，违例零写盘�
     // 再挂一张只授权 v1 的 approved 门
     await seedGate({ gateId: '0-final', status: 'approved', payload: { version: 1 } })
 
-    const r = await call('brief.publish', {
+    const r = await call<{ ok: boolean; error?: { code: string; findings?: { checkId: string }[] } }>('brief.publish', {
       ...draft,
       fiveElements: { ...draft.fiveElements, episodeCount: '100 集' },
       approve: { by: 'gate' },
     })
+    // feature-806：harness 前置（契约 §2.2 顺序明文），CONSIST_GATE_PAYLOAD_VERSION 抢先承接版本不一致场景，
+    // 工具路径不再到达 BRIEF_GATE_VERSION_MISMATCH；807 guard 纯函数语义不变（gate-guard.test.ts 直测不动）
     expect(r.ok).toBe(false)
-    expect(r.error?.code).toBe('BRIEF_GATE_VERSION_MISMATCH')
+    expect(r.error?.code).toBe('HARNESS_VALIDATION_FAILED')
+    expect(r.error?.findings?.some(f => f.checkId === 'CONSIST_GATE_PAYLOAD_VERSION')).toBe(true)
     expect((await briefFiles(dir)).sort()).toEqual(['立项单.v1.json', '立项单.v1.md'])
   })
 

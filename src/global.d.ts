@@ -61,6 +61,18 @@ declare global {
     message: string
   }
   type HarnessGateSummary = { checkedAt: string; findings: HarnessFindingDto[] }
+  // feature-012 · 再版门 payload 影响清单摘要镜像（主进程 002 impact.assess 返回同形，不进 shared；K1 零触发）
+  type ImpactSummaryItemDto = {
+    nodeId: string
+    fields: string[]
+    severity: 'high' | 'medium'
+    defaultAction: 'regenerate' | 'mark'
+  }
+  type ImpactSummaryDto = {
+    assessedAt: string
+    counts: { high: number; medium: number }
+    items: ImpactSummaryItemDto[]
+  }
   interface Window {
     api: {
       // 项目库（feature-011 F13）

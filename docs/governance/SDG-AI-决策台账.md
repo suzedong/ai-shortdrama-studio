@@ -309,3 +309,22 @@
   4. **真机两缺口处置**：web.search 成功路径 = 环境限制登记（本机 DuckDuckGo 不可达，非代码缺陷，不阻塞验收）；capture 跨重启持久化 = 列入 806 批一 T8 真机目验必验项。
 - **波及文件**：docs/features/feature-806-Harness基础校验与确认门全链路/（五文件新建）；features/README 806 行；设计现状与偏差清单 B-46 行与 §3 路线表；本台账。代码零 diff。
 - **后续约束**：批一实施须待用户批准任务清单（铁律 1）；实施中触碰未登记卡口（新 IPC/推送、其他共享类型、新依赖、其他 Agent 白名单）立即停手呈报；1-a/1-b、2-a~2-c 及 3-7 门未建前不得宣称「确认门全链路」完成。
+
+---
+
+## D-020 ｜ K1+K8 ｜ feature-011/012/013 三包方案批准与落地（011 纯 renderer / 012 门 payload 增键 + 门卡留存 / 013 L0 入模 + 直改扩键）
+
+- **日期**：2026-10-28
+- **卡口**：**K1**（仅 013：`shared/types.ts` 增 `BriefL0 { tags?; notes? }`，`ProjectBrief` / `BriefDraft` 各增 `l0?: BriefL0`）；**K8**（仅 013：`brief:update` 白名单扩键——fiveElements + genre/tone/platforms、premise 五键、diagnosisSummary、l0；零新 IPC/推送/MCP 工具、Agent 白名单 23 不动）。011 与 012 **零卡口**：012 门 payload 增 `impactSummary` 走 `CanvasGate.payload`（`unknown` 自由载体）不触 K1，approved 门卡放行仅 renderer 挂载分流不触 K8。
+- **触发背景**：设计书 §2.6.5（拍板前同列改动与影响）、§2.6.6（立项单全字段可编辑）、§2.6.7（影响评估面板 L331-349）、§2.6.8（导航 hover 历史 + titlebar tooltip）仍有落地空白；002 §4.2 与 007 契约对面板/批量入口的明示排除、806 X 节「approved 门卡 findings 无挂载点」偏差待处置。2026-10-28 用户拍板三包分包方案，同日批准按推荐方案实施。
+- **用户决策与落地值**：
+  1. **011**：D1-A 复用 007 单产物重对齐链路（零新工具，维持 002「不内置编排器」）/ D2-C 保存后自动弹出 + 脏读黄条「查看影响评估」手动入口 / D3 勾选即决策、单条聚合消息 + 会话流留痕（decision 不回写）/ D4 面板与编排全系统直做、AI 仅承担产物重生成本身（D-016）/ D5-A 漂移提醒 + 一键对齐 + 查看影响评估三黄条并置（806 逻辑零 diff）。
+  2. **012**：D-a=A1 再版门 payload 增第 4 键 `impactSummary`（展示快照，commit 以复算为准）/ D-b=B1 `brief.impact.assess` 前置到发门之前 / D-c=B `Stage0View` 放行 approved 门卡留存 / D-d 全系统直做；**806「approved 门卡 findings 无挂载点·登记偏差继续」经本包方案 B 翻案关闭**。
+  3. **013**：1=A（L0 标签/备注入立项单 v2 模型，随版本化/diff/回滚留痕；项目名仍留 `.session.json` + `project:rename`）/ 2=b（仅 `diagnosisSummary` 直改，`diagnosisDetail` 保持只读）/ 3=A（批量一次提交 = 一次再版 + 一次评估）/ 4=a（tooltip X = done 且带 parentReference 且非 dirty 的下游产物节点数，Y 与左栏 ⚠k 同源）/ 5=a（自定义 hover 版本历史卡，复用 `brief:history` 懒加载）。
+- **落地内容**：
+  - 011：`src/studio/impact/impact-select.ts` + `ImpactPanel.tsx` + 16 例；StudioApp 面板接线（+59 行）、Stage0View 上报、StudioViewer 黄条新钮、dev-mock 演示数据。
+  - 012：showrunner.md 再版纪律四处改写（白名单 23 零 diff）+ GateCardView 影响清单区 + `global.d.ts` 镜像类型 + Stage0View `GateRetentionCard` 两挂载点；新增 2 测试文件 12 例。
+  - 013：`BriefL0` + diff `l0.tags/l0.notes` 低级命中 + publish/render-md 贯通 + `brief:update` 扩键与校验 + BriefEditPanel 全字段直改 + 标签/备注控件 + `brief-display.ts` / StageNavPanel hover 卡 / titlebar tooltip；新增 11 例。
+- **波及文件**：`docs/features/feature-011/012/013-*/`（五文件）；`docs/features/README.md`（三行翻态 + §2「11 族 28 个」）；`docs/设计现状与偏差清单.md` §3 三行；`feature-806` 变更记录 X 节翻案注；本台账。
+- **验证基线**：三包合并全量 **70 文件 821 passed / 0 failed / 1 skipped**；`npx tsc --noEmit` 恰 3 条历史基线；MCP **28** 工具 / showrunner 白名单 **23** / `package.json` 零 diff。真机目验受当前环境限制未执行，已在三包 T 节登记为遗留项，待用户桌面端验收。
+- **后续约束**：011 不得私增批量编排 MCP 工具；012 的 `impactSummary` 只是门卡展示快照，写盘一律以 `brief.impact.commit` 复算结果为准；013 的 L0 仅 tags/notes 两键，`diagnosisDetail` 直改不开口子，新增其他共享字段须重新走 K1 呈报。

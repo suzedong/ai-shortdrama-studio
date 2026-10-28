@@ -34,10 +34,27 @@
 
 **技术决策指针**：SDG-OD-设计说明.md §2 D1-D8 + §2.1 字段分层直改控件明细。
 
+### D-002 实施放行（2026-10-28）
+
+用户批准本包规格，决策点按推荐方案裁决：**1=A**（L0 入立项单 v2 模型，K1 触发）/ **2=b**（仅 diagnosisSummary 直改，diagnosisDetail 保持只读）/ **3=A**（批量一次提交一次再版）/ **4=a**（X = done 且带 parentReference 且非 dirty 的下游产物节点数）/ **5=a**（自定义 hover 卡）。拍板结论已回填需求规格 §3.4；三项包落地值同批登记决策台账 **D-020**。
+
 ## T 节 · 任务执行记录
 
-（占位——规格待用户批准，实施启动后按 SDG-RE-任务清单.md T1-T9 逐条回填，含基线实测数。）
+| # | 日期 | 实测与结果 |
+| :-- | :-- | :-- |
+| T1 | 2026-10-28 | 决策点 1-5 按推荐值确认并回填需求规格 §3.4；基线冻结：66 文件 **761 passed / 0 failed / 1 skipped**；tsc 恰 3 条；MCP **28** 工具、白名单 **23**；feature-012 当时不存在，013 包号无冲突。 |
+| T2 | 2026-10-28 | **K1 触顶已过**：`shared/types.ts` 新增 `BriefL0 { tags?; notes? }`，`ProjectBrief` / `BriefDraft` 各增 `l0?: BriefL0`（可选，存量兼容）；`electron/brief/diff.ts` 命名空间增 `l0.tags` / `l0.notes` → 低级（直接落盘不入清单）；`publish.ts` / `render-md.ts` 再版正文与 md 头部贯通 L0（有值才渲染）。`brief.test.ts` 增 2 例（l0 diff 低级命中 / 旧版无 l0 读取再版不炸）全绿。 |
+| T3 | 2026-10-28 | **K8 触顶已过**：`electron/brief/update.ts` `BriefUpdatePatch` 扩键（fiveElements + genre/tone/platforms、premise 五键、diagnosisSummary、l0）；`electron/main.ts` `brief:update` 白名单同步扩键 + 字符串/数组逐元素非空校验；preload / global.d.ts / dev-mock 三端镜像同步（签名不变，零新 IPC）。`brief-update.test.ts` 增 6 例（新键合法/非法/空 patch/多键混合单次再版）全绿。 |
+| T4 | 2026-10-28 | `src/studio/stage0/Stage0View.tsx` `BriefEditPanel` 扩至 L1/L2 全字段：五要素补题材/基调/平台控件、故事前提卡①五键改控件（保留 009 分色与「不可篡改」徽标零 diff）、风格卡补 `*Name` 两键、卡③ `diagnosisSummary` 文本域（诊断依据保持只读）；保存后复用 loadBrief 刷新；删除「题材/故事前提请在右侧对话提出」「重进项目后反映」旧引导文案；`stage0-view.test.tsx` 补面板渲染/提交键集/刷新断言全绿。 |
+| T5 | 2026-10-28 | 卡④「标签」FieldRow → 多文本 chip 编辑器、新增「备注」多行文本域，初值取 `brief.l0`；patch 增 `l0` 键随面板一次提交；未发布项目两控件禁用并提示「立项发布后可直接修改」；再版后历史面板可见 l0 差异、影响清单零新增条目。 |
+| T6 | 2026-10-28 | `src/studio/canvas/brief-display.ts`（新纯函数：`deriveBriefDisplay` / tooltip 三态格式化，vN 取大逻辑自 StageNavPanel 迁入）；`StageNavPanel.tsx` brief 节点 hover 版本历史卡（`brief:history` 懒加载 + 会话缓存 + 加载中/空/未发布降级 + 自定义定位）；`StudioApp.tsx` STAGE 0 `title` 改「立项 vN · X 产物已对齐 · Y 待处理」（Y=0「全对齐」变体，未发布降级）；`brief-display.test.tsx` 9 例 + `window-titlebar-integration.test.tsx` 2 例全绿；零新 IPC。 |
+| T7 | 2026-10-28 | 全量回归：**70 文件 821 passed / 0 failed / 1 skipped**；tsc 恰 3 条（构成不变）；MCP 工具 28 / 白名单 23 / `package.json` 零 diff；契约三件套全绿。 |
+| T8 | 2026-10-28 | 真机目验**受限降级**：本包验收面（桌面端全字段直改 → 再版 → 历史/徽标/tooltip）需 Electron 桌面环境，本环境未执行，不臆造通过；以 T4/T5/T6 组件与纯函数单测 + 代码走读替代留证。桌面端目验列入遗留项，与 011 / 012 一并待用户真机验收。 |
+| T9 | 2026-10-28 | 治理收尾：本记录 T/X 回填；`docs/features/README.md` 013 行翻态；`docs/设计现状与偏差清单.md` 登记 013 行；五文件交叉引用复核（包号、决策落地值、基线）；806 五文件无需联动（未改其机制）。 |
 
 ## X 节 · 修复记录
 
-（占位——实施期偏差/修订按 📝 修订注逐条登记。）
+- 2026-10-28：【提交归属留痕】本包 K1/K8 主进程侧（`shared/types.ts`、`electron/brief/diff.ts`、`publish.ts`、`render-md.ts`、`update.ts`、`main.ts`、`preload.ts`）与导航侧（`StageNavPanel.tsx`、`brief-display.ts`、`StudioApp.tsx` 部分、`Stage0View.tsx` 主体）已随提交 **7058a41**（提交信息为 806）入库；renderer 余量与测试仍在未提交工作区。提交信息未体现 013，留痕备查，不追溯改写历史。
+- 2026-10-28：【行号漂移】建包侦察所记 `Stage0View.tsx` L376 / L392-438 / L453 / L588 与 `StudioApp.tsx` L529 在实施时已漂移，均以实施时实际位置为准；功能验收口径不变。
+- 2026-10-28：【目验受限】T8 降级为组件/纯函数单测 + 代码走读，原因见 T8 行；不列功能偏差，遗留项随三包统一真机验收关闭。
+- 2026-10-28：【决策点 2 落地范围】仅 `diagnosisSummary` 提供文本域直改，`diagnosisDetail` 保持只读（D-018 诊断过程留痕语义），与拍板 2=b 一致。

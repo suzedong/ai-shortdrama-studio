@@ -2,7 +2,7 @@
 
 > **包号**：feature-013（0xx 立项阶段段）
 > **业务名**：立项视图直改与导航增强——**①立项视图 L0/L1/L2 全字段可编辑；②L0 标签/备注进入立项数据模型；③STAGE 0 导航增强提示（左栏 hover 版本历史 + titlebar tooltip 对齐统计）**
-> **性质**：**K1 待拍板**（决策点 1：L0 标签/备注若拍板入立项单 v2 模型则触 K1——`shared/types.ts` `ProjectBrief`/`BriefDraft` 拟增可选字段，字段方案随包呈报、批准后动 shared；若拍板 sidecar 方案则零 K1）；**K8 触发**（`brief:update` 白名单扩键——genre/platforms/tone/premise.*/diagnosisSummary 等，循 feature-810 `catalogVersion` 扩键先例；目标零新 IPC、零新 MCP 工具）；**K9 零触发**（零新依赖）
+> **性质**：**K1 已批并落地**（2026-10-28 决策点 1 拍板 A：L0 标签/备注入立项单 v2 模型，`shared/types.ts` `ProjectBrief`/`BriefDraft` 已增 `l0?: BriefL0`）；**K8 触发**（`brief:update` 白名单扩键——genre/platforms/tone/premise.*/diagnosisSummary 等，循 feature-810 `catalogVersion` 扩键先例；目标零新 IPC、零新 MCP 工具）；**K9 零触发**（零新依赖）
 > **事实源**：《短剧Agent平台设计.md》§2.6.6 L258-308（立项后变更：全字段可改 + 影响评估 + 用户决策，v1.10 拍板 D-011）、§2.6.7 L319-327（影响分级表低级=仅元数据不入清单直接落盘）、§2.6.8 L392（titlebar STAGE 0 hover tooltip「立项 vN · X 产物已对齐 · Y 待处理」）、§0.1 原则六 L68-73（D-016 系统优先）
 > **前置**：feature-001（立项单 v2 模型）、feature-002（影响评估 + 分级表 + 脏读）、feature-003（立项视图接线）、feature-004（立项单历史与回滚三 IPC）、feature-005（已捕获口径）、feature-009（前提卡分色与不可篡改水印）、feature-806（Harness 基础校验 + B-46）、feature-807（门态防护）、feature-810（谱系升级差异工作流，`brief:update` 白名单扩键先例）
 > **溯源标签**：[Design 原有]（§2.6.6/§2.6.8 设计内功能补全——全字段可改与导航提示均为设计书明文，本包补齐落地）
@@ -64,6 +64,8 @@
 | 3 | **直改与影响评估衔接节奏** | A. 沿用现状：面板批量 diff 一次提交 = 一次再版 + 一次评估（恒 mark）/ B. 每字段失焦即再版（版本爆炸，不推荐）/ C. 直改后弹三选一全量面板（002 既定排除，不翻案） | **A**——与 D-017 既有机制逐字同构，零新机制零风险 |
 | 4 | **titlebar tooltip 统计口径** | Y = dirty 节点数（与左栏 `⚠k` 同数同源）；X 候选：a. done 且带 parentReference 且非 dirty 的下游产物节点数（排除 brief 节点自身）/ b. 全部 done 节点数 | **a**——「已对齐」语义 = 基于最新版立项生成；分母限「引用立项的产物」才与 Y 互补；未发布立项时不显示统计段 |
 | 5 | **版本历史 hover 数据源与形态** | 数据：`brief:history` 既有 IPC（feature-004，preload/global.d.ts/dev-mock 三端已备）懒加载+会话内缓存；形态：a. 自定义 hover 卡（承载版本/时间/改动数/拍板方式列表）/ b. 原生 title 纯文本（无法承载列表） | **a**——§2.6.6 L306「hover 历史 v1→v2→v3」为列表语义；零新 IPC、零新依赖 |
+
+**拍板（2026-10-28，用户批准本包并按推荐方案裁决）**：决策点 **1=A / 2=b / 3=A / 4=a / 5=a**；K1（L0 入立项单 v2 模型）与 K8（`brief:update` 白名单扩键）随批准正式生效。
 
 ### 3.5 卡口呈报
 

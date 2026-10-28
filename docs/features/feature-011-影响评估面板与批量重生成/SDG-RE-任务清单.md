@@ -1,7 +1,6 @@
 # SDG-RE-任务清单 ｜ feature-011 影响评估面板与批量重生成
 
-> **状态：规格已建，待用户批准后方可实施（铁律 1：No Spec, No Code）。**
-> 批准含需求规格 §6 决策点 D1-D5 圈选；未圈选项按推荐执行。
+> **状态：已批准实施并完成（2026-10-28，按推荐方案 D1-A / D2-C / D3 单条聚合 / D4 全系统 / D5-A）；T1-T10 回填见包内变更记录 T 节。**
 > **基线参照（2026-10-28 实测）**：66 文件 761 passed / 0 failed / 1 skipped；tsc 恰 3 条历史基线（canvas-zoom.test.tsx 2 + runtime-client.test.ts 1）；MCP 11 族 28 工具；showrunner 白名单 23；K1 / K8 / K9 默认零触发。
 
 ---

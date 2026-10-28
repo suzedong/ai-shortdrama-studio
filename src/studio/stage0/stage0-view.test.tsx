@@ -710,3 +710,174 @@ describe('Stage0View · 修改立项（B-24/D-017 卡①行内系统直改）', 
     })
   })
 })
+
+/* ── feature-013 全字段直改 + L0 标签/备注（决策点 1 拍板 A；premise 卡②行内 human 语义；诊断明细恒只读）── */
+
+describe('Stage0View · feature-013 全字段直改与 L0', () => {
+  async function openPanel(): Promise<Element> {
+    fireEvent.click(byStage0('edit-toggle') as HTMLElement)
+    return findStage0('edit-panel')
+  }
+
+  const panelInput = (panel: Element, field: string): HTMLInputElement =>
+    panel.querySelector(`[data-stage0-edit-field="${field}"] input`) as HTMLInputElement
+  const panelTextarea = (panel: Element, field: string): HTMLTextAreaElement =>
+    (panel.querySelector(`[data-stage0-edit-field="${field}"] textarea`)
+      ?? panel.querySelector(`textarea[data-stage0-edit-field="${field}"]`)) as HTMLTextAreaElement
+
+  it('编辑卡渲染全字段控件且无 disabled；诊断明细保持只读（无控件）', async () => {
+    const b = brief({ l0: { tags: ['招商'], notes: '备注一' }, diagnosisDetail: '明细一' })
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(b))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    const panel = await openPanel()
+
+    for (const f of [
+      'kind', 'genre', 'platforms', 'episodeDuration', 'episodeCount', 'tone', 'aspectRatio',
+      'mainStyleId', 'auxiliaryStyleId', 'diagnosisSummary', 'l0.tags', 'l0.notes',
+    ]) {
+      expect(panel.querySelector(`[data-stage0-edit-field="${f}"]`)).not.toBeNull()
+    }
+    panel.querySelectorAll('input,select,textarea').forEach(el => {
+      expect((el as HTMLInputElement).disabled).toBe(false)
+    })
+    const detail = panel.querySelector('[data-stage0-diagnosis-detail]')
+    expect(detail).not.toBeNull()
+    expect(detail!.querySelector('input,select,textarea')).toBeNull()
+  })
+
+  it('一次提交全字段：patch 仅含变更键（六要素 + premise + diagnosisSummary + l0），一次再版', async () => {
+    const b = brief({ l0: { tags: ['老标签'], notes: '老备注' }, diagnosisSummary: '旧结论' })
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(b))
+    const updateBrief = installUpdateBrief()
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    const panel = await openPanel()
+
+    fireEvent.change(editField(panel, 'genre'), { target: { value: '悬疑' } })
+    fireEvent.change(editField(panel, 'tone'), { target: { value: '冷调' } })
+    const pf = panelInput(panel, 'platforms')
+    fireEvent.change(pf, { target: { value: '快手' } })
+    fireEvent.keyDown(pf, { key: 'Enter' })
+    fireEvent.change(panelTextarea(panel, 'diagnosisSummary'), { target: { value: '新结论' } })
+    const lt = panelInput(panel, 'l0.tags')
+    fireEvent.change(lt, { target: { value: '新标签' } })
+    fireEvent.keyDown(lt, { key: 'Enter' })
+    fireEvent.change(panelTextarea(panel, 'l0.notes'), { target: { value: '新备注' } })
+    // 卡② 故事前提行内直改（与卡①面板共享同一次提交）
+    fireEvent.change(document.querySelector('[data-stage0-premise-edit="place"]') as HTMLElement, {
+      target: { value: '北京' },
+    })
+
+    expect(panel.textContent).toContain('共 7 处变更')
+    fireEvent.click(byStage0('edit-submit') as HTMLElement)
+
+    await waitFor(() => expect(updateBrief).toHaveBeenCalledTimes(1))
+    expect(updateBrief).toHaveBeenCalledWith({
+      fiveElements: { genre: '悬疑', tone: '冷调', platforms: ['抖音', '红果', '快手'] },
+      premise: { place: '北京' },
+      diagnosisSummary: '新结论',
+      l0: { tags: ['老标签', '新标签'], notes: '新备注' },
+    })
+  })
+
+  it('卡② premise 行内直改：展示层叠加 human「不可篡改」语义（009 数据流零 diff）', async () => {
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(brief()))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    await openPanel()
+
+    const row = () => document.querySelector('[data-stage0-premise-row="place"]') as HTMLElement
+    expect(row().getAttribute('data-stage0-premise-confirmation')).toBe('none')
+    fireEvent.change(document.querySelector('[data-stage0-premise-edit="place"]') as HTMLElement, {
+      target: { value: '北京' },
+    })
+    expect(row().getAttribute('data-stage0-premise-confirmation')).toBe('human')
+    expect(row().querySelector('[data-stage0-premise-seal]')?.textContent).toBe('不可篡改')
+    // 未改键保持原确认态
+    expect(
+      document.querySelector('[data-stage0-premise-row="time"]')?.getAttribute('data-stage0-premise-confirmation'),
+    ).toBe('none')
+  })
+
+  it('清空前提某键 → 提交禁用（就绪红线叠加既有判定）', async () => {
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(brief()))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+    await openPanel()
+
+    fireEvent.change(document.querySelector('[data-stage0-premise-edit="place"]') as HTMLElement, {
+      target: { value: '  ' },
+    })
+    await waitFor(() => {
+      expect((byStage0('edit-submit') as HTMLButtonElement).disabled).toBe(true)
+    })
+  })
+
+  it('卡①只读态渲染 L0 标签/备注（有值才出现）', async () => {
+    const b = brief({ l0: { tags: ['招商', '校园'], notes: '备注一' } })
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(b))
+    renderView(canvas({ nodes: [doneBriefNode()], gates: [gate({ status: 'approved' })] }))
+    await findStage0('brief')
+
+    expect(byStage0('l0')).not.toBeNull()
+    expect(byStage0('l0-tags')?.textContent).toContain('招商')
+    expect(byStage0('l0-tags')?.textContent).toContain('校园')
+    expect(byStage0('l0-notes')?.textContent).toBe('备注一')
+  })
+})
+
+/* ── feature-011 再版结果上报（契约 T-⑥：items>0 才上报，空清单静默） ── */
+
+describe('Stage0View · feature-011 再版结果上报', () => {
+  async function submitEpisodeCount(
+    onBriefUpdated: ReturnType<typeof vi.fn>,
+    updateImpl?: (patch: unknown) => Promise<unknown>,
+  ) {
+    installFileRead(p => p === BG_PATH ? fail('NOT_FOUND') : okJson(brief({ version: 2 })))
+    installUpdateBrief(updateImpl)
+    render(
+      <Stage0View
+        canvas={canvas({ nodes: [doneBriefNode('v2')], gates: [gate({ status: 'approved' })] })}
+        projectTitle="安妮的夏天"
+        onBackToDag={() => {}}
+        onBriefUpdated={onBriefUpdated}
+      />,
+    )
+    await findStage0('brief')
+    fireEvent.click(byStage0('edit-toggle') as HTMLElement)
+    const panel = await findStage0('edit-panel')
+    fireEvent.change(editField(panel, 'episodeCount'), { target: { value: '100 集' } })
+    fireEvent.click(byStage0('edit-submit') as HTMLElement)
+  }
+
+  it('影响清单非空 → 恰好一次上报并携带 version / changes / items', async () => {
+    const onBriefUpdated = vi.fn()
+    await submitEpisodeCount(onBriefUpdated, async () => ({
+      ok: true, version: 3,
+      jsonPath: '立项单.v3.json', mdPath: '立项单.v3.md',
+      impactReportPath: '影响清单.v2-v3.json',
+      changes: [{ field: 'fiveElements.episodeCount', from: '80 集', to: '100 集' }],
+      items: [{
+        nodeId: 'n-outline', step: '1', title: '故事大纲', severity: 'high',
+        fields: ['fiveElements.episodeCount'], defaultAction: 'regenerate',
+      }],
+      markedDirty: ['n-outline'],
+    }))
+
+    await waitFor(() => expect(onBriefUpdated).toHaveBeenCalledTimes(1))
+    const result = onBriefUpdated.mock.calls[0][0] as { version: number; changes: unknown[]; items: unknown[] }
+    expect(result.version).toBe(3)
+    expect(result.changes).toHaveLength(1)
+    expect(result.items).toHaveLength(1)
+    await waitFor(() => expect(byStage0('edit-panel')).toBeNull())
+  })
+
+  it('影响清单为空（纯低级别改动）→ 不上报，面板照常关闭', async () => {
+    const onBriefUpdated = vi.fn()
+    await submitEpisodeCount(onBriefUpdated)
+
+    await waitFor(() => expect(byStage0('edit-panel')).toBeNull())
+    expect(onBriefUpdated).not.toHaveBeenCalled()
+  })
+})

@@ -187,6 +187,11 @@ function demoBrief(): ProjectBrief {
       catalogVersion: 'v1.46',
       auxiliaryStyleId: undefined,
     },
+    // feature-013：L0 标签/备注演示数据（仅元数据；低级不入影响清单）
+    l0: {
+      tags: ['夏日限定', '校园恋爱', '先导集验证'],
+      notes: '甲方要求片头 5 秒立钩；灯塔场景需备选室内替代方案。',
+    },
     diagnosisSummary: '同类校园恋爱短剧近 90 天头部 12 部平均完播率 38%，前 3 秒「初遇事故」钩子占比 67%；本项目以「误会式开场 + 集尾老照片悬念」切入，A7 拟真人风格与清新治愈基调产能可行，建议立项并先交付 E01 验证钩子。',
     // B-32：补 demo 诊断明细（D-018 落盘字段），供 StudioViewer「选题诊断明细」演示
     diagnosisDetail:
@@ -434,8 +439,31 @@ function demoShotV002() {
 }
 
 // path → JSON 字符串
+// feature-011：影响评估面板演示数据——与 demo 画布脏节点 n-outline（v2→v3）口径一致；
+// 浏览器预览下「保存后再版自动弹面板」与黄条「查看影响评估」两入口共用同一份清单。
+const DEMO_IMPACT_CHANGES = [
+  { field: 'premise.seasonBoundary', from: '第一季只讲相识', to: '第一季讲相识与误会' },
+  { field: 'fiveElements.episodeCount', from: '80 集', to: '60 集' },
+]
+const DEMO_IMPACT_ITEMS = [
+  {
+    nodeId: 'n-outline', step: '1', title: '故事大纲 · 钩子 → 相遇 → 心动', severity: 'high',
+    fields: ['premise.seasonBoundary', 'fiveElements.episodeCount'], defaultAction: 'regenerate',
+  },
+]
+const DEMO_IMPACT_REPORT = {
+  schemaVersion: 1,
+  kind: 'brief-impact-report',
+  fromVersion: 2,
+  toVersion: 3,
+  committedAt: '2026-10-16T08:00:00.000Z',
+  changes: DEMO_IMPACT_CHANGES,
+  items: DEMO_IMPACT_ITEMS.map(i => ({ ...i, decision: 'mark' })),
+}
+
 const DEMO_FILES: Record<string, () => unknown> = {
   '/demo/anni/立项单.v3.json': demoBrief,
+  '影响清单.v2-v3.json': () => DEMO_IMPACT_REPORT,
   '/demo/anni/outline.json': demoOutline,
   '/demo/anni/scenes.json': demoScenes,
   '/demo/anni/storyboard.json': demoStoryboard,
@@ -620,15 +648,18 @@ export function installDevMockApi(): void {
           }
         }
       }
+      // feature-011：仅 L0 元数据（低级）改动 → 空影响清单（保存后静默，不弹面板）；
+      // 其余字段改动 → 演示清单（自动弹出面板的四要素数据）
+      const metaOnly = Object.keys(p).filter(k => k !== 'l0').length === 0
       return resolve({
         ok: true as const,
-        version: 2,
-        jsonPath: '立项单.v2.json',
-        mdPath: '立项单.v2.md',
-        impactReportPath: '影响清单.v1-v2.json',
-        changes: [],
-        items: [],
-        markedDirty: [],
+        version: 3,
+        jsonPath: '立项单.v3.json',
+        mdPath: '立项单.v3.md',
+        impactReportPath: '影响清单.v2-v3.json',
+        changes: metaOnly ? [] : DEMO_IMPACT_CHANGES,
+        items: metaOnly ? [] : DEMO_IMPACT_ITEMS,
+        markedDirty: metaOnly ? [] : ['n-outline'],
       })
     },
     // feature-004：立项单历史/读版/回滚（契约 §2.1-2.3；语义对齐主进程，内存库演示）

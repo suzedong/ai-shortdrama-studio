@@ -295,3 +295,135 @@ describe('feature-810 style.catalogVersion 键（谱系升级采纳 · 直改通
     await expect(fsp.readdir(projDir)).resolves.toEqual(before)
   })
 })
+
+/* feature-013 · 全字段直改 + L0 标签/备注（决策点 1 拍板 A 入模；L0 = 低级：不入影响清单、不挂脏） */
+
+/** 给 scenes 血缘补登记消费字段（验证 L0 即便被血缘引用也不入清单） */
+async function addLineageFields(...fields: string[]): Promise<void> {
+  const canvasPath = path.join(projDir, 'canvas.json')
+  const c = JSON.parse(await fsp.readFile(canvasPath, 'utf-8')) as Canvas
+  c.nodes.find(n => n.id === 'step-1-scenes')!.parentReference!.fields.push(...fields)
+  await fsp.writeFile(canvasPath, JSON.stringify(c, null, 2), 'utf-8')
+  canvasStore.reset()
+}
+
+/** 给 v1 基线补 L0（模拟存量已带标签/备注的项目） */
+async function setBaselineL0(l0: { tags?: string[]; notes?: string }): Promise<void> {
+  const p = path.join(projDir, '立项单.v1.json')
+  const b = JSON.parse(await fsp.readFile(p, 'utf-8')) as ProjectBrief
+  b.l0 = l0
+  await fsp.writeFile(p, JSON.stringify(b, null, 2), 'utf-8')
+}
+
+describe('feature-013 · 全字段直改（genre/tone/platforms/premise/diagnosisSummary/l0）', () => {
+  it('一次提交全字段 → v2 全量落盘 + md 双写；L0 低级即便被血缘引用也不入影响清单', async () => {
+    await addLineageFields('premise.leads', 'l0.tags', 'l0.notes')
+    const r = await updateBriefFields(projDir, {
+      fiveElements: { genre: '悬疑', tone: '冷调', platforms: ['B站', '抖音'] },
+      premise: { leads: '女律师 / 男警察' },
+      diagnosisSummary: '赛道可行，建议压到 80 集',
+      l0: { tags: ['校园', '逆袭'], notes: '甲方要求片头 5 秒立钩' },
+    })
+    expect(r.version).toBe(2)
+    expect(r.changes).toEqual([
+      { field: 'fiveElements.genre', from: '甜宠', to: '悬疑' },
+      { field: 'fiveElements.tone', from: '高甜', to: '冷调' },
+      { field: 'fiveElements.platforms', from: '抖音', to: 'B站、抖音' },
+      { field: 'premise.leads', from: '28 岁女白领 / 30 岁男医生', to: '女律师 / 男警察' },
+      { field: 'diagnosisSummary', from: '', to: '赛道可行，建议压到 80 集' },
+      { field: 'l0.tags', from: '', to: '校园、逆袭' },
+      { field: 'l0.notes', from: '', to: '甲方要求片头 5 秒立钩' },
+    ])
+    // 命中节点仅列 high/medium 字段；l0.* 兜底归 low，永不出现在清单 fields
+    expect(r.items).toEqual([
+      expect.objectContaining({
+        nodeId: 'step-1-scenes', severity: 'high', defaultAction: 'regenerate',
+        fields: ['premise.leads', 'fiveElements.genre'],
+      }),
+    ])
+    expect(r.items[0]!.fields).not.toContain('l0.tags')
+    expect(r.markedDirty).toEqual(['step-1-scenes'])
+
+    const v2 = JSON.parse(await fsp.readFile(path.join(projDir, '立项单.v2.json'), 'utf-8')) as ProjectBrief
+    expect(v2.fiveElements).toMatchObject({ genre: '悬疑', tone: '冷调', platforms: ['B站', '抖音'] })
+    expect(v2.premise.leads).toBe('女律师 / 男警察')
+    expect(v2.premise.time).toBe('2024 年') // 未提交键沿用
+    expect(v2.diagnosisSummary).toBe('赛道可行，建议压到 80 集')
+    expect(v2.diagnosisDetail).toBe('诊断明细基线') // 明细恒只读沿用
+    expect(v2.l0).toEqual({ tags: ['校园', '逆袭'], notes: '甲方要求片头 5 秒立钩' })
+    expect(v2.approve.by).toBe('ui')
+
+    const md = await fsp.readFile(path.join(projDir, '立项单.v2.md'), 'utf-8')
+    expect(md).toContain('## 项目标签与备注')
+    expect(md).toContain('- 标签：校园、逆袭')
+    expect(md).toContain('- 备注：甲方要求片头 5 秒立钩')
+    expect(md).toContain('- 目标平台：B站、抖音')
+  })
+
+  it('仅 L0 变更 → 照常再版，但不入影响清单、不挂脏（低级直接落盘）', async () => {
+    await addLineageFields('l0.tags', 'l0.notes') // 即便血缘登记了 L0 也不得命中
+    const r = await updateBriefFields(projDir, {
+      l0: { tags: ['招商'], notes: '备注一' },
+    })
+    expect(r.version).toBe(2)
+    expect(r.changes).toEqual([
+      { field: 'l0.tags', from: '', to: '招商' },
+      { field: 'l0.notes', from: '', to: '备注一' },
+    ])
+    expect(r.items).toEqual([])
+    expect(r.markedDirty).toEqual([])
+    const canvas = await canvasStore.get()
+    expect(canvas.nodes.find(n => n.id === 'step-1-scenes')?.dirty).toBeUndefined()
+  })
+
+  it('存量无 L0 立项单：改其他字段 → 无 l0 伪 diff，v2 不落 l0 键', async () => {
+    const r = await updateBriefFields(projDir, { fiveElements: { episodeCount: '100 集' } })
+    expect(r.changes).toEqual([
+      { field: 'fiveElements.episodeCount', from: '80 集', to: '100 集' },
+    ])
+    const v2 = JSON.parse(await fsp.readFile(path.join(projDir, '立项单.v2.json'), 'utf-8')) as ProjectBrief
+    expect('l0' in v2).toBe(false)
+    const md = await fsp.readFile(path.join(projDir, '立项单.v2.md'), 'utf-8')
+    expect(md).not.toContain('## 项目标签与备注')
+  })
+
+  it('已带 L0 再版且未提交 l0 → 原样沿用上一版（Agent 通道不丢 L0）', async () => {
+    await setBaselineL0({ tags: ['招商'], notes: '备注一' })
+    const r = await updateBriefFields(projDir, { fiveElements: { episodeCount: '100 集' } })
+    expect(r.changes).toEqual([
+      { field: 'fiveElements.episodeCount', from: '80 集', to: '100 集' },
+    ])
+    const v2 = JSON.parse(await fsp.readFile(path.join(projDir, '立项单.v2.json'), 'utf-8')) as ProjectBrief
+    expect(v2.l0).toEqual({ tags: ['招商'], notes: '备注一' })
+    const md = await fsp.readFile(path.join(projDir, '立项单.v2.md'), 'utf-8')
+    expect(md).toContain('- 标签：招商')
+  })
+
+  it('显式清空 L0（tags:[] / notes:""）→ diff 记删除，v2 不落 l0 键（空值等价未设置）', async () => {
+    await setBaselineL0({ tags: ['招商'], notes: '备注一' })
+    const r = await updateBriefFields(projDir, { l0: { tags: [], notes: '' } })
+    expect(r.changes).toEqual([
+      { field: 'l0.tags', from: '招商', to: '' },
+      { field: 'l0.notes', from: '备注一', to: '' },
+    ])
+    const v2 = JSON.parse(await fsp.readFile(path.join(projDir, '立项单.v2.json'), 'utf-8')) as ProjectBrief
+    expect('l0' in v2).toBe(false)
+  })
+
+  it('新键组触发就绪红线：题材/基调置空、平台清空、前提置空 → BRIEF_NOT_READY 零写盘', async () => {
+    const before = await fsp.readdir(projDir)
+    await expect(
+      updateBriefFields(projDir, { fiveElements: { genre: '  ' } }),
+    ).rejects.toMatchObject({ code: 'BRIEF_NOT_READY' })
+    await expect(
+      updateBriefFields(projDir, { fiveElements: { tone: '' } }),
+    ).rejects.toMatchObject({ code: 'BRIEF_NOT_READY' })
+    await expect(
+      updateBriefFields(projDir, { fiveElements: { platforms: [] } }),
+    ).rejects.toMatchObject({ code: 'BRIEF_NOT_READY' })
+    await expect(
+      updateBriefFields(projDir, { premise: { time: '   ' } }),
+    ).rejects.toMatchObject({ code: 'BRIEF_NOT_READY' })
+    await expect(fsp.readdir(projDir)).resolves.toEqual(before)
+  })
+})

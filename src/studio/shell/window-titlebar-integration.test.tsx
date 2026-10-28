@@ -1,10 +1,10 @@
 // feature-804 · StudioApp 顶栏平台门禁集成（契约 §8.3）
 // win32：三按钮可见、header 为 pl-3；darwin：无窗口控制、header 保持 pl-20。
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { Canvas } from '@shared/types'
+import type { Canvas, CanvasNode } from '@shared/types'
 import StudioApp from './StudioApp'
 
 function emptyCanvas(): Canvas {
@@ -14,7 +14,11 @@ function emptyCanvas(): Canvas {
   }
 }
 
-function installApi(platform: 'darwin' | 'win32' | 'linux') {
+function canvasNode(partial: Partial<CanvasNode> & Pick<CanvasNode, 'id' | 'step' | 'kind' | 'title' | 'status'>): CanvasNode {
+  return { ref: { path: `${partial.id}.json`, format: 'json' }, updatedAt: new Date().toISOString(), ...partial }
+}
+
+function installApi(platform: 'darwin' | 'win32' | 'linux', canvas: Canvas = emptyCanvas()) {
   const minimize = vi.fn(async () => ({ ok: true as const }))
   const close = vi.fn(async () => ({ ok: true as const }))
   const toggleMaximize = vi.fn(async () => ({ ok: true as const, maximized: true }))
@@ -34,7 +38,7 @@ function installApi(platform: 'darwin' | 'win32' | 'linux') {
       onEvent: vi.fn(() => () => undefined),
     },
     canvas: {
-      get: vi.fn(async () => emptyCanvas()),
+      get: vi.fn(async () => canvas),
       subscribe: vi.fn(async () => ({ ok: true as const })),
       unsubscribe: vi.fn(async () => ({ ok: true as const })),
       onChange: vi.fn(() => () => undefined),
@@ -102,5 +106,50 @@ describe('feature-804 · StudioApp 顶栏平台门禁（契约 §7/§8.3）', ()
     const { container } = render(<StudioApp />)
     expect(await screen.findByRole('button', { name: '最小化' })).toBeInTheDocument()
     expect(container.querySelector('header')?.className).toContain('pl-3')
+  })
+})
+
+// feature-013 · 顶栏 STAGE 0 tooltip 统计口径（与左栏徽标同源派生；零新 IPC）
+describe('feature-013 · StudioApp STAGE 0 tooltip', () => {
+  afterEach(() => { vi.restoreAllMocks() })
+
+  async function findStage0Button(container: HTMLElement): Promise<HTMLElement> {
+    return waitFor(() => {
+      const el = container.querySelector('[data-stp="0"]')
+      expect(el).not.toBeNull()
+      return el as HTMLElement
+    })
+  }
+
+  it('已发布 + 有脏：立项 vN · X 产物已对齐 · Y 待处理（vN 取 brief 与 dirty 较大值）', async () => {
+    const c = emptyCanvas()
+    c.nodes = [
+      canvasNode({ id: 'step-0-brief', step: '0', kind: 'brief', title: '立项单', status: 'done', meta: { version: 'v3' } }),
+      canvasNode({
+        id: 'step-1-outline', step: '1', kind: 'outline', title: '大纲', status: 'done',
+        parentReference: { briefVersion: 3, fields: ['premise.leads'] },
+      }),
+      canvasNode({
+        id: 'step-2-scenes', step: '2', kind: 'scenes', title: '分场', status: 'done',
+        parentReference: { briefVersion: 2, fields: ['fiveElements.episodeCount'] },
+        dirty: {
+          sinceBriefVersion: 2, latestBriefVersion: 4, fields: ['fiveElements.episodeCount'],
+          severity: 'medium', impactReport: '影响清单.v2-v4.json',
+        },
+      }),
+    ]
+    installApi('darwin', c)
+    const { container } = render(<StudioApp />)
+    const btn = await findStage0Button(container)
+    expect(btn.getAttribute('title')).toBe('立项 v4 · 1 产物已对齐 · 1 待处理')
+    await act(async () => undefined)
+  })
+
+  it('未发布：tooltip 保持现状 STAGE 0 · 立项 文案', async () => {
+    installApi('darwin')
+    const { container } = render(<StudioApp />)
+    const btn = await findStage0Button(container)
+    expect(btn.getAttribute('title')).toBe('STAGE 0 · 立项')
+    await act(async () => undefined)
   })
 })

@@ -17,6 +17,8 @@ import { getStyleName, useStyleCatalog } from '../style/style-catalog-store'
 import Stage0Chain, { useCaptureFacts } from './Stage0Chain'
 import { selectPremiseConfirmation } from './premise-facts'
 import { driftDays, driftReminderLabel } from '../canvas/dirty-drift'
+import GateCardView from '../chat/GateCardView'
+import type { BriefUpdatePayload } from '../impact/impact-select'
 
 /** 谱系风格引用：ID · 名称；未知/未来版本 ID 或空值原样返回（外层 || '—' 兜底） */
 function styleRefLabel(id: string): string {
@@ -30,6 +32,8 @@ interface Stage0ViewProps {
   onBackToDag: () => void
   /** 入口动作 · 用户原话（会话首条用户消息，StudioApp 传入；空串不显示） */
   entryQuote?: string
+  /** feature-011：直改再版成功且影响清单非空时上报（items>0 才调用，StudioApp 据此自动弹影响评估面板） */
+  onBriefUpdated?: (result: BriefUpdatePayload) => void
 }
 
 /** 背景档案固定产物名（showrunner 第 0 步写项目根） */
@@ -190,7 +194,7 @@ function EmptyStage0({ state, projectTitle, onBackToDag, entryQuote = '' }: {
       <div className="absolute inset-0 top-[84px] overflow-y-auto px-[26px] py-[26px]">
         <div className="mx-auto flex max-w-[680px] flex-col gap-4 pt-[9vh]">
           <EntryQuoteCard quote={entryQuote} />
-          {state.gate0 && state.gate0.status !== 'approved' && <GatePendingStrip gate0={state.gate0} />}
+          {state.gate0 && <GateRetentionCard gate0={state.gate0} />}
           <div className="rounded-[14px] border border-line bg-white p-7 text-center shadow-[0_10px_30px_rgba(40,42,80,0.06)]" data-stage0-empty>
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-violet-soft text-xl text-violet">0</span>
             <div className="mt-3 text-[15px] font-extrabold text-ink">
@@ -227,6 +231,18 @@ function GatePendingStrip({ gate0 }: { gate0: NonNullable<ReturnType<typeof sele
       </span>
     </div>
   )
+}
+
+/* ── feature-012 · 门卡留存挂载（806 翻案 · 方案 B）：approved 复用 GateCardView 留存卡（含影响清单区与 findings 块），pending/rejected 维持镜像条 ── */
+function GateRetentionCard({ gate0 }: { gate0: NonNullable<ReturnType<typeof selectStage0State>['gate0']> }) {
+  if (gate0.status === 'approved') {
+    return (
+      <div data-stage0-gate-retained>
+        <GateCardView gate={gate0} deciding={false} onDecide={() => undefined} />
+      </div>
+    )
+  }
+  return <GatePendingStrip gate0={gate0} />
 }
 
 /* ── 脏读黄条（纯文本，无按钮；文案/色值与 CanvasBoard 同源）── */
@@ -293,11 +309,10 @@ const textareaCls =
   'w-full resize-y rounded-md border border-line bg-white px-2 py-1 text-[11px] font-bold leading-[1.6] text-ink outline-none focus:border-violet'
 
 /** 多值 chip 编辑器（feature-013：目标平台 / 项目标签）；回车或失焦追加，点击 × 删除 */
-function ChipEditor({ value, onChange, placeholder, testid }: {
+function ChipEditor({ value, onChange, placeholder }: {
   value: string[]
   onChange: (next: string[]) => void
   placeholder?: string
-  testid?: string
 }) {
   const [draft, setDraft] = useState('')
   const add = () => {
@@ -307,7 +322,7 @@ function ChipEditor({ value, onChange, placeholder, testid }: {
     onChange([...value, t])
   }
   return (
-    <div className="flex flex-wrap items-center gap-1" data-stage0-edit-field={testid}>
+    <div className="flex flex-wrap items-center gap-1">
       {value.map(v => (
         <span
           key={v}
@@ -334,11 +349,13 @@ function ChipEditor({ value, onChange, placeholder, testid }: {
   )
 }
 
-function BriefEditPanel({ brief, onClose, premiseDraft }: {
+function BriefEditPanel({ brief, onClose, premiseDraft, onBriefUpdated }: {
   brief: ProjectBrief
   onClose: () => void
   /** 故事前提草稿（编辑态在卡②就地编辑，与本面板共享同一次提交） */
   premiseDraft: Record<keyof ProjectBrief['premise'], string>
+  /** feature-011：再版结果上报（items>0 才调用） */
+  onBriefUpdated?: (result: BriefUpdatePayload) => void
 }) {
   const old = {
     kind: brief.kind,
@@ -456,8 +473,10 @@ function BriefEditPanel({ brief, onClose, premiseDraft }: {
     setSubmitting(true)
     setError(null)
     try {
-      await window.api.updateBrief(patch)
+      const result = await window.api.updateBrief(patch)
       // 再版成功：canvas:changed 广播 → brief 节点 ref 指向 v(N+1) → useBriefDocuments 自动重读新版
+      // feature-011：影响清单非空 → 上报 StudioApp 自动弹出影响评估面板（空清单静默维持现状）
+      if (result.items.length > 0) onBriefUpdated?.(result)
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -484,7 +503,7 @@ function BriefEditPanel({ brief, onClose, premiseDraft }: {
         <div className="flex flex-col gap-1 rounded-md border border-line px-2.5 py-2">
           <div className="text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">项目标签与备注（L0）</div>
           <EditRow label="项目标签" field="l0.tags" bare>
-            <ChipEditor value={l0Tags} onChange={setL0Tags} placeholder="输入标签后回车" testid="l0.tags" />
+            <ChipEditor value={l0Tags} onChange={setL0Tags} placeholder="输入标签后回车" />
           </EditRow>
           <EditRow label="项目备注" field="l0.notes" bare>
             <textarea
@@ -507,7 +526,7 @@ function BriefEditPanel({ brief, onClose, premiseDraft }: {
             <input className={inputCls} value={genre} onChange={e => setGenre(e.target.value)} placeholder="如：甜宠 / 悬疑" />
           </EditRow>
           <EditRow label="目标平台" field="platforms">
-            <ChipEditor value={platforms} onChange={setPlatforms} placeholder="输入平台后回车" testid="platforms" />
+            <ChipEditor value={platforms} onChange={setPlatforms} placeholder="输入平台后回车" />
           </EditRow>
           <EditRow label="单集时长" field="episodeDuration">
             <input className={inputCls} value={episodeDuration} onChange={e => setEpisodeDuration(e.target.value)} placeholder="如：60 秒" />
@@ -583,12 +602,13 @@ function BriefEditPanel({ brief, onClose, premiseDraft }: {
 }
 
 /* ── published 主体：双卡 + 定案/版本区 ── */
-function PublishedBody({ brief, state, bg, entryQuote = '', driftLabel }: {
+function PublishedBody({ brief, state, bg, entryQuote = '', driftLabel, onBriefUpdated }: {
   brief: ProjectBrief
   state: ReturnType<typeof selectStage0State>
   bg: BgDocState
   entryQuote?: string
   driftLabel: string | null
+  onBriefUpdated?: (result: BriefUpdatePayload) => void
 }) {
   const [bgOpen, setBgOpen] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -613,7 +633,7 @@ function PublishedBody({ brief, state, bg, entryQuote = '', driftLabel }: {
   return (
     <div className="flex flex-col gap-3.5">
       <EntryQuoteCard quote={entryQuote} />
-      {state.gate0 && state.gate0.status !== 'approved' && <GatePendingStrip gate0={state.gate0} />}
+      {state.gate0 && <GateRetentionCard gate0={state.gate0} />}
       <DirtyBar state={state} driftLabel={driftLabel} />
 
       <div className="grid grid-cols-2 gap-[14px]">
@@ -623,6 +643,7 @@ function PublishedBody({ brief, state, bg, entryQuote = '', driftLabel }: {
             brief={brief}
             onClose={() => setEditing(false)}
             premiseDraft={premiseDraft}
+            onBriefUpdated={onBriefUpdated}
           />
         ) : (
         <section className="flex flex-col overflow-hidden rounded-[12px] border border-line bg-white" data-stage0-card-diagnosis>
@@ -887,7 +908,7 @@ function BriefError({ projectTitle, onBackToDag, doc, state }: {
   )
 }
 
-export default function Stage0View({ canvas, projectTitle, onBackToDag, entryQuote = '' }: Stage0ViewProps) {
+export default function Stage0View({ canvas, projectTitle, onBackToDag, entryQuote = '', onBriefUpdated }: Stage0ViewProps) {
   const state = useMemo(() => selectStage0State(canvas), [canvas])
   // feature-806 · B-46 漂移提醒：聚合态取各脏节点漂移天数 max（无 markedAt 按 0），超 30 天 DirtyBar 追加一行（不阻塞）
   const dirtyDriftLabel = driftReminderLabel(
@@ -906,7 +927,7 @@ export default function Stage0View({ canvas, projectTitle, onBackToDag, entryQuo
       <Stage0Chain state={state} />
       <div className="absolute inset-0 top-[84px] overflow-y-auto px-[26px] py-[22px]">
         <div className="mx-auto flex max-w-[920px] flex-col gap-[18px]" data-stage0-brief>
-          <PublishedLoaded state={state} refPath={refPath} projectTitle={projectTitle} onBackToDag={onBackToDag} entryQuote={entryQuote} driftLabel={dirtyDriftLabel} />
+          <PublishedLoaded state={state} refPath={refPath} projectTitle={projectTitle} onBackToDag={onBackToDag} entryQuote={entryQuote} driftLabel={dirtyDriftLabel} onBriefUpdated={onBriefUpdated} />
         </div>
       </div>
     </div>
@@ -914,13 +935,14 @@ export default function Stage0View({ canvas, projectTitle, onBackToDag, entryQuo
 }
 
 /** 隔离读取 hook（保证 hooks 调用顺序不随主态切换变化） */
-function PublishedLoaded({ state, refPath, projectTitle, onBackToDag, entryQuote = '', driftLabel }: {
+function PublishedLoaded({ state, refPath, projectTitle, onBackToDag, entryQuote = '', driftLabel, onBriefUpdated }: {
   state: ReturnType<typeof selectStage0State>
   refPath: string
   projectTitle: string
   onBackToDag: () => void
   entryQuote?: string
   driftLabel: string | null
+  onBriefUpdated?: (result: BriefUpdatePayload) => void
 }) {
   const { brief, bg } = useBriefDocuments(refPath)
 
@@ -946,7 +968,7 @@ function PublishedLoaded({ state, refPath, projectTitle, onBackToDag, entryQuote
         <span className="rounded-full bg-[#E7F8F0] px-2 py-px text-[10px] font-bold text-[#1E9E66]" data-stage0-version={brief.brief.version}>立项单 v{brief.brief.version}</span>
         <span className="text-[10px] text-[#A6ABC0]">来源：{brief.path}</span>
       </div>
-      <PublishedBody brief={brief.brief} state={state} bg={bg} entryQuote={entryQuote} driftLabel={driftLabel} />
+      <PublishedBody brief={brief.brief} state={state} bg={bg} entryQuote={entryQuote} driftLabel={driftLabel} onBriefUpdated={onBriefUpdated} />
     </>
   )
 }

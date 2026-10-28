@@ -3,6 +3,7 @@
 // 结构化校验行走 gate.payload.checks（{label,result,level}），无则回退 gate.options。
 import { useState } from 'react'
 import type { CanvasGate } from '@shared/types'
+import { dirtyFieldLabel } from '../stage0/select'
 
 export interface GateCheck {
   label: string
@@ -42,6 +43,72 @@ function harnessBlockersOf(gate: CanvasGate): HarnessFindingDto[] {
   return findings.filter(f => f.severity === 'blocker')
 }
 
+// feature-012 · 再版门 payload.impactSummary 影响产物清单区（契约 §1.1/§3.1；首版无键整区不渲染）
+const IMPACT_SEVERITY_LABELS: Record<'high' | 'medium', string> = {
+  high: '高 · 必重生成',
+  medium: '中 · 可按需重生成',
+}
+
+/** 安全解析：非法形状 / 空清单 → null（整区不渲染，零报错） */
+function impactSummaryOf(gate: CanvasGate): ImpactSummaryDto | null {
+  const payload = gate.payload as { impactSummary?: ImpactSummaryDto } | undefined
+  const s = payload?.impactSummary
+  if (!s || typeof s.assessedAt !== 'string') return null
+  if (!s.counts || typeof s.counts.high !== 'number' || typeof s.counts.medium !== 'number') return null
+  if (!Array.isArray(s.items) || s.items.length === 0) return null
+  const valid = s.items.every(
+    it =>
+      it && typeof it.nodeId === 'string' && Array.isArray(it.fields) &&
+      it.fields.every(f => typeof f === 'string') &&
+      (it.severity === 'high' || it.severity === 'medium') &&
+      (it.defaultAction === 'regenerate' || it.defaultAction === 'mark'),
+  )
+  return valid ? s : null
+}
+
+function ImpactSummaryBlock({ summary }: { summary: ImpactSummaryDto }) {
+  return (
+    <div
+      data-gate-impact-summary
+      className="mx-[11px] mb-[9px] overflow-hidden rounded-[7px] border border-[#DED9FB] bg-white"
+    >
+      <div className="flex items-center gap-1.5 border-b border-[#EFEBFD] bg-[#F7F6FF] px-[9px] py-1.5 text-[10px] font-extrabold text-[#5A4FD8]">
+        影响产物清单 · {summary.items.length} 项
+        <span className="ml-auto font-bold text-[#9A90E8]" data-gate-impact-counts>
+          高 {summary.counts.high} · 中 {summary.counts.medium}
+        </span>
+      </div>
+      <div className="flex flex-col gap-1 px-[9px] py-1.5">
+        {summary.items.map(item => (
+          <div
+            key={item.nodeId}
+            data-gate-impact-item
+            data-node-id={item.nodeId}
+            data-severity={item.severity}
+            data-default-action={item.defaultAction}
+            className="rounded-[6px] border border-[#EFEBFD] bg-white px-2 py-1"
+          >
+            <div className="flex items-center gap-1.5 text-[10.5px] font-bold text-ink">
+              <span
+                className={`shrink-0 rounded px-1.5 py-px text-[9px] font-bold ${
+                  item.severity === 'high' ? 'bg-[#FBE9E6] text-bad' : 'bg-[#FBF3E2] text-[#B07E2A]'
+                }`}
+              >{IMPACT_SEVERITY_LABELS[item.severity]}</span>
+              <span className="truncate">{item.nodeId}</span>
+            </div>
+            <div className="mt-0.5 text-[9.5px] text-muted">
+              命中字段：{item.fields.map(dirtyFieldLabel).join('、')}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="px-[9px] pb-1.5 text-[9px] text-[#A6ABC0]" data-gate-impact-source>
+        摘要快照 {summary.assessedAt} · 来源 brief.impact.assess（commit 时复算）
+      </div>
+    </div>
+  )
+}
+
 function PassIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.5} strokeLinecap="round" className="h-2 w-2 text-white">
@@ -67,6 +134,8 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
     onDecide('rejected', note.trim() ? note.trim() : undefined)
   }
 
+  const impact = impactSummaryOf(gate)
+
   // 已放行：成功态（剪辑/下游 Agent 接管）；feature-806：门 payload 挂有 harness 拦截摘要时下方列出待修复 blocker
   if (gate.status === 'approved') {
     const blockers = harnessBlockersOf(gate)
@@ -83,6 +152,7 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
             <div className="mt-[3px] text-[10px] text-muted">后续产物完成后通知你</div>
           </div>
         </div>
+        {impact && <ImpactSummaryBlock summary={impact} />}
         {blockers.length > 0 && (
           <div
             data-gate-harness-findings
@@ -142,6 +212,8 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
           </div>
         ))}
       </div>
+
+      {impact && <ImpactSummaryBlock summary={impact} />}
 
       {rejected && (
         <div className="mx-[11px] mb-[9px] rounded-[7px] bg-[#F7F8FC] px-[9px] py-1.5 text-[9.5px] leading-4 text-bad">

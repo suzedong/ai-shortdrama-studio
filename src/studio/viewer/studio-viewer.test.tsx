@@ -2,11 +2,13 @@
 // 缺陷根因：changes 分支复用 KV（键列 w-[64px] 定宽），英文点路径必然折行与值穿插成叠字。
 // 修复（方案 A）：该分支每项改纵向两行块——字段路径独立一行完整显示，from → to 在下一行。
 // KV 组件本体与其他区块（六要素/故事前提/视觉风格）零改动。
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { CanvasNode, ProjectBrief, StepId } from '@shared/types'
+import type { Canvas, CanvasNode, ProjectBrief, StepId } from '@shared/types'
 import StudioViewer from './StudioViewer'
+import StudioApp from '../shell/StudioApp'
 import { _setStyleCatalogSnapshotForTest } from '../style/style-catalog-store'
 
 // feature-811：风格显示名消费 style:catalog 快照——prime ok 态后首订阅懒 ensure no-op（store 契约）
@@ -238,7 +240,199 @@ describe('BriefView · 落盘字段完整（B-32）', () => {
   })
 })
 
-/* ── B-33 查看器补显：入口动作 · 用户原话 + 故事背景档案.md ── */
+/* ── feature-011 黄条「查看影响评估」入口（契约 T-⑦ / T-⑧） ── */
+
+function dirtyOutlineNode(withReport = true): CanvasNode {
+  return {
+    id: 'step-1-outline', step: '1' as StepId, kind: 'outline', title: '都市女频大纲', status: 'done',
+    ref: { path: '故事/故事大纲.json', format: 'json' },
+    updatedAt: '2026-10-21T00:00:00.000Z',
+    dirty: {
+      sinceBriefVersion: 2,
+      latestBriefVersion: 3,
+      fields: ['premise.seasonBoundary', 'fiveElements.episodeCount'],
+      severity: 'high',
+      impactReport: withReport ? '影响清单.v2-v3.json' : '',
+    },
+  }
+}
+
+const OUTLINE_JSON = JSON.stringify({ logline: '测试 logline', seasonArc: '测试主线', themes: [], conflicts: [], episodes: [] })
+const IMPACT_REPORT_JSON = JSON.stringify({
+  schemaVersion: 1,
+  kind: 'brief-impact-report',
+  fromVersion: 2,
+  toVersion: 3,
+  committedAt: '2026-10-16T08:00:00.000Z',
+  changes: [
+    { field: 'premise.seasonBoundary', from: '第一季只讲相识', to: '第一季讲相识与误会' },
+    { field: 'fiveElements.episodeCount', from: '80 集', to: '60 集' },
+  ],
+  items: [
+    {
+      nodeId: 'step-1-outline', step: '1', title: '都市女频大纲', severity: 'high',
+      fields: ['premise.seasonBoundary', 'fiveElements.episodeCount'],
+      defaultAction: 'regenerate', decision: 'mark',
+    },
+  ],
+})
+
+describe('feature-011 · 黄条「查看影响评估」入口（T-⑦ 渲染条件与零回归）', () => {
+  // 查看器挂载即 fileRead 产物：为大纲节点铺合法 structured 视图数据（避免异步结果污染后续用例）
+  beforeEach(() => {
+    window.api = {
+      fileRead: vi.fn(async () => ({ ok: true as const, content: OUTLINE_JSON, format: 'json' as const })),
+    } as unknown as Window['api']
+  })
+
+  it('impactReport 非空 + 回调传入 → 钮渲染，点击恰好一次；漂移/一键对齐既有元素零回归', async () => {
+    const onRequestImpact = vi.fn()
+    const onRequestAlign = vi.fn()
+    render(
+      <StudioViewer
+        node={dirtyOutlineNode()}
+        kindLabel="故事大纲"
+        onClose={() => {}}
+        onRequestAlign={onRequestAlign}
+        onRequestImpact={onRequestImpact}
+      />,
+    )
+    const entry = document.querySelector('[data-viewer-impact-entry]') as HTMLElement
+    expect(entry.textContent).toBe('查看影响评估')
+    // 既有黄条文案与一键对齐钮零回归
+    expect(await screen.findByText('当前基于 v2 立项，与最新 v3 不一致：季边界、集数')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '一键对齐' })).toBeTruthy()
+
+    await userEvent.setup().click(entry)
+    expect(onRequestImpact).toHaveBeenCalledTimes(1)
+    expect(onRequestAlign).not.toHaveBeenCalled()
+  })
+
+  it('impactReport 为空 → 钮不渲染（唯一回读钥匙缺失即降级）', async () => {
+    render(
+      <StudioViewer node={dirtyOutlineNode(false)} kindLabel="故事大纲" onClose={() => {}} onRequestImpact={() => {}} />,
+    )
+    await screen.findByText('当前基于 v2 立项，与最新 v3 不一致：季边界、集数')
+    expect(document.querySelector('[data-viewer-impact-entry]')).toBeNull()
+  })
+
+  it('未传 onRequestImpact → 钮不渲染，黄条其余元素不变', async () => {
+    render(<StudioViewer node={dirtyOutlineNode()} kindLabel="故事大纲" onClose={() => {}} />)
+    await screen.findByText('当前基于 v2 立项，与最新 v3 不一致：季边界、集数')
+    expect(document.querySelector('[data-viewer-impact-entry]')).toBeNull()
+  })
+})
+
+/* ── T-⑧ StudioApp 回读接线 ── */
+
+interface ImpactAppHarness {
+  fileRead: ReturnType<typeof vi.fn>
+  promptAsync: ReturnType<typeof vi.fn>
+}
+
+function installImpactAppApi(fileReadImpl: (path: string) => Promise<unknown>): ImpactAppHarness {
+  const promptAsync = vi.fn(async () => ({ accepted: true as const, messageId: 'msg-1' }))
+  const fileRead = vi.fn(async ({ path }: { path: string }) => fileReadImpl(path))
+  const canvas: Canvas = {
+    schemaVersion: 2,
+    projectId: 'p1',
+    title: '测试项目',
+    nodes: [dirtyOutlineNode()],
+    edges: [],
+    gates: [],
+    updatedAt: new Date().toISOString(),
+  }
+  window.api = {
+    runtime: {
+      status: vi.fn(async () => ({ state: 'running', port: 0, version: '1.18.34', healthy: true, startedAt: null, error: null })),
+      start: vi.fn(async () => ({ state: 'running', port: 0, version: '1.18.34', healthy: true, startedAt: null, error: null })),
+      createSession: vi.fn(async () => ({ id: 'sess-1', title: null, createdAt: new Date().toISOString() })),
+      subscribe: vi.fn(async () => ({ ok: true as const })),
+      unsubscribe: vi.fn(async () => ({ ok: true as const })),
+      abortSession: vi.fn(async () => ({ ok: true as const })),
+      sessionMessages: vi.fn(async () => []),
+      promptAsync,
+      onEvent: vi.fn(() => () => undefined),
+    },
+    canvas: {
+      get: vi.fn(async () => canvas),
+      subscribe: vi.fn(async () => ({ ok: true as const })),
+      unsubscribe: vi.fn(async () => ({ ok: true as const })),
+      onChange: vi.fn(() => () => undefined),
+    },
+    gate: { decide: vi.fn(async () => ({ ok: true as const })), onChanged: vi.fn(() => () => undefined) },
+    listProjects: vi.fn(async () => []),
+    createProject: vi.fn(async () => ({ dir: '/ws/project-p2' })),
+    openProject: vi.fn(async () => ({ ok: true as const, activeSessionId: null as string | null })),
+    activeSession: vi.fn(async () => ({ sessionId: null as string | null })),
+    fileRead,
+    captureList: vi.fn(async () => ({ schemaVersion: 1 as const, facts: [] })),
+    onCaptureChanged: vi.fn(() => () => undefined),
+  } as unknown as Window['api']
+  return { fileRead, promptAsync }
+}
+
+describe('feature-011 · StudioApp 黄条回读重开面板（T-⑧）', () => {
+  it('点击 → 以 dirty.impactReport 路径 fileRead，成功后面板呈现归一视图模型', async () => {
+    const h = installImpactAppApi(async path => {
+      if (path === '影响清单.v2-v3.json') return { ok: true as const, content: IMPACT_REPORT_JSON, format: 'json' as const }
+      return { ok: true as const, content: OUTLINE_JSON, format: 'json' as const }
+    })
+    const user = userEvent.setup()
+    render(<StudioApp />)
+    await screen.findByText('都市女频大纲')
+
+    // 脏节点先过三选一确认 → 保持现状进查看器
+    await user.click(document.querySelector('[data-node-id="step-1-outline"]') as HTMLElement)
+    await user.click(await screen.findByRole('button', { name: '保持现状查看' }))
+    await user.click(await screen.findByRole('button', { name: '查看影响评估' }))
+
+    await waitFor(() => expect(h.fileRead).toHaveBeenCalledWith({ path: '影响清单.v2-v3.json' }))
+    const dialog = await screen.findByRole('dialog', { name: '影响评估' })
+    expect(dialog.textContent).toContain('立项 v2 → v3')
+    expect(dialog.textContent).toContain('都市女频大纲')
+    expect(dialog.textContent).toContain('第一季只讲相识 → 第一季讲相识与误会')
+    // 手动入口的 decision 留痕展示（只读）
+    expect(dialog.textContent).toContain('留痕：仅标记脏')
+    // 零消息：仅回读不开对话
+    expect(h.promptAsync).not.toHaveBeenCalled()
+  })
+
+  it('fileRead 失败 → 面板内降级提示，不崩溃', async () => {
+    installImpactAppApi(async path => {
+      if (path === '影响清单.v2-v3.json') {
+        return { ok: false as const, error: { code: 'NOT_FOUND', message: '不存在' } }
+      }
+      return { ok: true as const, content: OUTLINE_JSON, format: 'json' as const }
+    })
+    const user = userEvent.setup()
+    render(<StudioApp />)
+    await screen.findByText('都市女频大纲')
+    await user.click(document.querySelector('[data-node-id="step-1-outline"]') as HTMLElement)
+    await user.click(await screen.findByRole('button', { name: '保持现状查看' }))
+    await user.click(await screen.findByRole('button', { name: '查看影响评估' }))
+
+    const dialog = await screen.findByRole('dialog', { name: '影响评估' })
+    expect(dialog.textContent).toContain('影响清单读取失败（NOT_FOUND）')
+    expect(document.querySelector('[data-impact-panel-batch]')).toBeNull()
+  })
+
+  it('清单 JSON 损坏 → 降级提示，不崩溃', async () => {
+    installImpactAppApi(async path => {
+      if (path === '影响清单.v2-v3.json') return { ok: true as const, content: '{ 损坏', format: 'json' as const }
+      return { ok: true as const, content: OUTLINE_JSON, format: 'json' as const }
+    })
+    const user = userEvent.setup()
+    render(<StudioApp />)
+    await screen.findByText('都市女频大纲')
+    await user.click(document.querySelector('[data-node-id="step-1-outline"]') as HTMLElement)
+    await user.click(await screen.findByRole('button', { name: '保持现状查看' }))
+    await user.click(await screen.findByRole('button', { name: '查看影响评估' }))
+
+    const dialog = await screen.findByRole('dialog', { name: '影响评估' })
+    expect(dialog.textContent).toContain('影响清单读取失败（解析异常）')
+  })
+})
 
 describe('BriefView · 入口原话与背景档案（B-33）', () => {
   it('entryQuote 传入 → 顶部「入口动作 · 用户原话」卡显引文；未传 → 卡不显', async () => {

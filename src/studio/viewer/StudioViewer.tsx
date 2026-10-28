@@ -38,6 +38,8 @@ interface Props {
   entryQuote?: string
   /** feature-007：脏读黄条「一键对齐」回调（未传 → 黄条无钮） */
   onRequestAlign?: () => void
+  /** feature-011：脏读黄条「查看影响评估」回调（未传 / impactReport 为空 → 无钮） */
+  onRequestImpact?: () => void
 }
 
 // ── 通用视觉件 ──────────────────────────────────────────────
@@ -541,7 +543,7 @@ function StructuredBody({ kind, data, node, entryQuote = '' }: { kind: string; d
 
 // ── 外壳 ────────────────────────────────────────────────────
 
-export default function StudioViewer({ node, kindLabel, onClose, entryQuote = '', onRequestAlign }: Props) {
+export default function StudioViewer({ node, kindLabel, onClose, entryQuote = '', onRequestAlign, onRequestImpact }: Props) {
   const [state, setState] = useState<State>({ phase: 'loading' })
   // feature-004：立项单历史与回滚覆盖层开关（契约 §3.2，仅 brief 节点可见入口）
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -617,7 +619,7 @@ export default function StudioViewer({ node, kindLabel, onClose, entryQuote = ''
           )}
         </div>
       )}
-      {/* feature-007：脏读黄条（§2.6.7 L359 简版，无 [查看影响评估] 钮；onRequestAlign 未传则无钮） */}
+      {/* feature-011：脏读黄条（§2.6.7 L359 全形态；一键对齐 = feature-007 单产物动作，查看影响评估 = feature-011 批量面板入口） */}
       {node.dirty && (
         <div className="flex items-center gap-2 border-b border-line bg-[#FFF4DE] px-5 py-2">
           <span className="min-w-0 flex-1 break-words text-[11px] font-semibold leading-5 text-[#C0841D]">
@@ -625,6 +627,16 @@ export default function StudioViewer({ node, kindLabel, onClose, entryQuote = ''
             {node.dirty.fields.map(dirtyFieldLabel).join('、')}
             {dirtyDriftLabel && <span className="block">{dirtyDriftLabel}</span>}
           </span>
+          {onRequestImpact && node.dirty.impactReport && (
+            <button
+              type="button"
+              onClick={onRequestImpact}
+              className="shrink-0 rounded-lg border border-[#C0841D]/40 bg-white/70 px-2.5 py-0.5 text-[11px] font-bold text-[#C0841D] hover:bg-white"
+              data-viewer-impact-entry
+            >
+              查看影响评估
+            </button>
+          )}
           {onRequestAlign && (
             <button
               type="button"

@@ -71,6 +71,21 @@ describe('diffBrief（契约 §5）', () => {
     expect(diffBrief(prev, draft)).toEqual([])
   })
 
+  it('feature-013：l0.tags / l0.notes 命名空间命中；draft 未给 l0 不参与比较（存量兼容防伪 diff）', () => {
+    const prev = fullBrief(1, { l0: { tags: ['beta', 'alpha'], notes: '旧备注' } })
+    // 未提交 l0（Agent 通道 / 未改字段）→ 沿用上一版，零伪 diff
+    expect(diffBrief(prev, fullDraft())).toEqual([])
+    // 标签数组按整体值比对（排序后顿号连接，口径同 platforms）
+    expect(diffBrief(prev, fullDraft({ l0: { tags: ['alpha', 'gamma'], notes: '旧备注' } }))).toEqual([
+      { field: 'l0.tags', from: 'alpha、beta', to: 'alpha、gamma' },
+    ])
+    expect(diffBrief(prev, fullDraft({ l0: { tags: ['beta', 'alpha'], notes: '新备注' } }))).toEqual([
+      { field: 'l0.notes', from: '旧备注', to: '新备注' },
+    ])
+    // 显式清空（tags:[] / notes:''）→ 记删除
+    expect(diffBrief(prev, fullDraft({ l0: {} })).map(c => c.field)).toEqual(['l0.tags', 'l0.notes'])
+  })
+
   it('kind / premise / style / diagnosis 摘要与明细变更均被捕获', () => {
     const prev = fullBrief(1)
     const draft = fullDraft({
@@ -246,5 +261,18 @@ describe('renderBriefMd（契约 §4）', () => {
   it('D-018：诊断明细原样渲染（多行保留）', () => {
     const md = renderBriefMd(fullBrief(1, { diagnosisDetail: '第一行\n第二行' }))
     expect(md).toContain('## 选题诊断明细\n第一行\n第二行')
+  })
+
+  it('feature-013：L0 标签/备注有值渲染头部区块（位于项目性质前），无值不渲染', () => {
+    const md = renderBriefMd(fullBrief(1, { l0: { tags: ['招商', '校园'], notes: '片头 5 秒立钩' } }))
+    expect(md).toContain('## 项目标签与备注')
+    expect(md).toContain('- 标签：招商、校园')
+    expect(md).toContain('- 备注：片头 5 秒立钩')
+    expect(md.indexOf('## 项目标签与备注')).toBeLessThan(md.indexOf('## 项目性质'))
+    // 仅有备注：不渲染空标签行；无 L0：整块不出现
+    const onlyNotes = renderBriefMd(fullBrief(1, { l0: { notes: '只有备注' } }))
+    expect(onlyNotes).toContain('- 备注：只有备注')
+    expect(onlyNotes).not.toContain('- 标签：')
+    expect(renderBriefMd(fullBrief(1))).not.toContain('## 项目标签与备注')
   })
 })

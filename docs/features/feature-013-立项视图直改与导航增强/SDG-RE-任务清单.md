@@ -1,7 +1,7 @@
 # feature-013 立项视图直改与导航增强 · SDG-RE-任务清单
 
 > **任务包**：`docs/features/feature-013-立项视图直改与导航增强/`
-> **状态**：规格已建，**待用户批准后方可实施（铁律 1：No Spec, No Code）**；T1 起每一项执行前须先确认用户已批准本规格。
+> **状态**：已批准实施并完成（2026-10-28，决策 1=A / 2=b / 3=A / 4=a / 5=a）；T1-T9 回填见包内变更记录 T 节。
 > **上游**：[SDG-RE-需求规格.md](./SDG-RE-需求规格.md) · [SDG-RE-契约.md](./SDG-RE-契约.md)
 > **基线参照行**（承 feature-806 T7，2026-10-28 同日实测）：vitest **66 文件 / 761 passed / 0 failed / 1 skipped**；`tsc --noEmit` 恰 3 条（scripts/electron-smoke.mjs 1 + Stage3AssetHub.tsx 2）；MCP 工具 **28**；showrunner 白名单 **23**；契约三件套（contracts.test.ts 15 / canvas.contract.test.tsx 21 / smoke 8）全绿。**T1 必须复核实测，不承旧数**。
 

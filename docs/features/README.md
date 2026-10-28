@@ -37,9 +37,9 @@
 | [feature-009-前提卡分色与不可篡改水印](./feature-009-前提卡分色与不可篡改水印/) | 前提卡分色 + 不可篡改水印（§2.6.8 L379）：published 卡②故事前提五键按已捕获口径词表匹配逐键分色——人确认（confirmed）淡绿底 + 「不可篡改」绿徽标 / AI 拟稿（仅 infer+pending）淡琥珀底 + 「AI 拟稿」琥珀徽标 / 无记录中性零追加；背景档案折叠区标题行整体「不可篡改」徽标；纯订阅呈现零写入，卡①编辑态与 empty 三态零 diff | B-44（盘点缺口 #5，本包登记并关闭） | `src/studio/stage0/premise-facts.ts`（新纯函数层，复用 008 matchChainTopic 词表 + PREMISE_FIELDS）+ Stage0Chain.tsx 一词 export（useCaptureFacts）+ Stage0View PublishedBody 订阅与五键行分色/双徽标 + stage0-premise-facts.test.tsx（两组 15 例）；**K1/K8/K9 全零** | Design 原有·形态对齐 | ✅ 已落地（2026-10-21，dev-mock 零回归目验 + 60 文件 704 passed） |
 | [feature-010-对话内缺口追问与拍板提示](./feature-010-对话内缺口追问与拍板提示/) | 对话内缺口追问快捷答复 chip（【追问选项】块协议 → ChipRow 横向胶囊：纯文本候选行 ≥2 条末尾块，picked 紫底白字不压暗 / consumed 置灰，点击代发原文与手打同路径）+ 发卡拍板提示 qh（`pendingGate.gateId==='0-final'` 系统直做自动追加 GateHint 琥珀条，合 D-016；文案 [改编] 自原型 → 纪律 8 真实口令「行，就按这版发布」） | B-45（盘点缺口 #7，本包登记并关闭；B-35 遗留切片，卡①折叠差异仅备案） | `src/studio/ChatComposer.tsx`（parseChatOptions 五处扩展 + ChipRow/GateHint 两组件四挂载点 + demo d9）+ showrunner.md 纪律 10 增补（纪律 9 词表零改）+ chat-chips.test.tsx（两组 17 例）；**K1/K8/K9 全零** | 改编 | ✅ 已落地（2026-10-23，dev-mock 目验上屏/代发/picked/disabled/hover 全过 + 61 文件 721 passed） |
 
-| [feature-011-影响评估面板与批量重生成](./feature-011-影响评估面板与批量重生成/) | 影响评估完整面板（保存后自动弹出 + 按影响级别分组勾选 + 「一键重生成选中」批量操作）+ 脏读黄条「查看影响评估」入口（002/007 明示排除项补全） | B-03 配套补全 | renderer 新增恰 3 文件 + 修改恰 4 既有文件（零新 IPC/工具/依赖，复用 007 重对齐链路） | Design 原有 | 🟡 已建包·规格待批准（2026-10-28） |
-| [feature-012-定案门信息完整性与门卡留存](./feature-012-定案门信息完整性与门卡留存/) | 再版定案门拍板前同列「相对上一版改动 + 影响产物清单」（修正先拍板后评估顺序倒置）+ approved 门卡 findings 真机留存挂载（含 806 拍板翻案呈报） | —（§2.6.5 补全） | showrunner.md 再版纪律改写 + GateCardView 影响清单区 + Stage0View 放行 approved（payload 增键不触 K1） | Design 原有 | 🟡 已建包·规格待批准（2026-10-28，含翻案呈报） |
-| [feature-013-立项视图直改与导航增强](./feature-013-立项视图直改与导航增强/) | 立项视图 L0/L1/L2 全字段直改 + L0 标签/备注入模型（K1 条件触发，推荐入立项单 v2）+ STAGE 0 左栏 hover 版本历史与 titlebar「vN · X 已对齐 · Y 待处理」tooltip | —（§2.6.6/2.6.8 补全） | Stage0View / StageNavPanel / StudioApp + brief:update 扩键（K8 呈报） | Design 原有 | 🟡 已建包·规格待批准（2026-10-28） |
+| [feature-011-影响评估面板与批量重生成](./feature-011-影响评估面板与批量重生成/) | 影响评估完整面板（保存后自动弹出 + 按影响级别分组勾选 + 「一键重生成选中」批量操作）+ 脏读黄条「查看影响评估」入口（002/007 明示排除项补全） | B-03 配套补全 | renderer 新增恰 3 文件 + 修改恰 4 既有文件（零新 IPC/工具/依赖，复用 007 重对齐链路） | Design 原有 | ✅ 已落地（2026-10-28，自动化 70 文件 821 passed；真机目验待执行） |
+| [feature-012-定案门信息完整性与门卡留存](./feature-012-定案门信息完整性与门卡留存/) | 再版定案门拍板前同列「相对上一版改动 + 影响产物清单」（修正先拍板后评估顺序倒置）+ approved 门卡 findings 真机留存挂载（含 806 拍板翻案呈报） | —（§2.6.5 补全） | showrunner.md 再版纪律改写 + GateCardView 影响清单区 + Stage0View 放行 approved（payload 增键不触 K1） | Design 原有 | ✅ 已落地（2026-10-28，新增 2 测试文件 12 例；真机目验待执行） |
+| [feature-013-立项视图直改与导航增强](./feature-013-立项视图直改与导航增强/) | 立项视图 L0/L1/L2 全字段直改 + L0 标签/备注入模型（K1 条件触发，推荐入立项单 v2）+ STAGE 0 左栏 hover 版本历史与 titlebar「vN · X 已对齐 · Y 待处理」tooltip | —（§2.6.6/2.6.8 补全） | Stage0View / StageNavPanel / StudioApp + brief:update 扩键（K8 呈报） | Design 原有 | ✅ 已落地（2026-10-28，决策 1=A/2=b/3=A/4=a/5=a；真机目验待执行） |
 
 > 立项阶段跨包验收：[立项阶段整体真机测试用例](../立项阶段整体真机测试用例.md)（2026-10-28 建：E2E 主线 15 条 + 单包补验 7 条 + 环境受限/挂起项，用例矩阵与通过判据）。
 
@@ -108,7 +108,7 @@
 下列骨架已随重建落地、当前无任务包，**不占用业务编号**；如后续需要规格留痕，按《指令》§7 反向补录建包（建议归入 8xx），不在近期路线内：
 
 - **对话生成网关 runtime 单轨**（`electron/runtime/*`，14 错误码，无 Key 报 `UPSTREAM_AUTH_MISSING`）— §5.1
-- **MCP 纯工具族**（`electron/mcp/*`：canvas / file / asset / comfyui / gate / brief（含 impact）/ manifest / style / capture / web，10 族共 27 个；随 feature-001/002/005/006/801/802 演进）— §5.2
+- **MCP 纯工具族**（`electron/mcp/*`：canvas / file / asset / comfyui / gate / brief（含 impact）/ manifest / style / capture / web / harness，11 族共 28 个；随 feature-001/002/005/006/801/802/806 演进）— §5.2
 - **持久化与版本归档**（`electron/fs/*`：sandbox 白名单 / write-queue / archive 版本归档）、**项目库**（`electron/project/*`，含 manifest 7 态状态机，见 feature-801）
 - **画布**（`electron/canvas/*`：canvas.json 节点模型）、**确认门桥**（`gate/bridge.ts` 三态）
 - **Agent profiles**（`resources/opencode/agents/`：showrunner 唯一 primary / writer / media-director / comfyui-operator，共 4 个；director 已退役）

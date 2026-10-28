@@ -17,6 +17,14 @@ import { deriveBriefDisplay, stage0Tooltip } from '../canvas/brief-display'
 import Stage0View from '../stage0/Stage0View'
 import StudioViewer from '../viewer/StudioViewer'
 import RealignConfirm, { buildRealignPrompt } from '../canvas/RealignConfirm'
+import ImpactPanel from '../impact/ImpactPanel'
+import {
+  fromReportFile,
+  fromUpdateResult,
+  type BriefUpdatePayload,
+  type ImpactReportPayload,
+  type ImpactView,
+} from '../impact/impact-select'
 import VisualCatalog from '../style/VisualCatalog'
 import WindowControls from './WindowControls'
 
@@ -107,6 +115,8 @@ export default function StudioApp() {
   const [viewerNode, setViewerNode] = useState<CanvasNode | null>(null)
   // feature-007：重开脏产物的三选一确认节点（非空即弹 RealignConfirm）
   const [confirmNode, setConfirmNode] = useState<CanvasNode | null>(null)
+  // feature-011：影响评估面板（非阻断弹层，两入口共用；data=null 为手动入口读取失败的降级态）
+  const [impactPanel, setImpactPanel] = useState<{ data: ImpactView | null; degrade?: string } | null>(null)
   const [leftView, setLeftView] = useState<LeftView>('resource')
   const [panTab, setPanTab] = useState<PanTab>('projects')
   const [leftQuery, setLeftQuery] = useState('')
@@ -406,6 +416,43 @@ export default function StudioApp() {
   }, [confirmNode])
   // 取消 = 仅关确认
   const handleConfirmCancel = useCallback(() => setConfirmNode(null), [])
+
+  // ---- feature-011：影响评估面板（两入口 + 批量重生成） ----
+  // 入口 A：Stage0View 直改再版成功且 items>0 时上报 → 自动弹出
+  const handleBriefUpdated = useCallback((result: BriefUpdatePayload) => {
+    setImpactPanel({ data: fromUpdateResult(result) })
+  }, [])
+  // 入口 B：查看器黄条「查看影响评估」→ 按 dirty.impactReport 回读影响清单（失败 / 损坏 → 面板内降级）
+  const handleRequestImpact = useCallback(async (node: CanvasNode) => {
+    const path = node.dirty?.impactReport
+    if (!path) return
+    try {
+      const res = await window.api.fileRead({ path })
+      if (!res.ok) {
+        setImpactPanel({ data: null, degrade: `影响清单读取失败（${res.error.code}）` })
+        return
+      }
+      const parsed = JSON.parse(res.content) as Partial<ImpactReportPayload>
+      if (
+        typeof parsed.fromVersion !== 'number' ||
+        typeof parsed.toVersion !== 'number' ||
+        !Array.isArray(parsed.changes) ||
+        !Array.isArray(parsed.items)
+      ) {
+        setImpactPanel({ data: null, degrade: '影响清单格式不可识别，无法呈现影响范围。' })
+        return
+      }
+      setImpactPanel({ data: fromReportFile(parsed as ImpactReportPayload) })
+    } catch {
+      setImpactPanel({ data: null, degrade: '影响清单读取失败（解析异常）。' })
+    }
+  }, [])
+  // 一键重生成选中：关面板 + 单条聚合模板消息经既有 handleSend 链路（D3-A，K8 零触）
+  const handleImpactBatch = useCallback((message: string) => {
+    setImpactPanel(null)
+    void handleSend(message)
+  }, [handleSend])
+  const handleImpactClose = useCallback(() => setImpactPanel(null), [])
 
   // ---- 节点操作（feature-026 · UI 演示，dev-mock 未接 IPC）----
   // dev-mock 暂不支持变更节点状态；这里只把动作反馈到 toast 与 console
@@ -722,6 +769,7 @@ export default function StudioApp() {
               projectTitle={projectTitle}
               onBackToDag={() => setCenterView('dag')}
               entryQuote={entryQuote}
+              onBriefUpdated={handleBriefUpdated}
             />
           ) : (
             <>
@@ -739,6 +787,7 @@ export default function StudioApp() {
                   onClose={handleCloseViewer}
                   entryQuote={entryQuote}
                   onRequestAlign={viewerNode.dirty ? () => setConfirmNode(viewerNode) : undefined}
+                  onRequestImpact={viewerNode.dirty ? () => { void handleRequestImpact(viewerNode) } : undefined}
                 />
               )}
               {confirmNode && (
@@ -750,6 +799,16 @@ export default function StudioApp() {
                 />
               )}
             </>
+          )}
+          {/* feature-011：影响评估面板（与 RealignConfirm 同级挂载；Stage0 与 DAG 两视图均可弹） */}
+          {impactPanel && (
+            <ImpactPanel
+              data={impactPanel.data}
+              degrade={impactPanel.degrade}
+              onBatchRealign={handleImpactBatch}
+              onMarkOnly={handleImpactClose}
+              onCancel={handleImpactClose}
+            />
           )}
         </main>
 

@@ -64,3 +64,7 @@ MiniMax Design Windows 版实测形态（截图）：窗口无原生边框；顶
 - AC7：`src/studio` 新组件通过架构铁律扫描（无 `electron` import、无外链 URL/Key）；`npm run typecheck`、`npx tsc -b tsconfig.node.json`、`tsc -p tsconfig.preload.json` 全绿，不扩大 HEAD 既有 12 失败基线（studio-flow 10 / architecture 1 / fs-sandbox 1，及 runtime-integration 套件 1）。
 - AC8：preload 暴露面、`global.d.ts` 类型、dev mock 三处 `window` 段形状一致；IPC 通道名 `window:*` 与既有通道零冲突。
 - AC9：窗口选项按平台分支由可单测纯函数产出——`darwin` 输出 `{ titleBarStyle:'hiddenInset' }` 且不含 `frame:false`；`win32`/`linux` 输出 `{ frame:false }` 且不含 `titleBarStyle`。
+
+### 验收记录
+
+- 2026-10-29 · Windows 真机（ENV-02 用例，Win11 2560×1440 / Electron 33.4.11）：AC1✅ 三按钮渲染且点击最小化/最大化↔还原/关闭全对（关闭=进程退出，两次实证）；AC2✅ 图标态 aria「最大化」↔「还原」与 data-maximized 全程随主进程推送翻转；AC3✅ hover 浅灰 rgb(230,230,233) 圆角 6px、关闭 hover rgb(196,43,28)=#C42B1C、命中区实测 46×32×3；AC4✅ 拖拽区 44px 空白可拖（computer-use 真实双击最大化↔还原经 -webkit-app-region:drag 生效），三按钮与业务控件 no-drag 组正确；R5✅ SendInput 真实按键 Win+↑ 最大化 / Win+↓ 还原 / Win+←→ 左右半屏吸附（0,0 与 1280,0，1280×1392）；观察项：吸附态按反向 Win+方向键表现为还原而非直达对侧，与本机原生有框窗口（DevTools）对照完全一致，属平台行为奇偶，非缺陷。AC5（macOS hiddenInset 零变化）维持挂起，待 macOS 真机回归。证据形态：CDP isMaximized/geometry 断言 + computer-use / SendInput 真实 OS 输入 + UIA 树核对；明细见 [立项阶段整体真机测试用例.md](../../立项阶段整体真机测试用例.md) §6。

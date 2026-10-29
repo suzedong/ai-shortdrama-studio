@@ -32,6 +32,7 @@
 | 2026-10-28 | 任务清单 T4 引用挂载点 L193 / L485 | 代码演进后行号漂移 | 实况为 `Stage0View.tsx` L196（EmptyStage0）/ L623（PublishedBody），以实况为准 |
 | 2026-10-28 | 契约 §3.1.b 末注「global.d.ts / dev-mock-api.ts 按需同步」中的 dev-mock 部分 | dev-mock 演示画布节点 id 为 `n-brief`（Stage0View 不识别）、`gates: []`；新增门演示桩会造成「空态 + 已批门」语义矛盾 | dev-mock **零 diff**（不增门演示桩）；目验走 Electron 沙箱 |
 | 2026-10-28 | 门 payload 新键类型放置 | `CanvasGate.payload` 为 `unknown` 自由载体，增键不触 K1；镜像类型循 806 `HarnessFindingDto` 先例 | 类型落 `src/global.d.ts`，`shared/types.ts` 零 diff |
+| 2026-10-29 | T7 真机目验遗留项之「approved 留存卡挂载点」面 | 挂起项 HOLD-01 补验（feature-012 方案 B 落地后解除条件成立） | ✅ 真机通过（用例 HOLD-01）：造数 approved 门 → STAGE 0 留存卡三区上屏（已确认横幅 + `data-gate-impact-summary` 影响清单 2 项 + `data-gate-harness-findings` 拦截区仅列 blocker、warning 过滤），无裁决按钮、无 pending 门条；证据回填 [立项阶段整体真机测试用例.md](../../立项阶段整体真机测试用例.md) §6。T7 其余真机面（再版门 payload 注入链路）不在本用例范围，维持原遗留口径 |
 
 ## 版本记录
 

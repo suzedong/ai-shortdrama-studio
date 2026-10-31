@@ -1,7 +1,7 @@
 // feature-809 · 对话流式活跃指示（契约 §6 测试契约）
 // 断言：纯函数 6 例（toolDurationLabel D1/D2/D3、showStreamCursor C1/C2×2）+ 组件 11 例（AC1–AC8 全覆盖，
 // 其中 AC7 活跃不变式为 running 五状态参数化遍历；A4 条件含 X-001 修订：!text && running）。
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { StreamingTurn, ToolView } from '../../lib/chat-runtime'
@@ -22,7 +22,10 @@ function makeTool(partial: Partial<ToolView> = {}): ToolView {
   return { callId: 'c1', tool: 'file.write', status: 'running', args: {}, ...partial }
 }
 
-function renderWithStream(stream: StreamingTurn | null, props: { generating?: boolean } = {}) {
+function renderWithStream(
+  stream: StreamingTurn | null,
+  props: { generating?: boolean; aiDown?: string | null; onAiRetry?: () => void } = {},
+) {
   return render(
     <ChatComposer
       items={[]}
@@ -32,6 +35,8 @@ function renderWithStream(stream: StreamingTurn | null, props: { generating?: bo
       sending={false}
       generating={props.generating ?? false}
       error={null}
+      aiDown={props.aiDown ?? null}
+      onAiRetry={props.onAiRetry}
       onSend={vi.fn()}
       onDecide={vi.fn()}
     />,
@@ -104,7 +109,9 @@ describe('行内工具状态行（AC4 / AC5 / AC6 / 行序）', () => {
       makeTurn({ tools: { c1: makeTool({ tool: 'file.write', status: 'running' }) } }),
     )
     const row = screen.getByTestId('chat-tool-row')
-    expect(row.textContent).toContain('file.write')
+    // D-011：显示中文动作短语，物理 ID 留在 title 供追溯
+    expect(row.textContent).toContain('写入文件')
+    expect(row).toHaveAttribute('title', 'file.write')
     expect(row.textContent).toContain('执行中')
     expect(row.querySelector('.animate-spin')).not.toBeNull()
     expect(container.querySelectorAll('[data-testid="chat-tool-row"]')).toHaveLength(1)
@@ -121,9 +128,9 @@ describe('行内工具状态行（AC4 / AC5 / AC6 / 行序）', () => {
     )
     const rows = screen.getAllByTestId('chat-tool-row')
     expect(rows[0].textContent).toContain('✓')
-    expect(rows[0].textContent).toContain('brief.publish')
+    expect(rows[0].textContent).toContain('发布立项单')
     expect(rows[0].textContent).toContain('1.2s')
-    expect(rows[1].textContent).toContain('file.read')
+    expect(rows[1].textContent).toContain('读取文件')
     expect(rows[1].textContent).not.toContain('s')
   })
 
@@ -138,9 +145,29 @@ describe('行内工具状态行（AC4 / AC5 / AC6 / 行序）', () => {
     )
     const rows = screen.getAllByTestId('chat-tool-row')
     expect(rows[0].textContent).toContain('✗')
+    expect(rows[0].textContent).toContain('更新画布')
     expect(rows[0].textContent).toContain('磁盘不可写')
     expect(rows[0].querySelector('[title="磁盘不可写"]')).not.toBeNull()
     expect(rows[1].textContent).toContain('执行失败')
+  })
+
+  it('D-012：流式从 args 现算白名单摘要；argsPreview（历史回放）优先于现算；无白名单不显示', () => {
+    renderWithStream(
+      makeTurn({
+        tools: {
+          c1: makeTool({ callId: 'c1', tool: 'shortdrama_file_write', status: 'running', args: { path: 'story/第1集.md', content: '正文' } }),
+          c2: makeTool({ callId: 'c2', tool: 'shortdrama_capture_upsert', status: 'completed', startedAt: 0, endedAt: 100, args: { topic: '题材赛道', value: '都市逆袭' } }),
+          c3: makeTool({ callId: 'c3', tool: 'shortdrama_file_write', status: 'completed', startedAt: 0, endedAt: 100, argsPreview: 'brief/立项单.v3.json', args: { path: '应被忽略.md' } }),
+          c4: makeTool({ callId: 'c4', tool: 'shortdrama_canvas_get', status: 'completed', startedAt: 0, endedAt: 100, args: {} }),
+        },
+      }),
+    )
+    const rows = screen.getAllByTestId('chat-tool-row')
+    expect(rows[0].textContent).toContain('· story/第1集.md')
+    expect(rows[1].textContent).toContain('· 题材赛道')
+    expect(rows[2].textContent).toContain('· brief/立项单.v3.json')
+    expect(rows[2].textContent).not.toContain('应被忽略')
+    expect(rows[3].textContent).not.toContain('·')
   })
 
   it('行序（契约 §2.3 T1）：按 Object.values 首次出现序渲染，不另行排序', () => {
@@ -153,8 +180,8 @@ describe('行内工具状态行（AC4 / AC5 / AC6 / 行序）', () => {
       }),
     )
     const rows = screen.getAllByTestId('chat-tool-row')
-    expect(rows[0].textContent).toContain('canvas.update')
-    expect(rows[1].textContent).toContain('file.write')
+    expect(rows[0].textContent).toContain('更新画布')
+    expect(rows[1].textContent).toContain('写入文件')
   })
 })
 
@@ -189,6 +216,52 @@ describe('活跃不变式（AC7，running 五状态参数化遍历）', () => {
     renderWithStream(makeTurn({ status: 'running', deltaPreview: { text: '', reasoning: '思考中…' } }))
     expect(screen.getByText('推理过程')).toBeInTheDocument()
     expect(screen.getByTestId('chat-typing-dots')).toBeInTheDocument()
+  })
+})
+
+describe('D-013 · AI 服务不可用横幅与输入禁用', () => {
+  it('aiDown 非空 → 常驻横幅（role=alert）+ 重新检测按钮；aiDown=null 不渲染', () => {
+    const { unmount } = renderWithStream(null, { aiDown: 'AI 服务不可用：运行时未能启动', onAiRetry: vi.fn() })
+    const banner = screen.getByTestId('chat-ai-down')
+    expect(banner).toHaveAttribute('role', 'alert')
+    expect(banner.textContent).toContain('AI 服务不可用：运行时未能启动')
+    expect(screen.getByTestId('chat-ai-retry')).toBeInTheDocument()
+    unmount()
+    renderWithStream(null)
+    expect(screen.queryByTestId('chat-ai-down')).toBeNull()
+  })
+
+  it('aiDown 时禁用输入框与发送钮，placeholder 切换为不可用提示', () => {
+    renderWithStream(null, { aiDown: 'AI 服务调用失败：方舟余额不足' })
+    const textarea = screen.getByPlaceholderText('AI 服务不可用，恢复后可继续对话')
+    expect(textarea).toBeDisabled()
+    expect(screen.getByTestId('chat-send')).toBeDisabled()
+  })
+
+  it('点击「重新检测」调用 onAiRetry；aiDown 时 submit 守卫拦截发送', () => {
+    const onAiRetry = vi.fn()
+    const onSend = vi.fn()
+    const { container } = render(
+      <ChatComposer
+        items={[]}
+        stream={null}
+        pendingGate={null}
+        deciding={false}
+        sending={false}
+        generating={false}
+        error={null}
+        aiDown="AI 服务不可用"
+        onAiRetry={onAiRetry}
+        onSend={onSend}
+        onDecide={vi.fn()}
+      />,
+    )
+    fireEvent.click(screen.getByTestId('chat-ai-retry'))
+    expect(onAiRetry).toHaveBeenCalledTimes(1)
+    // 输入框禁用 → 无法输入；直接触发表单提交守卫也被拦截
+    const textarea = container.querySelector('textarea')!
+    fireEvent.keyDown(textarea, { key: 'Enter' })
+    expect(onSend).not.toHaveBeenCalled()
   })
 })
 

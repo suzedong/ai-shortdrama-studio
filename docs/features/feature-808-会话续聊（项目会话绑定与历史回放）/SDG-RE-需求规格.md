@@ -29,7 +29,7 @@ Design 的会话形态是**项目即会话**：左栏项目列表就是会话入
 
 | # | 角色 | 场景 | 要做什么 | 达成效果 |
 |---|---|---|---|---|
-| R1 | 创作者 | 从左栏重开一个对话过的项目 | 右栏自动呈现该项目历次对话的用户/Agent 文本气泡（按时间正序），无需任何「加载历史」操作 | 重开项目 = 继续编辑（对齐 Design §1.2 入口 4）；不闪假数据、不弹错误 |
+| R1 | 创作者 | 从左栏重开一个对话过的项目 | 右栏自动呈现该项目历次对话的用户/Agent 正文气泡（按时间正序），Agent 可展开查看推理过程，并恢复工具名称、状态和耗时，无需任何「加载历史」操作 | 重开项目 = 继续编辑（对齐 Design §1.2 入口 4）；不闪假数据、不弹错误 |
 | R2 | 创作者 | 回放后继续输入新 prompt | 新消息进入**同一条 opencode 会话**，Agent 能引用上文（人物名、决策、已聊事实） | 上下文连续，等价于 Design 重开项目后续聊；不再每轮新开会话 |
 | R3 | 创作者 | 新建项目 / 打开旧项目（从未对话）后发出第一条 prompt | 平台惰性创建会话、把会话 id 回写进该项目 `.session.json`，再发送 | 绑定在首条消息时才建立（不预建空会话）；重启应用后绑定仍在 |
 | R4 | 创作者 | Agent 生成中点发送区的停止按钮 | 中止当前会话当前轮（既有 `abortSession` 通道）；停止后输入框立即可用，再发仍在同会话继续 | 与现有时序一致（abort 不删会话）；停止不丢历史、不破坏绑定 |
@@ -63,11 +63,11 @@ Design 的会话形态是**项目即会话**：左栏项目列表就是会话入
 ### 3.3 历史回放（R1）
 
 - 触发时机：项目打开与项目切换（**含应用启动恢复**：启动时主进程经 `canvas:get` + currentDir 直接恢复上次项目画布，不经 `project:open`，故绑定不能只靠 openProject 返回值——此即 D-004 收敛原因）。renderer 复用既有 canvas 订阅的 **projectId 变化信号**（[StudioApp.tsx](../../../src/studio/StudioApp.tsx) L134–163 已有 `projectIdRef` 切项目检测模式）：projectId 变化或初值到达时，经双态 IPC `project:active-session()`（**无参读态**，不经 withRuntime）取当前项目绑定；有绑定才调新 IPC `runtime:session:messages({ sessionId })`（无绑定/旧项目直接空态，**不因此启动 runtime**——回放通道与发送一样经 withRuntime 惰性自启，但 renderer 侧先判空绑定，避免仅打开空项目就拉起 opencode 进程）。
-- 主进程：SDK `session.messages({ path: { id } })` → `200: Array<{ info: Message; parts: Part[] }>`（[client.ts](../../../electron/runtime/client.ts) SdkHandle L56–66 补 `messages` 方法类型（**不补 `get`**——无调用方，契约 §5.1 明确避免死代码），OpencodeRuntimeClient 增 `getSessionMessages` 封装 + 同文件导出 `toMessageRecord` 纯映射；HTTP 404 经既有 `mapHttpError` 归一 `SESSION_NOT_FOUND`，**不新增错误码**）。原始 `{info, parts}[]` 经 `toMessageRecord` **主进程侧裁剪为仅文本 DTO** 后再过 IPC（reasoning/tool 不跨进程；结构化 JSON 可克隆，DTO 在 runtime-types 两端镜像，见契约 §5.2）。
+- 主进程：SDK `session.messages({ path: { id } })` → `200: Array<{ info: Message; parts: Part[] }>`（[client.ts](../../../electron/runtime/client.ts) SdkHandle L56–66 补 `messages` 方法类型（**不补 `get`**——无调用方，契约 §5.1 明确避免死代码），OpencodeRuntimeClient 增 `getSessionMessages` 封装 + 同文件导出 `toMessageRecord` 纯映射；HTTP 404 经既有 `mapHttpError` 归一 `SESSION_NOT_FOUND`，**不新增错误码**）。原始 `{info, parts}[]` 经 `toMessageRecord` **主进程侧裁剪为正文 + 推理 + 工具状态 DTO** 后再过 IPC（工具参数/结果不跨进程；结构化 JSON 可克隆，DTO 在 runtime-types 两端镜像，见契约 §5.2）。
 - renderer 侧新纯函数 `replayMessages(records): ChatItem[]`（落点 `src/lib/history-replay.ts`，契约 §3 定形状与规则）：
   - **user 消息**：聚合该消息全部 `type:'text'` part 的文本（用户 text part 无 time，不套用流式投影的 hasPartTime 规则）→ 一个用户气泡；id 取 `info.id`。
-  - **assistant 消息**：聚合带 `time.start` 的 text part 文本 → 一个 agent 文本气泡；**最终文本为空的 assistant 消息（纯工具轮/被 abort）不产生气泡**。
-  - **回放粒度 = 仅文本气泡**：reasoning 折叠与 tool 轨迹**一期不回放**。理由：现有流式定稿（StudioApp L122–127）落历史时本就只保留 `text`，trace/reasoning 仅是流式期临时态；回放与流式两条投影路径在「历史长什么样」上必须同构。工具调用的画布副作用（节点/门/产物）本就由画布订阅承载，不依赖气泡。
+  - **assistant 消息**：聚合带 `time.start` 的 text part 正文及 reasoning part 推理 → 一个 agent 气泡；推理非空时写入 `reasoning`；**最终正文为空的 assistant 消息（纯工具轮/纯推理/被 abort）不产生气泡**。
+  - **回放粒度 = 正文气泡 + 可折叠推理 + 工具轨迹**：与流式定稿同构，恢复工具名称、pending/running/completed/error 状态与耗时；工具参数、结果和画布副作用不随气泡回放（节点/门/产物由画布订阅承载）。
   - 按 SDK 返回顺序（时间正序）输出；忽略 file/step-*/snapshot/patch/agent/retry/compaction 等 part；ignored/synthetic part 跳过。
 - 回放期间右栏显示加载态（不闪假数据）；回放完成前禁止发送会导致竞态的时序处理由 OD 定（最简：回放与首条发送互斥，loading 中 composer 维持现状 disabled 逻辑）。
 
@@ -90,7 +90,7 @@ Design 的会话形态是**项目即会话**：左栏项目列表就是会话入
 
 - **K1**：[shared/types.ts](../../../shared/types.ts) `ProjectSession` 增加 `activeSessionId?: string | null`（唯一字段变更；可选，旧文件兼容）。
 - **主进程**：
-  - [client.ts](../../../electron/runtime/client.ts)：SdkHandle.session 类型仅补 `messages`（SDK 已生成；`get` 无调用方不补，避免死代码），OpencodeRuntimeClient 增 `getSessionMessages(sessionId)` 封装（含参数校验与既有错误归一）+ 同文件 `toMessageRecord` 纯映射（仅文本 DTO，契约 §5.2）。
+  - [client.ts](../../../electron/runtime/client.ts)：SdkHandle.session 类型仅补 `messages`（SDK 已生成；`get` 无调用方不补，避免死代码），OpencodeRuntimeClient 增 `getSessionMessages(sessionId)` 封装（含参数校验与既有错误归一）+ 同文件 `toMessageRecord` 纯映射（正文 + 推理 DTO，契约 §5.2）。
   - [main.ts](../../../electron/main.ts)：新 IPC `runtime:session:messages`（withRuntime 包裹，照 session:list/create 区先例）；新**双态** IPC `project:active-session`（project 层，不经 withRuntime：**无参读态**返回当前项目绑定 `{sessionId}`，无当前项目返 `{sessionId:null}` 不抛错；**写态** `{sessionId: string|null}` 校验非空白字符串/null → library 读-改-写绑定，无当前项目抛 INVALID_ARGUMENT；不接受 dir 入参，只作用于 currentDir）；`project:open` 返回值携带 `activeSessionId`（renderer 打开项目即知绑定，亦可经读态取得——启动恢复场景只走读态，见 §3.3）。
   - [library.ts](../../../electron/project/library.ts)：openProject 读-改-写保留 `activeSessionId`；createProject 初始化显式写 `activeSessionId: null`（五字段定型）；新增绑定读函数与经 enqueue 的绑定读-改-写函数（写绑定不刷新 lastOpenedAt）。
 - **preload / 类型镜像（K8）**：[preload.ts](../../../electron/preload.ts) 暴露 `runtime.sessionMessages(sessionId)`（runtime 命名空间内）与**顶层** `activeSession(sessionId?)`（无参读 / 传参写，双态一方法，与 listProjects/openProject 同级；D-005：既有项目库方法均在 `window.api` 顶层，无 project 命名空间），openProject 返回值类型更新；[runtime-types.ts](../../../src/lib/runtime-types.ts) 增回放 DTO（镜像 SDK `{info,parts}` 最小必要形状，字段以契约为准）；[global.d.ts](../../../src/global.d.ts) 同步。
@@ -106,7 +106,7 @@ Design 的会话形态是**项目即会话**：左栏项目列表就是会话入
 
 - **不做会话管理 UI**：手动新建会话、会话列表、会话切换/重命名/删除入口（Design 左栏是项目列表不是会话列表；一项目一活跃会话是本包范围边界）。
 - **不做多会话/项目**：一项目多条平行会话、会话分叉/分支、跨项目搬运会话。
-- **不做 reasoning / tool 轨迹回放**：历史只含文本气泡（§3.3，与流式定稿落库口径同构）；工具副作用看画布。
+- **工具轨迹只恢复状态，不重放副作用**：历史 Agent 气泡恢复工具名称、状态与耗时（§3.3）；工具参数/结果不进入历史 DTO，节点/门/产物等副作用仍只看画布。
 - **不做 opencode 会话回收/清理**：不调 session.delete 做 GC，不清理历史「一轮游」会话（存量垃圾会话仅列表噪声，平台不展示全局列表；清理另议）。
 - **不改 SSE 投影六类事件、不改错误码集、不改 prompt 白名单/agent 强制/模型白名单**（[client.ts](../../../electron/runtime/client.ts) buildPromptBody 一行不动）。
 - **不做消息编辑/重发/删除/复制/导出**、不做聊天内文件附件展示（file part 一期忽略）。
@@ -117,7 +117,7 @@ Design 的会话形态是**项目即会话**：左栏项目列表就是会话入
 
 ## 5. 验收（业务层）
 
-- **AC1（R1 回放）**：重开对话过的项目，右栏自动按正序呈现历次用户/Agent 文本气泡，文本与 opencode 会话内容一致；加载期有加载态、无假数据、无未捕获错误；无绑定项目不启动 runtime 进程（不出现仅打开项目就拉起 opencode）。
+- **AC1（R1 回放）**：重开对话过的项目，右栏自动按正序呈现历次用户/Agent 文本气泡，文本与 opencode 会话内容一致；Agent 本轮有推理时，正文气泡内可展开查看同一推理内容；加载期有加载态、无假数据、无未捕获错误；无绑定项目不启动 runtime 进程（不出现仅打开项目就拉起 opencode）。
 - **AC2（R2 续聊上下文）**：回放后发送新 prompt，网络/日志证据为**同一 sessionID**（无第二次 createSession）；真机目验 Agent 能引用上文（如先让其记住一个词，重开项目后追问，答得上来）。
 - **AC3（R3 惰性建会话 + 落盘）**：新项目与旧四字段项目首条 prompt 时才 createSession；`.session.json` 此时含写入的 `activeSessionId`（五字段）；**完全重启应用后**重开该项目能看到重启前的对话。
 - **AC4（R4 停止）**：生成中点停止，当前轮中止、输入恢复可用；停止后再发仍在同会话，且该轮不产生半截 agent 气泡（或按既有 abort 定稿口径，以流式现状为准）。

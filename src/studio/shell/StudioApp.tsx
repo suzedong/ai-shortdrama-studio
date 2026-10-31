@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { Canvas, CanvasGate, CanvasNode, StepId } from '@shared/types'
-import { reduceRuntimeEvent, turnText, type StreamingTurn } from '../../lib/chat-runtime'
+import { reduceRuntimeEvent, turnReasoning, turnText, type StreamingTurn } from '../../lib/chat-runtime'
 import { replayMessages } from '../../lib/history-replay'
 import CanvasBoard, { kindLabel, type NodeAction } from '../canvas/CanvasBoard'
 import ChatComposer, { demoChatItems, type ChatItem } from '../chat/ChatComposer'
@@ -138,6 +138,9 @@ export default function StudioApp() {
   // SSE 全程只订阅一次（无参订阅，首发送时惰性触发）
   const subscribedRef = useRef(false)
   const [historyLoading, setHistoryLoading] = useState(false)
+  // D-013：AI 服务不可用原因（null=可用/未知）；进入对话区探测 + runtime.error 事件置位，
+  // 探测 healthy 或发送路径 status 检查通过即清除；不轮询，用户可点横幅「重新检测」复检
+  const [aiDown, setAiDown] = useState<string | null>(null)
 
   // 入口动作 · 用户原话：会话首条用户消息（Stage0View 入口卡数据源）
   const entryQuote = useMemo(() => items.find(i => i.role === 'user')?.text?.trim() ?? '', [items])
@@ -190,6 +193,11 @@ export default function StudioApp() {
       if (ev.type === 'session.idle' || ev.type === 'runtime.error') {
         setGenerating(false)
       }
+      // D-013：方舟侧失败经 runtime.error 冒出——上屏为不可用横幅（含会话级归属事件）；
+      // 恢复靠重新检测/下次发送 status 通过，不在此自动清除
+      if (ev.type === 'runtime.error') {
+        setAiDown(`AI 服务调用失败：${ev.error.message}`)
+      }
       const prev = streamRef.current
       const next = reduceRuntimeEvent(prev, ev)
       if (next !== prev) {
@@ -197,7 +205,17 @@ export default function StudioApp() {
         setStream(next)
         if (prev && prev.status === 'running' && next && next.status !== 'running') {
           const text = turnText(next)
-          if (text) setItems(p => [...p, { id: next.messageId, role: 'agent', text }])
+          if (text) {
+            const reasoning = turnReasoning(next)
+            const tools = Object.values(next.tools)
+            setItems(p => [...p, {
+              id: next.messageId,
+              role: 'agent',
+              text,
+              ...(reasoning ? { reasoning } : {}),
+              ...(tools.length > 0 ? { tools } : {}),
+            }])
+          }
           streamRef.current = null
           setStream(null)
         }
@@ -207,6 +225,24 @@ export default function StudioApp() {
       off()
       // feature-808：SSE 全程订阅一次，卸载时退订
       window.api.runtime.unsubscribe().catch(e => console.error('runtime.unsubscribe failed', e))
+    }
+  }, [])
+
+  // D-013：AI 服务健康探测——非 running 先试启动一次（与发送路径同策略），仍不可用则置横幅；
+  // healthy 即清除。dev-mock 演示态由调用方早退，不进入本函数
+  const checkAiHealth = useCallback(async () => {
+    try {
+      let st = await window.api.runtime.status()
+      if (st.state !== 'running') {
+        st = await window.api.runtime.start()
+      }
+      if (st.state === 'running') {
+        setAiDown(null)
+      } else {
+        setAiDown(`AI 服务不可用：${st.error?.message || '运行时未能启动，请检查环境后重试。'}`)
+      }
+    } catch {
+      setAiDown('AI 服务不可用：无法连接运行时，请检查应用状态后重试。')
     }
   }, [])
 
@@ -252,6 +288,8 @@ export default function StudioApp() {
     setGenerating(false) // D-006：切项目清场，停止钮随当前视图复位
     activeSessionIdRef.current = null
     if (!projectId) return
+    // D-013：进入对话区即探测 AI 服务健康（启动恢复/切换/新建三入口共用本函数）
+    void checkAiHealth()
     setHistoryLoading(true)
     window.api.activeSession()
       .then(bind => {
@@ -268,7 +306,7 @@ export default function StudioApp() {
         console.error('activeSession read failed', e)
         setHistoryLoading(false)
       })
-  }, [loadReplay])
+  }, [loadReplay, checkAiHealth])
 
   // ---- 画布初值 + 订阅；项目切换时 canvas:changed 自动刷新 ----
   useEffect(() => {
@@ -338,6 +376,8 @@ export default function StudioApp() {
           throw new Error(started.error?.message || '运行时启动失败，请稍后重试。')
         }
       }
+      // D-013：发送路径 status 检查通过 = 服务已恢复，清除不可用横幅
+      setAiDown(null)
       await ensureSubscribedOnce()
       let sid = activeSessionIdRef.current
       if (!sid) {
@@ -849,7 +889,7 @@ export default function StudioApp() {
             title="拖拽调整对话区宽度"
           />
           {/* feature-005：「已捕获口径」常驻条（契约 §3.2；项目未打开不渲染，与右栏同生命周期） */}
-          {canvas.projectId ? <CaptureBar /> : null}
+          {canvas.projectId ? <CaptureBar projectId={canvas.projectId} /> : null}
           <div className="min-h-0 flex-1">
             <ChatComposer
               items={items}
@@ -859,6 +899,8 @@ export default function StudioApp() {
               sending={sending}
               generating={generating}
               error={error}
+              aiDown={aiDown}
+              onAiRetry={() => void checkAiHealth()}
               historyLoading={historyLoading}
               onSend={handleSend}
               onStop={handleStop}

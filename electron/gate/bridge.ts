@@ -1,6 +1,7 @@
 // feature-018 · GateBridge：pending 门注册表（单次阻塞 + 跨重启重挂恢复）
 import type { CanvasGate } from '../../shared/types.js'
 import { canvasStore } from '../canvas/store.js'
+import { BRIEF_FINAL_GATE_ID, gateVersion } from './guard.js'
 
 export interface GateDecision {
   decision: 'approved' | 'rejected'
@@ -34,7 +35,11 @@ export class GateBridge {
    * - canvas 中为 pending 但无 live entry（重启恢复）→ 重挂等待，不重复建门；
    * - canvas 中为 rejected 且无 live entry → 以同一 gateId 重开（状态回退 pending、
    *   用本次请求内容覆盖），不新增门编号；
-   * - canvas 中为 approved → INVALID_ARGUMENT（approved 为终态，禁止重开）。
+   * - canvas 中为 approved：
+   *   · 非 0-final 门 → INVALID_ARGUMENT（approved 为终态，禁止重开）；
+   *   · 0-final 门且新旧 payload.version 均为有效数字、新版本 > 旧版本 → 以同一 gateId
+   *     覆盖重开为 pending（再版定案门复用同一门编号，feature-012 AC6）；
+   *   · 其余 0-final approved（同版本 / 新版本不更高 / 版本不可解析）→ INVALID_ARGUMENT。
    */
   request(input: {
     gateId: string
@@ -65,8 +70,20 @@ export class GateBridge {
     try {
       const canvas = await canvasStore.get()
       const found = canvas.gates.find(g => g.gateId === input.gateId)
+
+      // approved 终态防护：默认禁止重开；仅 0-final 再版（新版本号严格大于旧版本）例外，
+      // 以同一 gateId 覆盖重开为 pending（feature-012 AC6 再版定案门复用同一门编号）。
       if (found && found.status === 'approved') {
-        throw error('INVALID_ARGUMENT', `门 ${input.gateId} 已 approved，不可重开`)
+        const oldVersion = gateVersion(found)
+        const newVersion = gateVersion({ payload: input.payload } as CanvasGate)
+        const isVersionedRepublish =
+          input.gateId === BRIEF_FINAL_GATE_ID &&
+          oldVersion !== null &&
+          newVersion !== null &&
+          newVersion > oldVersion
+        if (!isVersionedRepublish) {
+          throw error('INVALID_ARGUMENT', `门 ${input.gateId} 已 approved，不可重开`)
+        }
       }
 
       let gate: CanvasGate
@@ -79,9 +96,9 @@ export class GateBridge {
           payload: input.payload,
         }
         await canvasStore.upsertGate(gate)
-      } else if (found.status === 'rejected') {
-        // feature-019 §2.4：rejected 后以同一 gateId 重开（重做产物后再次请裁决），
-        // 不新增门编号；用本次请求内容覆盖旧问题。
+      } else if (found.status === 'rejected' || found.status === 'approved') {
+        // rejected：feature-019 §2.4 同一 gateId 重开；
+        // approved（仅 0-final 版本化再版）：用新版本请求覆盖旧 approved 门为 pending。
         gate = {
           gateId: input.gateId,
           status: 'pending',

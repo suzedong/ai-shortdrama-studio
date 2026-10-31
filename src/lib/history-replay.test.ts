@@ -59,6 +59,143 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
     expect(Object.keys(out[0]!).sort()).toEqual(['agent', 'id', 'role', 'text'])
   })
 
+  it('assistant 正文与多个 reasoning part 按原序聚合；user reasoning 不上屏', () => {
+    expect(replayMessages([
+      rec('a1', 'assistant', [
+        { type: 'reasoning', text: '先分析', startedAt: 1 },
+        { type: 'tool', tool: 'write_file' },
+        { type: 'reasoning', text: '，再作答', startedAt: 2 },
+        t('正文', { startedAt: 3 }),
+      ]),
+      rec('u1', 'user', [
+        { type: 'reasoning', text: '用户侧推理不展示' },
+        t('用户正文'),
+      ]),
+    ])).toEqual([
+      {
+        id: 'a1', role: 'agent', text: '正文', agent: 'showrunner',
+        reasoning: '先分析，再作答',
+      },
+      { id: 'u1', role: 'user', text: '用户正文' },
+    ])
+    expect(replayMessages([
+      rec('a2', 'assistant', [
+        { type: 'reasoning', text: '' },
+        t('无推理字段', { startedAt: 1 }),
+      ]),
+    ])).toEqual([
+      { id: 'a2', role: 'agent', text: '无推理字段', agent: 'showrunner' },
+    ])
+  })
+
+  it('H3：正文与推理之外恢复四种工具状态、起止时间和错误，不带参数或结果', () => {
+    expect(replayMessages([
+      rec('a-tools', 'assistant', [
+        { type: 'reasoning', text: '先调用工具', startedAt: 1 },
+        {
+          type: 'tool', text: '', callId: 'call-done', tool: 'write_file', status: 'completed',
+          startedAt: 1000, endedAt: 1250, args: { secret: true }, result: '不回放',
+        },
+        { type: 'tool', text: '', callId: 'call-run', tool: 'read_file', status: 'running', startedAt: 2000 },
+        {
+          type: 'tool', text: '', callId: 'call-error', tool: 'edit_file', status: 'error',
+          startedAt: 3000, endedAt: 3500, error: '写入失败',
+        },
+        { type: 'tool', text: '', callId: 'call-pending', tool: 'list_files', status: 'pending' },
+        t('工具处理完成', { startedAt: 4 }),
+      ]),
+    ])).toEqual([
+      {
+        id: 'a-tools', role: 'agent', text: '工具处理完成', agent: 'showrunner', reasoning: '先调用工具',
+        tools: [
+          {
+            callId: 'call-done', tool: 'write_file', status: 'completed', args: {},
+            startedAt: 1000, endedAt: 1250,
+          },
+          { callId: 'call-run', tool: 'read_file', status: 'running', args: {}, startedAt: 2000 },
+          {
+            callId: 'call-error', tool: 'edit_file', status: 'error', args: {},
+            startedAt: 3000, endedAt: 3500, errorText: '写入失败',
+          },
+          { callId: 'call-pending', tool: 'list_files', status: 'pending', args: {}, startedAt: 0 },
+        ],
+      },
+    ])
+  })
+
+  it('D-012：argsPreview 白名单摘要透传到工具快照；空串 / 非字符串不落', () => {
+    const out = replayMessages([
+      rec('a-args', 'assistant', [
+        {
+          type: 'tool', text: '', callId: 'c1', tool: 'shortdrama_capture_upsert', status: 'completed',
+          startedAt: 1, endedAt: 2, argsPreview: '题材赛道',
+        },
+        {
+          type: 'tool', text: '', callId: 'c2', tool: 'shortdrama_canvas_get', status: 'completed',
+          startedAt: 3, argsPreview: '',
+        },
+        {
+          type: 'tool', text: '', callId: 'c3', tool: 'shortdrama_web_search', status: 'completed',
+          startedAt: 4, argsPreview: 42,
+        },
+        t('完成', { startedAt: 5 }),
+      ]),
+    ])
+    expect(out[0]?.tools).toEqual([
+      {
+        callId: 'c1', tool: 'shortdrama_capture_upsert', status: 'completed', args: {},
+        argsPreview: '题材赛道', startedAt: 1, endedAt: 2,
+      },
+      { callId: 'c2', tool: 'shortdrama_canvas_get', status: 'completed', args: {}, startedAt: 3 },
+      { callId: 'c3', tool: 'shortdrama_web_search', status: 'completed', args: {}, startedAt: 4 },
+    ])
+  })
+
+  it('H3：同 callId 后快照替换，工具保持首次出现顺序', () => {
+    const out = replayMessages([
+      rec('a-snapshots', 'assistant', [
+        { type: 'tool', text: '', callId: 'call-1', tool: 'write_file', status: 'running', startedAt: 10 },
+        { type: 'tool', text: '', callId: 'call-2', tool: 'read_file', status: 'completed', startedAt: 20, endedAt: 30 },
+        {
+          type: 'tool', text: '', callId: 'call-1', tool: 'write_file', status: 'completed',
+          startedAt: 10, endedAt: 40,
+        },
+        t('完成', { startedAt: 50 }),
+      ]),
+    ])
+    expect(out[0]?.tools).toEqual([
+      { callId: 'call-1', tool: 'write_file', status: 'completed', args: {}, startedAt: 10, endedAt: 40 },
+      { callId: 'call-2', tool: 'read_file', status: 'completed', args: {}, startedAt: 20, endedAt: 30 },
+    ])
+  })
+
+  it('H8：坏工具数据跳过；user 工具不上屏；合法工具缺省时间以 0 占位', () => {
+    const out = replayMessages([
+      rec('u-tool', 'user', [
+        { type: 'tool', text: '', callId: 'user-call', tool: 'write_file', status: 'completed' },
+        t('用户正文'),
+      ]),
+      rec('a-bad-tools', 'assistant', [
+        { type: 'tool', text: '', tool: 'write_file', status: 'completed' },
+        { type: 'tool', text: '', callId: '', tool: 'write_file', status: 'completed' },
+        { type: 'tool', text: '', callId: 'bad-tool', status: 'completed' },
+        { type: 'tool', text: '', callId: 'bad-status', tool: 'write_file', status: 'done' },
+        {
+          type: 'tool', text: '', callId: 'good', tool: 'write_file', status: 'error',
+          startedAt: 'bad', endedAt: 'bad', error: 42,
+        },
+        t('保留正文', { startedAt: 1 }),
+      ]),
+    ])
+    expect(out).toEqual([
+      { id: 'u-tool', role: 'user', text: '用户正文' },
+      {
+        id: 'a-bad-tools', role: 'agent', text: '保留正文', agent: 'showrunner',
+        tools: [{ callId: 'good', tool: 'write_file', status: 'error', args: {}, startedAt: 0 }],
+      },
+    ])
+  })
+
   it('H4：assistant 无有效文本（无 startedAt / 纯空白 / 非文本 part）→ 无气泡（abort 空轮同理）', () => {
     expect(replayMessages([rec('a1', 'assistant', [t('无时间')])])).toEqual([])
     expect(replayMessages([
@@ -114,11 +251,16 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
         { type: 'text', text: 123 },
         t('有效'),
       ]),
+      rec('agent-good', 'assistant', [
+        { type: 'reasoning', text: 123 },
+        t('有效回复', { startedAt: 1 }),
+      ]),
       { info: { role: 'user' }, parts: [t('无 id 记录')] },
     ] as unknown as ReplayMessageRecord[]
     const out = replayMessages(bad)
     expect(out).toEqual([
       { id: 'good', role: 'user', text: '有效' },
+      { id: 'agent-good', role: 'agent', text: '有效回复', agent: 'showrunner' },
       { id: '', role: 'user', text: '无 id 记录' },
     ])
   })
@@ -126,7 +268,10 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
   it('不改入参（快照）：返回新数组，入参对象图不被修改', () => {
     const input: ReplayMessageRecord[] = [
       rec('u1', 'user', [t('你好')]),
-      rec('a1', 'assistant', [t('在的', { startedAt: 1 })]),
+      rec('a1', 'assistant', [
+        { type: 'reasoning', text: '推理快照' },
+        t('在的', { startedAt: 1 }),
+      ]),
     ]
     const snapshot = structuredClone(input)
     replayMessages(input)

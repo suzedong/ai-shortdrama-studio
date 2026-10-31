@@ -34,7 +34,7 @@ const toolCall = (
   fields: {
     callId: string
     tool: string
-    status: ToolView['status']
+    status: Exclude<ToolView['status'], 'pending'>
     args?: unknown
     result?: unknown
     errorText?: string

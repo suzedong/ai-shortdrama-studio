@@ -174,9 +174,10 @@ describe('C7 · StudioApp 立项驱动', () => {
     window.api.runtime.start = vi.fn(async () => failedStatus)
     render(<StudioApp />)
 
-    await user.type(screen.getByPlaceholderText(/描述创作目标/), '测试')
-    await user.click(screen.getByRole('button', { name: '发送' }))
-    expect(await screen.findByText('启动失败')).toBeInTheDocument()
+    // D-013：进入对话区即探测——启动失败直接以常驻横幅呈现可展示文案并禁用输入，
+    // 不再等到发送撞墙；「重新检测」可手动复检
+    expect(await screen.findByTestId('chat-ai-down')).toHaveTextContent('启动失败')
+    expect(screen.getByPlaceholderText('AI 服务不可用，恢复后可继续对话')).toBeDisabled()
   })
 })
 

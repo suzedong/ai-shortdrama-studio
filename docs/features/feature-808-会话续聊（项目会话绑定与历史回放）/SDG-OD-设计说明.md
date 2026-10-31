@@ -35,7 +35,7 @@ src/studio/session-continue.test.tsx         [新]   组件八条（契约 §6.3
 
 - `SdkHandle.session` 的接口类型补 `messages`（`get` **不写**——全包无调用方，契约 §5.1 明确避免死代码；编码后若确认无引用即不引入）。
 - `getSessionMessages` 与既有 `abortSession`（L122–128）同构：`requireSessionId` 空白校验 → `ensureReady` → SDK 调用 → `result.error || !result.data` 时 `throw mapHttpError(result, 'SESSION_NOT_FOUND')`（404 fallback 码与 abort 先例一致）。
-- `toMessageRecord(raw)` 放在 client.ts 同文件导出（纯映射，node 侧测试直接 import），不新建目录/模块——仅本文件一处消费，避免过度抽象。规则照契约 §5.2：role 归一（非 assistant 即 user 兜底）、仅保留 `type:'text'`、startedAt 取 `time.start` number、ignored/synthetic 布尔透传、其余 part 类型整体丢弃。
+- `toMessageRecord(raw)` 放在 client.ts 同文件导出（纯映射，node 侧测试直接 import），不新建目录/模块——仅本文件一处消费，避免过度抽象。规则照契约 §5.2：role 归一（非 assistant 即 user 兜底）、仅保留 `type:'text' | 'reasoning' | 'tool'`；文本/推理透传 text 与 time.start，ignored/synthetic 仅在文本分支透传；工具映射 callID/tool/state.status/time/error，pending 缺少 time.start 时以 0 占位，不回放参数与结果；其余 part 类型整体丢弃。
 
 ### 2.2 library.ts：绑定读写与五字段定型
 
@@ -120,7 +120,7 @@ onProjectSessionChange(pid):
 | main.ts project:open L128–150 | return res（res 现 `{ok:true}`） | res 形状扩展后直接透传；其余链路零改动 |
 | current.ts getActiveProjectDir | 无 currentDir 抛 INVALID_ARGUMENT | 读态 IPC catch 该错返 `{sessionId:null}`；写态不 catch |
 | StudioApp handleSend L174–194 | 每轮 createSession + subscribe(session.id) | 整体替换为惰性建/复用 + 单次订阅 |
-| StudioApp onEvent effect L115–131 | mount 一次 []，定稿只落 text（L122–127） | 回调首行加会话过滤；定稿逻辑零改动 |
+| StudioApp onEvent effect L115–131 | mount 一次 []，原实现定稿只落 text | 回调首行加会话过滤；定稿同时落 text、非空 reasoning 与当轮 ToolView[]（D-008/D-009） |
 | StudioApp canvas effect L134–163 | onChange 已有 projectIdRef 切项目检测；get 初值 | 两处汇入 onProjectSessionChange；检测模式保留复用 |
 | StudioApp toast L107/L541–553 | {tone,text} + 2400ms 自动消失 + data-toast | 404 弱化提示直接复用，零新增设施 |
 | ChatComposer Props L90–99 / 发送钮 L373–384 | 9 个 props；纸飞机钮 disabled=sending\|\|!draft | +2 可选 prop；条件渲染停止钮；disabled +historyLoading |
@@ -136,7 +136,7 @@ onProjectSessionChange(pid):
 
 1. **一个 projectId 信号覆盖三个入口**：启动恢复（canvas.get 初值）、左栏切换（canvas:changed 广播）、新建串联（openProject → reset → 广播）汇入同一 onProjectSessionChange；不监听 openProject 返回值、不新增导航事件订阅——信号源头只有画布，避免双信号不同步。
 2. **绑定事实源只在主进程文件，ref 是缓存**：renderer 的 activeSessionIdRef 每次 projectId 变化都经读通道重建，不信任跨切换残留；404 降级时先写盘清空再改 ref（写盘失败也改 ref——本轮 UI 必须脱离死绑定，下次打开读盘仍是旧 id 会再走一次 404 降级，幂等可接受）。
-3. **回放与流式定稿同构**：历史气泡只含文本（H1–H8），不回放 reasoning/tool；这不是功能裁剪而是一致性要求——流式定稿本就只落 text，两条投影路径产出必须可互换（用户无法区分某气泡来自回放还是当轮）。
+3. **正文、推理与工具轨迹回放同构**：历史 Agent 气泡含正文、可选推理与按 callId 首次出现顺序排列的 `ToolView[]`（H1–H8）；流式定稿与历史气泡均复用流式 `ToolRow`，工具参数/结果不回放。纯推理或无有效正文的纯工具轮仍按空轮过滤。
 4. **回放不订阅、不预启 runtime**：无绑定项目打开时主进程零 opencode 进程（AC1）；有绑定回放经 sessionMessages 的 withRuntime 惰性自启（看历史必须起 runtime 是既有架构约束，可接受）；SSE 订阅推迟到首次发送。
 5. **openProject 返回值扩展但不消费**：保留扩展是 IPC 形状完整性（打开动作的响应理应包含打开后的绑定事实），renderer 统一走读通道拿绑定，杜绝「启动/点击两条代码路径」。
 6. **写绑定不刷 lastOpenedAt**：首条 prompt 回写是高频动作，刷新 lastOpenedAt 会污染左栏项目排序（列表按 mtime/打开时间排）；绑定写对用户是不可见的内部状态。
@@ -147,10 +147,10 @@ onProjectSessionChange(pid):
 
 | 套件 | 位置惯例（已核实） | 覆盖 |
 |---|---|---|
-| 纯函数 | 新 `src/lib/history-replay.test.ts`（同目录先例 chat-runtime.test.ts） | H1–H8 全用例（契约 §6.1） |
-| 主进程 client | 新 `src/test/runtime-session-messages.test.ts`（先例 runtime-client.test.ts：fake SDK 句柄注入，不连真进程） | toMessageRecord 裁剪/归一；getSessionMessages 成功/404/空白 id |
+| 纯函数 | 新 `src/lib/history-replay.test.ts`（同目录先例 chat-runtime.test.ts） | H1–H8 全用例（契约 §6.1）；多 reasoning 聚合、可选字段形状、工具四状态/起止时间/errorText、同 callId 去重与顺序、参数结果裁剪、坏工具容错、纯推理/纯工具空轮与 user reasoning/tool 排除 |
+| 主进程 client | 新 `src/test/runtime-session-messages.test.ts`（先例 runtime-client.test.ts：fake SDK 句柄注入，不连真进程） | toMessageRecord 正文/推理/工具状态映射、参数结果裁剪与其他 part 归一；getSessionMessages 成功/404/空白 id |
 | 主进程 library | 新 `src/test/project-session-binding.test.ts`（先例 canvas-store.test.ts：vi.mock('electron') + tmpdir 真文件） | 旧四字段→五字段保留；绑定读写/清空；串行写不互覆盖；lastOpenedAt 不被绑定写刷新；无文件/损坏容错 |
-| 组件 | 新 `src/studio/session-continue.test.tsx`（先例 studio-flow.test.tsx：window.api 整体桩 + emitRuntime/emitCanvas harness） | 契约 §6.3 八条；harness 的 api 桩需含 activeSession/sessionMessages/abortSession/listSessions/deleteSession 等本包会触达的全部方法 |
+| 组件 | 新 `src/studio/session-continue.test.tsx`（先例 studio-flow.test.tsx：window.api 整体桩 + emitRuntime/emitCanvas harness） | 契约 §6.3 八条；R1 历史推理折叠恢复及 completed/error/pending 工具名称、错误文本与耗时、R4 定稿后推理与工具状态行留存；harness 的 api 桩需含 activeSession/sessionMessages/abortSession/listSessions/deleteSession 等本包会触达的全部方法 |
 | 连带修改 | studio-flow.test.tsx L58、window-titlebar-integration.test.tsx L45 | openProject mock 补字段；既有断言一行不动 |
 
 - 组件 harness 关键设计：`activeSession` 用可切换的 vi.fn（默认按 canvas projectId 返回绑定表），`sessionMessages` 按 id 返回记录夹具；切项目隔离用例通过 emitCanvas 推不同 projectId 的画布驱动（与真实广播链路同构）。
@@ -159,7 +159,7 @@ onProjectSessionChange(pid):
 
 ## 7. 视觉/回归基线
 
-- typecheck：开工 T1 实测冻结；当前已知仅 2 条 canvas-zoom.test.tsx L13/L90 历史基线错误（非本包文件），红线零新增。
+- typecheck：开工 T1 实测冻结；2026-10-31 复测为 3 条既有基线错误（canvas-zoom.test.tsx L13/L90、runtime-client.test.ts L45），本包增量代码零新增错误。
 - node/preload 双工程 tsc 退出码 0（DTO 两端逐字一致由双端编译共同保证）。
 - 全量 vitest：基线 **40 文件 431 passed / 1 skipped**（skip=T8-4 需 ARK Key）；T1 开工复测回填实数；本包预计净增 4 个测试文件（纯函数 1 + node 侧 2 + 组件 1，上表 4 行，T6 收尾预期 44 文件 = 40 + 4），收尾回填新增后总数。
 - 静态契约套件（architecture renderer 禁直连、mcp-pure-tools、agent-profiles、runtime-projection 等）：本包不改投影/prompt/红线面，应全部无感通过；新 IPC 主进程收敛（renderer 只见 preload 方法）不触 architecture 红线。
@@ -179,7 +179,7 @@ onProjectSessionChange(pid):
 | 3 | 快速切项目时迟到回放覆盖新右栏 | 两个异步链路（读绑定 + messages）均可能迟到 | 单调序号 token，每个 await 后比对，过期连 finally 都不动 loading；组件测试构造 A 慢 B 快夹具 |
 | 4 | 切项目空窗期（ref 已清空）旧会话事件闪现 | §3.3 过滤放宽后已堵：无精确匹配即丢弃带 sessionId 事件 | 组件用例「A 生成中立即切 B」断言 B 全程无 A 文本；runtime 状态类事件无 sessionId 不受影响 |
 | 5 | 回放期间用户发送造成气泡顺序竞态 | historyLoading 时 composer disabled | 契约 §4.2 已锁 disabled 公式；测试断言 loading 中发送钮禁用 |
-| 6 | SDK 真实 Part 联合类型含本包未知的新 part 类型 | opencode 升级可能扩类型 | toMessageRecord 白名单式（仅 type==='text' 保留），未知类型天然丢弃；H8 容错保证坏数据不抛错 |
+| 6 | SDK 真实 Part 联合类型含本包未知的新 part 类型 | opencode 升级可能扩类型 | toMessageRecord 白名单式（仅 type==='text' / 'reasoning' / 'tool' 保留），未知类型天然丢弃；H8 容错保证坏数据不抛错 |
 | 7 | 回放消息量巨大导致右栏一次性渲染卡顿 | 长会话可能数百轮 | 本包不做虚拟滚动（现状流式长会话同样全量渲染，无既有分页机制）；若真机发现卡顿，另开性能包，不在本包临场扩面 |
 | 8 | enqueue 串行队列中 openProject 与 setActiveSession 交叉 | 同一写队列天然串行；setActiveSession 在 openProject 之后入队时读到的是已含五字段的新文件 | library 测试显式覆盖「open 后立即 set」交叉序列；不另加锁 |
 | 9 | dev-mock 与真实 API 形状漂移 | 三桩手工维护 | AC8 兜底；类型上三桩受 global.d.ts 约束，形状错会 typecheck 报错 |

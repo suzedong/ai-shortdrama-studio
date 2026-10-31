@@ -33,7 +33,7 @@
 - 主进程是 opencode 唯一客户端（[client.ts](../../../electron/runtime/client.ts)）；renderer 禁直连（architecture 红线）。SDK `session.messages({ path: { id } })` 返回 `200: Array<{ info: Message; parts: Part[] }>`，时间正序；HTTP 404 经既有 `mapHttpError` 归一 `SESSION_NOT_FOUND`（**不新增错误码**）。
 - SSE 全局单流：`runtimeSubscribers = Map<webContentsId, {wc, filter}>`（main.ts L167–173），`event:subscribe` 已接受 `{ sessionId? }`。本包 renderer **mount 后订阅一次（不带 filter）**，会话隔离改在 renderer onEvent 侧按当前绑定 id 过滤（§4.3）；删除现状每轮 `subscribe(session.id)`。
 - 项目库 [library.ts](../../../electron/project/library.ts)：`.session.json` 经 enqueue 写队列；`openProject`（L121–155）读-改-写**重建只含四字段对象**，本包必须显式保留第五字段（§2.2，最关键存量陷阱）。
-- 流式定稿口径：[StudioApp.tsx](../../../src/studio/StudioApp.tsx) L122–127 轮次定稿只落 `{ id: messageId, role:'agent', text }`，reasoning/tool 仅流式临时态。**回放必须与此同构**（§3）。
+- 流式定稿与历史回放口径：[StudioApp.tsx](../../../src/studio/StudioApp.tsx) 轮次定稿落 `{ id: messageId, role:'agent', text, reasoning?, tools? }`；有正文时保留非空推理与本轮 `ToolView[]` 工具快照。历史回放恢复同一形状，工具仅含名称、调用 ID、状态、起止时间与错误，不含参数/结果（§3/§5.2）。
 
 ### 1.2 不使用 / 不改动面（防越界）
 
@@ -65,7 +65,7 @@ export interface ProjectSession {
 
 ## 3. 纯函数契约：replayMessages（renderer 侧，本包测试核心）
 
-新建 `src/lib/history-replay.ts`。把 IPC 取回的会话消息记录投影为右栏气泡，与流式定稿同构（**仅文本气泡**）。
+新建 `src/lib/history-replay.ts`。把 IPC 取回的会话消息记录投影为右栏气泡，与流式定稿同构（**正文气泡 + 可选推理与工具轨迹**）。
 
 ```ts
 import type { ChatItem } from '../studio/ChatComposer'
@@ -79,14 +79,19 @@ export interface ReplayMessageRecord {
   parts: ReplayPart[]
 }
 
-/** 回放仅消费文本 part；其余 part 类型不进 DTO（主进程侧丢弃，见 §5.2） */
+/** 回放消费正文、推理与工具状态；其余 part 类型不进 DTO（主进程侧丢弃，见 §5.2） */
 export interface ReplayPart {
-  type: 'text'
+  type: 'text' | 'reasoning' | 'tool'
   text: string
-  /** assistant 文本 part 的起始时间（ms）；用户文本 part 无此值 */
+  /** assistant part 的起始时间（ms）；用户文本无，pending tool 缺省时为 0 */
   startedAt?: number
   ignored?: boolean
   synthetic?: boolean
+  callId?: string
+  tool?: string
+  status?: 'pending' | 'running' | 'completed' | 'error'
+  endedAt?: number
+  error?: string
 }
 
 export function replayMessages(records: ReplayMessageRecord[]): ChatItem[]
@@ -95,11 +100,11 @@ export function replayMessages(records: ReplayMessageRecord[]): ChatItem[]
 规则（逐条可单测，编号 H1–H8）：
 
 - **H1 顺序**：按入参数组顺序（SDK 返回即时间正序）输出，不重排、不排序。
-- **H2 用户气泡**：`info.role==='user'`，聚合该消息全部**未忽略**文本 part（`ignored===true` / `synthetic===true` 跳过），按 parts 顺序 `join('')` → 一个 `{ id: info.id, role:'user', text }`。用户文本 part 无 `startedAt`，**不套用**流式投影的 hasPartTime 判定（projection L90–93 是流式规则，回放不认）。
-- **H3 Agent 气泡**：`info.role==='assistant'`，仅聚合**带 `startedAt`（number）**且未忽略的文本 part，`join('')` → `{ id: info.id, role:'agent', text, agent:'showrunner' }`。
-- **H4 空 agent 轮丢弃**：assistant 消息聚合后文本 `trim()` 为空（纯工具轮 / 被 abort / 仅 reasoning）→ **不产生气泡**。
+- **H2 用户气泡**：`info.role==='user'`，聚合该消息全部**未忽略**文本 part（`ignored===true` / `synthetic===true` 跳过），按 parts 顺序 `join('')` → 一个 `{ id: info.id, role:'user', text }`。用户文本 part 无 `startedAt`，**不套用**流式投影的 hasPartTime 判定（projection L90–93 是流式规则，回放不认）；user 的 reasoning part 不消费。
+- **H3 Agent 气泡**：`info.role==='assistant'`，仅聚合**带 `startedAt`（number）**且未忽略的文本 part 作为正文；聚合未忽略的 reasoning part 作为推理，均按 parts 顺序 `join('')`；tool 按 callId 首次出现顺序聚合、同 callId 后快照替换为 `ToolView`（`args` 固定 `{}`，DTO `error` 映射为 `errorText`）→ `{ id: info.id, role:'agent', text, agent:'showrunner', reasoning?, tools? }`，仅推理/工具非空时携带对应字段。
+- **H4 空 agent 轮丢弃**：assistant 消息聚合后正文 `trim()` 为空（纯工具轮 / 被 abort / 仅 reasoning）→ **不产生气泡**。
 - **H5 用户空文本**：user 消息聚合后为空 → 不产生气泡（防御，正常 prompt 非空）。
-- **H6 形状裁剪**：输出气泡只含 `id/role/text`（agent 另含 `agent:'showrunner'`）；**绝不带** `brief`/`trace`（reasoning/tool 不回放）。
+- **H6 形状裁剪**：输出气泡只含 `id/role/text`（agent 另含 `agent:'showrunner'` 与可选 `reasoning`/`tools`）；**绝不带** `brief`/`trace`，工具不携带参数、结果或附件。
 - **H7 纯函数**：禁止 fs / window.api / Date / Math.random / 网络；不改入参（深拷贝不要求，但不得 mutate）。
 - **H8 容错**：入参为外部数据，字段缺失/类型不符按「无文本」处理（H4/H5 丢弃），不抛错（坏记录不崩右栏）。非数组 → 返回 `[]`。
 
@@ -253,7 +258,7 @@ async getSessionMessages(sessionId: string): Promise<RuntimeSessionMessageRecord
   const sdk = this.ensureReady()
   const result = await sdk.session.messages({ path: { id } })
   if (result.error || !result.data) throw mapHttpError(result, 'SESSION_NOT_FOUND')
-  return result.data.map(toMessageRecord)   // 主进程侧裁剪为文本 DTO（§5.2）
+  return result.data.map(toMessageRecord)   // 主进程侧裁剪为正文 + 推理 + 工具状态 DTO（§5.2）
 }
 ```
 
@@ -265,14 +270,19 @@ async getSessionMessages(sessionId: string): Promise<RuntimeSessionMessageRecord
 两端镜像（[electron/runtime/types.ts](../../../electron/runtime/types.ts) 与 [src/lib/runtime-types.ts](../../../src/lib/runtime-types.ts) 逐字段一致）：
 
 ```ts
-/** session.messages 回放记录（仅回放所需最小形状；reasoning/tool 不透传） */
+/** session.messages 回放记录（正文 + 推理 + 工具状态；不含工具参数/结果） */
 export interface RuntimeSessionMessagePart {
-  type: 'text'
+  type: 'text' | 'reasoning' | 'tool'
   text: string
-  /** assistant text part 的 time.start（ms）；user text part 无 */
+  /** assistant part 的 time.start（ms）；user text 无，pending tool 缺省为 0 */
   startedAt?: number
   ignored?: boolean
   synthetic?: boolean
+  callId?: string
+  tool?: string
+  status?: 'pending' | 'running' | 'completed' | 'error'
+  endedAt?: number
+  error?: string
 }
 export interface RuntimeSessionMessageRecord {
   info: { id: string; role: 'user' | 'assistant' }
@@ -283,10 +293,11 @@ export interface RuntimeSessionMessageRecord {
 `toMessageRecord(raw)` 映射规则（主进程侧）：
 
 1. `info.id`：取 `raw.info.id`（非字符串按 `''`）；`info.role`：`raw.info.role==='assistant' ? 'assistant' : 'user'`（user 为兜底）。
-2. parts：仅保留 `p.type==='text'` 的 part；`text` 取 `p.text ?? ''`；`startedAt` 取 `typeof p.time?.start==='number' ? p.time.start : undefined`；`ignored`/`synthetic` 为 true 时透传布尔。
-3. 丢弃 file / reasoning / tool / step-start / step-finish / snapshot / patch / agent / retry / compaction / subtask 等全部非文本 part（这些不跨 IPC，renderer 只见文本）。
-4. 不截断、不打码文本内容（会话历史可能含用户内容；现有 SSE 打码针对工具入参凭证。若评审认为需打码，须回本契约——本包默认不打码，因为这是用户本人会话回放）。
-5. DTO 可结构化克隆（纯 JSON），可安全经 IPC。
+2. text/reasoning：`text` 取 `p.text ?? ''`；`startedAt` 取 number `time.start`；`ignored`/`synthetic` 仅在文本分支且为 true 时透传。
+3. tool：`text` 固定空串；映射 `callID→callId`、`tool`、`state.status`、number `state.time.start/end`；pending 无 time.start 时 startedAt=0；error 状态透传 state.error。`input/output/metadata` 等参数、结果与附件不透传。
+4. 丢弃 file / step-start / step-finish / snapshot / patch / agent / retry / compaction / subtask 等其他 part。
+5. 不截断、不打码文本内容（会话历史可能含用户内容；现有 SSE 打码针对工具入参凭证。若评审认为需打码，须回本契约——本包默认不打码，因为这是用户本人会话回放）。
+6. DTO 可结构化克隆（纯 JSON），可安全经 IPC。
 
 ### 5.3 新 IPC（恰 2 个）
 
@@ -398,14 +409,15 @@ sessionMessages: (sessionId: string): Promise<RuntimeSessionMessageRecord[]> =>
 - 空数组 / 非数组 → `[]`。
 - 单 user（单/多 text part 拼接、含无 time 字段的用户 part 仍输出）→ 用户气泡。
 - user 空文本 / ignored / synthetic → 丢弃。
-- assistant：带 startedAt 的 text 聚合；无 startedAt 的 text 不进；纯 reasoning/tool（parts 里无文本）→ 无气泡；abort 空轮 → 无气泡。
-- 混排 u/a/u/a 正序；id 取 info.id；agent 气泡带 `agent:'showrunner'` 且无 brief/trace。
-- 坏记录（info 缺 id、parts 非数组、part.text 非字符串）不抛错按空处理。
+- assistant：带 startedAt 的 text 聚合；无 startedAt 的 text 不进；多个 reasoning 按原序聚合为非空可选 `reasoning`；纯 reasoning/tool（无有效正文）→ 无气泡；abort 空轮 → 无气泡。
+- 工具：恢复 pending/running/completed/error、起止时间与 errorText；同 callId 后快照替换且保持首次顺序；参数/结果不输出；pending 起始时间缺省为 0；user 工具不上屏。
+- 混排 u/a/u/a 正序；id 取 info.id；agent 气泡带 `agent:'showrunner'`、可选 reasoning/tools 且无 brief/trace；无推理/工具时形状不增加字段；user reasoning 不进入用户气泡。
+- 坏记录（info 缺 id、parts 非数组、part.text 非字符串）与坏工具数据不抛错，按空处理或跳过。
 - 不改入参（快照）。
 
 ### 6.2 主进程映射 / library（node 侧 vitest，沿用 electron 既有套件）
 
-- `toMessageRecord`：仅透传 text part；startedAt 来自 time.start 数字；丢弃 reasoning/tool/file 等；role 归一；ignored/synthetic 透传。
+- `toMessageRecord`：透传 text/reasoning/tool part；startedAt 来自 time.start 数字；tool 映射四种状态、起止时间与错误，pending 缺省 startedAt=0，参数/结果/附件不透传；丢弃 file 等其他 part；role 归一；ignored/synthetic 仅文本分支透传；非字符串文本防御为空串。
 - `setActiveSession`：写入并保留 title/createdAt/lastOpenedAt 不被改；null 清空；经 enqueue 不与 openProject 互相覆盖（串行写）。
 - `openProject`：旧四字段文件打开后写回含 `activeSessionId:null` 且 title/createdAt 保留、lastOpenedAt 刷新；已有绑定字符串原样保留（R6/AC6）。
 - 读态无 currentDir → `{sessionId:null}`；写态无项目 → 抛 INVALID_ARGUMENT。
@@ -413,18 +425,18 @@ sessionMessages: (sessionId: string): Promise<RuntimeSessionMessageRecord[]> =>
 
 ### 6.3 组件（TestingLibrary，mock window.api）
 
-- **回放渲染（R1）**：sessionMessages resolve 若干记录 → 按正序出现用户/agent 文本；加载期 `chat-history-loading` 出现、完成后消失；无 demo 假数据。
+- **回放渲染（R1）**：sessionMessages resolve 若干记录 → 按正序出现用户/agent 文本；Agent 推理在正式气泡内以折叠块恢复；工具轨迹恢复名称、completed/error/pending 状态、错误文本与耗时；加载期 `chat-history-loading` 出现、完成后消失；无 demo 假数据。
 - **无绑定不拉起 runtime（AC1）**：activeSession resolve `{sessionId:null}` 的项目，断言 **未调用** sessionMessages / runtime.start。
 - **续聊不新建（R2/AC2）**：activeSession 返回已有 id → handleSend 后 createSession **零调用**、promptAsync 以同一 sessionId 调用；activeSession 写态不被调用。
 - **惰性建会话 + 回写（R3）**：绑定 null → 发送后 createSession 一次、activeSession(newId) 一次、promptAsync 用 newId。
-- **停止（R4）**：sending 中出现 `chat-stop`（无 onStop 时仍是发送钮）；点击调 abortSession(当前绑定 id)；abort 后事件链复位 sending。
+- **停止（R4）**：sending 中出现 `chat-stop`（无 onStop 时仍是发送钮）；点击调 abortSession(当前绑定 id)；abort 后事件链复位 sending；idle 定稿后正文、本轮推理与工具状态行仍保留在正式气泡，工具顺序、完成/失败状态及耗时与流式一致。
 - **切项目隔离（R5）**：A 绑定期间 onEvent 投递 B 的 sessionId 事件 → 不更新 stream/items；切到 B 清 items 并加载 B 历史；快速 A→B 切换时 A 的迟到回放不覆盖 B（竞态）。
 - **404 降级（R7）**：sessionMessages reject `{name:'SESSION_NOT_FOUND'}` → 空态、info toast 一次、activeSession(null) 被调、再发送走惰性建会话。
 - 订阅一次：多次发送 / 切项目后 subscribe 总调用次数为 1（unmount 时 unsubscribe）。
 
 ### 6.4 回归红线（T1 实测冻结基线）
 
-- `npm run typecheck`：零新增（基线仅 2 条 canvas-zoom.test.tsx L13/L90 历史错误，非本包）。
+- `npm run typecheck`：零新增；2026-10-31 复测为 3 条既有基线错误（canvas-zoom.test.tsx L13/L90、runtime-client.test.ts L45），本包增量代码无错误。
 - node/preload 双工程 tsc 退出码 0。
 - 全量 vitest：passed 不减少、skipped/failed 不扩大（基线 **40 文件 431 passed / 1 skipped**，skip=T8-4 需 ARK Key；开工 T1 复测回填）。
 - 静态契约套件（architecture renderer 禁直连 runtime 端口、mcp-pure-tools、agent-profiles 等）无感通过；既有 studio-flow / window-titlebar 等用例的 openProject mock 需补 `activeSessionId:null` 字段（形状变化的连带修，属本包合理 diff，不视为破坏）。

@@ -10,12 +10,12 @@
 - **背景**：设计书 §7.1（L564/L599）原定项目目录下 `chat.messages.json` 持久化全量消息、UI 自行 hydrate。勘察 opencode 运行时事实：主进程 spawn `opencode serve`（cwd 固定平台工作区根，不按项目切换），SDK 已提供 `session.messages({path:{id}})`（时间正序 `{info, parts}[]`），消息历史本就持久化在 opencode 自带存储。
 - **裁决**：消息历史**全部留在 opencode 原生存储**，平台不复制不镜像；`.session.json` 仅增 `activeSessionId` 绑定；重开项目经 SDK 回放。设计书 §7.1 的 chat.messages.json 终态作废，授权 **R-001 修订**（L564 目录树注释行、L599 replay/hydrate 描述 + 含同文案的 HTML 镜像），修订动作排在代码落地与真机目验通过后的 T7。
 - **批准方式**：2026-10-15 AskUserQuestion 选定「opencode 原生存储 (Recommended)」。
-- **联动结论**：K9 不触发（SDK 1.18.34 已含 session.messages，零新依赖）；回放投影仅文本，与流式定稿（StudioApp L122–127 只落 text）同构。
+- **联动结论**：K9 不触发（SDK 1.18.34 已含 session.messages，零新依赖）；回放投影与流式定稿同构。2026-10-31 D-008 将二者统一扩展为正文 + 可选推理。
 
 ### D-002 · 包范围 = 最小续聊闭环（2026-10-15，✅ 用户已批准）
 
 - **裁决**：一项目绑定一条活跃会话。在包内的只有：重开放映历史文本气泡（R1）、新 prompt 复用同会话（R2）、首条 prompt 惰性建会话并回写绑定（R3）、发送中可停止（R4）、切项目对话随项目切换不串台（R5）、旧四字段项目零迁移兼容（R6）、404 诚实降级（R7）、dev-mock 可用（R8）。
-- **显式排除**（需求 §4.2）：会话列表 UI、手动新建/删除/切换/重命名会话、一项目多会话、历史分页/虚拟滚动/搜索、reasoning/tool 回放、半截轮次保留、session.delete GC。
+- **显式排除**（需求 §4.2）：会话列表 UI、手动新建/删除/切换/重命名会话、一项目多会话、历史分页/虚拟滚动/搜索、tool 轨迹回放、半截轮次保留、session.delete GC。2026-10-31 D-008 将 reasoning 纳入正文气泡的可选折叠内容。
 - **批准方式**：2026-10-15 AskUserQuestion 选定「最小续聊闭环 (Recommended)」。
 
 ### D-003 · 包编号 = feature-808（横切 8xx 段）
@@ -54,6 +54,47 @@
   - 方案 B（主进程过滤，纵深防御，可选）：订阅 IPC 支持带 `{sessionId}`，切项目时重新订阅/更新 filter，让 main.ts 已有的 broadcast filter 真正生效；改动跨主进程+preload+renderer，面更大，可作为后续增强，不阻塞 A。
 - **影响面**：方案 A 仅 StudioApp.tsx（白名单内）；session-continue.test.tsx R5 需补「切到无绑定空项目期间，他会话 streaming + idle 定稿事件均被丢弃」真机等价用例（现有 R5 覆盖了 A/B 都有会话及装载空窗期，但**未覆盖目标项目 sid=null 这一边界**，属测试盲区，一并记名）。
 - **状态**：✅ 已闭环。2026-10-16 用户批复方案 A；当日修复落地（onEvent 守卫改严格归属 `evSid !== undefined && evSid !== sid` 即丢弃；无 sessionId 的 runtime 级事件放行经 reducer no-op；切项目清场已含 streamRef/setStream），新增 sid=null 边界回归用例，真机复测项 5 通过（见二、节），AC5 改 [x]。白名单外 studio-flow.test.tsx 因旧守卫契约被连带修正（一处用例旧时序在发送前发事件，新守卫下不再成立），diff 仅 import 补 waitFor + 该用例时序对齐真实发送顺序，留痕见二、节修复实施记录。
+
+### D-008 · 正式气泡与历史回放保留推理（2026-10-31，✅ 用户已批准）
+
+- **背景**：流式生成期间可查看「推理过程」，但定稿只复制正文、历史 DTO 又过滤 reasoning，导致正文落泡后推理消失且重开项目无法恢复。
+- **裁决**：正式 Agent 气泡增加可选 `reasoning`，定稿时保留本轮非空推理；既有 `runtime:session:messages` DTO 增量携带 `text | reasoning` part，回放恢复同一折叠块。assistant 无有效正文时仍不产生气泡；tool/file/step 等轨迹仍不回放。
+- **边界**：不新增 IPC、不新增平台消息存储、不改 shared/types.ts、不新增依赖；仅扩展既有 DTO 两端镜像及其映射/回放/渲染。
+- **批准方式**：2026-10-31 用户回复「好的，按这个方案修改」。本决策取代 D-001/D-002 中「仅文本 / 不回放 reasoning」的旧口径，tool 排除不变。
+
+### D-009 · 正式气泡保留当轮工具轨迹（2026-10-31，✅ 用户反馈确认修复）
+
+- **背景**：D-008 修复推理定稿留产后，用户发现流式期间可见的工具调用在推理与正文定稿后消失。根因是定稿仅复制正文与推理，清空 `stream` 时工具列表一并丢弃。
+- **裁决**：正式 Agent 气泡增加可选 `tools: ToolView[]`，定稿时按首次出现顺序复制本轮工具快照，并复用流式 `ToolRow` 渲染完成/失败状态与耗时；无有效正文仍不产生气泡，无工具时不增加字段。
+- **边界**：仅保留当轮定稿工具轨迹；历史 DTO 与 `replayMessages` 仍不回放 tool，不新增 IPC/存储/依赖，不改 shared/types.ts 与 SSE 投影。
+
+### D-010 · 重开项目恢复推理与工具轨迹（2026-10-31，✅ 用户明确批准）
+
+- **用户拍板**：「重新打开项目时要能看到『推理过程』和工具轨迹」。
+- **裁决**：既有 `runtime:session:messages` DTO 增量携带 tool 的 `callId/tool/status/startedAt/endedAt/error`；`replayMessages` 按首次出现顺序聚合为 `ToolView[]`，正式历史气泡复用 `ToolRow`，恢复工具名称、pending/running/completed/error 状态和耗时。推理沿用 D-008。
+- **边界**：不回放工具参数、结果或画布副作用，不为工具新建平台消息 JSON；不新增 IPC/依赖，不改 shared/types.ts 与 SSE 投影。无有效正文的纯工具/纯推理轮仍不产生气泡。本决策取代 D-001/D-002/D-009 中「历史不回放 tool」的旧口径。
+
+### D-011 · 工具行中文化 + 折叠块 + 集体摘要（2026-10-31，✅ 用户已批准）
+
+- **背景**：工具行直接显示裸物理 ID（`shortdrama_canvas_get`），用户「不太明白什么意思」；多条工具行平铺占屏、且看不出「工具集体干了什么」。用户三问：① 工具行是否也该有折叠块 ② 是否该显示工具集体摘要 ③ 工具是否该有中文名。
+- **裁决（AskUserQuestion 拍板 A 档纯展示层 + 动作短语粒度）**：① 工具轨迹聚合为可折叠块（沿用「推理过程」折叠块形态，标题「工具轨迹 · N 项 · 中文动作摘要」，摘要 = 去重计数保序，如「读取画布 ×2 · 写入已捕获口径」）；② renderer 新增纯函数模块 `tool-labels.ts`，自持「物理 ID → 中文动作短语」枚举表（28 个 MCP 工具族全覆盖，短语取自 MCP 注册描述首个动宾，与注册处同源）；③ 物理 ID 保留在行级 `title` 供追溯。
+- **边界**：纯展示层、零 LLM、零契约变更——枚举而非 AI 生成（D-016 标尺「能写成枚举规则→系统直做」）；不改 DTO/IPC/SSE 投影/持久化；未知工具回退去前缀原 ID，不臆造名称。
+- **批准方式**：2026-10-31 AskUserQuestion 选定「A 档：纯展示层（推荐）」+「动作短语粒度（推荐）」。
+
+### D-012 · 工具行显示白名单关键参数摘要 argsPreview（2026-10-31，✅ 用户已批准）
+
+- **背景**：D-011 后工具行只显示动作短语（如连续 5 行「✓ 写入已捕获口径 0.0s」），用户反馈「具体写了什么为什么不显示，这太笼统了」。约束：D-010 起历史 DTO 不带工具入参，若仅流式现算会造成「当场可见、重开消失」的不一致。
+- **裁决（AskUserQuestion 拍板白名单关键参数）**：每个工具定义一个关键参数白名单（`capture.upsert`→topic/id、`file.write`→path、`web.search`→query 等 13 类，按优先级取首个非空字符串，截断 80 字符），工具行显示为「中文动作 · 关键参数」。**历史侧**：主进程 `toMessageRecord` 从 SDK tool part `state.input` 按白名单提取，DTO 增量携带 `argsPreview?: string`（空串不落 DTO）；**流式侧**：渲染层用同一白名单从 `ToolView.args` 现算（`toolArgPreview()`），不落字段。键表在 `src/lib/tool-labels.ts` 与 `electron/runtime/client.ts` 双份镜像，注释互注「改任一侧必须同步另一侧」（electron 不 import src，避免分层倒置）。
+- **边界**：完整入参/结果仍不回放（H6 口径保留，仅放行白名单摘要这一窄口）；白名单只收「读了/写了什么」的关键字段，不收大对象与敏感字段；不新增 IPC/依赖，不改 shared/types.ts 与 SSE 投影；属 K8 范围内既有 DTO 两端镜像的增量扩展（electron/runtime/types.ts 与 src/lib/runtime-types.ts 同步加 `argsPreview?: string`）。
+- **批准方式**：2026-10-31 AskUserQuestion 选定「白名单关键参数（推荐）」。
+
+### D-013 · AI 服务不可用在对话区显示（2026-10-31，✅ 用户已批准）
+
+- **背景**：打开项目/进入对话区时不做任何健康检查，runtime（opencode serve）未运行时右栏看起来一切正常，用户发消息才撞墙；方舟侧失败（Key 缺失/欠费/网络）经 `runtime.error` 事件冒出，但此前仅复位 generating、从不上屏。
+- **裁决（AskUserQuestion 三项拍板）**：① **进入对话区即探测**——项目会话装载（启动恢复/左栏切换/新建共用 `onProjectSessionChange` 入口）时调 `runtime.status()`，非 running 先尝试 `runtime.start()` 一次（与发送路径同策略），仍不可用则显示；② **两层覆盖**——runtime 未运行（进入探测）与方舟调用失败（`runtime.error` 事件）共用同一显示位；③ **显示形态 = 横幅 + 禁用输入**——对话区顶部常驻横幅（含错误原因与「重新检测」按钮），同时禁用输入框与发送钮。
+- **恢复口径**：探测 healthy 或发送路径 status 检查通过即自动清除横幅；用户也可点「重新检测」手动复检。dev-mock 演示态不探测（`onProjectSessionChange` 首行已早退）。
+- **边界**：纯 renderer 增量——新增 `aiDown` state 与 `checkAiHealth`，复用既有 `runtime.status/start` IPC 与 `runtime.error` 事件，不新增 IPC/依赖，不改 shared/types.ts、DTO 与 SSE 投影；不引入轮询（恢复靠重试/下次发送，避免后台空转）。
+- **批准方式**：2026-10-31 AskUserQuestion 选定「进入对话区就探测（推荐）」+「两层都要（推荐）」+「横幅 + 禁用输入（推荐）」。
 
 ### K 卡口登记与批准范围（随任务包评审呈批）
 
@@ -146,6 +187,27 @@
 - [docs/features/README.md](../../README.md) 8xx 表 807 行后增 feature-808 行（业务=项目即会话入口/重开放映回放续聊/他会话事件过滤/404 自愈/惰性建会话；解决偏差=设计书 §7.1 R-001；技术落点列 K1 单字段/K8 恰 2 IPC/DTO 两端镜像/history-replay 纯函数；K9 不触发；溯源=[改编]；状态=✅ 已落地，真机目验 5 项见本记录）。
 - [docs/设计现状与偏差清单.md](../../设计现状与偏差清单.md)：§2 偏差表新增并关闭 **B-17**（会话不跨重开 + chat.messages.json 设计与实现不符）；§1.2 测试面刷为 44 文件 461 passed / 1 skipped（含演进链）；§3 反向补录路线表新增 feature-808 ✅ 行。
 - [版本记录.md](../../../版本记录.md) `## 2026-10` 顶部追加 2026-10-15 feature-808 编年史条目（背景与授权、K1/K8/K9 卡口声明、13 改 5 新白名单、D-001~D-005、验证实数、R-001 修订索引、真机 5 项待补）。
+
+### D-010 实施与回归（2026-10-31，✅）
+
+- **历史链路**：`toMessageRecord` 将 SDK tool part 映射为 `callId/tool/status/startedAt/endedAt/error`，两端历史 DTO 同步扩展；`replayMessages` 按 callId 首次出现顺序聚合、以后快照替换，工具视图使用真实 `ToolView` 形状（`args: {}`，DTO `error` 映射为 `errorText`）。历史 Agent 气泡复用「推理过程」折叠块与 `ToolRow`；`ToolView`/`ToolRow` 增加历史 pending 展示，流式事件仍保持 running/completed/error 三态。
+- **边界复核**：工具参数、结果、附件与画布副作用不回放；user 工具不上屏，坏工具数据跳过；无有效正文的纯工具/纯推理轮仍不产生气泡。未新增 IPC、依赖或平台消息 JSON，未改 shared/types.ts 与 SSE 投影。
+- **测试证据**：R1 已覆盖重开项目后的推理折叠块及 completed/error/pending 工具名称、错误文本与耗时；D-010 对焦四套件 47 例全绿。最终 `npm run test:run` = **70 文件 831 passed / 1 skipped / 0 failed**（skip 仍为需 ARK Key 的既有 T8-4）。
+- **类型证据**：`npx tsc -b tsconfig.node.json` 与 `npx tsc -p tsconfig.preload.json --noEmit` 均退出 0；`npm run typecheck` 仅剩 canvas-zoom.test.tsx L13/L90 与 runtime-client.test.ts L45 三条既有基线错误，本次增量零新增类型错误。
+
+### D-011/D-012 实施与回归（2026-10-31，✅）
+
+- **实施面**：新增 [tool-labels.ts](../../../src/lib/tool-labels.ts)（28 工具族中文动作短语枚举 + `summarizeToolActions` 折叠块摘要 + D-012 `ARG_PREVIEW_KEYS` 13 类白名单与 `toolArgPreview()`，截断 80 字符）；主进程 [client.ts](../../../electron/runtime/client.ts) 镜像白名单表并在 `toMessageRecord` 从 tool part `state.input` 提取 `argsPreview`（空串不落 DTO）；两端 DTO 镜像 [electron/runtime/types.ts](../../../electron/runtime/types.ts) 与 [runtime-types.ts](../../../src/lib/runtime-types.ts) 同步加 `argsPreview?: string`；[history-replay.ts](../../../src/lib/history-replay.ts) 透传快照；[chat-runtime.ts](../../../src/lib/chat-runtime.ts) `ToolView` 加可选字段；[ChatComposer.tsx](../../../src/studio/chat/ChatComposer.tsx) ToolRow 四状态分支渲染「中文动作 · 关键参数」，取值 `tool.argsPreview ?? toolArgPreview(tool.tool, tool.args)`（历史回放优先于流式现算）。
+- **测试证据**：D-011/D-012 对焦五套件（tool-labels / runtime-session-messages / history-replay / session-continue / chat-liveness）65 例全绿——覆盖白名单提取、点号/下划线/去前缀归一、候选键优先级、非字符串与空白跳过、80 字符截断边界、无白名单不显示、空串/非字符串不落 DTO、历史回放优先级钉死。最终 `npm run test:run` = **71 文件 845 passed / 1 skipped / 0 failed**（skip 仍为需 ARK Key 的既有 T8-4）；既有用例工具名均不在白名单，旧断言零破坏。
+- **类型证据**：`npx tsc -b tsconfig.node.json` 退出 0（修复 electron/runtime/types.ts 漏加 `argsPreview` 的 TS2339 后归零）；`npm run typecheck` 仅剩 canvas-zoom.test.tsx L13/L90 与 runtime-client.test.ts L45 三条存量基线错误（两文件零 diff），本次增量零新增类型错误。
+- **边界复核**：完整工具入参/结果仍不回放（H6 口径保留，仅放行白名单摘要窄口）；白名单只收「读了/写了什么」关键字段，不收大对象与敏感字段；未新增 IPC/依赖，未改 shared/types.ts 与 SSE 投影；键表双份镜像已互注同步义务（electron 不 import src，避免分层倒置）。
+
+### D-013 实施与回归（2026-10-31，✅）
+
+- **实施面**：[StudioApp.tsx](../../../src/studio/shell/StudioApp.tsx) 新增 `aiDown` state 与 `checkAiHealth`（status 非 running 先试 start 一次，与发送路径同策略），挂入 `onProjectSessionChange`（启动恢复/切换/新建三入口共用，dev-mock 首行早退天然豁免）；onEvent 终态分支后接入 `runtime.error` 置位横幅（归属守卫天然过滤他会话事件）；handleSend 发送路径 status 通过即清除。[ChatComposer.tsx](../../../src/studio/chat/ChatComposer.tsx) 新增 `aiDown`/`onAiRetry` props：chat-body 顶部常驻横幅（`chat-ai-down`，role=alert，含原因与「重新检测」钮 `chat-ai-retry`），textarea 禁用 + placeholder 切换，发送钮与 submit 守卫并入 `aiDown` 条件。
+- **测试证据**：chat-liveness 新增 D-013 三例（横幅 role=alert 与文案/重新检测钮、null 不渲染；输入与发送禁用 + placeholder 切换；点击复检回调 + submit 守卫拦截）；session-continue 新增 D-013 三例（装载探测失败 → 横幅 + 禁用 → 重新检测恢复；healthy → 无横幅；runtime.error 归属事件上屏含原因、他会话事件被守卫丢弃）。**既有用例按 D-013 裁决更新两例并记名**：session-continue AC1（「不启动 runtime」口径不变，但进入对话区即探测一次只读 status，断言由「不调 status」改为「status 探测一次 + start 零调用」）；studio-flow「启动失败展示可展示文案」（同一失败场景由发送撞墙改为装载探测提前以横幅呈现并禁用输入，断言改钉 `chat-ai-down` 横幅含「启动失败」）。最终 `npm run test:run` = **71 文件 851 passed / 1 skipped / 0 failed**。
+- **类型证据**：`npx tsc -b tsconfig.node.json` 退出 0；`npm run typecheck` 仅剩 canvas-zoom.test.tsx L13/L90 与 runtime-client.test.ts L45 三条存量基线错误（零 diff），本次增量零新增类型错误。
+- **边界复核**：纯 renderer 增量——复用既有 `runtime.status/start` IPC 与 `runtime.error` 事件，未新增 IPC/依赖，未改 shared/types.ts、DTO 与 SSE 投影；不轮询（恢复靠探测/发送通过自动清除 + 手动重新检测）；dev-mock 演示态不探测。
 
 ### AC1–AC10 验收勾选（2026-10-15）
 

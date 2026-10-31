@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
 import { turnReasoning, turnText, type StreamingTurn, type ToolView } from '../../lib/chat-runtime'
+import { summarizeToolActions, toolActionPhrase, toolArgPreview } from '../../lib/tool-labels'
 import type { CanvasGate } from '@shared/types'
 import GateCardView from './GateCardView'
 import { FAMILY_GRAD, PREVIEW_URL } from '../style/VisualCatalog'
@@ -28,7 +29,7 @@ function MarkdownText({ text }: { text: string }) {
           h1: ({ children }) => <h1 className="mt-2 text-[13.5px] font-extrabold first:mt-0">{children}</h1>,
           h2: ({ children }) => <h2 className="mt-2 text-[13px] font-bold first:mt-0">{children}</h2>,
           h3: ({ children }) => <h3 className="mt-1.5 text-[12.5px] font-bold first:mt-0">{children}</h3>,
-          p: ({ children }) => <p className="first:mt-0 last:mb-0">{children}</p>,
+          p: ({ children }) => <p className="my-1 first:mt-0 last:mb-0">{children}</p>,
           ul: ({ children }) => <ul className="my-1 ml-[18px] list-disc space-y-0.5">{children}</ul>,
           ol: ({ children }) => <ol className="my-1 ml-[18px] list-decimal space-y-0.5">{children}</ol>,
           li: ({ children }) => <li className="pl-0.5 marker:text-muted">{children}</li>,
@@ -84,6 +85,8 @@ export interface ChatItem {
   id: string
   role: 'user' | 'agent'
   text?: string
+  reasoning?: string // Agent 本轮推理；正文定稿与历史回放均保留为可折叠内容
+  tools?: ToolView[] // Agent 当轮工具快照；正文定稿与历史回放均保留
   agent?: AgentId // agent 消息的发言身份，默认 showrunner
   brief?: BriefRow[] // 立项单卡（kv）
   trace?: TraceData // 工具轨迹卡
@@ -354,6 +357,10 @@ interface Props {
   onStop?: () => void
   /** feature-808：历史回放加载态（默认 false）；加载中禁用发送 */
   historyLoading?: boolean
+  /** D-013：AI 服务不可用原因（null=可用/未知）；非空显示常驻横幅并禁用输入与发送 */
+  aiDown?: string | null
+  /** D-013：横幅「重新检测」按钮回调 */
+  onAiRetry?: () => void
 }
 
 // ── 浏览器预览演示消息（对齐原型 #chatBody 5 条） ──
@@ -528,29 +535,52 @@ function TypingDots() {
   )
 }
 
-/** 行内工具状态行（契约 §3.2）：running=spinner+「执行中」；completed=✓+耗时；error=✗+errorText 单行省略 */
+/** 行内工具状态行：pending=○+「待执行」；running=spinner+「执行中」；completed=✓+耗时；error=✗+errorText */
 function ToolRow({ tool }: { tool: ToolView }) {
   const duration = toolDurationLabel(tool)
+  const phrase = toolActionPhrase(tool.tool)
+  // D-012：白名单关键参数摘要——历史回放用主进程 argsPreview；流式从 args 现算
+  const preview = tool.argsPreview ?? toolArgPreview(tool.tool, tool.args)
+  const previewNode = preview ? (
+    <span className="truncate text-muted/70" title={preview}>
+      · {preview}
+    </span>
+  ) : null
   return (
-    <div data-testid="chat-tool-row" className="flex items-center gap-1.5 text-[11px] leading-4 text-muted">
+    <div
+      data-testid="chat-tool-row"
+      className="flex items-center gap-1.5 text-[11px] leading-4 text-muted"
+      title={tool.tool}
+    >
+      {tool.status === 'pending' && (
+        <>
+          <span className="shrink-0">○</span>
+          <span className="truncate">{phrase}</span>
+          {previewNode}
+          <span className="shrink-0">待执行</span>
+        </>
+      )}
       {tool.status === 'running' && (
         <>
           <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-line border-t-violet" />
-          <span className="truncate">{tool.tool}</span>
+          <span className="truncate">{phrase}</span>
+          {previewNode}
           <span className="shrink-0">执行中</span>
         </>
       )}
       {tool.status === 'completed' && (
         <>
           <span className="shrink-0 text-ok">✓</span>
-          <span className="truncate">{tool.tool}</span>
+          <span className="truncate">{phrase}</span>
+          {previewNode}
           {duration && <span className="shrink-0">{duration}</span>}
         </>
       )}
       {tool.status === 'error' && (
         <>
           <span className="shrink-0 text-bad">✗</span>
-          <span className="truncate">{tool.tool}</span>
+          <span className="truncate">{phrase}</span>
+          {previewNode}
           <span className="truncate text-bad" title={tool.errorText || '执行失败'}>
             {tool.errorText || '执行失败'}
           </span>
@@ -560,17 +590,57 @@ function ToolRow({ tool }: { tool: ToolView }) {
   )
 }
 
+/**
+ * 工具轨迹折叠块（D-011）：标题给「N 项」与动作摘要，展开后逐条列状态行。
+ * 单个工具时不加折叠层（无折叠价值）；流式态默认展开（生成中要看进度），定稿态默认收起。
+ */
+function ToolTrace({
+  tools,
+  defaultOpen,
+}: {
+  tools: ToolView[]
+  defaultOpen?: boolean
+}) {
+  if (tools.length === 0) return null
+  const summary = summarizeToolActions(tools.map(t => t.tool))
+  const rows = (
+    <div className="mt-1 space-y-1">
+      {tools.map(tool => (
+        <ToolRow key={tool.callId} tool={tool} />
+      ))}
+    </div>
+  )
+  if (tools.length === 1) return <div className="mt-2">{rows}</div>
+  return (
+    <details
+      data-testid="chat-tool-trace"
+      open={defaultOpen}
+      className="mt-2 rounded-lg bg-canvas px-3 py-2 text-xs leading-5 text-muted"
+    >
+      <summary className="cursor-pointer select-none">
+        <span className="font-medium text-ink">工具轨迹 · {tools.length} 项</span>
+        {summary && <span className="text-muted"> · {summary}</span>}
+      </summary>
+      {rows}
+    </details>
+  )
+}
+
+function ReasoningDetails({ text }: { text: string }) {
+  return (
+    <details className="rounded-lg bg-canvas px-3 py-2 text-xs leading-5 text-muted">
+      <summary className="cursor-pointer select-none">推理过程</summary>
+      <p className="mt-1 whitespace-pre-wrap">{text}</p>
+    </details>
+  )
+}
+
 function AgentTurn({ turn, text }: { turn: StreamingTurn; text: string }) {
   const reasoning = turnReasoning(turn)
   const tools = Object.values(turn.tools)
   return (
     <div className="space-y-2">
-      {reasoning && (
-        <details className="rounded-lg bg-canvas px-3 py-2 text-xs leading-5 text-muted">
-          <summary className="cursor-pointer select-none">推理过程</summary>
-          <p className="mt-1 whitespace-pre-wrap">{reasoning}</p>
-        </details>
-      )}
+      {reasoning && <ReasoningDetails text={reasoning} />}
       {text && (
         <>
           <MarkdownText text={text} />
@@ -579,13 +649,7 @@ function AgentTurn({ turn, text }: { turn: StreamingTurn; text: string }) {
           )}
         </>
       )}
-      {tools.length > 0 && (
-        <div className="space-y-1">
-          {tools.map(tool => (
-            <ToolRow key={tool.callId} tool={tool} />
-          ))}
-        </div>
-      )}
+      {tools.length > 0 && <ToolTrace tools={tools} defaultOpen />}
       {!text && turn.status === 'running' && (
         <span className="inline-flex items-center gap-2 text-muted">
           <TypingDots />
@@ -597,7 +661,7 @@ function AgentTurn({ turn, text }: { turn: StreamingTurn; text: string }) {
 }
 
 export default function ChatComposer({
-  items, stream, pendingGate, deciding, sending, generating = false, error, onSend, onDecide, onStop, historyLoading,
+  items, stream, pendingGate, deciding, sending, generating = false, error, onSend, onDecide, onStop, historyLoading, aiDown = null, onAiRetry,
 }: Props) {
   const [draft, setDraft] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -609,13 +673,13 @@ export default function ChatComposer({
 
   const submit = (): void => {
     const text = draft.trim()
-    if (!text || sending || generating || historyLoading) return
+    if (!text || sending || generating || historyLoading || aiDown) return
     setDraft('')
     onSend(text)
   }
 
   // B-35：选项点击 = 代发编号（与手打同路径）；忙态（发送/生成/回放/流式进行中）禁点
-  const busy = sending || generating || historyLoading || !!stream
+  const busy = sending || generating || historyLoading || !!stream || !!aiDown
   const pickOption = (num: string): void => {
     if (busy) return
     onSend(num)
@@ -647,6 +711,25 @@ export default function ChatComposer({
 
       {/* ── chat-body ── */}
       <div ref={scrollRef} className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-3.5">
+        {aiDown && (
+          <div
+            data-testid="chat-ai-down"
+            className="flex items-center gap-2 rounded-lg border border-bad/40 bg-bad/10 px-3 py-2 text-xs leading-5 text-bad"
+            role="alert"
+          >
+            <span className="min-w-0 flex-1">{aiDown}</span>
+            {onAiRetry && (
+              <button
+                type="button"
+                data-testid="chat-ai-retry"
+                onClick={onAiRetry}
+                className="shrink-0 rounded-md border border-bad/40 px-2 py-0.5 font-semibold transition hover:bg-bad/10"
+              >
+                重新检测
+              </button>
+            )}
+          </div>
+        )}
         {historyLoading && (
           <div
             data-testid="chat-history-loading"
@@ -689,12 +772,18 @@ export default function ChatComposer({
                 return (
                   <div className="relative max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
                     {parsed.label && <LabelTag label={parsed.label} side="left" />}
+                    {item.reasoning && (
+                      <div className="mb-2"><ReasoningDetails text={item.reasoning} /></div>
+                    )}
                     {opt.rest && <MarkdownText text={opt.rest} />}
                     {opt.options && (
                       <OptionCard options={opt.options} disabled={consumed} pickedNum={pickedNum} onPick={pickOption} />
                     )}
                     {opt.chips && (
                       <ChipRow chips={opt.chips} disabled={consumed} pickedChip={pickedChip} onPick={pickOption} />
+                    )}
+                    {item.tools && item.tools.length > 0 && (
+                      <ToolTrace tools={item.tools} />
                     )}
                     {item.brief && <BriefCard rows={item.brief} />}
                     {item.trace && <TraceCard trace={item.trace} />}
@@ -770,8 +859,9 @@ export default function ChatComposer({
               }
             }}
             rows={1}
-            placeholder="描述创作目标，或 / 唤起 Skill…"
-            className="h-[34px] w-full resize-none border-none bg-transparent text-[12px] text-ink outline-none placeholder:text-muted"
+            disabled={!!aiDown}
+            placeholder={aiDown ? 'AI 服务不可用，恢复后可继续对话' : '描述创作目标，或 / 唤起 Skill…'}
+            className="h-[34px] w-full resize-none border-none bg-transparent text-[12px] text-ink outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-60"
           />
           <div className="mt-1 flex items-center gap-1.5">
             <button
@@ -814,7 +904,7 @@ export default function ChatComposer({
                 title="发送"
                 data-testid="chat-send"
                 onClick={submit}
-                disabled={sending || generating || historyLoading || !draft.trim()}
+                disabled={sending || generating || historyLoading || !!aiDown || !draft.trim()}
                 className="ml-auto grid h-7 w-7 place-items-center rounded-lg bg-violet text-white transition hover:bg-[#5B4BD6] disabled:opacity-50"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="h-[13px] w-[13px]">

@@ -52,10 +52,12 @@ body {
 
 /* Agent 气泡 Markdown（ChatComposer MarkdownText） */
 .md-bubble {
-  /* 保留 Agent 回复中的软换行（无 remark-breaks 依赖），markdown 块级结构仍正常布局 */
-  white-space: pre-wrap;
+  /* 折叠 Markdown 块级节点之间的源码空白，避免标题 / 列表间出现额外空行 */
+  white-space: normal;
   word-break: break-word;
 }
+/* 仅在正文段落内保留软换行（无 remark-breaks 依赖） */
+.md-bubble p { white-space: pre-wrap; }
 .md-bubble strong { font-weight: 700; }
 .md-bubble em { font-style: italic; }
 .md-bubble del { color: #7A8098; }

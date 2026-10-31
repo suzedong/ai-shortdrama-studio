@@ -43,14 +43,21 @@ export interface RuntimeSession {
   createdAt: string
 }
 
-/** session.messages 回放记录（仅回放所需最小形状；reasoning/tool 不透传） */
+/** session.messages 回放记录（正文 + 推理 + 工具状态；D-012 起仅含白名单关键参数摘要，完整入参/结果仍不含） */
 export interface RuntimeSessionMessagePart {
-  type: 'text'
+  type: 'text' | 'reasoning' | 'tool'
   text: string
-  /** assistant text part 的 time.start（ms）；user text part 无 */
+  /** assistant part 的 time.start（ms）；user text 无，pending tool 缺省为 0 */
   startedAt?: number
   ignored?: boolean
   synthetic?: boolean
+  callId?: string
+  tool?: string
+  status?: 'pending' | 'running' | 'completed' | 'error'
+  endedAt?: number
+  error?: string
+  /** D-012：白名单关键参数摘要（主进程按 ARG_PREVIEW_KEYS 提取，已截断；非白名单工具缺省） */
+  argsPreview?: string
 }
 export interface RuntimeSessionMessageRecord {
   info: { id: string; role: 'user' | 'assistant' }

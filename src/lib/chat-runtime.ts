@@ -15,8 +15,10 @@ import type { RuntimeEvent } from './runtime-types'
 export interface ToolView {
   callId: string
   tool: string
-  status: 'running' | 'completed' | 'error'
+  status: 'pending' | 'running' | 'completed' | 'error'
   args: unknown
+  /** D-012：白名单关键参数摘要（历史回放由主进程供给；流式由渲染层从 args 现算，不落此字段） */
+  argsPreview?: string
   result?: unknown
   errorText?: string
   startedAt?: number

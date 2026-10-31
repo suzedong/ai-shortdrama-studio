@@ -10,20 +10,24 @@ import type { Stage0State } from './select'
 
 export interface Stage0ChainProps {
   state: Stage0State
+  /** 口径随项目走：projectId 变化即清空旧进度并重拉当前项目口径 */
+  projectId?: string
 }
 
 /** capture 桥订阅（CaptureBar L33-41 同模式：alive 标志 + 卸载退订；首拉失败降级空进度 + 错误小字，不自动重试刷屏） */
-export function useCaptureFacts(): { facts: CapturedFact[]; loadError: string | null } {
+export function useCaptureFacts(projectId = ''): { facts: CapturedFact[]; loadError: string | null } {
   const [facts, setFacts] = useState<CapturedFact[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   useEffect(() => {
     let alive = true
+    setFacts([]) // 切项目先清空旧项目口径，避免异步首拉期间显示旧进度
+    setLoadError(null)
     window.api.captureList()
       .then(f => { if (alive) { setFacts(f.facts); setLoadError(null) } })
       .catch(e => { if (alive) setLoadError(e instanceof Error ? e.message : String(e)) })
     const off = window.api.onCaptureChanged(f => { setFacts(f.facts); setLoadError(null) })
     return () => { alive = false; off() }
-  }, [])
+  }, [projectId])
   return { facts, loadError }
 }
 
@@ -60,8 +64,8 @@ function StepChip({ icon, label, node, cred }: { icon: string; label: string; no
 
 const ARROW = <span className="text-[11px] text-[#C3C7D8]">→</span>
 
-export default function Stage0Chain({ state }: Stage0ChainProps) {
-  const { facts, loadError } = useCaptureFacts()
+export default function Stage0Chain({ state, projectId = '' }: Stage0ChainProps) {
+  const { facts, loadError } = useCaptureFacts(projectId)
   const [summaryOpen, setSummaryOpen] = useState(false)
   const nodes = selectChainNodes(state, facts)
   // 门态非 pending 时浮层恒收起（态切换不残留；点击切换，无悬停 / 外点 / Esc，D4）

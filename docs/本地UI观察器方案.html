@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>本地 UI 观察与测试结果压缩方案 · ai-shortdrama-studio</title>
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --bg2: #ffffff;
+    --ink: #1f2329;
+    --muted: #5f6b7a;
+    --rule: #e3e8ee;
+    --accent: #2563eb;
+    --accent2: #0d9488;
+    --code-bg: #1e2430;
+    --code-ink: #e6ebf2;
+    --warn-bg: #fff8ed;
+    --warn-rule: #f0b429;
+    --ok: #0d9488;
+    --fail: #dc2626;
+    --unc: #b45309;
+    --radius: 10px;
+    --mono: "Cascadia Code", "JetBrains Mono", Consolas, "Courier New", monospace;
+    --sans: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15.5px;
+    line-height: 1.75;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ===== header ===== */
+  header.hero {
+    background: linear-gradient(135deg, #16233b 0%, #1e3a5f 60%, #14532d 160%);
+    color: #f3f6fb;
+    padding: 56px 24px 44px;
+  }
+  .hero-inner { max-width: 1100px; margin: 0 auto; }
+  .hero .kicker {
+    font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: #9db8dc; margin-bottom: 12px; font-weight: 600;
+  }
+  .hero h1 {
+    margin: 0 0 10px; font-size: 30px; line-height: 1.3; font-weight: 700; letter-spacing: 0.01em;
+  }
+  .hero .sub { color: #c4d4ea; max-width: 760px; font-size: 15px; }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 22px;
+    font-size: 13px; color: #a9c0dd;
+  }
+  .meta-row .tag {
+    display: inline-block; padding: 3px 10px; border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 999px; margin-right: 4px;
+  }
+  .meta-row .status {
+    background: rgba(240,180,41,0.18); border-color: rgba(240,180,41,0.6); color: #ffd54d;
+    padding: 3px 10px; border-radius: 999px; font-weight: 600;
+  }
+
+  /* ===== layout ===== */
+  .layout {
+    max-width: 1100px; margin: 0 auto; padding: 28px 24px 64px;
+    display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 36px; align-items: start;
+  }
+  nav.toc {
+    position: sticky; top: 20px;
+    background: var(--bg2); border: 1px solid var(--rule); border-radius: var(--radius);
+    padding: 14px 16px; max-height: calc(100vh - 40px); overflow-y: auto; font-size: 13.5px;
+  }
+  nav.toc .toc-title {
+    font-size: 12px; letter-spacing: 0.1em; color: var(--muted);
+    text-transform: uppercase; font-weight: 700; margin: 2px 0 8px;
+  }
+  nav.toc ol { margin: 0; padding-left: 18px; }
+  nav.toc li { margin: 5px 0; }
+  nav.toc a { color: var(--muted); }
+  nav.toc a:hover { color: var(--accent); text-decoration: none; }
+  nav.toc .active a { color: var(--accent); font-weight: 600; }
+
+  main { min-width: 0; }
+  section {
+    background: var(--bg2); border: 1px solid var(--rule); border-radius: var(--radius);
+    padding: 26px 30px; margin-bottom: 22px;
+  }
+  h2 {
+    margin: 0 0 16px; font-size: 21px; font-weight: 700; letter-spacing: 0.01em;
+    padding-bottom: 12px; border-bottom: 2px solid var(--accent);
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  h2 .no { color: var(--accent); font-family: var(--mono); font-size: 16px; font-weight: 700; }
+  h3 { margin: 24px 0 10px; font-size: 16.5px; font-weight: 700; color: var(--ink); }
+  h3::before { content: "▎"; color: var(--accent); margin-right: 6px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0; padding-left: 24px; }
+  li { margin: 5px 0; }
+  strong { font-weight: 700; }
+  mark.key { background: none; color: var(--accent); font-weight: 600; }
+  code.inline {
+    font-family: var(--mono); font-size: 0.86em; background: #eef2f7;
+    border: 1px solid var(--rule); border-radius: 4px; padding: 1px 6px; color: #b91c1c;
+  }
+
+  /* ===== callouts ===== */
+  .callout {
+    border-left: 4px solid var(--accent); background: #eef4ff;
+    border-radius: 0 var(--radius) var(--radius) 0; padding: 14px 18px; margin: 16px 0;
+  }
+  .callout.warn { border-left-color: var(--warn-rule); background: var(--warn-bg); }
+  .callout .co-title { font-weight: 700; margin-bottom: 4px; font-size: 14.5px; }
+
+  /* ===== tables ===== */
+  .table-wrap { overflow-x: auto; overflow-y: auto; max-height: 600px; margin: 14px 0; border: 1px solid var(--rule); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 14px; }
+  th {
+    text-align: left; background: #1e3a5f; color: #f3f6fb; font-weight: 600;
+    padding: 10px 14px; white-space: nowrap; position: sticky; top: 0;
+  }
+  td { padding: 10px 14px; border-top: 1px solid var(--rule); vertical-align: top; }
+  tbody tr:nth-child(even) { background: #f6f9fc; }
+  td .pill {
+    display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 9px;
+    border-radius: 999px; white-space: nowrap;
+  }
+  .pill.ok { background: #d9f2ee; color: var(--ok); }
+  .pill.fail { background: #fde8e8; color: var(--fail); }
+  .pill.unc { background: #fdeeda; color: var(--unc); }
+  .pill.muted { background: #eef2f7; color: var(--muted); }
+
+  /* ===== code ===== */
+  pre {
+    background: var(--code-bg); color: var(--code-ink); border-radius: 8px;
+    padding: 16px 18px; overflow-x: auto; font-family: var(--mono);
+    font-size: 13px; line-height: 1.65; margin: 14px 0;
+  }
+  pre .c { color: #7d8aa0; }         /* comment */
+  pre .k { color: #7dd3fc; }         /* key */
+  pre .s { color: #86efac; }         /* string */
+  pre .n { color: #fca5a5; }         /* number */
+  pre .f { color: #fbbf24; }         /* field name / command */
+  pre .arrow { color: #94a3b8; }
+
+  /* ===== flow diagram ===== */
+  .flow { display: flex; flex-direction: column; gap: 0; margin: 18px 0 6px; }
+  .flow .node {
+    border: 1.5px solid var(--rule); border-radius: var(--radius);
+    padding: 14px 18px; background: #fbfcfe; max-width: 640px; margin: 0 auto; width: 100%;
+  }
+  .flow .node .n-title { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .flow .node .n-title .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .flow .node ul { margin: 8px 0 0; padding-left: 20px; font-size: 13.5px; color: var(--muted); }
+  .flow .conn {
+    align-self: center; display: flex; flex-direction: column; align-items: center;
+    color: var(--muted); font-size: 12px; padding: 4px 0;
+  }
+  .flow .conn .line { width: 2px; height: 22px; background: var(--rule); margin: 2px 0; }
+  .dot.ark { background: var(--accent); }
+  .dot.tool { background: #64748b; }
+  .dot.local { background: var(--accent2); }
+  .dot.sum { background: #8b5cf6; }
+
+  /* ===== steps (ordered implementation) ===== */
+  .steps { counter-reset: step; list-style: none; padding-left: 0 !important; margin-top: 14px; }
+  .steps > li {
+    counter-increment: step; position: relative; padding: 0 0 18px 46px;
+  }
+  .steps > li:last-child { padding-bottom: 0; }
+  .steps > li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 0;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-weight: 700; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .steps > li:not(:last-child)::after {
+    content: ""; position: absolute; left: 14px; top: 34px; bottom: 4px; width: 2px; background: var(--rule);
+  }
+  .steps b { display: block; margin-bottom: 2px; }
+
+  /* ===== badges list ===== */
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .badge {
+    font-size: 13px; padding: 5px 12px; border-radius: 999px;
+    border: 1px solid var(--rule); background: #f6f9fc; color: var(--muted);
+  }
+  .badge.no { color: #9a3412; background: #fef3ec; border-color: #fcd9bf; }
+
+  /* ===== footer ===== */
+  footer {
+    max-width: 1100px; margin: 0 auto; padding: 0 24px 48px;
+    color: var(--muted); font-size: 13px;
+  }
+  footer .f-rule { border-top: 1px solid var(--rule); padding-top: 16px; }
+
+  /* ===== print ===== */
+  @media print {
+    nav.toc { display: none; }
+    .layout { display: block; padding: 0; }
+    section { border: none; box-shadow: none; break-inside: avoid; padding: 18px 0; }
+    body { background: #fff; }
+    a { color: var(--ink); }
+  }
+
+  /* ===== mobile ===== */
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; gap: 16px; }
+    nav.toc { position: static; max-height: none; }
+    nav.toc ol { columns: 2; column-gap: 18px; }
+    section { padding: 20px 18px; }
+    .hero h1 { font-size: 24px; }
+  }
+  @media (max-width: 560px) {
+    body { font-size: 15px; }
+    nav.toc ol { columns: 1; }
+    .flow .node { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="kicker">ai-shortdrama-studio · 技术方案</div>
+    <h1>本地 UI 观察与测试结果压缩方案</h1>
+    <p class="sub">将高频、只读、可复核的观察工作放到本地模型，将单次大上下文理解、诊断和修复保留给主模型。目标不是让本地模型替代程序员，而是建立一个本地「观测与信息压缩层」。</p>
+    <div class="meta-row">
+      <span><span class="tag">版本</span> v0.1</span>
+      <span><span class="tag">日期</span> 2026-10-31</span>
+      <span><span class="status">仅方案，尚未在项目中实施</span></span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+
+<nav class="toc" aria-label="目录">
+  <div class="toc-title">目录</div>
+  <ol>
+    <li><a href="#s1">背景</a></li>
+    <li><a href="#s2">目标与原则</a></li>
+    <li><a href="#s3">模型与工具分工</a></li>
+    <li><a href="#s4">MVP 范围</a></li>
+    <li><a href="#s5">总体链路</a></li>
+    <li><a href="#s6">视觉检查清单</a></li>
+    <li><a href="#s7">本地模型输出契约</a></li>
+    <li><a href="#s8">汇总规则</a></li>
+    <li><a href="#s9">本地产物与摘要</a></li>
+    <li><a href="#s10">配置与密钥管理</a></li>
+    <li><a href="#s11">建议实施结构</a></li>
+    <li><a href="#s12">单元测试与验收</a></li>
+    <li><a href="#s13">实施顺序</a></li>
+    <li><a href="#s14">后续可选扩展</a></li>
+    <li><a href="#s15">成效度量</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="s1">
+  <h2><span class="no">01</span> 背景</h2>
+  <p>开发、调试和 UI 测试过程中，主模型的 token 消耗往往<strong>不来自「写代码」本身</strong>，而来自反复读取：</p>
+  <ul>
+    <li>每一步操作后的界面截图；</li>
+    <li>DOM、无障碍树和控件状态；</li>
+    <li>控制台、页面和测试日志；</li>
+    <li>多轮成功但无需主模型关注的中间过程。</li>
+  </ul>
+  <p>本方案将高频、只读、可复核的观察工作放到本地模型，将单次大上下文理解、诊断和修复保留给 Trae 主模型。目标不是让本地模型替代程序员，而是<mark class="key">建立一个本地「观测与信息压缩层」</mark>。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="no">02</span> 目标与原则</h2>
+  <h3>2.1 目标</h3>
+  <ol>
+    <li>重复 UI 测试<strong>不消耗</strong>主模型的截图和完整日志上下文。</li>
+    <li>主模型默认只接收简短摘要，异常时才读取指定证据。</li>
+    <li>本地模型<strong>始终只读</strong>，不直接修改代码或操作生产数据。</li>
+    <li>本地模型不可用、超时或输出无效时，明确标记为待复核，<strong>绝不假报通过</strong>。</li>
+  </ol>
+  <h3>2.2 核心原则</h3>
+  <div class="callout">
+    <div class="co-title">工具负责动手，本地模型负责看，主模型负责想。</div>
+  </div>
+  <ul>
+    <li>能由 selector、日志规则或状态断言确定的结果，由确定性工具判断。</li>
+    <li>截图主要用于页面状态与视觉异常观察，<strong>不作为唯一功能断言依据</strong>。</li>
+    <li>本地模型不承担架构设计、代码修复、自动合并和最终发布判断。</li>
+    <li>默认只让摘要进入主对话；截图和完整日志保留为本地产物。</li>
+  </ul>
+</section>
+
+<section id="s3">
+  <h2><span class="no">03</span> 模型与工具分工</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>角色</th><th>建议运行位置</th><th>职责</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Playwright / 固定脚本</td><td>开发机</td><td>启动 Electron、执行固定操作、采集截图和日志</td></tr>
+        <tr><td>Qwen3.5-9B（Q4 量化）</td><td>本机 8G GPU</td><td>常规截图观察、日志压缩、结构化结果输出</td></tr>
+        <tr><td>Qwen3.8-27B</td><td>局域网 24G GPU（可选）</td><td>复核疑难、失败或低置信度观察结果；<strong>不纳入 MVP</strong></td></tr>
+        <tr><td>Trae 主模型 / 火山方舟</td><td>云端</td><td>制定测试计划、诊断异常、修改代码、最终判断</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout warn">
+    <div class="co-title">上下文提示</div>
+    Qwen3.5-9B 在 8G GPU 上建议从 Q4_K_M、8K 上下文起步。模型原生上下文能力不等于本地可用上下文，不为长日志盲目扩大上下文。
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="no">04</span> MVP 范围</h2>
+  <h3>4.1 首条固定流程</h3>
+  <p>只实现一条低风险 Electron 流程：</p>
+  <ol>
+    <li>启动应用；</li>
+    <li>等待主窗口和明确的工作台控件出现；</li>
+    <li>保存启动阶段与工作台阶段截图；</li>
+    <li>收集控制台错误和页面异常；</li>
+    <li>将每张截图及当前步骤检查清单发送给本地 9B；</li>
+    <li>汇总确定性断言与视觉观察；</li>
+    <li>向标准输出返回短摘要和本地产物路径。</li>
+  </ol>
+  <p>首条流程不进入立项、生成、ComfyUI 等复杂业务，不修改业务数据。</p>
+  <h3>4.2 明确不做</h3>
+  <div class="badges">
+    <span class="badge no">真机操作</span>
+    <span class="badge no">自动修复代码</span>
+    <span class="badge no">失败后自动重试</span>
+    <span class="badge no">截图猜坐标点击</span>
+    <span class="badge no">自由探索整个应用</span>
+    <span class="badge no">自动提交 / 合并 / 推送</span>
+    <span class="badge no">两级模型自动级联</span>
+    <span class="badge no">视觉结果作为发布门禁</span>
+  </div>
+</section>
+
+<section id="s5">
+  <h2><span class="no">05</span> 总体链路</h2>
+  <div class="flow" role="img" aria-label="总体链路流程图">
+    <div class="node">
+      <div class="n-title"><span class="dot ark"></span>Trae 主模型</div>
+      <ul><li>执行一条 UI 观察命令</li></ul>
+    </div>
+    <div class="conn"><span class="line"></span>触发</div>
+    <div class="node">
+      <div class="n-title"><span class="dot tool"></span>固定 Playwright 脚本</div>
+      <ul>
+        <li>启动 Electron</li>
+        <li>执行固定操作</li>
+        <li>保存每步截图</li>
+        <li>保存控制台与页面错误</li>
+      </ul>
+    </div>
+    <div class="conn"><span class="line"></span>截图 + 检查清单</div>
+    <div class="node">
+      <div class="n-title"><span class="dot local"></span>本地观察器（Qwen3.5-9B）</div>
+      <ul>
+        <li>输入：单张截图 + 当前步骤检查清单</li>
+        <li>输出：固定 JSON</li>
+        <li>权限：无工具、无源码写权限</li>
+      </ul>
+    </div>
+    <div class="conn"><span class="line"></span>结构化结果</div>
+    <div class="node">
+      <div class="n-title"><span class="dot sum"></span>结果汇总器</div>
+      <ul>
+        <li>合并确定性断言与视觉观察</li>
+        <li>无效输出统一转为 uncertain</li>
+        <li>保存完整本地产物</li>
+      </ul>
+    </div>
+    <div class="conn"><span class="line"></span>短摘要 / 异常证据</div>
+    <div class="node">
+      <div class="n-title"><span class="dot ark"></span>Trae 主模型</div>
+      <ul>
+        <li>默认只读取摘要</li>
+        <li>异常时读取指定截图、相关日志和复现步骤</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="s6">
+  <h2><span class="no">06</span> 视觉检查清单</h2>
+  <p>每一步使用<strong>明确、封闭</strong>的检查项，不询问「这个页面怎么样」。</p>
+  <h3>启动阶段建议检查</h3>
+  <ul>
+    <li>是否出现应用主窗口；</li>
+    <li>是否白屏或只有无法识别的空白内容；</li>
+    <li>是否出现错误弹窗或明显错误提示。</li>
+  </ul>
+  <h3>工作台阶段建议检查</h3>
+  <ul>
+    <li>主窗口和核心工作区是否可见；</li>
+    <li>是否存在明显遮挡、截断、重叠或大面积异常空白；</li>
+    <li>是否出现与预期状态不符的错误提示；</li>
+    <li>页面整体是否符合「工作台」预期。</li>
+  </ul>
+  <div class="callout">
+    <div class="co-title">断言边界</div>
+    功能是否到达工作台仍由 selector 断言决定；视觉模型只提供辅助观察。
+  </div>
+</section>
+
+<section id="s7">
+  <h2><span class="no">07</span> 本地模型输出契约</h2>
+  <p>每一步只返回一个 JSON 对象：</p>
+<pre>
+<span class="k">{"</span>
+  <span class="k">"step"</span><span class="c">:</span> <span class="s">"open-workbench"</span><span class="c">,</span>
+  <span class="k">"status"</span><span class="c">:</span> <span class="s">"pass"</span><span class="c">,</span>
+  <span class="k">"observations"</span><span class="c">: [</span>
+    <span class="s">"主窗口已显示"</span><span class="c">,</span>
+    <span class="s">"中央工作区可见"</span>
+  <span class="c">]</span><span class="c">,</span>
+  <span class="k">"evidence"</span><span class="c">: [</span>
+    <span class="s">"左侧导航和中央内容区域可见"</span>
+  <span class="c">]</span><span class="c">,</span>
+  <span class="k">"confidence"</span><span class="c">:</span> <span class="n">0.92</span>
+<span class="k">}</span>
+</pre>
+  <h3>字段约束</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>字段</th><th>类型</th><th>规则</th></tr></thead>
+      <tbody>
+        <tr><td><code class="inline">step</code></td><td>string</td><td>必须等于当前请求步骤 ID</td></tr>
+        <tr><td><code class="inline">status</code></td><td>enum</td><td><span class="pill ok">pass</span> <span class="pill fail">fail</span> <span class="pill unc">uncertain</span> 三选一</td></tr>
+        <tr><td><code class="inline">observations</code></td><td>string[]</td><td>只记录从截图中实际观察到的内容</td></tr>
+        <tr><td><code class="inline">evidence</code></td><td>string[]</td><td>给出状态判断对应的可见依据</td></tr>
+        <tr><td><code class="inline">confidence</code></td><td>number</td><td>0–1；无法可靠判断时配合 <span class="pill unc">uncertain</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>以下情况统一转换为 uncertain 并记录原因</h3>
+  <ul>
+    <li>HTTP 请求失败或超时；</li>
+    <li>模型返回空内容；</li>
+    <li>返回内容不是合法 JSON；</li>
+    <li>字段缺失、类型错误或状态枚举越界；</li>
+    <li>返回的步骤 ID 与请求不一致；</li>
+    <li>本地服务不支持图片输入。</li>
+  </ul>
+  <div class="callout warn">
+    <div class="co-title">不做自动重试修复</div>
+    不自动让模型重试修复格式；MVP 直接保留原始响应并标记待复核。
+  </div>
+</section>
+
+<section id="s8">
+  <h2><span class="no">08</span> 汇总规则</h2>
+  <p>每个步骤同时保留两类结果：</p>
+  <ul>
+    <li><code class="inline">functional</code>：由 Playwright selector、页面异常等确定性规则产生；</li>
+    <li><code class="inline">visual</code>：由本地视觉模型产生。</li>
+  </ul>
+  <h3>汇总时遵守</h3>
+  <ol>
+    <li>确定性功能失败<strong>不能被</strong>视觉 <span class="pill ok">pass</span> 覆盖；</li>
+    <li>视觉服务不可用<strong>不能</strong>被视为视觉通过；</li>
+    <li>任一关键环节失败，总体结果不得为 <span class="pill ok">pass</span>；</li>
+    <li>无明确失败但存在 <span class="pill unc">uncertain</span>，总体结果为 <span class="pill unc">needs_review</span>；</li>
+    <li>MVP 的总体结果只供开发辅助，<strong>不作为发布门禁</strong>。</li>
+  </ol>
+  <p>建议总体状态：<span class="pill ok">pass</span> <span class="pill fail">fail</span> <span class="pill unc">needs_review</span></p>
+</section>
+
+<section id="s9">
+  <h2><span class="no">09</span> 本地产物与主模型摘要</h2>
+  <h3>9.1 产物目录</h3>
+<pre>
+artifacts/ui-observe/&lt;run-id&gt;/
+├─ run.json
+├─ summary.json
+├─ steps/
+│  ├─ 01-launch.png
+│  ├─ 01-launch.json
+│  ├─ 02-workbench.png
+│  └─ 02-workbench.json
+└─ logs/
+   ├─ console.log
+   └─ runner.log
+</pre>
+  <div class="callout warn">
+    <div class="co-title">版本库卫生</div>
+    <code class="inline">artifacts/</code> 应在实施时加入 <code class="inline">.gitignore</code>，避免截图、日志和运行数据进入版本库。
+  </div>
+  <h3>9.2 标准输出摘要</h3>
+  <p>正常情况只输出：</p>
+<pre>
+UI 观察完成：2/2 步通过
+功能断言：通过
+视觉检查：通过
+控制台错误：0
+产物目录：artifacts/ui-observe/&lt;run-id&gt;
+</pre>
+  <p>异常情况额外输出：</p>
+  <ul>
+    <li>失败或待复核步骤；</li>
+    <li>一句话观察结果；</li>
+    <li>对应截图路径；</li>
+    <li>相关日志路径或首个有效错误；</li>
+    <li>最小复现步骤。</li>
+  </ul>
+  <p>摘要保持<strong>短小而固定</strong>，不把所有成功步骤的截图、日志和模型原始响应传入主对话。</p>
+</section>
+
+<section id="s10">
+  <h2><span class="no">10</span> 配置与密钥管理</h2>
+  <h3>环境变量</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>变量</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td><code class="inline">UI_OBSERVER_BASE_URL</code></td><td>本地或局域网 OpenAI 兼容接口地址</td></tr>
+        <tr><td><code class="inline">UI_OBSERVER_MODEL</code></td><td>模型名，MVP 默认 <code class="inline">qwen3.5-9b</code></td></tr>
+        <tr><td><code class="inline">UI_OBSERVER_API_KEY</code></td><td>接口密钥；本地无需认证时可留空</td></tr>
+        <tr><td><code class="inline">UI_OBSERVER_TIMEOUT_MS</code></td><td>单次观察超时时间</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>安全要求</h3>
+  <ul>
+    <li>不在源码、任务文档、配置样例或日志中写入<strong>真实密钥</strong>；</li>
+    <li>不打印请求头和完整鉴权信息；</li>
+    <li>截图优先使用本机或可信局域网服务；</li>
+    <li><strong>不通过公网明文 HTTP</strong> 发送截图和密钥；</li>
+    <li>本地模型只接收脚本传入的图片和文本，不获得 shell、文件系统或应用控制工具；</li>
+    <li>测试脚本只能写入规定的产物目录，不修改应用源码和业务项目数据。</li>
+  </ul>
+</section>
+
+<section id="s11">
+  <h2><span class="no">11</span> 建议实施结构</h2>
+  <p>为控制依赖和改动范围，建议先采用独立脚本，不接入 Electron 主进程：</p>
+<pre>
+scripts/ui-observe/
+├─ run.mjs
+├─ observer.mjs
+├─ checklist.json
+└─ observer.test.mjs
+</pre>
+  <p>并在 <code class="inline">package.json</code> 增加两个命令：</p>
+  <ul>
+    <li><code class="inline">ui:observe</code>：执行固定 UI 观察流程；</li>
+    <li><code class="inline">ui:observe:test</code>：执行观察器单元测试。</li>
+  </ul>
+  <p>预计新增开发依赖：<code class="inline">playwright</code>。它只用于测试采集，不进入应用运行代码。</p>
+  <div class="callout warn">
+    <div class="co-title">边界约束</div>
+    最终文件布局可在实施任务包中调整，但不得将观察器接入共享类型或修改现有业务契约。
+  </div>
+</section>
+
+<section id="s12">
+  <h2><span class="no">12</span> 单元测试与验收</h2>
+  <h3>12.1 单元测试（至少覆盖）</h3>
+  <ol>
+    <li>合法 <span class="pill ok">pass</span>、<span class="pill fail">fail</span>、<span class="pill unc">uncertain</span> JSON 的解析；</li>
+    <li>非 JSON、缺字段、错误类型和未知状态的处理；</li>
+    <li>步骤 ID 不匹配时转为 <span class="pill unc">uncertain</span>；</li>
+    <li>请求超时、服务不可用和空响应的处理；</li>
+    <li>功能失败不会被视觉通过覆盖；</li>
+    <li>存在 <span class="pill unc">uncertain</span> 时总体结果为 <span class="pill unc">needs_review</span>；</li>
+    <li>摘要不包含密钥、完整日志和无关截图数据。</li>
+  </ol>
+  <h3>12.2 MVP 验收标准</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>编号</th><th>验收标准</th></tr></thead>
+      <tbody>
+        <tr><td><strong>AC-01</strong></td><td>一条命令能够启动应用、完成固定流程并保存两步截图和日志</td></tr>
+        <tr><td><strong>AC-02</strong></td><td>正常流程下，主对话只收到短摘要，不接收全部截图和日志</td></tr>
+        <tr><td><strong>AC-03</strong></td><td>预置异常截图能够被标记为 <span class="pill fail">fail</span>，并给出可见依据</td></tr>
+        <tr><td><strong>AC-04</strong></td><td>本地模型不可用或输出无效时，结果为 <span class="pill unc">needs_review</span>，不会假报通过</td></tr>
+        <tr><td><strong>AC-05</strong></td><td>观察器单元测试、项目现有类型检查和全量测试均通过</td></tr>
+        <tr><td><strong>AC-06</strong></td><td>整个流程不修改业务源码、共享层和真实项目数据</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="s13">
+  <h2><span class="no">13</span> 实施顺序</h2>
+  <ol class="steps">
+    <li><b>治理准备</b>按项目 AI-SDG 规范建立 Feature 任务包，补齐需求规格、契约、任务清单和变更记录；新增 Playwright 前完成 K9 依赖确认。</li>
+    <li><b>本地接口验证</b>确认 Qwen3.5-9B 服务支持 OpenAI 兼容图片输入，验证 Q4 量化下的显存、响应时间和结构化输出能力。</li>
+    <li><b>只采集、不观察</b>先跑通 Electron 启动、截图、日志和确定性断言。</li>
+    <li><b>接入本地观察器</b>实现单图请求、固定提示词、JSON 校验和异常转换。</li>
+    <li><b>实现摘要与产物</b>确保主模型默认只读取摘要，异常证据可按路径查看。</li>
+    <li><b>测试与试运行</b>完成单元测试和真实启动流程，再用一批正常/异常截图评估误报和漏报。</li>
+    <li><b>决定是否扩展</b>只有在 MVP 稳定后，才考虑更多 UI 流程、24G 复核或真机测试。</li>
+  </ol>
+</section>
+
+<section id="s14">
+  <h2><span class="no">14</span> 后续可选扩展</h2>
+  <p>以下均<strong>不属于 MVP</strong>：</p>
+  <ul>
+    <li>24G 模型仅对 <span class="pill fail">fail</span> 和 <span class="pill unc">uncertain</span> 结果进行二次复核；</li>
+    <li>将日志压缩独立为无图片请求，降低视觉调用成本；</li>
+    <li>基于同一检查清单批量回归多个页面；</li>
+    <li>使用 Playwright Trace 定位失败前后的状态；</li>
+    <li>Android 真机通过 ADB/UIAutomator 操作，截图仅用于观察；</li>
+    <li>根据实际 diff 和测试结果生成文档初稿，主模型一次终审。</li>
+  </ul>
+  <div class="callout">
+    <div class="co-title">扩展不变式</div>
+    扩展时仍保持同一边界：确定性工具执行操作，本地模型只读观察，主模型负责诊断与修改。
+  </div>
+</section>
+
+<section id="s15">
+  <h2><span class="no">15</span> 成效度量</h2>
+  <p>试运行阶段记录：</p>
+  <ul>
+    <li>每次测试进入主模型的<strong>截图数量</strong>；</li>
+    <li>每次测试进入主模型的<strong>日志字符数或 token 数</strong>；</li>
+    <li>本地观察的 <span class="pill ok">pass</span> / <span class="pill fail">fail</span> / <span class="pill unc">uncertain</span> 分布；</li>
+    <li>主模型复核后确认的<strong>误报和漏报数量</strong>；</li>
+    <li>单次本地观察<strong>耗时及显存占用</strong>；</li>
+    <li>因本地观察错误导致的<strong>额外复核成本</strong>。</li>
+  </ul>
+  <div class="callout">
+    <div class="co-title">判断标准</div>
+    方案是否值得扩大，不取决于本地模型调用了多少次，而取决于它能否在低风险前提下<strong>稳定减少主模型上下文</strong>，同时不增加大量复核工作。
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  <div class="f-rule">
+    <p>ai-shortdrama-studio · 本地 UI 观察与测试结果压缩方案 v0.1 · 2026-10-31 · 状态：仅方案，尚未实施<br>
+    源文档：docs/本地UI观察器方案.md</p>
+  </div>
+</footer>
+
+</body>
+</html>

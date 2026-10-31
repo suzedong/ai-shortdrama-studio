@@ -97,6 +97,81 @@ describe('T4 GateBridge', () => {
     await expect(request(b, 'g5')).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' })
   })
 
+  it('0-final approved + 新版本 > 旧版本：覆盖重开为 pending（再版定案门）', async () => {
+    await seedGate({
+      gateId: '0-final',
+      status: 'approved',
+      question: 'v2 已决',
+      options: ['A'],
+      payload: { version: 2, pendingMarks: [], changesFromPrevious: [] },
+    })
+    const b = new GateBridge()
+    const seen: string[] = []
+    b.setGateListener(e => seen.push(`${e.gate.gateId}:${e.gate.status}`))
+
+    const p = b.request({
+      gateId: '0-final',
+      title: '再版定案',
+      question: 'v3 再版定案卡',
+      options: ['发布 v3', '再改改'],
+      payload: { version: 3, pendingMarks: [], changesFromPrevious: [], impactSummary: { counts: { high: 1, medium: 0 }, items: [] } },
+    })
+    await tick()
+
+    const canvas = await canvasStore.get()
+    const gates = canvas.gates.filter(g => g.gateId === '0-final')
+    expect(gates).toHaveLength(1)
+    expect(gates[0].status).toBe('pending')
+    expect(gates[0].question).toBe('v3 再版定案卡')
+    expect((gates[0].payload as { version?: number }).version).toBe(3)
+    expect(seen).toContain('0-final:pending')
+
+    b.decide('0-final', { decision: 'approved' })
+    await expect(p).resolves.toEqual({ decision: 'approved' })
+  })
+
+  it('0-final approved + 同版本 → INVALID_ARGUMENT（一张门只授权一版）', async () => {
+    await seedGate({
+      gateId: '0-final',
+      status: 'approved',
+      question: 'v2 已决',
+      options: ['A'],
+      payload: { version: 2 },
+    })
+    const b = new GateBridge()
+    await expect(
+      b.request({ gateId: '0-final', question: 'q', options: ['A'], payload: { version: 2 } }),
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' })
+  })
+
+  it('0-final approved + 新版本 ≤ 旧版本 → INVALID_ARGUMENT', async () => {
+    await seedGate({
+      gateId: '0-final',
+      status: 'approved',
+      question: 'v3 已决',
+      options: ['A'],
+      payload: { version: 3 },
+    })
+    const b = new GateBridge()
+    await expect(
+      b.request({ gateId: '0-final', question: 'q', options: ['A'], payload: { version: 2 } }),
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' })
+  })
+
+  it('0-final approved + 新 payload 无 version → INVALID_ARGUMENT', async () => {
+    await seedGate({
+      gateId: '0-final',
+      status: 'approved',
+      question: 'v2 已决',
+      options: ['A'],
+      payload: { version: 2 },
+    })
+    const b = new GateBridge()
+    await expect(
+      b.request({ gateId: '0-final', question: 'q', options: ['A'], payload: {} }),
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' })
+  })
+
   it('rejected 门 request：同一 gateId 重开为 pending（不新增门编号），可再次裁决', async () => {
     await seedGate({
       gateId: 'g8',

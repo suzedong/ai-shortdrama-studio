@@ -9,6 +9,7 @@
 | 2026-10-28 | **建包登记**：新建任务包 feature-012「定案门信息完整性与门卡留存」，溯源 **[Design 原有]**（事实源：短剧Agent平台设计.md §2.6.5 L252-256 拍板前同列可见 + §2.6.7 影响清单留底 L363-366） | 用户于 2026-10-28 拍板三包分包方案，本包为其中一包；业务 = ①再版定案门「拍板前展示影响产物清单」（修正现状顺序倒置：showrunner.md L153-155 第 3 步拍板先于第 4 步 assess 呈报）＋ ②approved 门卡 findings 留存真机挂载（翻案项，呈报见需求规格 §2，翻案对象 = 806 本文件 X 节 2026-10-28 条目） |
 | 2026-10-28 | **规格待批准（历史，已由下一行「实施放行」取代）**：本包五文件（需求规格 / 契约 / 任务清单 / 设计说明 / 本记录）已建立；契约按推荐方案撰写（D-a=A1 门 payload 增键 / D-b=B1 assess 前置 / D-c=B Stage0View 放行） | 铁律 1（No Spec, No Code）：用户批准本规格并在本节补登「实施放行」前，任务清单 T1-T9 一律不得动手；若裁决偏离推荐方案，须先修订契约与本记录再实施 |
 | 2026-10-28 | **实施放行**：用户批准本包规格，决策点按推荐方案裁决——D-a=A1（门 payload 增 `impactSummary` 键，不触 K1）/ D-b=B1（`impact.assess` 前置到发门前）/ D-c=B（Stage0View 放行 approved 门卡，零 K1，806 翻案成立）/ D-d=全系统直做；T1 起可动代码 | 用户原话「好的，按推荐方案开始实施 011、012、013 的三包范围」；三项决策落地值同批登记决策台账 **D-020** |
+| 2026-10-31 | **D-e 0-final 版本化重开（真机 AC6 缺陷修复放行）**：真机 PK-012-02 暴露 `0-final` 门 approved 后无法为下一版重开（bridge.ts 对所有 approved 门一律 INVALID_ARGUMENT），阻塞再版全链路。用户批准方案 E1：仅 `0-final` 且新 `payload.version` 严格大于旧门版本时，允许同一 gateId 覆盖重开为 pending；同版本 / 新版本不更高 / 版本不可解析 / 非 0-final 门仍拒绝。零 K1（复用 guard.ts gateVersion，不改 shared）/ 零 K8（零新工具 IPC） | 真机首跑实证缺陷后呈报，用户拍板「批准版本化重开（推荐）」；落地见 T10 |
 
 ## T 节 · 实施回填
 
@@ -23,6 +24,7 @@
 | T7 | 2026-10-28 | 真机目验**受限降级**：本包验收面（再版门 payload 注入 + approved 留存卡）需 Electron 沙箱项目与 Agent 运行时，本环境未执行，不臆造通过；以组件三态单测 + payload 安全解析用例 + 代码走读替代留证。Electron 沙箱目验列入遗留项，与 011 / 013 一并待用户真机验收 | AC1-AC6 自动化覆盖达成；AC1/AC3/AC6 真机项遗留 |
 | T8 | 2026-10-28 | 治理收尾：`docs/features/README.md` 012 行翻态（格式对齐 806/807/808）；806 变更记录 X 节追加翻案修订注（原条目日期 2026-10-28 / 原因 = 012 方案 B 放行 approved 门卡 / 新去向 = Stage0View 留存上屏）；需求规格 §2 翻案指针注明「已落地」 | 806 X 注三要素齐全；README 行格式一致 |
 | T9 | 2026-10-28 | 版本记录补 v1.7.1 实施行；包内五文件交叉引用复核（包号 012、决策落地值 D-a~D-d、基线数字）；收尾自检 | 五文件零矛盾；T 节 9 行齐全 |
+| T10 | 2026-10-31 | **真机 AC6 闭环 + D-e 修复**：① PK-012-01（未过门拒下游）真机通过；② PK-012-02 首跑暴露 approved `0-final` 不可重开缺陷→按 D-e E1 修订 `bridge.ts` initializeEntry（approved 分支加 0-final 版本化重开例外，复用 guard.gateVersion）+ 需求规格 §6 D-e / 契约 §1.3 反向同步 + `gate-bridge.test.ts` 新增 4 例（放行 / 同版本拒 / 低版本拒 / 无 version 拒）；③ 同沙箱复测 PK-012-02 全链路通过：assess→0-final v3 重开→批准→三选一 mark→commit（立项单.v3 双写、影响清单.v2-v3、manifest.briefVersion=3、两下游节点挂 dirty）；④ showrunner.md CRLF→LF 行尾归一化（修复 agent-profiles.test.ts frontmatter 解析失败，非本包逻辑改动）。全量 70 文件 825 passed / 1 skipped / 0 failed；tsc 恰 3 条基线 | AC1–AC6 真机全过；桥 approved 终态防护在版本化重开例外外零回归 |
 
 ## X 节 · 规格修订
 
@@ -33,6 +35,8 @@
 | 2026-10-28 | 契约 §3.1.b 末注「global.d.ts / dev-mock-api.ts 按需同步」中的 dev-mock 部分 | dev-mock 演示画布节点 id 为 `n-brief`（Stage0View 不识别）、`gates: []`；新增门演示桩会造成「空态 + 已批门」语义矛盾 | dev-mock **零 diff**（不增门演示桩）；目验走 Electron 沙箱 |
 | 2026-10-28 | 门 payload 新键类型放置 | `CanvasGate.payload` 为 `unknown` 自由载体，增键不触 K1；镜像类型循 806 `HarnessFindingDto` 先例 | 类型落 `src/global.d.ts`，`shared/types.ts` 零 diff |
 | 2026-10-29 | T7 真机目验遗留项之「approved 留存卡挂载点」面 | 挂起项 HOLD-01 补验（feature-012 方案 B 落地后解除条件成立） | ✅ 真机通过（用例 HOLD-01）：造数 approved 门 → STAGE 0 留存卡三区上屏（已确认横幅 + `data-gate-impact-summary` 影响清单 2 项 + `data-gate-harness-findings` 拦截区仅列 blocker、warning 过滤），无裁决按钮、无 pending 门条；证据回填 [立项阶段整体真机测试用例.md](../../立项阶段整体真机测试用例.md) §6。T7 其余真机面（再版门 payload 注入链路）不在本用例范围，维持原遗留口径 |
+| 2026-10-31 | 契约 §1.2「approved 为终态禁重开」表述 | 真机 PK-012-02 暴露：0-final 门 approved 后无法为下一版重开，与再版需复用同一 0-final 门的设计冲突 | 新增契约 §1.3「0-final approved 门的版本化重开（D-e E1）」：仅 0-final + 新版本严格大于旧版本时覆盖重开为 pending，其余 approved 仍拒绝；需求规格 §6 增 D-e 决策点。bridge.ts approved 分支同步修订（见 T10） |
+| 2026-10-31 | T7「AC6 真机项遗留」口径 | T10 真机复测 PK-012-02 全链路通过，AC6 遗留解除 | ✅ AC6 真机通过（见 T10 与整体测试计划 §6 PK-012-02）；T7 原遗留口径由 T10 闭环 |
 
 ## 版本记录
 
@@ -40,3 +44,4 @@
 | :-- | :-- | :-- |
 | v1.7.1-draft | 2026-10-28 | feature-012 五文件规格建立（建包登记，待批准） |
 | v1.7.1 | 2026-10-28 | 实施放行并落地：showrunner 再版纪律四处改写 + GateCardView 影响清单区 + Stage0View approved 留存挂载；新增 2 测试文件 12 例；全量 70 文件 821 passed / tsc 恰 3；806 翻案注与 README 同步 |
+| v1.7.2 | 2026-10-31 | 真机 AC6 闭环：D-e E1 修复 approved 0-final 版本化重开（bridge.ts + 4 例回归）；PK-012-01/02 真机全过；README/整体测试计划/本记录回填；showrunner.md CRLF 行尾归一化；全量 70 文件 825 passed / tsc 恰 3 |

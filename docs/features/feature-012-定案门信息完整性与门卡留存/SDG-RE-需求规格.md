@@ -99,6 +99,16 @@ showrunner.md 纪律改写范围（B1 下）：再版六步第 3/4/5 步顺序�
 
 影响清单生成 = 002 既有 `impact.assess` 确定性追溯算法（规则可枚举 → 系统侧）；门卡渲染与留存挂载 = 系统直做 UI；本包零新 LLM 判定面，Agent 仅按改写后纪律调用既有工具——符合 D-016。
 
+### D-e 0-final 再版门的 approved 重开规则（2026-10-31 真机 AC6 暴露缺陷后补录）
+
+| 候选 | 内容 | 评估 |
+|---|---|---|
+| **E1（推荐，已批准）** | `0-final` 门 approved 后，仅当新请求 `payload.version`（候选版本）严格大于旧门 `payload.version`（已批准版本）时，允许以同一 gateId 覆盖重开为 pending；同版本 / 新版本不更高 / 版本不可解析 → 仍 `INVALID_ARGUMENT`；非 0-final 门 approved 一律不可重开 | 恢复 AC6 再版全链路；保留「一张门只授权一版」防护；复用 guard.ts `gateVersion` 解析，不改 shared 形状，零 K1/K8 |
+| E2 | 每版新建一个 gateId（如 `0-final-v3`） | 破坏「STAGE 0 唯一 0-final 门」设计（feature-001），下游 guard / Stage0View / showrunner 均按固定 `0-final` 取门，扩散面大。**不推荐** |
+| E3 | 再版前由 Agent 删除旧 approved 门再发新门 | approved 门是拍板留痕，删除破坏可追溯；且 Agent 无删门工具。**不可行** |
+
+> 实现落点：[bridge.ts](../../../electron/gate/bridge.ts) `initializeEntry` approved 分支；兼容核查：guard.ts `assertBriefPublishable` 已有 `gv !== publishVersion → VERSION_MISMATCH`，重开后新门绑定新版本，commit 时版本一致即放行，零行为变化。
+
 ## 7. K 卡口识别
 
 | 卡口 | 结论 |
@@ -117,4 +127,4 @@ showrunner.md 纪律改写范围（B1 下）：再版六步第 3/4/5 步顺序�
 | AC3 | 留存挂载：按 D-c 裁决方案，approved 门卡（含 findings 块）真机可回看；pending/rejected 既有行为零回归 | 组件单测 + 真机 |
 | AC4 | 工具面红线：MCP 工具恰 28、showrunner 白名单恰 23、零新 IPC、零新依赖；K1 按裁决结论核验（方案 B 下 shared 零 diff） | 静态验证 |
 | AC5 | 回归红线：`npx tsc --noEmit` 恰 3 条基线零新增；全量以 T1 实测基线（66 文件 761 passed / 0 failed / 1 skipped）为准——passed 不减少、skip 不增、failed=0；807 信封码组 + 806 HARNESS_VALIDATION_FAILED 链路 + 002 impact 三码回归组全绿 | 全量回归 |
-| AC6 | 真机（Electron 实机 + computer-use UIA/CDP）：沙箱项目走一遍再版新顺序——门卡拍板前可见改动+影响清单，拍板发布成功；approved 门卡留存可见、findings 块上屏；目验后沙箱清理、真实项目零污染 | 真机 |
+| AC6 | 真机（Electron 实机 + computer-use UIA/CDP）：沙箱项目走一遍再版新顺序——assess 前置 → 同一 `0-final` 门为新版本覆盖重开（旧 approved 门被新版 pending 覆盖，D-e E1）→ 门卡拍板前可见改动+影响清单 → 拍板 → commit 成功（v(N+1) 双写 + 影响清单留底 + 下游挂脏）；approved 门卡留存可见、findings 块上屏；目验后沙箱清理、真实项目零污染 | 真机 |

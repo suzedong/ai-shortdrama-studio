@@ -34,7 +34,18 @@ type ImpactSummaryDto = {
 
 ### 1.2 留存挂载数据面（推荐方案 B）
 
-approved 门本持久化于 canvas.json `gates[]`（[bridge.ts](../../../electron/gate/bridge.ts) 不删门、approved 为终态禁重开 L37/L68-70），留存挂载**纯 renderer 读取既有画布订阅数据**，零数据面改动、零新 IPC。方案 A（若改裁决）另行修订本节：ChatMessage 增 gate 快照属 K1，字段方案须随修订呈报。
+approved 门本持久化于 canvas.json `gates[]`（[bridge.ts](../../../electron/gate/bridge.ts) 不删门），留存挂载**纯 renderer 读取既有画布订阅数据**，零数据面改动、零新 IPC。方案 A（若改裁决）另行修订本节：ChatMessage 增 gate 快照属 K1，字段方案须随修订呈报。
+
+### 1.3 0-final approved 门的版本化重开（D-e E1，2026-10-31 补录）
+
+| 规则 | 口径 |
+|---|---|
+| 适用范围 | 仅 `gateId === '0-final'`；其余门（1-a / 1-b / 2-a…）approved 一律终态禁重开 |
+| 放行条件 | 旧门 `payload.version`（已批准版本）与新请求 `payload.version`（候选版本）均为有效数字，且 **新版本严格大于旧版本** |
+| 放行动作 | 以同一 gateId 覆盖旧 approved 门为 `pending`，question / options / payload 全部用本次请求内容（同 rejected 重开语义），不新增门编号 |
+| 拒绝条件 | 同版本 / 新版本 ≤ 旧版本 / 任一 version 不可解析 → `INVALID_ARGUMENT`（保留「一张门只授权一版」防护） |
+| 解析 | 复用 [guard.ts](../../../electron/gate/guard.ts) `gateVersion`（`payload.version` 为 number 时返回，否则 null） |
+| 下游兼容 | 重开后新门绑定新版本号；`assertBriefPublishable` 已有 `gv !== publishVersion → VERSION_MISMATCH`，commit 时版本一致即放行，零行为变化 |
 
 ## 2. 通道契约
 

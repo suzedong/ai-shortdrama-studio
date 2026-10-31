@@ -2,6 +2,7 @@
 // 挂点：StudioApp 右栏 aside 内、ChatComposer 上方（用户裁决③：对话区顶部常驻条）。
 // 数据自拉 captureList + 订阅 onCaptureChanged 全量替换；面板直改系统直写（D-016），
 // 与对话纠正通道同落 store 单点、同 capture:changed 广播（用户裁决②）。
+// 口径随项目走：projectId 变化（切项目 / 新建项目）即清空旧条目并重拉新项目文件。
 import { useEffect, useState } from 'react'
 import type { CapturedFact } from '../../../shared/types'
 
@@ -17,7 +18,7 @@ function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }
 
-export default function CaptureBar() {
+export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
   const [facts, setFacts] = useState<CapturedFact[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
@@ -32,13 +33,19 @@ export default function CaptureBar() {
 
   useEffect(() => {
     let alive = true
+    // 切项目：先清空旧项目条目与行内态，避免异步首拉期间残留
+    setFacts(null)
+    setLoadError(null)
+    setEditingId(null)
+    setRemovingId(null)
+    setRowError(null)
     window.api.captureList()
       .then(f => { if (alive) { setFacts(f.facts); setLoadError(null) } })
       // C7：list 失败（含损坏）显错误态条，不自动重试刷屏
       .catch(e => { if (alive) setLoadError(errMsg(e)) })
     const off = window.api.onCaptureChanged(f => { setFacts(f.facts); setLoadError(null) })
     return () => { alive = false; off() }
-  }, [])
+  }, [projectId])
 
   const startEdit = (f: CapturedFact): void => {
     setEditingId(f.id)

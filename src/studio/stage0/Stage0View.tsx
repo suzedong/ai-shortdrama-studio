@@ -181,16 +181,17 @@ export function BackgroundMd({ content }: { content: string }) {
 }
 
 /* ── 空态 ── */
-function EmptyStage0({ state, projectTitle, onBackToDag, entryQuote = '' }: {
+function EmptyStage0({ state, projectTitle, projectId, onBackToDag, entryQuote = '' }: {
   state: ReturnType<typeof selectStage0State>
   projectTitle: string
+  projectId: string
   onBackToDag: () => void
   entryQuote?: string
 }) {
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#FAFBFE]" data-view="stage0">
       <Header projectTitle={projectTitle} onBackToDag={onBackToDag} />
-      <Stage0Chain state={state} />
+      <Stage0Chain state={state} projectId={projectId} />
       <div className="absolute inset-0 top-[84px] overflow-y-auto px-[26px] py-[26px]">
         <div className="mx-auto flex max-w-[680px] flex-col gap-4 pt-[9vh]">
           <EntryQuoteCard quote={entryQuote} />
@@ -602,10 +603,11 @@ function BriefEditPanel({ brief, onClose, premiseDraft, onBriefUpdated }: {
 }
 
 /* ── published 主体：双卡 + 定案/版本区 ── */
-function PublishedBody({ brief, state, bg, entryQuote = '', driftLabel, onBriefUpdated }: {
+function PublishedBody({ brief, state, bg, projectId, entryQuote = '', driftLabel, onBriefUpdated }: {
   brief: ProjectBrief
   state: ReturnType<typeof selectStage0State>
   bg: BgDocState
+  projectId: string
   entryQuote?: string
   driftLabel: string | null
   onBriefUpdated?: (result: BriefUpdatePayload) => void
@@ -622,7 +624,7 @@ function PublishedBody({ brief, state, bg, entryQuote = '', driftLabel, onBriefU
   }))
   // feature-013：本人直改过的前提键 → 显示为 human 语义（009 数据流零 diff，仅展示层叠加）
   const [editedPremise, setEditedPremise] = useState<string[]>([])
-  const { facts } = useCaptureFacts()
+  const { facts } = useCaptureFacts(projectId)
   const confirmMap = useMemo(() => selectPremiseConfirmation(facts), [facts])
   const kindLabel = brief.kind === 'commercial' ? '商业短剧' : '个人纪念'
   const platforms = Array.isArray(brief.fiveElements.platforms) ? brief.fiveElements.platforms.join(' · ') : ''
@@ -880,8 +882,9 @@ function useBriefDocuments(refPath: string): { brief: BriefDocState; bg: BgDocSt
   return { brief, bg }
 }
 
-function BriefError({ projectTitle, onBackToDag, doc, state }: {
+function BriefError({ projectTitle, projectId, onBackToDag, doc, state }: {
   projectTitle: string
+  projectId: string
   onBackToDag: () => void
   doc: Extract<BriefDocState, { phase: 'error' }>
   state: ReturnType<typeof selectStage0State>
@@ -895,7 +898,7 @@ function BriefError({ projectTitle, onBackToDag, doc, state }: {
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#FAFBFE]" data-view="stage0">
       <Header projectTitle={projectTitle} onBackToDag={onBackToDag} />
-      <Stage0Chain state={state} />
+      <Stage0Chain state={state} projectId={projectId} />
       <div className="absolute inset-0 top-[84px] overflow-y-auto px-[26px] py-[26px]">
         <div className="mx-auto max-w-[680px] pt-[9vh]">
           <div className="rounded-[14px] border border-[#F0CFCF] bg-white p-7 text-center" data-stage0-brief-error>
@@ -916,7 +919,7 @@ export default function Stage0View({ canvas, projectTitle, onBackToDag, entryQuo
   )
 
   if (state.phase === 'empty' || !state.briefNode) {
-    return <EmptyStage0 state={state} projectTitle={projectTitle} onBackToDag={onBackToDag} entryQuote={entryQuote} />
+    return <EmptyStage0 state={state} projectTitle={projectTitle} projectId={canvas.projectId} onBackToDag={onBackToDag} entryQuote={entryQuote} />
   }
 
   const refPath = state.briefNode.ref?.format === 'json' ? state.briefNode.ref.path : ''
@@ -924,10 +927,10 @@ export default function Stage0View({ canvas, projectTitle, onBackToDag, entryQuo
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#FAFBFE]" data-view="stage0">
       <Header projectTitle={projectTitle} onBackToDag={onBackToDag} />
-      <Stage0Chain state={state} />
+      <Stage0Chain state={state} projectId={canvas.projectId} />
       <div className="absolute inset-0 top-[84px] overflow-y-auto px-[26px] py-[22px]">
         <div className="mx-auto flex max-w-[920px] flex-col gap-[18px]" data-stage0-brief>
-          <PublishedLoaded state={state} refPath={refPath} projectTitle={projectTitle} onBackToDag={onBackToDag} entryQuote={entryQuote} driftLabel={dirtyDriftLabel} onBriefUpdated={onBriefUpdated} />
+          <PublishedLoaded state={state} refPath={refPath} projectTitle={projectTitle} projectId={canvas.projectId} onBackToDag={onBackToDag} entryQuote={entryQuote} driftLabel={dirtyDriftLabel} onBriefUpdated={onBriefUpdated} />
         </div>
       </div>
     </div>
@@ -935,10 +938,11 @@ export default function Stage0View({ canvas, projectTitle, onBackToDag, entryQuo
 }
 
 /** 隔离读取 hook（保证 hooks 调用顺序不随主态切换变化） */
-function PublishedLoaded({ state, refPath, projectTitle, onBackToDag, entryQuote = '', driftLabel, onBriefUpdated }: {
+function PublishedLoaded({ state, refPath, projectTitle, projectId, onBackToDag, entryQuote = '', driftLabel, onBriefUpdated }: {
   state: ReturnType<typeof selectStage0State>
   refPath: string
   projectTitle: string
+  projectId: string
   onBackToDag: () => void
   entryQuote?: string
   driftLabel: string | null
@@ -947,7 +951,7 @@ function PublishedLoaded({ state, refPath, projectTitle, onBackToDag, entryQuote
   const { brief, bg } = useBriefDocuments(refPath)
 
   if (!refPath) {
-    return <BriefError projectTitle={projectTitle} onBackToDag={onBackToDag} doc={{ phase: 'error', reason: 'MISSING_REF', path: state.briefNode?.id ?? 'step-0-brief' }} state={state} />
+    return <BriefError projectTitle={projectTitle} projectId={projectId} onBackToDag={onBackToDag} doc={{ phase: 'error', reason: 'MISSING_REF', path: state.briefNode?.id ?? 'step-0-brief' }} state={state} />
   }
   if (brief.phase === 'loading') {
     return (
@@ -958,7 +962,7 @@ function PublishedLoaded({ state, refPath, projectTitle, onBackToDag, entryQuote
     )
   }
   if (brief.phase === 'error') {
-    return <BriefError projectTitle={projectTitle} onBackToDag={onBackToDag} doc={brief} state={state} />
+    return <BriefError projectTitle={projectTitle} projectId={projectId} onBackToDag={onBackToDag} doc={brief} state={state} />
   }
 
   // 展示版本以文件内 brief.version 为准（D-004）
@@ -968,7 +972,7 @@ function PublishedLoaded({ state, refPath, projectTitle, onBackToDag, entryQuote
         <span className="rounded-full bg-[#E7F8F0] px-2 py-px text-[10px] font-bold text-[#1E9E66]" data-stage0-version={brief.brief.version}>立项单 v{brief.brief.version}</span>
         <span className="text-[10px] text-[#A6ABC0]">来源：{brief.path}</span>
       </div>
-      <PublishedBody brief={brief.brief} state={state} bg={bg} entryQuote={entryQuote} driftLabel={driftLabel} onBriefUpdated={onBriefUpdated} />
+      <PublishedBody brief={brief.brief} state={state} bg={bg} projectId={projectId} entryQuote={entryQuote} driftLabel={driftLabel} onBriefUpdated={onBriefUpdated} />
     </>
   )
 }

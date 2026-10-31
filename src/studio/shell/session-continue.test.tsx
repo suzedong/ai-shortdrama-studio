@@ -40,6 +40,9 @@ interface Harness {
   unsubscribe: ReturnType<typeof vi.fn>
   abortSession: ReturnType<typeof vi.fn>
   promptAsync: ReturnType<typeof vi.fn>
+  // D-013：健康探测可配置（默认 RUNNING healthy）
+  status: ReturnType<typeof vi.fn>
+  start: ReturnType<typeof vi.fn>
   emitRuntime: (e: RuntimeEvent) => void
   emitCanvas: (c: Canvas) => void
 }
@@ -72,14 +75,16 @@ function installApi(initial: Canvas): Harness {
     unsubscribe: vi.fn(async () => ({ ok: true as const })),
     abortSession: vi.fn(async () => ({ ok: true as const })),
     promptAsync: vi.fn(async () => ({ accepted: true as const, messageId: 'msg-1' })),
+    status: vi.fn(async () => RUNNING),
+    start: vi.fn(async () => RUNNING),
     emitRuntime: e => act(() => runtimeCbs.forEach(cb => cb(e))),
     emitCanvas: c => act(() => canvasCbs.forEach(cb => cb(c))),
   }
 
   window.api = {
     runtime: {
-      status: vi.fn(async () => RUNNING),
-      start: vi.fn(async () => RUNNING),
+      status: h.status,
+      start: h.start,
       createSession: h.createSession,
       subscribe: h.subscribe,
       unsubscribe: h.unsubscribe,
@@ -116,7 +121,23 @@ const recordsA: ReplayMessageRecord[] = [
   { info: { id: 'u-a', role: 'user' }, parts: [{ type: 'text', text: 'A 历史提问' }] },
   {
     info: { id: 'a-a', role: 'assistant' },
-    parts: [{ type: 'text', text: 'A 历史回复', startedAt: 1 }],
+    parts: [
+      { type: 'reasoning', text: 'A 历史推理', startedAt: 1 },
+      {
+        type: 'tool', text: '', callId: 'call-history', tool: 'shortdrama_canvas_get',
+        status: 'completed', startedAt: 1000, endedAt: 1200,
+      },
+      {
+        type: 'tool', text: '', callId: 'call-history-error', tool: 'shortdrama_file_write',
+        status: 'error', startedAt: 1300, endedAt: 1400, error: '写入失败',
+        argsPreview: 'story/第1集.md', // D-012：主进程白名单摘要随 DTO 回放
+      },
+      {
+        type: 'tool', text: '', callId: 'call-history-pending', tool: 'shortdrama_manifest_get',
+        status: 'pending', startedAt: 0,
+      },
+      { type: 'text', text: 'A 历史回复', startedAt: 2 },
+    ],
   },
 ]
 const recordsB: ReplayMessageRecord[] = [
@@ -133,9 +154,9 @@ beforeEach(() => {
   user = userEvent.setup()
 })
 
-// R1：重开项目 → 历史文本气泡回放；加载凭据出现/消失；无演示数据
+// R1：重开项目 → 历史文本、推理与工具轨迹回放；加载凭据出现/消失；无演示数据
 describe('feature-808 · 会话续聊（契约 §6.3）', () => {
-  it('R1：绑定 sess-A 重开 → 渲染 A 历史；显示并收起 loading；不铺演示气泡', async () => {
+  it('R1：绑定 sess-A 重开 → 渲染 A 历史、推理和工具轨迹；不铺演示气泡', async () => {
     const h = installApi(canvasOf('pA'))
     h.binding.sessionId = 'sess-A'
     h.records.set('sess-A', recordsA)
@@ -143,6 +164,17 @@ describe('feature-808 · 会话续聊（契约 §6.3）', () => {
 
     expect(await screen.findByText('A 历史提问')).toBeInTheDocument()
     expect(screen.getByText('A 历史回复')).toBeInTheDocument()
+    expect(screen.getByText('A 历史推理').closest('details')).toHaveTextContent('推理过程')
+    // D-011：工具行显示中文动作短语（物理 ID 保留在 title）；3 项走折叠块
+    const trace = screen.getByTestId('chat-tool-trace')
+    expect(trace).toHaveTextContent('工具轨迹 · 3 项')
+    expect(trace).toHaveTextContent('读取画布 · 写入文件 · 读取阶段状态')
+    const historyTools = screen.getAllByTestId('chat-tool-row')
+    expect(historyTools).toHaveLength(3)
+    expect(historyTools[0]).toHaveTextContent('✓读取画布0.2s')
+    expect(historyTools[1]).toHaveTextContent('✗写入文件· story/第1集.md写入失败')
+    expect(historyTools[2]).toHaveTextContent('○读取阶段状态待执行')
+    expect(historyTools[0]).toHaveAttribute('title', 'shortdrama_canvas_get')
     await waitFor(() =>
       expect(screen.queryByTestId('chat-history-loading')).not.toBeInTheDocument(),
     )
@@ -160,8 +192,9 @@ describe('feature-808 · 会话续聊（契约 §6.3）', () => {
 
     expect(await screen.findByText(/输入一句灵感/)).toBeInTheDocument()
     expect(h.sessionMessages).not.toHaveBeenCalled()
+    // D-013：进入对话区即探测一次 status（只读）；healthy 不触发 start，「不启动 runtime」口径不变
+    await waitFor(() => expect(window.api.runtime.status).toHaveBeenCalled())
     expect(window.api.runtime.start).not.toHaveBeenCalled()
-    expect(window.api.runtime.status).not.toHaveBeenCalled()
     await waitFor(() =>
       expect(screen.queryByTestId('chat-history-loading')).not.toBeInTheDocument(),
     )
@@ -232,7 +265,15 @@ describe('feature-808 · 会话续聊（契约 §6.3）', () => {
     await waitFor(() => expect(h.promptAsync).toHaveBeenCalledTimes(1))
     expect(await screen.findByTestId('chat-stop')).toBeInTheDocument()
 
-    // 流式分片到达（同会话事件），停止钮全程保持
+    // 流式推理与正文到达（同会话事件），停止钮全程保持
+    h.emitRuntime({
+      type: 'message.part', ts: '', sessionId: 'sess-A', messageId: 'msg-x', partId: 'reasoning-1',
+      part: { kind: 'reasoning', text: '本轮推理内容' },
+    })
+    h.emitRuntime({
+      type: 'tool.call', ts: '', sessionId: 'sess-A', messageId: 'msg-x', callId: 'call-1',
+      tool: 'shortdrama_canvas_get', status: 'completed', argsPreview: '', args: {}, startedAt: 1000, endedAt: 1200,
+    })
     h.emitRuntime({
       type: 'message.part', ts: '', sessionId: 'sess-A', messageId: 'msg-x', partId: 'p1',
       part: { kind: 'text', text: 'A 正在生成的回复' },
@@ -250,8 +291,13 @@ describe('feature-808 · 会话续聊（契约 §6.3）', () => {
     await waitFor(() =>
       expect(screen.queryByTestId('chat-stop')).not.toBeInTheDocument(),
     )
-    // idle 定稿落 agent 气泡
+    // idle 定稿落 agent 气泡，推理与工具状态行仍保留在正式气泡中
     expect(screen.getByText('A 正在生成的回复')).toBeInTheDocument()
+    expect(screen.getByText('本轮推理内容').closest('details')).toHaveTextContent('推理过程')
+    // D-011：单项工具不加折叠层，直接列中文动作短语行
+    expect(screen.queryByTestId('chat-tool-trace')).not.toBeInTheDocument()
+    expect(screen.getAllByTestId('chat-tool-row')).toHaveLength(1)
+    expect(screen.getByTestId('chat-tool-row')).toHaveTextContent('✓读取画布0.2s')
   })
 
   it('D-007：sid=null（无绑定空项目）时他会话流式 + idle 一律丢弃，不上屏不落气泡', async () => {
@@ -356,5 +402,61 @@ describe('feature-808 · 会话续聊（契约 §6.3）', () => {
 
     unmount()
     expect(h.unsubscribe).toHaveBeenCalledTimes(1)
+  })
+
+  // D-013：进入对话区即探测（runtime 未运行层）+ runtime.error（方舟层）共用同一横幅；
+  // 恢复 = 探测/发送 status 通过自动清除或手动「重新检测」；不轮询
+  describe('D-013 · AI 服务不可用横幅', () => {
+    it('装载探测失败（status 非 running 且 start 失败）→ 横幅 + 输入禁用；重新检测恢复', async () => {
+      const h = installApi(canvasOf('pDown'))
+      h.status.mockResolvedValue({ ...RUNNING, state: 'stopped' as const, healthy: false })
+      h.start.mockResolvedValue({
+        ...RUNNING, state: 'error' as const, healthy: false,
+        error: { code: 'INTERNAL' as const, message: '端口被占用' },
+      })
+      render(<StudioApp />)
+
+      const banner = await screen.findByTestId('chat-ai-down')
+      expect(banner).toHaveTextContent('AI 服务不可用：端口被占用')
+      expect(screen.getByPlaceholderText('AI 服务不可用，恢复后可继续对话')).toBeDisabled()
+      expect(screen.getByTestId('chat-send')).toBeDisabled()
+
+      // 恢复：手动「重新检测」命中 healthy → 横幅消失、输入解禁
+      h.status.mockResolvedValue(RUNNING)
+      await user.click(screen.getByTestId('chat-ai-retry'))
+      await waitFor(() => expect(screen.queryByTestId('chat-ai-down')).not.toBeInTheDocument())
+      expect(screen.getByPlaceholderText(/描述创作目标/)).toBeEnabled()
+    })
+
+    it('装载探测 healthy → 无横幅、输入可用', async () => {
+      const h = installApi(canvasOf('pOk'))
+      render(<StudioApp />)
+      await screen.findByText(/输入一句灵感/)
+      await waitFor(() => expect(h.status).toHaveBeenCalled())
+      expect(screen.queryByTestId('chat-ai-down')).not.toBeInTheDocument()
+      expect(screen.getByPlaceholderText(/描述创作目标/)).toBeEnabled()
+    })
+
+    it('runtime.error 归属事件 → 横幅含失败原因；他会话事件被守卫丢弃', async () => {
+      const h = installApi(canvasOf('pErr'))
+      h.binding.sessionId = 'sess-A'
+      render(<StudioApp />)
+      await screen.findByText(/输入一句灵感/)
+
+      // 他会话归属：不上屏
+      h.emitRuntime({
+        type: 'runtime.error', ts: '', sessionId: 'sess-B',
+        error: { code: 'RUNTIME_UPSTREAM_ERROR', message: '他会话失败' },
+      })
+      expect(screen.queryByTestId('chat-ai-down')).not.toBeInTheDocument()
+
+      // 本会话归属：横幅出现并带原因
+      h.emitRuntime({
+        type: 'runtime.error', ts: '', sessionId: 'sess-A',
+        error: { code: 'RUNTIME_UPSTREAM_ERROR', message: '方舟余额不足' },
+      })
+      expect(await screen.findByTestId('chat-ai-down'))
+        .toHaveTextContent('AI 服务调用失败：方舟余额不足')
+    })
   })
 })

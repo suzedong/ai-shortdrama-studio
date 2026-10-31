@@ -240,6 +240,54 @@ svg.art{width:100%;height:100%;display:block;}
 .chat-head .agents i:nth-child(3){background:#E8A93C;}.chat-head .agents i:nth-child(4){background:#E05A52;}
 .chat-head .agents i:nth-child(5){background:#5B8DEF;}
 
+/* ── 会话切换器 · 项目多会话管理（B-Session 原型） ── */
+.sess-bar{display:flex;align-items:center;gap:7px;padding:8px 16px;border-bottom:1px solid var(--line);background:#FAFAFE;}
+.sess-cur{flex:1;min-width:0;display:flex;align-items:center;gap:6px;background:#F1F0FB;border:1px solid #DAD6F6;border-radius:8px;padding:5px 9px;cursor:pointer;transition:.2s;}
+.sess-cur:hover{border-color:var(--violet);}
+.sess-cur .ic{color:var(--violet);display:grid;place-items:center;}
+.sess-cur .ic svg{width:12px;height:12px;}
+.sess-cur .tt{font-size:11.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sess-cur .chev{margin-left:auto;color:#9AA0B5;display:grid;place-items:center;transition:transform .2s;}
+.sess-cur .chev svg{width:11px;height:11px;}
+.sess-bar.open .sess-cur .chev{transform:rotate(180deg);}
+.sess-new{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--violet);background:#fff;border:1px solid #DAD6F6;border-radius:8px;padding:5px 10px;transition:.2s;white-space:nowrap;}
+.sess-new:hover{background:var(--violet);color:#fff;border-color:var(--violet);}
+.sess-new svg{width:11px;height:11px;}
+.sess-pop{margin:8px 12px;background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:0 10px 28px rgba(40,42,80,.12);padding:5px 0;display:none;}
+.sess-pop.open{display:block;animation:fade .25s ease;}
+.sess-pop .ph{display:flex;align-items:center;font-size:10px;color:#9AA0B5;padding:5px 11px 7px;}
+.sess-pop .ph b{margin-left:auto;font-weight:600;}
+.sess-row{position:relative;display:flex;align-items:center;gap:8px;padding:8px 11px;cursor:pointer;margin:1px 4px;border-radius:8px;transition:background .15s;}
+.sess-row:hover{background:#F6F6FB;}
+.sess-row.on{background:var(--violet-soft);}
+.sess-main{flex:1;min-width:0;}
+.sess-main .tt{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;}
+.sess-main .tt .ck{color:var(--violet);display:none;}
+.sess-main .tt .ck svg{width:11px;height:11px;}
+.sess-row.on .tt .ck{display:inline-grid;}
+.sess-main .mm{font-size:9.5px;color:#9AA0B5;margin-top:1px;}
+.sess-gen{display:none;align-items:center;gap:4px;font-size:9px;font-weight:700;color:var(--amber);white-space:nowrap;}
+.sess-gen i{width:6px;height:6px;border-radius:50%;background:var(--amber);animation:sesspulse 1.2s ease infinite;}
+.sess-row.gen .sess-gen{display:inline-flex;}
+.sess-dots{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;color:#9AA0B5;flex:0 0 22px;}
+.sess-dots:hover{background:#ECECF4;color:#555B74;}
+.sess-dots svg{width:12px;height:12px;}
+.sess-menu{position:absolute;right:34px;top:50%;transform:translateY(-50%);background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 22px rgba(40,42,80,.14);padding:3px 0;display:none;z-index:5;white-space:nowrap;}
+.sess-menu.open{display:block;}
+.sess-menu button{display:block;width:100%;text-align:left;font-size:10.5px;font-weight:600;padding:6px 12px;color:#3A3F57;}
+.sess-menu button:hover{background:#F6F6FB;}
+.sess-menu button.danger{color:var(--red);}
+.sess-del{display:none;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--red);}
+.sess-row.del .sess-main,.sess-row.del .sess-dots,.sess-row.del .sess-gen{display:none;}
+.sess-row.del .sess-del{display:flex;}
+.sess-del .y{background:var(--red);color:#fff;border-radius:6px;padding:3px 9px;font-size:10px;font-weight:700;}
+.sess-del .y:hover{background:#C64A44;}
+.sess-del .n{color:#9AA0B5;font-weight:600;padding:3px 6px;border-radius:6px;}
+.sess-del .n:hover{background:#F1F2F8;}
+.sess-rename{width:100%;border:1px solid var(--violet);border-radius:6px;padding:4px 7px;font-size:11px;outline:none;background:#fff;font-family:inherit;color:var(--ink);}
+.sess-toast{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);background:#1E2233;color:#fff;font-size:11px;font-weight:600;padding:8px 14px;border-radius:99px;box-shadow:0 10px 24px rgba(30,34,51,.25);z-index:99;animation:fade .25s ease;pointer-events:none;white-space:nowrap;}
+@keyframes sesspulse{0%,100%{opacity:1}50%{opacity:.35}}
+
 .chat-body{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px;}
 .chat-body::-webkit-scrollbar{width:5px;}.chat-body::-webkit-scrollbar-thumb{background:#DDE0EA;border-radius:99px;}
 .msg{display:flex;gap:9px;animation:fade .35s ease;}
@@ -1638,6 +1686,20 @@ body.rx-on .rx-layer{display:flex;}
         </div>
       </div>
 
+      <!-- ── 会话切换器 · 项目多会话管理（B-Session 原型演示） ── -->
+      <div class="sess-bar" id="sessBar">
+        <div class="sess-cur" id="sessCur" role="button" tabindex="0" title="切换会话">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.2 8.7 8.7 0 0 1-3.8-.9L3 20l1.4-5.2a8 8 0 0 1-.9-3.3A8.4 8.4 0 0 1 12 3.3a8.4 8.4 0 0 1 9 8.2Z"/></svg></span>
+          <span class="tt" id="sessCurTitle">分镜修改</span>
+          <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+        </div>
+        <button class="sess-new" id="sessNew" title="新建会话"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>新建</button>
+      </div>
+      <div class="sess-pop" id="sessPop">
+        <div class="ph">项目会话 <b id="sessCount">3 个</b></div>
+        <div id="sessList"></div>
+      </div>
+
       <div class="chat-body" id="chatBody">
         <div class="msg user">
           <div class="ma">SZ</div>
@@ -2652,6 +2714,145 @@ s0Publish.addEventListener('click', () => {
 });
 
 // 状态条 STAGE 0 步骤区已加 cursor:pointer + v1.10 tooltip（HTML 中）
+
+/* ═══════════════════════════════════════════
+   会话切换器 · 项目多会话管理（B-Session 原型演示）
+   - 会话胶囊：展开 / 收起列表；＋ 新建：创建并切换
+   - 列表：点行切换 · ··· 重命名 / 删除（二次确认）· 生成中状态
+   - 演示态：数据仅内存，不写盘
+   ═══════════════════════════════════════════ */
+const SESS = [
+  { id:'s1', title:'分镜修改', meta:'刚刚', active:true },
+  { id:'s2', title:'初版故事讨论', meta:'1 小时前', gen:true },
+  { id:'s3', title:'人物设定补充', meta:'昨天' },
+];
+let sessSeq = 3;
+const sessBar = $('sessBar'), sessCur = $('sessCur'), sessCurTitle = $('sessCurTitle');
+const sessPop = $('sessPop'), sessList = $('sessList'), sessCount = $('sessCount');
+const sessWin = document.querySelector('.window');
+
+function sessToast(text){
+  const t = document.createElement('div');
+  t.className = 'sess-toast'; t.textContent = text;
+  sessWin.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+
+function sessRender(){
+  const active = SESS.find(s => s.active);
+  sessCurTitle.textContent = active ? active.title : '新对话';
+  sessCount.textContent = SESS.length + ' 个';
+  sessList.innerHTML = SESS.map(s =>
+    '<div class="sess-row' + (s.active ? ' on' : '') + (s.gen ? ' gen' : '') + '" data-id="' + s.id + '">' +
+      '<div class="sess-main">' +
+        '<div class="tt"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>' + s.title + '</div>' +
+        '<div class="mm">' + (s.active ? '当前会话 · ' : '') + s.meta + '</div>' +
+      '</div>' +
+      '<span class="sess-gen"><i></i>生成中</span>' +
+      '<span class="sess-del"><span>确认删除？</span><button class="y" data-d="y">删除</button><button class="n" data-d="n">取消</button></span>' +
+      '<button class="sess-dots" title="会话操作"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button>' +
+      '<div class="sess-menu"><button data-act="rename">重命名</button><button data-act="del" class="danger">删除会话</button></div>' +
+    '</div>').join('');
+}
+
+function sessClose(){
+  sessBar.classList.remove('open');
+  sessPop.classList.remove('open');
+  sessList.querySelectorAll('.sess-menu.open').forEach(m => m.classList.remove('open'));
+  sessList.querySelectorAll('.sess-row.del').forEach(r => r.classList.remove('del'));
+}
+
+sessCur.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const open = !sessPop.classList.contains('open');
+  sessBar.classList.toggle('open', open);
+  sessPop.classList.toggle('open', open);
+});
+sessCur.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sessCur.click(); }
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#sessBar') && !e.target.closest('#sessPop')) sessClose();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') sessClose(); });
+
+$('sessNew').addEventListener('click', () => {
+  sessSeq += 1;
+  SESS.forEach(s => s.active = false);
+  SESS.unshift({ id:'s' + sessSeq, title:'新对话', meta:'刚刚', active:true });
+  sessRender();
+  sessBar.classList.add('open'); sessPop.classList.add('open');
+  sessToast('已新建会话');
+});
+
+sessList.addEventListener('click', (e) => {
+  const row = e.target.closest('.sess-row');
+  if (!row) return;
+  const s = SESS.find(x => x.id === row.dataset.id);
+  if (!s) return;
+
+  // ① 删除二次确认态
+  if (row.classList.contains('del')) {
+    const d = e.target.closest('[data-d]');
+    if (!d) return;
+    if (d.dataset.d === 'y') {
+      const wasActive = s.active;
+      SESS.splice(SESS.indexOf(s), 1);
+      if (wasActive && SESS.length) SESS[0].active = true;
+      sessRender();
+      sessToast('已删除会话「' + s.title + '」');
+    } else {
+      row.classList.remove('del');
+    }
+    return;
+  }
+
+  // ② ··· 操作菜单
+  const menu = row.querySelector('.sess-menu');
+  if (e.target.closest('.sess-dots')) {
+    e.stopPropagation();
+    sessList.querySelectorAll('.sess-menu.open').forEach(m => { if (m !== menu) m.classList.remove('open'); });
+    menu.classList.toggle('open');
+    return;
+  }
+  const act = e.target.closest('[data-act]');
+  if (act) {
+    e.stopPropagation();
+    menu.classList.remove('open');
+    if (act.dataset.act === 'rename') {
+      const main = row.querySelector('.sess-main');
+      main.innerHTML = '<input class="sess-rename" value="' + s.title + '">';
+      const input = main.querySelector('input');
+      input.focus(); input.select();
+      const commit = (ok) => {
+        input.removeEventListener('blur', commit);
+        const v = input.value.trim();
+        if (ok && v) { s.title = v; if (s.active) sessCurTitle.textContent = v; }
+        sessRender();
+      };
+      input.addEventListener('blur', () => commit(true));
+      input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+        if (ev.key === 'Escape') { input.removeEventListener('blur', commit); sessRender(); }
+      });
+    } else {
+      row.classList.add('del');
+    }
+    return;
+  }
+
+  // ③ 点行主体 → 切换会话
+  menu.classList.remove('open');
+  if (!s.active) {
+    SESS.forEach(x => x.active = false);
+    s.active = true; s.meta = '刚刚';
+    sessRender();
+    sessClose();
+    sessToast('已切换到「' + s.title + '」' + (s.gen ? ' · 原会话仍在后台生成' : ''));
+  }
+});
+
+sessRender();
 </script>
 </body>
 </html>

@@ -117,6 +117,22 @@ describe('CaptureBar · 收起/展开与来源标签（AC5）', () => {
     expect(screen.getByTestId('capture-bar-count').textContent).toBe('· 0 条')
     expect(screen.queryByText(/待确认/)).toBeNull()
   })
+
+  it('切项目（projectId 变化）→ 清空旧条目并重拉当前项目口径', async () => {
+    installApi([F1, F2, F3, F4])
+    const { rerender } = render(<CaptureBar projectId="p1" />)
+    await waitFor(() => expect(screen.getByTestId('capture-bar-count').textContent).toBe('· 4 条'))
+
+    // 新项目口径文件为空：重拉后旧项目 4 条不得残留
+    const nextList = vi.fn(async () => ({ schemaVersion: 1 as const, facts: [] }))
+    ;(window.api as unknown as { captureList: unknown }).captureList = nextList
+    rerender(<CaptureBar projectId="p2" />)
+
+    await screen.findByTestId('capture-empty')
+    await waitFor(() => expect(screen.getByTestId('capture-bar-count').textContent).toBe('· 0 条'))
+    expect(nextList).toHaveBeenCalledTimes(1) // 切项目即重拉
+    expect(screen.queryByText(/待确认/)).toBeNull()
+  })
 })
 
 /* ── AC6 面板直改操作与通道同追溯 ── */

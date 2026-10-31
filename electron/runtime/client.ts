@@ -139,7 +139,7 @@ export class OpencodeRuntimeClient {
     return { ok: true }
   }
 
-  /** feature-808：历史回放，裁剪为文本 DTO（契约 §5.1/§5.2） */
+  /** feature-808：历史回放，裁剪为正文 + 推理 DTO（契约 §5.1/§5.2） */
   async getSessionMessages(sessionId: string): Promise<RuntimeSessionMessageRecord[]> {
     const id = requireSessionId(sessionId)
     const sdk = this.ensureReady()
@@ -369,7 +369,47 @@ function toRuntimeSession(s: Session): RuntimeSession {
 }
 
 /**
- * feature-808 · session.messages 回放映射：仅保留文本 part（reasoning/tool 等不透传）。
+ * D-012 白名单关键参数键表（归一化逻辑名 → 候选参数键，按优先级取首个非空字符串）。
+ * ⚠ 与 src/lib/tool-labels.ts 的 ARG_PREVIEW_KEYS 同源镜像：改任一侧必须同步另一侧。
+ */
+const ARG_PREVIEW_KEYS: Record<string, readonly string[]> = {
+  file_read: ['path'],
+  file_list: ['dir'],
+  file_write: ['path'],
+  capture_upsert: ['topic', 'id'],
+  capture_remove: ['id'],
+  web_search: ['query'],
+  web_fetch: ['url'],
+  gate_request: ['title', 'gateId'],
+  asset_register: ['path'],
+  comfyui_queue: ['instanceId'],
+  comfyui_status: ['jobId'],
+  style_get: ['id'],
+  manifest_advance: ['event'],
+}
+
+const ARG_PREVIEW_LIMIT = 80
+const PHYSICAL_TOOL_PREFIX = 'shortdrama_'
+
+/** D-012：从工具入参提取白名单关键参数摘要；无白名单 / 无非空字符串值 → ''（不落 DTO） */
+export function toolArgsPreview(tool: string, input: unknown): string {
+  if (!tool || typeof input !== 'object' || input === null) return ''
+  const bare = tool.startsWith(PHYSICAL_TOOL_PREFIX) ? tool.slice(PHYSICAL_TOOL_PREFIX.length) : tool
+  const keys = ARG_PREVIEW_KEYS[bare.replace(/\./g, '_')]
+  if (!keys) return ''
+  const record = input as Record<string, unknown>
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.length > ARG_PREVIEW_LIMIT ? `${value.slice(0, ARG_PREVIEW_LIMIT)}…` : value
+    }
+  }
+  return ''
+}
+
+/**
+ * feature-808 · session.messages 回放映射：白名单 part（text/reasoning/tool）透传，其余丢弃。
+ * D-012：tool part 附加白名单关键参数摘要 argsPreview（完整入参/结果仍不回放）。
  * 纯映射，不含 fs/网络；坏数据不抛错（契约 §5.2 规则 1–3）。
  */
 export function toMessageRecord(raw: {
@@ -380,14 +420,35 @@ export function toMessageRecord(raw: {
   const id = typeof raw.info.id === 'string' ? raw.info.id : ''
   const parts: RuntimeSessionMessageRecord['parts'] = []
   for (const p of raw.parts) {
-    if (p.type !== 'text') continue
+    if (p.type === 'tool') {
+      const part: RuntimeSessionMessageRecord['parts'][number] = {
+        type: 'tool',
+        text: '',
+        callId: p.callID,
+        tool: p.tool,
+        status: p.state.status,
+        startedAt: 'time' in p.state && typeof p.state.time.start === 'number' ? p.state.time.start : 0,
+      }
+      if ('time' in p.state && 'end' in p.state.time && typeof p.state.time.end === 'number') {
+        part.endedAt = p.state.time.end
+      }
+      if (p.state.status === 'error') part.error = p.state.error
+      // D-012：白名单关键参数摘要（空串不落 DTO）
+      const preview = toolArgsPreview(p.tool, (p.state as { input?: unknown }).input)
+      if (preview) part.argsPreview = preview
+      parts.push(part)
+      continue
+    }
+    if (p.type !== 'text' && p.type !== 'reasoning') continue
     const part: RuntimeSessionMessageRecord['parts'][number] = {
-      type: 'text',
+      type: p.type,
       text: typeof p.text === 'string' ? p.text : '',
     }
     if (typeof p.time?.start === 'number') part.startedAt = p.time.start
-    if (p.ignored === true) part.ignored = true
-    if (p.synthetic === true) part.synthetic = true
+    if (p.type === 'text') {
+      if (p.ignored === true) part.ignored = true
+      if (p.synthetic === true) part.synthetic = true
+    }
     parts.push(part)
   }
   return { info: { id, role }, parts }

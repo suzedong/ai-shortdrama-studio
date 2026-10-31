@@ -365,6 +365,16 @@ function installImpactAppApi(fileReadImpl: (path: string) => Promise<unknown>): 
     createProject: vi.fn(async () => ({ dir: '/ws/project-p2' })),
     openProject: vi.fn(async () => ({ ok: true as const, activeSessionId: null as string | null })),
     activeSession: vi.fn(async () => ({ sessionId: null as string | null })),
+    settings: {
+      ai: {
+        get: vi.fn(async () => ({
+          activeProvider: 'ark',
+          ark: { model: 'doubao-pro-32k' },
+          lmstudio: { model: 'local-model' },
+        })),
+        update: vi.fn(),
+      },
+    },
     fileRead,
     captureList: vi.fn(async () => ({ schemaVersion: 1 as const, facts: [] })),
     onCaptureChanged: vi.fn(() => () => undefined),

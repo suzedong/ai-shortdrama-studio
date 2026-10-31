@@ -32,7 +32,7 @@ const ARK_MODEL = 'ep-2026-test-model'
 
 describe('T3 · Agent profile 安装', () => {
   it('ARK_MODEL 存在：4 个 profile 全部落盘，model 已替换、占位符不残留（director 已退役）', async () => {
-    const installed = await installAgentProfiles({ userDataDir, arkModel: ARK_MODEL })
+    const installed = await installAgentProfiles({ userDataDir, modelRef: `ark/${ARK_MODEL}` })
     expect(installed.map(p => p.name)).toEqual(AGENT_PROFILES.map(p => p.name))
 
     const agentsDir = path.join(runtimeConfigDir(userDataDir), 'agents')
@@ -50,10 +50,10 @@ describe('T3 · Agent profile 安装', () => {
   })
 
   it('ARK_MODEL 缺失 / 空白：抛 UPSTREAM_AUTH_MISSING，无 profile 写出', async () => {
-    await expect(installAgentProfiles({ userDataDir, arkModel: '' })).rejects.toMatchObject({
+    await expect(installAgentProfiles({ userDataDir, modelRef: '' })).rejects.toMatchObject({
       name: 'UPSTREAM_AUTH_MISSING',
     })
-    await expect(installAgentProfiles({ userDataDir, arkModel: '   ' })).rejects.toMatchObject({
+    await expect(installAgentProfiles({ userDataDir, modelRef: '   ' })).rejects.toMatchObject({
       name: 'UPSTREAM_AUTH_MISSING',
     })
     const agentsDir = path.join(runtimeConfigDir(userDataDir), 'agents')

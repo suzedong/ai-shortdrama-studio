@@ -17,6 +17,48 @@ import type {
 declare global {
   // feature-804 · 平台标识（与主进程 WindowPlatform 同形三字符串，两端各自声明、不跨层 import）
   type StudioPlatform = 'darwin' | 'win32' | 'linux'
+  // feature-014 · AI 服务设置 DTO（镜像 electron/settings/ai-service.ts，不进 shared；K1 零触发）
+  type AiFieldSource = 'store' | 'env' | 'default'
+  type AiProviderId = 'ark' | 'lmstudio'
+  type AiServiceUpdatePatch = {
+    activeProvider?: AiProviderId
+    ark?: {
+      apiKey?: string // 非空=替换；空串=清除；键缺席=不动
+      baseUrl?: string // 空串=清除
+      model?: string // 空串=清除
+    }
+    lmstudio?: {
+      baseUrl?: string // 空串=清除并回退环境变量/默认值
+      model?: string // 空串=清除
+    }
+    runtime?: {
+      portRangeStart?: number | null
+      healthTimeoutMs?: number | null
+      mockBaseUrl?: string | null
+    }
+  }
+  type AiServiceSettingsView = {
+    activeProvider: AiProviderId
+    ark: {
+      baseUrl: string
+      model: string
+      keyConfigured: boolean
+      apiKeyMasked?: string
+      sources: { apiKey: AiFieldSource; baseUrl: AiFieldSource; model: AiFieldSource }
+    }
+    lmstudio: {
+      baseUrl: string
+      model: string
+      sources: { baseUrl: AiFieldSource; model: AiFieldSource }
+    }
+    runtime: {
+      portRangeStart: number
+      healthTimeoutMs: number
+      mockBaseUrl: string
+      sources: { portRangeStart: AiFieldSource; healthTimeoutMs: AiFieldSource; mockBaseUrl: AiFieldSource }
+    }
+    updatedAt: string
+  }
   // feature-810 · 谱系升级差异工作流 DTO（镜像 electron/style/types.ts，不进 shared；K1 零触发）
   type StyleUpgradeRefEntry = {
     id: string
@@ -212,6 +254,11 @@ declare global {
           list(): Promise<ComfyInstance[]>
           upsert(instance: Partial<ComfyInstance>): Promise<ComfyInstance>
           remove(id: string): Promise<{ ok: true }>
+        }
+        // feature-014 · AI 服务设置（脱敏视图，明文 Key 不经 IPC）
+        ai: {
+          get(): Promise<AiServiceSettingsView>
+          update(patch: AiServiceUpdatePatch): Promise<AiServiceSettingsView>
         }
       }
       // feature-804 · Windows 窗口标题栏（契约 §4）

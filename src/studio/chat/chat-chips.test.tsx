@@ -42,6 +42,9 @@ function renderComposer(
       deciding={false}
       sending={props.sending ?? false}
       error={null}
+      modelOptions={[{ providerID: 'ark', modelID: 'test-model' }]}
+      selectedModel={{ providerID: 'ark', modelID: 'test-model' }}
+      onModelChange={vi.fn()}
       onSend={props.onSend ?? vi.fn()}
       onDecide={vi.fn()}
     />,

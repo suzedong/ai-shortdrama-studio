@@ -464,6 +464,31 @@ describe('EventProjector 六类事件映射', () => {
     })
   })
 
+  it('模型未注册及其 UnknownError 包装 → 可操作提示，不透出上游原文', () => {
+    const errors = [
+      {
+        name: 'ProviderModelNotFoundError',
+        data: { providerID: 'lmstudio', message: 'Model not found: lmstudio/qwen3.8-27b' },
+      },
+      {
+        name: 'UnknownError',
+        data: { message: 'ProviderModelNotFoundError: Model not found: lmstudio/qwen3.8-27b; key=leaked-key-777' },
+      },
+    ]
+    for (const error of errors) {
+      const evt = project({ type: 'session.error', properties: { sessionID: 'ses_1', error } })
+      expect(evt).toMatchObject({
+        type: 'runtime.error',
+        error: {
+          code: 'PROMPT_FAILED',
+          message: '当前运行时未注册所选模型，请检查模型 ID 与服务商配置；若刚修改配置，请在「AI 服务设置」中点击「重连运行时」',
+        },
+      })
+      expect(JSON.stringify(evt)).not.toContain('leaked-key-777')
+      expect(JSON.stringify(evt)).not.toContain('Model not found:')
+    }
+  })
+
   it('未识别 / 不支持 part / 载荷畸形 → null 且计数', () => {
     const projector = new EventProjector()
     expect(projector.project({ type: 'session.status', properties: {} }, ctx)).toBeNull()

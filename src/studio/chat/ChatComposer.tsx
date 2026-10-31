@@ -11,6 +11,7 @@ import type { CanvasGate } from '@shared/types'
 import GateCardView from './GateCardView'
 import { FAMILY_GRAD, PREVIEW_URL } from '../style/VisualCatalog'
 import { getStyleEntry, useStyleCatalog } from '../style/style-catalog-store'
+import { formatChatModelLabel } from '../shell/AiServicePanel'
 
 // ── Agent 气泡 Markdown 渲染（2026-10-15，K9 批准 react-markdown + remark-gfm；仅 Agent 侧） ──
 // 默认不渲染原始 HTML（XSS 面为零）；链接统一新窗打开，由主进程 setWindowOpenHandler 转交系统浏览器。
@@ -342,6 +343,11 @@ function GateHint() {
   )
 }
 
+export interface ChatModelOption {
+  providerID: AiProviderId
+  modelID: string
+}
+
 interface Props {
   items: ChatItem[]
   stream: StreamingTurn | null
@@ -361,6 +367,18 @@ interface Props {
   aiDown?: string | null
   /** D-013：横幅「重新检测」按钮回调 */
   onAiRetry?: () => void
+  /** feature-014：当前可用的对话模型与逐消息选择；空列表禁止一切发送路径 */
+  modelOptions: ChatModelOption[]
+  selectedModel: ChatModelOption | null
+  onModelChange: (model: ChatModelOption) => void
+}
+
+function chatModelKey(model: ChatModelOption): string {
+  return `${model.providerID}/${model.modelID}`
+}
+
+function chatModelLabel(model: ChatModelOption): string {
+  return formatChatModelLabel(model.providerID, model.modelID)
 }
 
 // ── 浏览器预览演示消息（对齐原型 #chatBody 5 条） ──
@@ -661,7 +679,8 @@ function AgentTurn({ turn, text }: { turn: StreamingTurn; text: string }) {
 }
 
 export default function ChatComposer({
-  items, stream, pendingGate, deciding, sending, generating = false, error, onSend, onDecide, onStop, historyLoading, aiDown = null, onAiRetry,
+  items, stream, pendingGate, deciding, sending, generating = false, error, onSend, onDecide, onStop,
+  historyLoading, aiDown = null, onAiRetry, modelOptions, selectedModel, onModelChange,
 }: Props) {
   const [draft, setDraft] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -673,13 +692,13 @@ export default function ChatComposer({
 
   const submit = (): void => {
     const text = draft.trim()
-    if (!text || sending || generating || historyLoading || aiDown) return
+    if (!text || sending || generating || historyLoading || aiDown || !selectedModel) return
     setDraft('')
     onSend(text)
   }
 
-  // B-35：选项点击 = 代发编号（与手打同路径）；忙态（发送/生成/回放/流式进行中）禁点
-  const busy = sending || generating || historyLoading || !!stream || !!aiDown
+  // B-35：选项点击 = 代发编号（与手打同路径）；忙态或无可用模型禁点
+  const busy = sending || generating || historyLoading || !!stream || !!aiDown || !selectedModel
   const pickOption = (num: string): void => {
     if (busy) return
     onSend(num)
@@ -882,7 +901,28 @@ export default function ChatComposer({
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
               </svg>
             </button>
-            <span className="flex items-center gap-1 rounded-full bg-violet-soft px-2 py-[3px] text-[9.5px] font-semibold text-[#5A4BC4]">
+            <select
+              aria-label="对话模型"
+              title={selectedModel ? chatModelLabel(selectedModel) : '请先在 AI 服务设置中配置模型'}
+              value={selectedModel ? chatModelKey(selectedModel) : ''}
+              disabled={modelOptions.length === 0}
+              onChange={e => {
+                const next = modelOptions.find(option => chatModelKey(option) === e.target.value)
+                if (next) onModelChange(next)
+              }}
+              className="h-6 min-w-0 max-w-[160px] flex-1 truncate rounded-[7px] border border-line bg-white px-1.5 text-[10px] font-semibold text-muted outline-none transition focus:border-violet disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {modelOptions.length === 0 ? (
+                <option value="">请先在 AI 服务设置中配置模型</option>
+              ) : (
+                modelOptions.map(option => (
+                  <option key={chatModelKey(option)} value={chatModelKey(option)}>
+                    {chatModelLabel(option)}
+                  </option>
+                ))
+              )}
+            </select>
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-violet-soft px-2 py-[3px] text-[9.5px] font-semibold text-[#5A4BC4]">
               <span className="h-[5px] w-[5px] rounded-full bg-violet" />
               H3 自动选配
             </span>
@@ -904,7 +944,7 @@ export default function ChatComposer({
                 title="发送"
                 data-testid="chat-send"
                 onClick={submit}
-                disabled={sending || generating || historyLoading || !!aiDown || !draft.trim()}
+                disabled={sending || generating || historyLoading || !!aiDown || !draft.trim() || !selectedModel}
                 className="ml-auto grid h-7 w-7 place-items-center rounded-lg bg-violet text-white transition hover:bg-[#5B4BD6] disabled:opacity-50"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="h-[13px] w-[13px]">

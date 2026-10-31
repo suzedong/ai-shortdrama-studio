@@ -8,7 +8,7 @@ import type { Canvas, CanvasGate, CanvasNode, StepId } from '@shared/types'
 import { reduceRuntimeEvent, turnReasoning, turnText, type StreamingTurn } from '../../lib/chat-runtime'
 import { replayMessages } from '../../lib/history-replay'
 import CanvasBoard, { kindLabel, type NodeAction } from '../canvas/CanvasBoard'
-import ChatComposer, { demoChatItems, type ChatItem } from '../chat/ChatComposer'
+import ChatComposer, { demoChatItems, type ChatItem, type ChatModelOption } from '../chat/ChatComposer'
 import CaptureBar from '../stage0/CaptureBar'
 import ProjectNav, { type ProjectNavHandle } from './ProjectNav'
 import { AssetsPanel, PluginsPanel, SkillsPanel } from './LeftPanels'
@@ -26,6 +26,7 @@ import {
   type ImpactView,
 } from '../impact/impact-select'
 import VisualCatalog from '../style/VisualCatalog'
+import AiServicePanel, { getChatModelOptions } from './AiServicePanel'
 import WindowControls from './WindowControls'
 
 type CenterView = 'dag' | 'stage0'
@@ -124,6 +125,11 @@ export default function StudioApp() {
   const [catalogOpen, setCatalogOpen] = useState(false)
   // B-31：rail 底部 AI 圆标 → 系统菜单（收纳使用指南/导出入口）
   const [sysMenuOpen, setSysMenuOpen] = useState(false)
+  // feature-014：系统菜单「AI 服务设置」模态面板
+  const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  // 对话内逐消息模型：仅保留在当前 renderer，不回写 activeProvider
+  const [modelOptions, setModelOptions] = useState<ChatModelOption[]>([])
+  const [selectedModel, setSelectedModel] = useState<ChatModelOption | null>(null)
   const [centerView, setCenterView] = useState<CenterView>('dag')
   const [toast, setToast] = useState<{ tone: 'ok' | 'bad' | 'info'; text: string } | null>(null)
   const projectNavRef = useRef<ProjectNavHandle>(null)
@@ -246,6 +252,29 @@ export default function StudioApp() {
     }
   }, [])
 
+  // feature-014：从脱敏设置视图生成对话模型选项；设置刷新后保留仍有效的选择
+  const refreshChatModels = useCallback(async () => {
+    try {
+      const view = await window.api.settings.ai.get()
+      const options = getChatModelOptions(view)
+      setModelOptions(options)
+      setSelectedModel(current => {
+        const retained = current && options.find(option =>
+          option.providerID === current.providerID && option.modelID === current.modelID,
+        )
+        return retained ?? options.find(option => option.providerID === view.activeProvider) ?? options[0] ?? null
+      })
+    } catch (e) {
+      console.error('settings.ai.get failed', e)
+      setModelOptions([])
+      setSelectedModel(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    void refreshChatModels()
+  }, [refreshChatModels])
+
   // feature-808：回放装载（§4.2）。session 序号过期一律丢弃；404 → 清绑定 + info toast 降级
   const loadReplay = useCallback(async (sessionId: string, seq: number, projectId: string) => {
     const stale = () =>
@@ -363,8 +392,12 @@ export default function StudioApp() {
     subscribedRef.current = true
   }, [])
 
-  // ---- 发送一轮：复用绑定会话；无绑定才惰性建会话并回写，指定 showrunner ----
+  // ---- 发送一轮：复用绑定会话；无绑定才惰性建会话并回写，指定 showrunner 与当前模型 ----
   const handleSend = useCallback(async (text: string) => {
+    if (!selectedModel) {
+      setError('请先在 AI 服务设置中配置模型。')
+      return
+    }
     setError(null)
     setSending(true)
     setItems(p => [...p, { id: `u-${Date.now()}`, role: 'user', text }])
@@ -391,7 +424,12 @@ export default function StudioApp() {
           console.error('activeSession write failed', bindErr)
         }
       }
-      await window.api.runtime.promptAsync({ sessionId: sid, text, agent: 'showrunner' })
+      await window.api.runtime.promptAsync({
+        sessionId: sid,
+        text,
+        agent: 'showrunner',
+        model: { providerID: selectedModel.providerID, modelID: selectedModel.modelID },
+      })
       // D-006：accepted 后进入生成态，停止钮持续可达；真实环境由 session.idle /
       // runtime.error 事件复位。dev mock 不产生任何 runtime 事件，不置位以免停止钮卡死。
       if (!devMockActive()) setGenerating(true)
@@ -400,7 +438,7 @@ export default function StudioApp() {
     } finally {
       setSending(false)
     }
-  }, [ensureSubscribedOnce])
+  }, [ensureSubscribedOnce, selectedModel])
 
   // feature-808（R4 / D-006）：停止当前轮；不本地复位 generating
   // （由 session.idle / runtime.error 事件链复位；abort 被引擎接受后必发 idle）
@@ -699,6 +737,8 @@ export default function StudioApp() {
               <div role="menu" data-sys-menu className="absolute bottom-0 left-[calc(100%+15px)] z-50 w-32 overflow-hidden rounded-xl border border-line bg-white py-1 shadow-[0_8px_24px_rgba(40,42,80,0.14)]">
                 <button type="button" role="menuitem" data-sys-menu-item="guide" onClick={() => setSysMenuOpen(false)} className="block w-full px-3 py-2 text-left text-[12.5px] text-ink hover:bg-canvas">使用指南</button>
                 <button type="button" role="menuitem" data-sys-menu-item="export" onClick={() => setSysMenuOpen(false)} className="block w-full px-3 py-2 text-left text-[12.5px] text-ink hover:bg-canvas">导出</button>
+                {/* feature-014：AI 服务设置入口（点击关菜单、开模态面板） */}
+                <button type="button" role="menuitem" data-sys-menu-item="ai-settings" onClick={() => { setSysMenuOpen(false); setAiPanelOpen(true) }} className="block w-full px-3 py-2 text-left text-[12.5px] text-ink hover:bg-canvas">AI 服务设置</button>
               </div>
             )}
           </div>
@@ -859,6 +899,18 @@ export default function StudioApp() {
           onAdopt={style => setToast({ tone: 'ok', text: `已采用 ${style.id} · ${style.name}（${style.family.split('·')[0]}）` })}
         />
 
+        {/* feature-014：保存后复检健康并刷新对话模型；不自动重连运行时 */}
+        {aiPanelOpen && (
+          <AiServicePanel
+            aiDown={aiDown}
+            onClose={() => setAiPanelOpen(false)}
+            onSaved={() => {
+              void checkAiHealth()
+              void refreshChatModels()
+            }}
+          />
+        )}
+
         {/* 节点操作 toast（feature-026） */}
         {toast && (
           <div
@@ -902,6 +954,9 @@ export default function StudioApp() {
               aiDown={aiDown}
               onAiRetry={() => void checkAiHealth()}
               historyLoading={historyLoading}
+              modelOptions={modelOptions}
+              selectedModel={selectedModel}
+              onModelChange={setSelectedModel}
               onSend={handleSend}
               onStop={handleStop}
               onDecide={handleDecide}

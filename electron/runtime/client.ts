@@ -23,6 +23,7 @@ import {
   MOCK_MODEL_ID,
   MOCK_PROVIDER_ID,
   ARK_PROVIDER_ID,
+  LMSTUDIO_PROVIDER_ID,
 } from './provider.js'
 import type { RuntimeConnection } from './manager.js'
 import type {
@@ -92,6 +93,8 @@ export interface OpencodeRuntimeClientDeps {
   getConnection: () => RuntimeConnection | null
   /** 当前配置的 ark modelID（ARK_MODEL），用于 model 覆盖白名单校验 */
   allowedArkModel?: string
+  /** 当前配置的 LM Studio modelID（LMSTUDIO_MODEL） */
+  allowedLmStudioModel?: string
   factory?: SdkClientFactory
 }
 
@@ -286,12 +289,16 @@ export class OpencodeRuntimeClient {
         if (!this.deps.allowedArkModel || m.modelID !== this.deps.allowedArkModel) {
           throw makeError('INVALID_ARGUMENT', 'model 只能指定当前已配置的 ark 模型')
         }
+      } else if (m.providerID === LMSTUDIO_PROVIDER_ID) {
+        if (!this.deps.allowedLmStudioModel || m.modelID !== this.deps.allowedLmStudioModel) {
+          throw makeError('INVALID_ARGUMENT', 'model 只能指定当前已配置的 LM Studio 模型')
+        }
       } else if (m.providerID === MOCK_PROVIDER_ID) {
         if (m.modelID !== MOCK_MODEL_ID) {
           throw makeError('INVALID_ARGUMENT', `mock 仅允许模型 ${MOCK_MODEL_ID}`)
         }
       } else {
-        throw makeError('INVALID_ARGUMENT', 'provider 仅允许 ark 或 mock')
+        throw makeError('INVALID_ARGUMENT', 'provider 仅允许 ark、lmstudio 或 mock')
       }
       model = { providerID: m.providerID, modelID: m.modelID }
     }

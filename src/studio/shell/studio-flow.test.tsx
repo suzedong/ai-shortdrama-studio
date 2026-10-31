@@ -61,7 +61,17 @@ function installApi(initial: Canvas): Harness {
     openProject: vi.fn(async () => ({ ok: true as const, activeSessionId: null as string | null })),
     // feature-808：项目-会话绑定（默认无绑定 → 不回放、不启 runtime）
     activeSession: vi.fn(async () => ({ sessionId: null as string | null })),
-    fileRead: vi.fn(async () => ({ ok: true as const, content: '{"a":1}', format: 'json' as const })),
+    settings: {
+      ai: {
+        get: vi.fn(async () => ({
+          activeProvider: 'ark',
+          ark: { model: 'doubao-pro-32k' },
+          lmstudio: { model: 'local-model' },
+        })),
+        update: vi.fn(),
+      },
+    },
+    fileRead: vi.fn(async () => ({ ok: true as const, content: '{"a":1}', format: 'json' as const })), 
     // feature-005：CaptureBar 挂载桥（空库 + 无推送；本套件不操作口径条）
     captureList: vi.fn(async () => ({ schemaVersion: 1 as const, facts: [] })),
     onCaptureChanged: vi.fn(() => () => undefined),
@@ -108,7 +118,10 @@ describe('C7 · StudioApp 立项驱动', () => {
     await user.click(screen.getByRole('button', { name: '发送' }))
 
     expect(h.promptAsync).toHaveBeenCalledWith({
-      sessionId: 'sess-1', text: '重生复仇都市女频', agent: 'showrunner',
+      sessionId: 'sess-1',
+      text: '重生复仇都市女频',
+      agent: 'showrunner',
+      model: { providerID: 'ark', modelID: 'doubao-pro-32k' },
     })
     const req = h.promptAsync.mock.calls[0][0] as { tools?: unknown }
     expect(req.tools).toBeUndefined()

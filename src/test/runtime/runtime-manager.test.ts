@@ -355,3 +355,64 @@ describe('OpencodeRuntimeManager 运行期异常与停止', () => {
     expect(s.state).toBe('stopped')
   })
 })
+
+// -- feature-014：start opts 运行时参数贯通（契约 §6.6 / T3 传参来源） ------------
+
+describe('feature-014 · start opts 运行时参数贯通', () => {
+  it('LM Studio 当前服务商、局域网地址与模型贯通 opencode.json 和 Agent profile', async () => {
+    const h = makeHarness(healthyFetch())
+    const dirs = await tmpUserData()
+    const status = await h.manager.start({
+      ...dirs,
+      activeProvider: 'lmstudio',
+      arkModel: 'ep-must-not-be-selected',
+      lmStudioBaseUrl: 'http://192.168.31.20:1234/v1',
+      lmStudioModel: 'qwen2.5-7b-instruct',
+    })
+
+    expect(status.state).toBe('running')
+    const cfg = JSON.parse(await fsp.readFile(
+      path.join(dirs.userDataDir, 'opencode', 'opencode.json'),
+      'utf-8',
+    ))
+    expect(cfg.provider.lmstudio.options.baseURL).toBe('http://192.168.31.20:1234/v1')
+    expect(cfg.provider.lmstudio.models['qwen2.5-7b-instruct']).toBeTruthy()
+    const showrunner = await fsp.readFile(
+      path.join(dirs.userDataDir, 'opencode', 'agents', 'showrunner.md'),
+      'utf-8',
+    )
+    expect(showrunner).toContain('model: lmstudio/qwen2.5-7b-instruct')
+    expect(showrunner).not.toContain('ep-must-not-be-selected')
+    expect(h.records[0]!.opts.env?.ARK_API_KEY).toBeUndefined()
+  })
+
+  it('portRangeStart 贯通 findFreePort：spawn --port 落在指定起点', async () => {
+    const h = makeHarness(healthyFetch())
+    const dirs = await tmpUserData()
+    // 先探一个 25000 起的真实空闲端口作为起点，避免与其他测试并行抢端口
+    const start = await findFreePort(25_000)
+    const status = await h.manager.start({ ...dirs, portRangeStart: start })
+    expect(status.state).toBe('running')
+    expect(status.port).toBe(start)
+    expect(h.records[0]!.args).toEqual(['serve', '--hostname', '127.0.0.1', '--port', String(start)])
+  })
+
+  it('缺省 portRangeStart：findFreePort(undefined) 回归 4096 起、区间 25', async () => {
+    const port = await findFreePort(undefined)
+    expect(port).toBeGreaterThanOrEqual(PORT_RANGE_START)
+    expect(port).toBeLessThan(PORT_RANGE_START + PORT_RANGE_ATTEMPTS)
+  })
+
+  it('healthTimeoutMs 随 start 覆盖：超时错误内嵌生效值（而非 deps 注入的 80ms）', async () => {
+    const hangingFetch = (async () => new Response('{}', { status: 503 })) as unknown as typeof fetch
+    const h = makeHarness(hangingFetch) // deps.healthTimeoutMs=80
+    const dirs = await tmpUserData()
+    await expect(h.manager.start({ ...dirs, healthTimeoutMs: 123 })).rejects.toMatchObject({
+      name: 'RUNTIME_HEALTH_FAILED',
+      message: expect.stringContaining('（123ms）'),
+    })
+    const status = h.manager.getStatus()
+    expect(status.state).toBe('error')
+    expect(status.error?.code).toBe('RUNTIME_HEALTH_FAILED')
+  })
+})

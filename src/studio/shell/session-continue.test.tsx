@@ -47,7 +47,10 @@ interface Harness {
   emitCanvas: (c: Canvas) => void
 }
 
-function installApi(initial: Canvas): Harness {
+function installApi(
+  initial: Canvas,
+  models: { ark?: string; lmstudio?: string } = {},
+): Harness {
   const runtimeCbs = new Set<(e: RuntimeEvent) => void>()
   const canvasCbs = new Set<(c: Canvas) => void>()
 
@@ -107,6 +110,16 @@ function installApi(initial: Canvas): Harness {
     createProject: vi.fn(async () => ({ dir: '/ws/project-p2' })),
     openProject: vi.fn(async () => ({ ok: true as const, activeSessionId: null as string | null })),
     activeSession: h.activeSession,
+    settings: {
+      ai: {
+        get: vi.fn(async () => ({
+          activeProvider: 'ark',
+          ark: { model: models.ark ?? 'doubao-pro-32k' },
+          lmstudio: { model: models.lmstudio ?? 'local-model' },
+        })),
+        update: vi.fn(),
+      },
+    },
     fileRead: vi.fn(async () => ({ ok: false as const, error: { code: 'X', message: 'x' } })),
     // 省略 window 块：WindowControls 走 api.window 缺省防御分支（同 studio-flow 套件）
     // feature-005：CaptureBar 挂载桥（空库 + 无推送；本套件不操作口径条）
@@ -212,17 +225,24 @@ describe('feature-808 · 会话续聊（契约 §6.3）', () => {
 
     expect(h.createSession).not.toHaveBeenCalled()
     expect(h.promptAsync).toHaveBeenCalledWith({
-      sessionId: 'sess-A', text: '继续写第三场', agent: 'showrunner',
+      sessionId: 'sess-A',
+      text: '继续写第三场',
+      agent: 'showrunner',
+      model: { providerID: 'ark', modelID: 'doubao-pro-32k' },
     })
     // 仅 mount 时的无参读，不得出现带参写态
     expect(h.activeSession.mock.calls.every(c => c[0] === undefined)).toBe(true)
     expect(h.subscribe).toHaveBeenCalledTimes(1)
   })
 
-  it('R3：无绑定首条 prompt → 惰性 createSession 一次并回写；idle 结束本轮后二次发送仍只订阅一次', async () => {
+  it('R3 / AC10：同一会话连续发送可切换模型；createSession 与 subscribe 均只一次', async () => {
     const h = installApi(canvasOf('pNew'))
     render(<StudioApp />)
     await screen.findByText(/输入一句灵感/)
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: '对话模型' }))
+        .toHaveValue('ark/doubao-pro-32k'),
+    )
 
     await user.type(screen.getByPlaceholderText(/描述创作目标/), '第一条')
     await user.click(screen.getByRole('button', { name: '发送' }))
@@ -230,7 +250,10 @@ describe('feature-808 · 会话续聊（契约 §6.3）', () => {
     await waitFor(() => expect(h.createSession).toHaveBeenCalledTimes(1))
     expect(h.activeSession).toHaveBeenCalledWith('sess-fresh')
     expect(h.promptAsync).toHaveBeenCalledWith({
-      sessionId: 'sess-fresh', text: '第一条', agent: 'showrunner',
+      sessionId: 'sess-fresh',
+      text: '第一条',
+      agent: 'showrunner',
+      model: { providerID: 'ark', modelID: 'doubao-pro-32k' },
     })
     expect(h.subscribe).toHaveBeenCalledTimes(1)
 
@@ -241,13 +264,38 @@ describe('feature-808 · 会话续聊（契约 §6.3）', () => {
       expect(screen.queryByTestId('chat-stop')).not.toBeInTheDocument(),
     )
 
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: '对话模型' }),
+      'lmstudio/local-model',
+    )
     await user.type(screen.getByPlaceholderText(/描述创作目标/), '第二条')
     await user.click(screen.getByRole('button', { name: '发送' }))
     expect(h.createSession).toHaveBeenCalledTimes(1)
     expect(h.promptAsync).toHaveBeenLastCalledWith({
-      sessionId: 'sess-fresh', text: '第二条', agent: 'showrunner',
+      sessionId: 'sess-fresh',
+      text: '第二条',
+      agent: 'showrunner',
+      model: { providerID: 'lmstudio', modelID: 'local-model' },
     })
     expect(h.subscribe).toHaveBeenCalledTimes(1)
+  })
+
+  it('AC10：双方均未配置模型 → 选择器与发送禁用，Enter 不发送且保留草稿', async () => {
+    const h = installApi(canvasOf('pNoModel'), { ark: '', lmstudio: '' })
+    render(<StudioApp />)
+
+    const selector = await screen.findByRole('combobox', { name: '对话模型' })
+    await waitFor(() => expect(selector).toBeDisabled())
+    expect(selector).toHaveTextContent('请先在 AI 服务设置中配置模型')
+
+    const input = screen.getByPlaceholderText(/描述创作目标/)
+    await user.type(input, '保留这句草稿')
+    expect(screen.getByRole('button', { name: '发送' })).toBeDisabled()
+    await user.keyboard('{Enter}')
+
+    expect(h.promptAsync).not.toHaveBeenCalled()
+    expect(h.createSession).not.toHaveBeenCalled()
+    expect(input).toHaveValue('保留这句草稿')
   })
 
   it('R4 / D-006：promptAsync accepted 即 resolve 后停止钮持续可见；流式全程可 abort；idle 复位并定稿', async () => {
@@ -386,7 +434,10 @@ describe('feature-808 · 会话续聊（契约 §6.3）', () => {
     await waitFor(() => expect(h.createSession).toHaveBeenCalledTimes(1))
     expect(h.activeSession).toHaveBeenCalledWith('sess-fresh')
     expect(h.promptAsync).toHaveBeenLastCalledWith({
-      sessionId: 'sess-fresh', text: '重新开始', agent: 'showrunner',
+      sessionId: 'sess-fresh',
+      text: '重新开始',
+      agent: 'showrunner',
+      model: { providerID: 'ark', modelID: 'doubao-pro-32k' },
     })
   })
 

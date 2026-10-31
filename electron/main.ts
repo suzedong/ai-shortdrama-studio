@@ -14,6 +14,15 @@ import {
   deleteProject,
 } from './project/library.js'
 import { isConfigured } from './ark.js'
+import {
+  getActiveProvider,
+  getArkConfig,
+  getLmStudioConfig,
+  getRuntimePrefs,
+  getSettingsView,
+  updateSettings,
+  type AiServiceUpdatePatch,
+} from './settings/ai-service.js'
 import { canvasStore } from './canvas/store.js'
 import { gateBridge } from './gate/bridge.js'
 import { listAssets } from './asset/index.js'
@@ -432,8 +441,12 @@ ipcMain.handle('project:active-session', (_e, arg?: unknown) => {
   return readActiveSession(dir)
 })
 
-// feature-011：只读查询文本侧配置状态（供底栏诚实显示：未配置/已配置）
-ipcMain.handle('app:config-status', () => ({ arkConfigured: isConfigured() }))
+// feature-011：只读查询当前文本服务商配置状态（返回形状保持不变）
+ipcMain.handle('app:config-status', () => ({
+  arkConfigured: getActiveProvider() === 'lmstudio'
+    ? !!getLmStudioConfig().model
+    : isConfigured(),
+}))
 
 // ============================================================================
 // feature-008 · Agent 运行时（opencode 基座）IPC —— 严格匹配契约 §3/§5/§6/§8
@@ -443,8 +456,13 @@ ipcMain.handle('app:config-status', () => ({ arkConfigured: isConfigured() }))
 
 const runtimeClient = new OpencodeRuntimeClient({
   getConnection: () => runtimeManager.getConnection(),
-  // 启动时从 env 读取（dotenv 经 ark.js 已加载）；ARK_MODEL 运行期不变
-  allowedArkModel: process.env.ARK_MODEL,
+  // feature-014：改读 store→env 合并值（getter 同步读内存副本，面板改模型后下一条消息生效）
+  get allowedArkModel() {
+    return getArkConfig().model
+  },
+  get allowedLmStudioModel() {
+    return getLmStudioConfig().model
+  },
 })
 
 /** 订阅窗口：webContents.id → 窗口引用 + 可选 sessionId 过滤（契约 §3.2 规则①） */
@@ -494,12 +512,23 @@ async function ensureRuntime(): Promise<RuntimeStatus> {
   // serve cwd 固定为平台工作区根目录（契约 §1）；确保目录存在，否则 spawn ENOENT
   const workspaceRoot = path.join(app.getPath('documents'), 'ai-shortdrama-studio')
   fs.mkdirSync(workspaceRoot, { recursive: true })
+  // feature-014：固定双服务商与运行时参数取 store→env→default 合并值
+  const activeProvider = getActiveProvider()
+  const ark = getArkConfig()
+  const lmStudio = getLmStudioConfig()
+  const prefs = getRuntimePrefs()
   return runtimeManager.start({
     userDataDir: app.getPath('userData'),
     cwd: workspaceRoot,
-    arkApiKey: process.env.ARK_API_KEY,
-    arkModel: process.env.ARK_MODEL,
-    arkBaseUrl: process.env.ARK_BASE_URL,
+    activeProvider,
+    arkApiKey: ark.apiKey,
+    arkModel: ark.model,
+    arkBaseUrl: ark.baseUrl,
+    lmStudioModel: lmStudio.model,
+    lmStudioBaseUrl: lmStudio.baseUrl,
+    portRangeStart: prefs.portRangeStart,
+    healthTimeoutMs: prefs.healthTimeoutMs,
+    mockBaseUrl: prefs.mockBaseUrl,
   })
 }
 
@@ -841,6 +870,12 @@ ipcMain.handle('settings:comfy:remove', (_e, arg: unknown) => {
   }
   return removeInstance(id)
 })
+
+// feature-014 · AI 服务设置（恰 2 个 IPC；脱敏视图，明文 Key 不出主进程）
+ipcMain.handle('settings:ai:get', () => getSettingsView())
+
+ipcMain.handle('settings:ai:update', (_e, patch: unknown) =>
+  updateSettings((patch ?? {}) as AiServiceUpdatePatch))
 
 app.whenReady().then(() => {
   // 开发态启用辅助功能树（供自动化验证读取 UI 语义；feature-005 T9 真机验证辅助，无业务影响）

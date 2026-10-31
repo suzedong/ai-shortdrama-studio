@@ -585,6 +585,27 @@ export function installDevMockApi(): void {
 
   const noop = () => undefined
   const resolve = <T,>(v: T) => Promise.resolve(v)
+  let aiServiceView: AiServiceSettingsView = {
+    activeProvider: 'ark',
+    ark: {
+      baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+      model: '',
+      keyConfigured: false,
+      sources: { apiKey: 'default', baseUrl: 'default', model: 'default' },
+    },
+    lmstudio: {
+      baseUrl: 'http://127.0.0.1:1234/v1',
+      model: '',
+      sources: { baseUrl: 'default', model: 'default' },
+    },
+    runtime: {
+      portRangeStart: 4096,
+      healthTimeoutMs: 10000,
+      mockBaseUrl: 'http://127.0.0.1:4099/v1',
+      sources: { portRangeStart: 'default', healthTimeoutMs: 'default', mockBaseUrl: 'default' },
+    },
+    updatedAt: new Date().toISOString(),
+  }
 
   const api = {
     listProjects: () => resolve([
@@ -820,6 +841,57 @@ export function installDevMockApi(): void {
         list: () => resolve([]),
         upsert: () => resolve({ id: 'mock', name: 'mock', url: 'http://localhost:8188', enabled: true }),
         remove: () => resolve({ ok: true as const }),
+      },
+      // feature-014 · 固定双服务商演示桩：保留双方配置，与真实 patch 语义一致
+      ai: {
+        get: (): Promise<AiServiceSettingsView> => resolve(structuredClone(aiServiceView)),
+        update: (patch: AiServiceUpdatePatch): Promise<AiServiceSettingsView> => {
+          const next = structuredClone(aiServiceView)
+          if (patch.activeProvider) next.activeProvider = patch.activeProvider
+          if (patch.ark) {
+            if (patch.ark.apiKey !== undefined) {
+              next.ark.keyConfigured = patch.ark.apiKey !== ''
+              next.ark.sources.apiKey = patch.ark.apiKey ? 'store' : 'default'
+              if (patch.ark.apiKey) next.ark.apiKeyMasked = 'sk-moc••••1234'
+              else delete next.ark.apiKeyMasked
+            }
+            if (patch.ark.baseUrl !== undefined) {
+              next.ark.baseUrl = patch.ark.baseUrl || 'https://ark.cn-beijing.volces.com/api/v3'
+              next.ark.sources.baseUrl = patch.ark.baseUrl ? 'store' : 'default'
+            }
+            if (patch.ark.model !== undefined) {
+              next.ark.model = patch.ark.model
+              next.ark.sources.model = patch.ark.model ? 'store' : 'default'
+            }
+          }
+          if (patch.lmstudio) {
+            if (patch.lmstudio.baseUrl !== undefined) {
+              next.lmstudio.baseUrl = patch.lmstudio.baseUrl || 'http://127.0.0.1:1234/v1'
+              next.lmstudio.sources.baseUrl = patch.lmstudio.baseUrl ? 'store' : 'default'
+            }
+            if (patch.lmstudio.model !== undefined) {
+              next.lmstudio.model = patch.lmstudio.model
+              next.lmstudio.sources.model = patch.lmstudio.model ? 'store' : 'default'
+            }
+          }
+          if (patch.runtime) {
+            if (patch.runtime.portRangeStart !== undefined) {
+              next.runtime.portRangeStart = patch.runtime.portRangeStart ?? 4096
+              next.runtime.sources.portRangeStart = patch.runtime.portRangeStart === null ? 'default' : 'store'
+            }
+            if (patch.runtime.healthTimeoutMs !== undefined) {
+              next.runtime.healthTimeoutMs = patch.runtime.healthTimeoutMs ?? 10000
+              next.runtime.sources.healthTimeoutMs = patch.runtime.healthTimeoutMs === null ? 'default' : 'store'
+            }
+            if (patch.runtime.mockBaseUrl !== undefined) {
+              next.runtime.mockBaseUrl = patch.runtime.mockBaseUrl || 'http://127.0.0.1:4099/v1'
+              next.runtime.sources.mockBaseUrl = patch.runtime.mockBaseUrl ? 'store' : 'default'
+            }
+          }
+          next.updatedAt = new Date().toISOString()
+          aiServiceView = next
+          return resolve(structuredClone(next))
+        },
       },
     },
 

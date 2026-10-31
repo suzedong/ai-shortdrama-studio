@@ -130,6 +130,11 @@ contextBridge.exposeInMainWorld('api', {
       upsert: (instance: unknown) => ipcRenderer.invoke('settings:comfy:upsert', instance),
       remove: (id: string) => ipcRenderer.invoke('settings:comfy:remove', { id }),
     },
+    // feature-014 · AI 服务设置（脱敏视图，明文 Key 不经 IPC）
+    ai: {
+      get: () => ipcRenderer.invoke('settings:ai:get'),
+      update: (patch: unknown) => ipcRenderer.invoke('settings:ai:update', patch),
+    },
   },
 
   // feature-804 · Windows 窗口标题栏（契约 §3）

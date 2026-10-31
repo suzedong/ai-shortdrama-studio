@@ -328,3 +328,32 @@
 - **波及文件**：`docs/features/feature-011/012/013-*/`（五文件）；`docs/features/README.md`（三行翻态 + §2「11 族 28 个」）；`docs/设计现状与偏差清单.md` §3 三行；`feature-806` 变更记录 X 节翻案注；本台账。
 - **验证基线**：三包合并全量 **70 文件 821 passed / 0 failed / 1 skipped**；`npx tsc --noEmit` 恰 3 条历史基线；MCP **28** 工具 / showrunner 白名单 **23** / `package.json` 零 diff。真机目验受当前环境限制未执行，已在三包 T 节登记为遗留项，待用户桌面端验收。
 - **后续约束**：011 不得私增批量编排 MCP 工具；012 的 `impactSummary` 只是门卡展示快照，写盘一律以 `brief.impact.commit` 复算结果为准；013 的 L0 仅 tags/notes 两键，`diagnosisDetail` 直改不开口子，新增其他共享字段须重新走 K1 呈报。
+
+---
+
+## D-021 ｜ K8 ｜ feature-014 AI 服务配置管理：配置范围 / safeStorage 加密落盘 / spawn 契约固定 / 入口形态 / 即时生效 + 「ark Key 永不落盘」口径修订
+
+- **日期**：2026-10-31
+- **卡口**：K8（新增恰 2 个 IPC：`settings:ai:get` / `settings:ai:update`；preload / global.d.ts / dev-mock 三端镜像同步属登记范围）；K1 零触发（不动 shared/types.ts）；K9 零触发（safeStorage 为 Electron 内置，零新依赖）
+- **触发背景**：火山方舟文本三件套（API Key / Base URL / 模型名）硬编码于 [ark.ts](../../electron/ark.ts) 模块级 const，opencode 运行时参数（端口探测起点 4096、健康检查超时 10s、mock 引擎地址）硬编码于 [manager.ts](../../electron/runtime/manager.ts) 常量与 [provider.ts](../../electron/runtime/provider.ts)，用户无法在应用内管理；且既有口径「ark 的 Key 永不落盘」（provider.ts 头部注释：opencode.json 只声明 `env:["ARK_API_KEY"]`、Key 经子进程 env 注入）与应用级持久化需求冲突，需裁决。
+- **用户决策**（2026-10-31 拍板，五项 + 规格定夺一项；批准时点先于编码）：
+  1. **配置内容**：方舟文本三件套 + opencode 运行时三项（端口探测起点默认 4096 起 25 个、健康检查超时默认 10s、mock 引擎地址，收「高级」折叠区）；ComfyUI 实例 CRUD 已有 feature-017 承载，**不在本包**；
+  2. **Key 存储（口径修订）**：`safeStorage.encryptString` 加密后 base64 落 userData JSON（Windows DPAPI）；`isEncryptionAvailable()=false` 时**拒绝保存并报错，不回退明文**。旧口径修订为：**opencode.json 生成态契约不变**（Key 永不进 opencode.json，仍经子进程 env 注入）；**应用级配置仅允许 safeStorage 加密落盘**；
+  3. **spawn 参数契约固定**（`serve --hostname 127.0.0.1 --port`，禁 mdns/cors）**不可配**，不进面板；
+  4. **入口形态**：StudioApp rail 底部 AI 圆标系统菜单（`data-sys-menu-root`）增「AI 服务设置」项开模态面板；
+  5. **生效方式**：保存即时生效不重启——方舟类下一条消息生效（ark.ts 废模块级 const 改动态读 store）；runtime 三项提示用户手动重连；
+  6. **规格定夺（包内裁决）**：store 字段缺席时回退 `process.env`（保留开发态 .env 工作流，dotenv 保留不废弃），再缺回退内置默认；面板逐字段显示来源标记（自定义 / 环境变量 / 默认）。
+- **落地回填**：已实施，见 [feature-014 变更记录](../features/feature-014-AI服务配置管理/SDG-AI-变更记录.md) T 节（白名单：`electron/settings/ai-service.ts` 新建、`ark.ts`、`main.ts` 三挂点 + 恰 2 IPC、`manager.ts` `portRangeStart`、`preload.ts`、`global.d.ts`、`dev-mock-api.ts`、`StudioApp.tsx`、`AiServicePanel.tsx` 新建 + 新测试）。
+- **波及文件**：docs/features/feature-014-AI服务配置管理/（五文件）；本台账；features/README 增 014 行（收尾）。
+- **后续约束**：IPC 净增恰 2 为红线，任何第 3 个 IPC / 新推送 / 新 MCP 工具须停手复议；图像/视频/音乐生成通道红线不变（D-010），本包只管文本侧方舟与运行时参数；spawn 参数面板永不开口子；明文 Key 任何环节不得落盘（含日志）。
+
+---
+
+## D-022 ｜ K8 ｜ feature-014 固定双服务商：新增 LM Studio 本地/局域网文本模型服务
+
+- **日期**：2026-10-31
+- **卡口**：K8（扩展既有 `settings:ai` DTO、opencode provider 与 Agent profile 生成契约）；K1/K9 零触发；不新增 IPC、MCP 工具或 Agent 工具。
+- **触发背景**：用户明确要求服务商不可新增/删除，并增加 LM Studio 本地/局域网模型服务。
+- **用户决策**：①固定火山方舟 / LM Studio 两项单选，无 CRUD；②LM Studio 仅 Base URL + 模型 ID，默认 `http://127.0.0.1:1234/v1`，支持局域网、无 API Key，保留 `LMSTUDIO_BASE_URL/LMSTUDIO_MODEL` env 回退；③保存后手动重连运行时生效，不自动中断当前会话。
+- **落地回填**：store/DTO、provider/profile、manager/client/main 与固定两项面板已贯通；旧配置默认 ark、双方配置独立保留，当前模型缺失不跨服务商或 mock 回退，renderer 不直连 LM Studio。
+- **验证与遗留**：聚焦 7 文件 94 passed；全量 75 文件 893 passed / 0 failed / 1 skipped；IPC 44、MCP 28、Agent 白名单 23/5/9/9，package.json/shared/types.ts 零 diff。本机默认 LM Studio 端点连接被拒绝，真实 Electron + 本机/局域网 LM Studio 推理及重启持久化待真实服务验收。

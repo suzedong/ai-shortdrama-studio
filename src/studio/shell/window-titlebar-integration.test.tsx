@@ -52,6 +52,16 @@ function installApi(platform: 'darwin' | 'win32' | 'linux', canvas: Canvas = emp
     openProject: vi.fn(async () => ({ ok: true as const, activeSessionId: null as string | null })),
     // feature-808：项目-会话绑定（默认无绑定 → 不回放、不启 runtime）
     activeSession: vi.fn(async () => ({ sessionId: null as string | null })),
+    settings: {
+      ai: {
+        get: vi.fn(async () => ({
+          activeProvider: 'ark',
+          ark: { model: 'doubao-pro-32k' },
+          lmstudio: { model: 'local-model' },
+        })),
+        update: vi.fn(),
+      },
+    },
     fileRead: vi.fn(async () => ({ ok: false as const, error: { code: 'X', message: 'x' } })),
     window: { platform, minimize, toggleMaximize, isMaximized, close, onMaximizeChange },
     // feature-005：CaptureBar 挂载桥（空库 + 无推送；本套件不操作口径条）

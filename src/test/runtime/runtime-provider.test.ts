@@ -12,6 +12,8 @@ vi.mock('electron', () => ({
 
 import {
   ARK_BASE_URL_DEFAULT,
+  LMSTUDIO_BASE_URL_DEFAULT,
+  LMSTUDIO_API_KEY,
   MOCK_BASE_URL_DEFAULT,
   MOCK_API_KEY,
   ENABLED_PROVIDERS,
@@ -47,15 +49,15 @@ async function readGeneratedConfig(userData: string) {
 }
 
 describe('generateRuntimeConfig · opencode.json 结构契约', () => {
-  it('enabled_providers 白名单仅 ark+mock；provider 仅 ark+mock；ark 走 openai-compatible + env 声明', async () => {
+  it('enabled_providers 与 provider 固定为 ark+lmstudio+mock；ark 走 openai-compatible + env 声明', async () => {
     const r = await generateRuntimeConfig({ userDataDir, arkModel: ARK_MODEL })
     const cfg = await readGeneratedConfig(userDataDir)
 
     expect(r.arkActive).toBe(true)
     expect(cfg.$schema).toBe('https://opencode.ai/config.json')
     expect(cfg.enabled_providers).toEqual([...ENABLED_PROVIDERS])
-    expect(cfg.enabled_providers).toEqual(['ark', 'mock'])
-    expect(Object.keys(cfg.provider).sort()).toEqual(['ark', 'mock'])
+    expect(cfg.enabled_providers).toEqual(['ark', 'lmstudio', 'mock'])
+    expect(Object.keys(cfg.provider).sort()).toEqual(['ark', 'lmstudio', 'mock'])
 
     const ark = cfg.provider.ark
     expect(ark.npm).toBe('@ai-sdk/openai-compatible')
@@ -63,6 +65,12 @@ describe('generateRuntimeConfig · opencode.json 结构契约', () => {
     expect(ark.options.baseURL).toBe(ARK_BASE_URL_DEFAULT)
     expect(ark.models[ARK_MODEL]).toBeTruthy()
     expect(Object.keys(ark.models)).toEqual([ARK_MODEL])
+
+    const lmstudio = cfg.provider.lmstudio
+    expect(lmstudio.npm).toBe('@ai-sdk/openai-compatible')
+    expect(lmstudio.options.baseURL).toBe(LMSTUDIO_BASE_URL_DEFAULT)
+    expect(lmstudio.options.apiKey).toBe(LMSTUDIO_API_KEY)
+    expect(lmstudio.models).toEqual({})
 
     const mock = cfg.provider.mock
     expect(mock.npm).toBe('@ai-sdk/openai-compatible')
@@ -116,6 +124,21 @@ describe('generateRuntimeConfig · opencode.json 结构契约', () => {
     expect(cfg.provider.mock.options.baseURL).toBe('http://127.0.0.1:5099/v1')
   })
 
+  it('LM Studio：支持局域网 baseURL 与模型 ID，使用固定非秘密占位 Key', async () => {
+    await generateRuntimeConfig({
+      userDataDir,
+      arkModel: ARK_MODEL,
+      lmStudioBaseUrl: 'http://192.168.31.20:1234/v1',
+      lmStudioModel: 'qwen2.5-7b-instruct',
+    })
+    const cfg = await readGeneratedConfig(userDataDir)
+    const lmstudio = cfg.provider.lmstudio
+    expect(lmstudio.options.baseURL).toBe('http://192.168.31.20:1234/v1')
+    expect(lmstudio.options.apiKey).toBe(LMSTUDIO_API_KEY)
+    expect(lmstudio.models['qwen2.5-7b-instruct']).toEqual({ name: 'LM Studio local model' })
+    expect(Object.keys(lmstudio.models)).toEqual(['qwen2.5-7b-instruct'])
+  })
+
   it('每次启动重生成：旧文件里的用户态内容不被合并保留', async () => {
     await generateRuntimeConfig({ userDataDir, arkModel: ARK_MODEL })
     const cfgPath = path.join(runtimeConfigDir(userDataDir), 'opencode.json')
@@ -126,7 +149,7 @@ describe('generateRuntimeConfig · opencode.json 结构契约', () => {
     await generateRuntimeConfig({ userDataDir, arkModel: ARK_MODEL })
     const cfg = await readGeneratedConfig(userDataDir)
     expect(cfg.provider.rogue).toBeUndefined()
-    expect(Object.keys(cfg.provider).sort()).toEqual(['ark', 'mock'])
+    expect(Object.keys(cfg.provider).sort()).toEqual(['ark', 'lmstudio', 'mock'])
   })
 })
 
@@ -142,7 +165,7 @@ describe('installAgentProfiles · 摄制组 profiles 安装（director 已退役
   })
 
   it('ARK_MODEL 注入全部 frontmatter：model 为 ark/<modelID>，模板占位符不入库', async () => {
-    const installed = await installAgentProfiles({ userDataDir, arkModel: ARK_MODEL })
+    const installed = await installAgentProfiles({ userDataDir, modelRef: `ark/${ARK_MODEL}` })
     expect(installed).toHaveLength(4)
     for (const { path: target } of installed) {
       const md = await fsp.readFile(target, 'utf-8')
@@ -156,11 +179,24 @@ describe('installAgentProfiles · 摄制组 profiles 安装（director 已退役
     ).rejects.toThrow()
   })
 
+  it('LM Studio modelRef 注入全部 frontmatter：model 为 lmstudio/<modelID>', async () => {
+    const installed = await installAgentProfiles({
+      userDataDir,
+      modelRef: 'lmstudio/qwen2.5-7b-instruct',
+    })
+    expect(installed).toHaveLength(4)
+    for (const { path: target } of installed) {
+      const md = await fsp.readFile(target, 'utf-8')
+      expect(md).toContain('model: lmstudio/qwen2.5-7b-instruct')
+      expect(md).not.toContain('__ARK_MODEL_ID__')
+    }
+  })
+
   it('ARK_MODEL 缺失 / 空白：抛 UPSTREAM_AUTH_MISSING，不静默回退 mock', async () => {
-    await expect(installAgentProfiles({ userDataDir, arkModel: '' })).rejects.toMatchObject({
+    await expect(installAgentProfiles({ userDataDir, modelRef: '' })).rejects.toMatchObject({
       name: 'UPSTREAM_AUTH_MISSING',
     })
-    await expect(installAgentProfiles({ userDataDir, arkModel: '   ' })).rejects.toMatchObject({
+    await expect(installAgentProfiles({ userDataDir, modelRef: '   ' })).rejects.toMatchObject({
       name: 'UPSTREAM_AUTH_MISSING',
     })
   })
@@ -211,6 +247,48 @@ describe('setupRuntimeFiles · 启动编排', () => {
     expect(showrunner).toBeDefined()
     const md = await fsp.readFile(showrunner!.path, 'utf-8')
     expect(md).toContain(`model: ark/${ARK_MODEL}`)
+  })
+
+  it('当前服务商为 LM Studio：即使 Ark 有模型也只选择 LM，切回 Ark 后完整替换模型引用', async () => {
+    const lm = await setupRuntimeFiles({
+      userDataDir,
+      activeProvider: 'lmstudio',
+      arkModel: ARK_MODEL,
+      lmStudioModel: 'qwen2.5-7b-instruct',
+      lmStudioBaseUrl: 'http://192.168.31.20:1234/v1',
+    })
+    expect(lm.profileError).toBeNull()
+    const showrunner = lm.profiles.find((p) => p.name === SHOWRUNNER_AGENT)!
+    expect(await fsp.readFile(showrunner.path, 'utf-8')).toContain(
+      'model: lmstudio/qwen2.5-7b-instruct',
+    )
+
+    const ark = await setupRuntimeFiles({
+      userDataDir,
+      activeProvider: 'ark',
+      arkModel: ARK_MODEL,
+      lmStudioModel: 'qwen2.5-7b-instruct',
+    })
+    const arkShowrunner = ark.profiles.find((p) => p.name === SHOWRUNNER_AGENT)!
+    const md = await fsp.readFile(arkShowrunner.path, 'utf-8')
+    expect(md).toContain(`model: ark/${ARK_MODEL}`)
+    expect(md).not.toContain('model: lmstudio/')
+  })
+
+  it('LM Studio 缺模型：即使 Ark 已配置也删除旧 profile，不回退另一服务商或 mock', async () => {
+    const previous = await setupRuntimeFiles({ userDataDir, arkModel: ARK_MODEL })
+    expect(previous.profiles).toHaveLength(4)
+
+    const missing = await setupRuntimeFiles({
+      userDataDir,
+      activeProvider: 'lmstudio',
+      arkModel: ARK_MODEL,
+    })
+    expect(missing.profiles).toEqual([])
+    expect(missing.profileError?.code).toBe('UPSTREAM_AUTH_MISSING')
+    expect(missing.profileError?.message).toContain('LMSTUDIO_MODEL')
+    const agents = await fsp.readdir(path.join(missing.config.configDir, 'agents'))
+    expect(agents).toEqual([])
   })
 
   it('ARK_MODEL 缺失：运行时配置照常生成，profile 不安装并带结构化 UPSTREAM_AUTH_MISSING', async () => {

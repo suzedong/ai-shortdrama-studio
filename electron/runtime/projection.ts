@@ -398,6 +398,16 @@ function parseToolEnvelope(rawOutput: string): unknown {
 }
 
 function mapOcError(error: OcErrorShape): RuntimeErrorBody {
+  const upstreamMessage = error.data?.message ?? ''
+  if (
+    error.name === 'ProviderModelNotFoundError' ||
+    /ProviderModelNotFoundError|Model not found:/i.test(upstreamMessage)
+  ) {
+    return {
+      code: 'PROMPT_FAILED',
+      message: '当前运行时未注册所选模型，请检查模型 ID 与服务商配置；若刚修改配置，请在「AI 服务设置」中点击「重连运行时」',
+    }
+  }
   switch (error.name) {
     case 'ProviderAuthError':
       return { code: 'UPSTREAM_AUTH_MISSING', message: '上游 provider 认证缺失或失效' }

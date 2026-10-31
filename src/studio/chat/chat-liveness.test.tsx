@@ -37,6 +37,9 @@ function renderWithStream(
       error={null}
       aiDown={props.aiDown ?? null}
       onAiRetry={props.onAiRetry}
+      modelOptions={[{ providerID: 'ark', modelID: 'test-model' }]}
+      selectedModel={{ providerID: 'ark', modelID: 'test-model' }}
+      onModelChange={vi.fn()}
       onSend={vi.fn()}
       onDecide={vi.fn()}
     />,
@@ -252,6 +255,9 @@ describe('D-013 · AI 服务不可用横幅与输入禁用', () => {
         error={null}
         aiDown="AI 服务不可用"
         onAiRetry={onAiRetry}
+        modelOptions={[{ providerID: 'ark', modelID: 'test-model' }]}
+        selectedModel={{ providerID: 'ark', modelID: 'test-model' }}
+        onModelChange={vi.fn()}
         onSend={onSend}
         onDecide={vi.fn()}
       />,

@@ -1,11 +1,11 @@
 // feature-008 · opencode 生成态配置生成
 // 严格匹配《SDG-RE-契约.md》§7 / §8：
 // - 生成态写入 app.getPath('userData')/opencode/，每次启动按模板重生成，不做用户态合并；
-// - 仅 ark + mock 两个 provider，enabled_providers 白名单抑制 opencode 30+ 内置 provider；
+// - 固定 ark + lmstudio + mock 三个 provider，enabled_providers 白名单抑制 opencode 内置 provider；
 // - ark 的 Key 永不落盘：json 只声明 env:["ARK_API_KEY"]，真实值由 manager 经子进程环境变量注入；
 // - profiles 为摄制组四件套（showrunner 主控 + writer/media-director/comfyui-operator），
-//   model 为 ark/<ARK_MODEL>，modelID 启动时注入，不硬编码入库；
-// - ARK_MODEL 缺失时 profile 不安装（不静默回退 mock），运行时本身仍可经 mock 启动（契约 §6/§7.4）。
+//   model 按当前服务商渲染为 ark/<model> 或 lmstudio/<model>，不硬编码入库；
+// - 当前服务商模型缺失时清除旧 profile（不静默回退另一服务商或 mock），运行时仍可启动。
 import path from 'node:path'
 import fsp from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -15,14 +15,18 @@ import type { RuntimeErrorCode } from './types.js'
 // -- 常量 ---------------------------------------------------------------------
 
 export const ARK_BASE_URL_DEFAULT = 'https://ark.cn-beijing.volces.com/api/v3'
+export const LMSTUDIO_BASE_URL_DEFAULT = 'http://127.0.0.1:1234/v1'
 export const MOCK_BASE_URL_DEFAULT = 'http://127.0.0.1:4099/v1'
 /** 本地 OpenAI 兼容桩的占位值，非真实密钥；仅用于让 openai-compatible 通道不报缺 key */
 export const MOCK_API_KEY = 'mock-no-key'
 export const MOCK_PROVIDER_ID = 'mock'
 export const MOCK_MODEL_ID = 'mock-1'
 export const ARK_PROVIDER_ID = 'ark'
-/** 白名单：仅这两个 provider 可被 opencode 加载（契约 §7.3） */
-export const ENABLED_PROVIDERS = [ARK_PROVIDER_ID, MOCK_PROVIDER_ID] as const
+export const LMSTUDIO_PROVIDER_ID = 'lmstudio'
+/** 本地 LM Studio 的占位值，非真实密钥；仅用于满足 openai-compatible SDK 必填项 */
+export const LMSTUDIO_API_KEY = 'lmstudio-no-key'
+/** 固定 provider 白名单；mock 仅内部测试使用，不对用户暴露 */
+export const ENABLED_PROVIDERS = [ARK_PROVIDER_ID, LMSTUDIO_PROVIDER_ID, MOCK_PROVIDER_ID] as const
 
 /** MCP 业务服务器在 opencode config 中的注册名（工具 ID = shortdrama_<tool>） */
 export const SHORTDRAMA_MCP_NAME = 'shortdrama'
@@ -105,6 +109,8 @@ export interface GenerateRuntimeConfigOptions {
   /** 来自 ARK_MODEL；缺失时 ark provider models 为空（不激活），运行时仍可经 mock 启动 */
   arkModel?: string
   arkBaseUrl?: string
+  lmStudioModel?: string
+  lmStudioBaseUrl?: string
   mockBaseUrl?: string
 }
 
@@ -185,6 +191,8 @@ export async function generateRuntimeConfig(
   }
   const arkModel = opts.arkModel?.trim()
   const arkBaseUrl = opts.arkBaseUrl?.trim() || ARK_BASE_URL_DEFAULT
+  const lmStudioModel = opts.lmStudioModel?.trim()
+  const lmStudioBaseUrl = opts.lmStudioBaseUrl?.trim() || LMSTUDIO_BASE_URL_DEFAULT
   const mockBaseUrl = opts.mockBaseUrl?.trim() || MOCK_BASE_URL_DEFAULT
 
   const configDir = runtimeConfigDir(userDataDir)
@@ -218,6 +226,17 @@ export async function generateRuntimeConfig(
           ? { [arkModel]: { name: 'Doubao (Volcano Ark)' } }
           : {},
       },
+      [LMSTUDIO_PROVIDER_ID]: {
+        npm: '@ai-sdk/openai-compatible',
+        name: 'LM Studio (OpenAI-compatible)',
+        options: {
+          baseURL: lmStudioBaseUrl,
+          apiKey: LMSTUDIO_API_KEY,
+        },
+        models: lmStudioModel
+          ? { [lmStudioModel]: { name: 'LM Studio local model' } }
+          : {},
+      },
       [MOCK_PROVIDER_ID]: {
         npm: '@ai-sdk/openai-compatible',
         name: 'Mock Stub (test only)',
@@ -244,15 +263,16 @@ export async function generateRuntimeConfig(
 async function renderAgentFile(
   userDataDir: string,
   spec: AgentProfileSpec,
-  arkModel: string,
+  modelRef: string,
   templatePath?: string,
 ): Promise<{ targetPath: string; rendered: string }> {
   const tplPath = templatePath ?? await resolveAgentTemplatePath(spec.file)
   const template = await fsp.readFile(tplPath, 'utf-8')
-  if (!template.includes(MODEL_PLACEHOLDER)) {
-    throw makeError('INTERNAL', `${spec.file} 模板缺少 ${MODEL_PLACEHOLDER} 占位符：${tplPath}`)
+  const modelRefPlaceholder = `ark/${MODEL_PLACEHOLDER}`
+  if (!template.includes(modelRefPlaceholder)) {
+    throw makeError('INTERNAL', `${spec.file} 模板缺少 ${modelRefPlaceholder} 占位符：${tplPath}`)
   }
-  const rendered = template.split(MODEL_PLACEHOLDER).join(arkModel)
+  const rendered = template.split(modelRefPlaceholder).join(modelRef)
   if (rendered.includes(MODEL_PLACEHOLDER)) {
     throw makeError('INTERNAL', `${spec.file} 模板 modelID 替换失败`)
   }
@@ -262,8 +282,8 @@ async function renderAgentFile(
 
 export interface InstallAgentProfilesOptions {
   userDataDir: string
-  /** ARK_MODEL；缺失 / 空白抛 UPSTREAM_AUTH_MISSING */
-  arkModel: string
+  /** 完整 provider/model 引用；缺失 / 空白抛 UPSTREAM_AUTH_MISSING */
+  modelRef: string
   /** name → 测试注入模板路径 */
   templatePaths?: Record<string, string>
 }
@@ -275,16 +295,16 @@ export interface InstalledAgentProfile {
 
 /**
  * 按 AGENT_PROFILES 顺序渲染安装全部 profile（feature-018 契约 §2）。
- * ARK_MODEL 缺失 / 空白：抛 UPSTREAM_AUTH_MISSING，不静默回退。
+ * 当前服务商模型缺失 / 空白：抛 UPSTREAM_AUTH_MISSING，不静默回退。
  */
 export async function installAgentProfiles(
   opts: InstallAgentProfilesOptions,
 ): Promise<InstalledAgentProfile[]> {
-  const arkModel = opts.arkModel?.trim()
-  if (!arkModel) {
+  const modelRef = opts.modelRef?.trim()
+  if (!modelRef) {
     throw makeError(
       'UPSTREAM_AUTH_MISSING',
-      'ARK_MODEL 未配置：Agent profile 不可用（不会回退 mock），请在 .env 设置 ARK_MODEL',
+      '当前文本服务商模型未配置：Agent profile 不可用（不会回退其他服务商或 mock）',
     )
   }
   const agentsDir = path.join(runtimeConfigDir(opts.userDataDir), AGENTS_DIR_NAME)
@@ -293,7 +313,7 @@ export async function installAgentProfiles(
   const installed: InstalledAgentProfile[] = []
   for (const spec of AGENT_PROFILES) {
     const { targetPath, rendered } = await renderAgentFile(
-      opts.userDataDir, spec, arkModel, opts.templatePaths?.[spec.name],
+      opts.userDataDir, spec, modelRef, opts.templatePaths?.[spec.name],
     )
     await fsp.writeFile(targetPath, rendered, 'utf-8')
     installed.push({ name: spec.name, path: targetPath })
@@ -302,29 +322,37 @@ export async function installAgentProfiles(
 }
 
 /**
- * 启动序列编排：重生成 opencode.json + 安装全部 profile。
- * ARK_MODEL 缺失不阻断运行时启动（mock 可用、serve 健康），仅令 profile 不安装并带回结构化原因。
+ * 启动序列编排：重生成 opencode.json + 按当前服务商安装全部 profile。
+ * 当前模型缺失不阻断 serve，但会清除旧 profile，避免继续使用切换前的服务商。
  */
 export async function setupRuntimeFiles(opts: {
   userDataDir: string
+  activeProvider?: 'ark' | 'lmstudio'
   arkModel?: string
   arkBaseUrl?: string
+  lmStudioModel?: string
+  lmStudioBaseUrl?: string
   mockBaseUrl?: string
 }): Promise<RuntimeFilesResult> {
   const config = await generateRuntimeConfig(opts)
-  if (!opts.arkModel?.trim()) {
+  const activeProvider = opts.activeProvider ?? 'ark'
+  const model = activeProvider === 'lmstudio' ? opts.lmStudioModel?.trim() : opts.arkModel?.trim()
+  if (!model) {
+    await Promise.all(AGENT_PROFILES.map(profile =>
+      fsp.rm(path.join(config.configDir, AGENTS_DIR_NAME, profile.file), { force: true }),
+    ))
     return {
       config,
       profiles: [],
       profileError: {
         code: 'UPSTREAM_AUTH_MISSING',
-        message: 'ARK_MODEL 未配置：Agent profile 未安装，仅 mock provider 可用',
+        message: `${activeProvider === 'lmstudio' ? 'LMSTUDIO_MODEL' : 'ARK_MODEL'} 未配置：Agent profile 未安装，不回退其他服务商或 mock`,
       },
     }
   }
   const profiles = await installAgentProfiles({
     userDataDir: opts.userDataDir,
-    arkModel: opts.arkModel,
+    modelRef: `${activeProvider}/${model}`,
   })
   return {
     config,

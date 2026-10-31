@@ -21,7 +21,7 @@ interface FakeState {
   }
 }
 
-function makeFakeClient(opts?: { allowedArkModel?: string; conn?: any }) {
+function makeFakeClient(opts?: { allowedArkModel?: string; allowedLmStudioModel?: string; conn?: any }) {
   const state: FakeState = {
     handle: null as unknown as SdkHandle,
     conn: null,
@@ -90,6 +90,7 @@ function makeFakeClient(opts?: { allowedArkModel?: string; conn?: any }) {
   const client = new OpencodeRuntimeClient({
     getConnection,
     allowedArkModel: opts?.allowedArkModel ?? 'ep-allowed',
+    allowedLmStudioModel: opts?.allowedLmStudioModel ?? 'local-allowed',
     factory,
   })
   return { client, state, factory }
@@ -224,7 +225,7 @@ describe('prompt / promptAsync 边界与透传', () => {
     }
   })
 
-  it('model 白名单：ark 只能用已配置 modelID；mock 只能 mock-1；其余 provider 拒绝', async () => {
+  it('model 白名单：ark/lmstudio 只能用各自已配置 modelID；mock 只能 mock-1；其余 provider 拒绝', async () => {
     const { client, state } = makeFakeClient()
     await client.promptAsync({
       ...baseReq,
@@ -234,9 +235,20 @@ describe('prompt / promptAsync 边界与透传', () => {
       providerID: 'ark',
       modelID: 'ep-allowed',
     })
+    await client.promptAsync({
+      ...baseReq,
+      model: { providerID: 'lmstudio', modelID: 'local-allowed' },
+    })
+    expect(state.calls['session.promptAsync']!.at(-1).body.model).toEqual({
+      providerID: 'lmstudio',
+      modelID: 'local-allowed',
+    })
     await client.promptAsync({ ...baseReq, model: { providerID: 'mock', modelID: 'mock-1' } })
     await expect(
       client.promptAsync({ ...baseReq, model: { providerID: 'ark', modelID: 'ep-other' } }),
+    ).rejects.toMatchObject({ name: 'INVALID_ARGUMENT' })
+    await expect(
+      client.promptAsync({ ...baseReq, model: { providerID: 'lmstudio', modelID: 'local-other' } }),
     ).rejects.toMatchObject({ name: 'INVALID_ARGUMENT' })
     await expect(
       client.promptAsync({ ...baseReq, model: { providerID: 'mock', modelID: 'mock-2' } }),

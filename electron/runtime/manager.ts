@@ -80,10 +80,17 @@ export interface StartRuntimeOptions {
   userDataDir: string
   /** serve 工作目录：固定平台工作区根目录（契约 §1，本期不按项目切换） */
   cwd: string
+  activeProvider?: 'ark' | 'lmstudio'
   arkApiKey?: string
   arkModel?: string
   arkBaseUrl?: string
+  lmStudioModel?: string
+  lmStudioBaseUrl?: string
   mockBaseUrl?: string
+  /** feature-014：端口探测起点（缺省 PORT_RANGE_START=4096；区间长度恒 25 不可配） */
+  portRangeStart?: number
+  /** feature-014：健康检查超时（随 start 传入，重连即生效；缺省走 ManagerDeps.healthTimeoutMs 注入值） */
+  healthTimeoutMs?: number
 }
 
 export interface RuntimeConnection {
@@ -199,11 +206,14 @@ export class OpencodeRuntimeManager {
   private async boot(opts: StartRuntimeOptions): Promise<RuntimeStatus> {
     let child: ChildProcess
     try {
-      // ① 重生成配置（每次启动按模板重生成；ARK_MODEL 缺失不阻断 mock 启动）
+      // ① 重生成配置（每次启动按模板重生成；当前模型缺失不阻断 serve）
       await setupRuntimeFiles({
         userDataDir: opts.userDataDir,
+        activeProvider: opts.activeProvider,
         arkModel: opts.arkModel,
         arkBaseUrl: opts.arkBaseUrl,
+        lmStudioModel: opts.lmStudioModel,
+        lmStudioBaseUrl: opts.lmStudioBaseUrl,
         mockBaseUrl: opts.mockBaseUrl,
       })
 
@@ -214,8 +224,8 @@ export class OpencodeRuntimeManager {
         throw makeError('RUNTIME_START_FAILED', 'MCP 工具服务返回的 url/token 为空，拒绝启动 opencode')
       }
 
-      // ③ 端口 + 口令
-      const port = await findFreePort()
+      // ③ 端口 + 口令（feature-014：起点可配，区间长度恒 25）
+      const port = await findFreePort(opts.portRangeStart)
       const password = generateServerPassword()
       const binaryPath = resolveOpencodeBinaryPath()
 
@@ -236,8 +246,8 @@ export class OpencodeRuntimeManager {
       child.on('exit', (code, signal) => this.handleExit(code, signal))
       child.on('error', (err) => this.handleSpawnError(err))
 
-      // ⑤ 健康检查轮询（~10s 上限）；进程提前退出 / spawn error 会抢先 reject
-      const version = await this.waitHealthy(child)
+      // ⑤ 健康检查轮询（默认 ~10s 上限，feature-014 可经 start opts 覆盖）；进程提前退出 / spawn error 会抢先 reject
+      const version = await this.waitHealthy(child, opts.healthTimeoutMs)
       this.version = version
       this.startedAt = new Date().toISOString()
       this.setState('running')
@@ -337,8 +347,8 @@ export class OpencodeRuntimeManager {
     this.failWith('RUNTIME_START_FAILED', `无法拉起 opencode 进程：${sanitize(err.message)}`)
   }
 
-  private waitHealthy(child: ChildProcess): Promise<string> {
-    const timeoutMs = this.deps.healthTimeoutMs ?? HEALTH_TIMEOUT_MS
+  private waitHealthy(child: ChildProcess, timeoutOverrideMs?: number): Promise<string> {
+    const timeoutMs = timeoutOverrideMs ?? this.deps.healthTimeoutMs ?? HEALTH_TIMEOUT_MS
     const intervalMs = this.deps.healthIntervalMs ?? HEALTH_INTERVAL_MS
     const deadline = Date.now() + timeoutMs
 

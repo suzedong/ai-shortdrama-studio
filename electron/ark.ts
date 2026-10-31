@@ -1,9 +1,9 @@
 // 火山方舟（豆包）OpenAI 兼容接口封装
+// feature-014：废模块级 const，改每次调用经 ai-service store 动态读合并生效值
+// （store → env → 内置默认），「AI 服务设置」保存后下一条消息即生效，无需重启。
+// dotenv 保留作 env 回退源；明文 Key 不出主进程内存（日志仅脱敏）。
 import 'dotenv/config'
-
-const BASE_URL = process.env.ARK_BASE_URL || 'https://ark.cn-beijing.volces.com/api/v3'
-const API_KEY = process.env.ARK_API_KEY
-const MODEL = process.env.ARK_MODEL
+import { getArkConfig, maskKeyString } from './settings/ai-service.js'
 
 interface ArkMessage {
   role: 'system' | 'user' | 'assistant'
@@ -11,18 +11,19 @@ interface ArkMessage {
 }
 
 export async function chat(messages: ArkMessage[], temperature = 0.7): Promise<string> {
-  if (!API_KEY || !MODEL) {
-    throw new Error('ARK_API_KEY 或 ARK_MODEL 未配置，请在 .env 中设置')
+  const { apiKey, baseUrl, model } = getArkConfig()
+  if (!apiKey || !model) {
+    throw new Error('未配置火山方舟接口，请在「AI 服务设置」中配置 API Key 与模型名（或设置 ARK_API_KEY/ARK_MODEL 环境变量）')
   }
 
-  const res = await fetch(`${BASE_URL}/chat/completions`, {
+  const res = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`,
+      'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       messages,
       temperature,
     }),
@@ -39,10 +40,12 @@ export async function chat(messages: ArkMessage[], temperature = 0.7): Promise<s
 
 // 脱敏：仅用于日志，不输出完整密钥
 export function maskKey(): string {
-  if (!API_KEY) return '(未配置)'
-  return API_KEY.slice(0, 6) + '••••' + API_KEY.slice(-4)
+  const { apiKey } = getArkConfig()
+  if (!apiKey) return '(未配置)'
+  return maskKeyString(apiKey)
 }
 
 export function isConfigured(): boolean {
-  return !!(API_KEY && MODEL)
+  const { apiKey, model } = getArkConfig()
+  return !!(apiKey && model)
 }

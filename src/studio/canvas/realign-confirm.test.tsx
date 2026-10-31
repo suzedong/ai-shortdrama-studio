@@ -199,6 +199,16 @@ function installAppApi(initial: Canvas): AppHarness {
     createProject: vi.fn(async () => ({ dir: '/ws/project-p2' })),
     openProject: vi.fn(async () => ({ ok: true as const, activeSessionId: null as string | null })),
     activeSession: vi.fn(async () => ({ sessionId: null as string | null })),
+    settings: {
+      ai: {
+        get: vi.fn(async () => ({
+          activeProvider: 'ark',
+          ark: { model: 'doubao-pro-32k' },
+          lmstudio: { model: 'local-model' },
+        })),
+        update: vi.fn(),
+      },
+    },
     fileRead,
     captureList: vi.fn(async () => ({ schemaVersion: 1 as const, facts: [] })),
     onCaptureChanged: vi.fn(() => () => undefined),
@@ -267,8 +277,14 @@ describe('feature-007 · StudioApp 集成（契约 §5 ④）', () => {
 
     await user.click(screen.getByRole('button', { name: '按 v3 重新对齐' }))
     await waitFor(() => expect(h.promptAsync).toHaveBeenCalledTimes(1))
-    const sent = h.promptAsync.mock.calls[0][0] as { sessionId: string; text: string; agent: string }
+    const sent = h.promptAsync.mock.calls[0][0] as {
+      sessionId: string
+      text: string
+      agent: string
+      model: { providerID: string; modelID: string }
+    }
     expect(sent.agent).toBe('showrunner')
+    expect(sent.model).toEqual({ providerID: 'ark', modelID: 'doubao-pro-32k' })
     expect(sent.text).toBe(buildRealignPrompt(PROMPT_INPUT))
     expect(sent.text.startsWith('【产物重新对齐】')).toBe(true)
     // 确认与查看器均关

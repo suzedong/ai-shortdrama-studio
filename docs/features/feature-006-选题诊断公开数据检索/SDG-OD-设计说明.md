@@ -10,7 +10,7 @@
       ├ 检索通道（K8，二选一，T0 定案）：
       │   方案 A ─ opencode 服务端内置 web 工具
       │             （SHOWRUNNER_DECLARED_TOOLS 白名单放行，仅 showrunner 一组）
-      │   方案 B ─ shortdrama_web.search/fetch（自建 MCP 工具 25→27，主进程原生 fetch）
+      │   方案 B ─ shortdrama_web.search/fetch（自建 MCP 工具；Bing 国内站 + 主进程代理感知请求）
       ├ 产出诊断卡：五区块（§2.6.2 结构不变）+ 卡尾「检索来源」附录（S3）
       └ 落盘：随既有 diagnosisDetail 机制入立项单（D-018，零新代码）
 
@@ -31,13 +31,17 @@
 | D5 | 来源标注为卡尾附录，五区块结构不动 | 设计书五区块是产物结构，来源是追溯元数据——附录承载可追溯（可证伪、可审计），不侵入结构；随 diagnosisDetail 既有机制落盘（D-018），零新代码 |
 | D6 | 方案 B 零 Key 优先 | 媒体零公网、无 Key、无按次云费是 v1.7 终局红线精神；搜索源须 Key/新依赖即停手补登 K9 |
 | D7 | 检索失败能力诚实降级，不编造 URL | showrunner 纪律 6 能力诚实的检索场景具体化；「未联网检索」附录标注保证产物可审计 |
+| D8 | 默认 Bing 国内站，非 Playwright | 本机实测可直接返回正常结果；浏览器自动化不能解决 DNS/TCP/TLS 直连故障，且会新增重依赖 |
+| D9 | 公网 Electron net.fetch，私网原生 fetch | 前者遵循 Chromium 的系统代理/PAC/绕过规则；后者为 ComfyUI/LM Studio/loopback 提供确定性直连硬边界 |
+| D10 | opencode 仅在 spawn 前固化代理环境 | 官方支持 HTTP(S)_PROXY/NO_PROXY；主进程 loopback SDK 不受子进程公网代理影响，配置变更随既有手动重连生效 |
+| D11 | 原生弹窗 + 原错误信封双通道 | 系统负责明确提示，Agent 继续诚实降级；零新 IPC/renderer 改动，且不把任意 URL 误报为已知境外服务 |
 
-## 3. 文件白名单
+## 3. 文件白名单（含 2026-11-01 网络治理）
 
-**新增（0 / 方案 B 恰 1）**：方案 B 时 `src/test/web-tools.test.ts`
-**修改（方案 A ≤3 / 方案 B ≤5）**：`electron/runtime/provider.ts`、`resources/opencode/agents/showrunner.md`、`src/test/agent-profiles.test.ts`；方案 B 追加 `electron/mcp/tools.ts`、`src/test/agent-profiles.test.ts`（同文件不重复计）
-**文档（5）**：本包 5 文件、`docs/features/README.md`、`docs/设计现状与偏差清单.md`（B-39）、`docs/features/feature-001-立项模型重建/SDG-AI-变更记录.md`（R-007）、`版本记录.md`
-**零 diff 红线**：`shared/types.ts`、`electron/brief/*`、`electron/gate/*`、`electron/canvas/*`、`electron/main.ts`、`electron/preload.ts`、`src/**`（测试与静态契约测试扩表除外）、`package.json`（方案 A）
+**新增**：`electron/network.ts`、`src/test/network.test.ts`。
+**修改**：`electron/mcp/tools.ts`、`electron/ark.ts`、`electron/main.ts`、`electron/runtime/manager.ts`；对应 web/ark/runtime-manager 测试。
+**文档**：本包五文件；feature-014 契约/变更记录联动。
+**零 diff 红线**：`shared/types.ts`、`electron/brief/*`、`electron/gate/*`、`electron/canvas/*`、`electron/preload.ts`、renderer 生产代码、Agent 工具 DTO/白名单、spawn 参数、`package.json`/lockfile。
 
 ## 4. 风险与边界
 

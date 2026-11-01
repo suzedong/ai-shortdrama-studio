@@ -1,11 +1,11 @@
-// feature-006 · T4：公开数据检索纯函数契约（契约 §2.2/§5）
-// 零外网：fetchImpl 依赖注入 mock；纯函数零项目上下文（不依赖激活项目）。
+// feature-006 · Bing 国内搜索与公开网页抓取契约（契约 §2.2/§5）
+// 零外网：fetchImpl 依赖注入 mock；纯函数零项目上下文。
 import { describe, expect, it, vi } from 'vitest'
 import {
   WEB_FETCH_MAX_CHARS,
   decodeHtmlEntities,
   htmlToText,
-  parseDdgResults,
+  parseBingResults,
   webFetchText,
   webSearch,
 } from '../../../electron/mcp/tools'
@@ -14,25 +14,26 @@ function mockFetchWithHtml(html: string) {
   return vi.fn(async () => ({ ok: true, status: 200, text: async () => html })) as unknown as typeof fetch
 }
 
-const DDG_HTML = `
-<div class="result results_links">
-  <a class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Fdrama&amp;rut=abc123">逆袭短剧 &amp; 甜宠 复盘</a>
-  <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Fdrama">2024 年逆袭题材数据 &middot; 钩子模式分析</a>
-</div>
-<div class="result results_links">
-  <a class="result__a" href="https://direct.example.org/article">直链标题</a>
-  <div class="result__snippet">第二段摘要 &#8212; 平台打法</div>
-</div>
-<a class="result__a" href="/local/relative-path">不可解码条目应剔除</a>
-`
+const BING_HTML = `
+<ol id="b_results">
+  <li class="b_algo">
+    <h2><a href="https://example.com/drama?a=1&amp;b=2">逆袭短剧 &amp; 甜宠 复盘</a></h2>
+    <div class="b_caption"><p>2024 年逆袭题材数据 &middot; 钩子模式分析</p></div>
+  </li>
+  <li class='b_algo'>
+    <h2><a href='https://direct.example.org/article'>直链标题</a></h2>
+    <p>第二段摘要 &#8212; 平台打法</p>
+  </li>
+  <li class="b_algo"><h2><a href="javascript:void(0)">无效条目应剔除</a></h2></li>
+</ol>`
 
-describe('T4 · parseDdgResults 解析契约', () => {
-  it('uddg 重定向解码 + 实体解码 + 同区块 snippet 配对 + 不可解码条目剔除', () => {
-    const items = parseDdgResults(DDG_HTML)
+describe('parseBingResults 解析契约', () => {
+  it('标题/直链/摘要配对，实体解码并剔除无效链接', () => {
+    const items = parseBingResults(BING_HTML)
     expect(items).toHaveLength(2)
     expect(items[0]).toEqual({
       title: '逆袭短剧 & 甜宠 复盘',
-      url: 'https://example.com/drama',
+      url: 'https://example.com/drama?a=1&b=2',
       snippet: '2024 年逆袭题材数据 · 钩子模式分析',
     })
     expect(items[1]).toEqual({
@@ -42,17 +43,22 @@ describe('T4 · parseDdgResults 解析契约', () => {
     })
   })
 
-  it('maxResults 截断：上限 1 条时只回第 1 条', () => {
-    expect(parseDdgResults(DDG_HTML, 1)).toHaveLength(1)
+  it('maxResults 截断且默认最多 8 条', () => {
+    const ten = Array.from({ length: 10 }, (_, i) =>
+      `<li class="b_algo"><h2><a href="https://example.com/${i}">标题 ${i}</a></h2><p>摘要 ${i}</p></li>`,
+    ).join('')
+    expect(parseBingResults(BING_HTML, 1)).toHaveLength(1)
+    expect(parseBingResults(ten)).toHaveLength(8)
   })
 
-  it('无 snippet 区块时 snippet 为空串', () => {
-    const html = `<a class="result__a" href="https://a.example.com/">仅标题</a>`
-    expect(parseDdgResults(html)).toEqual([{ title: '仅标题', url: 'https://a.example.com/', snippet: '' }])
+  it('无摘要区块时 snippet 为空串，正常无结果页返回空数组', () => {
+    const html = `<li class="b_algo"><h2><a href="https://a.example.com/">仅标题</a></h2></li>`
+    expect(parseBingResults(html)).toEqual([{ title: '仅标题', url: 'https://a.example.com/', snippet: '' }])
+    expect(parseBingResults('<ol id="b_results"><li class="b_no">没有结果</li></ol>')).toEqual([])
   })
 })
 
-describe('T4 · 文本工具函数', () => {
+describe('文本工具函数', () => {
   it('decodeHtmlEntities：命名 + 十/十六进制数字实体', () => {
     expect(decodeHtmlEntities('a &amp; b &#8212; c &#x2014; &quot;d&quot;')).toBe('a & b — c — "d"')
   })
@@ -63,18 +69,17 @@ describe('T4 · 文本工具函数', () => {
   })
 })
 
-describe('T4 · webSearch 形状与错误信封', () => {
-  it('正常路径：请求 DDG html 端点（query 编码）并回结果列表', async () => {
-    const fetchImpl = mockFetchWithHtml(DDG_HTML)
+describe('webSearch 形状与错误信封', () => {
+  it('正常路径：请求 Bing 国内站（query 编码）并回结果列表', async () => {
+    const fetchImpl = mockFetchWithHtml(BING_HTML)
     const results = await webSearch('逆袭 短剧', fetchImpl)
     expect(results).toHaveLength(2)
     const calledUrl = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0] as string
-    expect(calledUrl).toContain('html.duckduckgo.com')
-    expect(calledUrl).toContain(`q=${encodeURIComponent('逆袭 短剧')}`)
+    expect(calledUrl).toBe(`https://cn.bing.com/search?q=${encodeURIComponent('逆袭 短剧')}`)
   })
 
   it('空检索词 → INVALID_ARGUMENT（不发请求）', async () => {
-    const fetchImpl = mockFetchWithHtml(DDG_HTML)
+    const fetchImpl = mockFetchWithHtml(BING_HTML)
     await expect(webSearch('   ', fetchImpl)).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' })
     expect(fetchImpl).not.toHaveBeenCalled()
   })
@@ -88,9 +93,15 @@ describe('T4 · webSearch 形状与错误信封', () => {
     const fetchImpl = vi.fn(async () => ({ ok: false, status: 503, text: async () => '' })) as unknown as typeof fetch
     await expect(webSearch('x', fetchImpl)).rejects.toMatchObject({ code: 'WEB_SEARCH_FAILED' })
   })
+
+  it('人机验证页 → WEB_SEARCH_FAILED；正常无结果页允许空数组', async () => {
+    await expect(webSearch('x', mockFetchWithHtml('<div id="b_captcha">请输入验证码</div>')))
+      .rejects.toMatchObject({ code: 'WEB_SEARCH_FAILED' })
+    await expect(webSearch('x', mockFetchWithHtml('<ol id="b_results"></ol>'))).resolves.toEqual([])
+  })
 })
 
-describe('T4 · webFetchText 形状与错误信封', () => {
+describe('webFetchText 形状与错误信封', () => {
   it('正常路径：HTML → 正文文本', async () => {
     const fetchImpl = mockFetchWithHtml(`<html><body><script>bad()</script><article>正文内容</article></body></html>`)
     await expect(webFetchText('https://a.example.com/p', fetchImpl)).resolves.toBe('正文内容')

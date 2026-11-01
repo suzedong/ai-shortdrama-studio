@@ -96,6 +96,15 @@
 - **边界**：纯 renderer 增量——新增 `aiDown` state 与 `checkAiHealth`，复用既有 `runtime.status/start` IPC 与 `runtime.error` 事件，不新增 IPC/依赖，不改 shared/types.ts、DTO 与 SSE 投影；不引入轮询（恢复靠重试/下次发送，避免后台空转）。
 - **批准方式**：2026-10-31 AskUserQuestion 选定「进入对话区就探测（推荐）」+「两层都要（推荐）」+「横幅 + 禁用输入（推荐）」。
 
+### D-014 · 纯推理 / 纯工具轮不再被丢弃：历史回放与流式定稿保留空正文轮（2026-11-01，✅ 用户已批准，B-49）
+
+- **背景**：D-008/D-010 虽已把 reasoning 与 tools 纳入回放/定稿，但两侧仍残留「正文为空整条丢弃」——[history-replay.ts](../../../src/lib/history-replay.ts) H4 规则 `text.trim()==='' → continue` 把 reasonings/tools 一并丢弃；[StudioApp.tsx](../../../src/studio/shell/StudioApp.tsx) SSE 定稿仅在 text 非空时 push item。真机表现：Agent 首段推理（工具调用前、尚无正文）在重开会话后消失。D-012 追溯口径要求每段推理与工具调用可回放。
+- **用户拍板**：「修历史回放丢推理 + 登记偏差」（循 B-18~B-47 不建包直接修先例）。
+- **裁决**：H4 修订为「正文、reasonings、tools 三者全空才丢弃」；assistant item 以 `reasoningBlocks`（多段，与 B-48 同源）+ `tools`（callId 去重 upsert）回放；H6 白名单不变（仍仅放行 argsPreview，不回放完整入参/工具结果/brief/trace）；StudioApp 定稿条件同步改为 `text || reasoningBlocks.length || tools.length`。reasoning part 空文本（`''`）不入块（联跑实测发现会输出 `reasoningBlocks:['']`，已加 `part.text.length > 0` 过滤）。
+- **边界**：纯 lib/renderer，**K1/K8/K9 零触发**——不新增 IPC/存储/依赖，不改 DTO 形状（reasoning/tool part 既有）、shared/types.ts 与 SSE 投影。
+- **验证**：[history-replay.test.ts](../../../src/lib/history-replay.test.ts) 修订 H4 等 3 处旧断言 + 新增纯工具轮用例（空 reasoning 串过滤、白名单 argsPreview 随快照回放）；全量 **76 文件 935 passed / 0 failed / 1 skipped**，typecheck 恰 3 条历史基线零新增。
+- **偏差登记**：[设计现状与偏差清单.md](../../设计现状与偏差清单.md) B-49。本决策取代 D-008/D-010 中「无有效正文不产生气泡」的旧口径。
+
 ### K 卡口登记与批准范围（随任务包评审呈批）
 
 - **K1（shared/types.ts）触发**：唯一 diff = `ProjectSession.activeSessionId?: string | null`（可选可空，旧四字段文件零迁移，undefined≙未绑定、null=显式清空）。不向 ChatMessage 等旧形态扩散、不加共享函数/常量。
@@ -208,6 +217,21 @@
 - **测试证据**：chat-liveness 新增 D-013 三例（横幅 role=alert 与文案/重新检测钮、null 不渲染；输入与发送禁用 + placeholder 切换；点击复检回调 + submit 守卫拦截）；session-continue 新增 D-013 三例（装载探测失败 → 横幅 + 禁用 → 重新检测恢复；healthy → 无横幅；runtime.error 归属事件上屏含原因、他会话事件被守卫丢弃）。**既有用例按 D-013 裁决更新两例并记名**：session-continue AC1（「不启动 runtime」口径不变，但进入对话区即探测一次只读 status，断言由「不调 status」改为「status 探测一次 + start 零调用」）；studio-flow「启动失败展示可展示文案」（同一失败场景由发送撞墙改为装载探测提前以横幅呈现并禁用输入，断言改钉 `chat-ai-down` 横幅含「启动失败」）。最终 `npm run test:run` = **71 文件 851 passed / 1 skipped / 0 failed**。
 - **类型证据**：`npx tsc -b tsconfig.node.json` 退出 0；`npm run typecheck` 仅剩 canvas-zoom.test.tsx L13/L90 与 runtime-client.test.ts L45 三条存量基线错误（零 diff），本次增量零新增类型错误。
 - **边界复核**：纯 renderer 增量——复用既有 `runtime.status/start` IPC 与 `runtime.error` 事件，未新增 IPC/依赖，未改 shared/types.ts、DTO 与 SSE 投影；不轮询（恢复靠探测/发送通过自动清除 + 手动重新检测）；dev-mock 演示态不探测。
+
+### D-014 实施与回归（2026-11-01，✅）
+
+- **实施面**：[history-replay.ts](../../../src/lib/history-replay.ts) H4 丢弃条件由「正文空即丢弃」改为「正文、reasonings、tools 三者全空才丢弃」，assistant item 按条件展开 `reasoningBlocks`（多段）与 `tools`；reasoning part 收集加 `part.text.length > 0` 防空串块；[StudioApp.tsx](../../../src/studio/shell/StudioApp.tsx) SSE running→非 running 定稿分支条件同步改为 `text || reasoningBlocks.length > 0 || tools.length > 0`。
+- **测试证据**：[history-replay.test.ts](../../../src/lib/history-replay.test.ts) 修订 H4 等 3 处旧断言（纯 reasoning/纯 tool 轮由「丢弃」改「保留」），新增纯工具轮用例（空 reasoning 串过滤、白名单 argsPreview 随快照回放）；与 B-48 组件/纯函数用例、B-50 studio-flow 用例同批联跑。最终 `npm run test:run` = **76 文件 935 passed / 1 skipped / 0 failed**（T8 首次受遗留 mock 桩占 4099 影响，清理 PID 33384 后单跑 runtime-integration 8 passed / 1 skipped；skip 仍为需 ARK Key 的 T8-4）。
+- **类型证据**：`npm run typecheck` 仅剩 canvas-zoom.test.tsx L13/L90 与 runtime-client.test.ts L45 三条存量基线错误，本次增量零新增。
+- **边界复核**：H6 口径保留（仅放行 argsPreview，不回放完整入参/工具结果/brief/trace）；未新增 IPC/存储/依赖，未改 shared/types.ts、DTO 形状与 SSE 投影。
+
+### D-015 实施与回归（2026-11-01，✅；B-51 工具参数中文化）
+
+- **实施面**：流式侧 [tool-labels.ts](../../../src/lib/tool-labels.ts) `toolArgPreview` 对 capture_upsert 的 `topic` 参数经 `captureTopicLabel`（[chain.ts](../../../src/studio/stage0/chain.ts)，feature-005 事实源，直接 import）显中文字段名；主进程侧 [client.ts](../../../electron/runtime/client.ts) `toolArgsPreview` 生成历史回放 DTO 同源处理——主进程不可 import renderer，自持 `CAPTURE_TOPIC_LABELS` 静态小表作为**第三处镜像**（chain.ts 事实源 → tool-labels.ts import → client.ts 镜像，注释钉死「改任一处必须三处同步」）。工具名归一仍走 `bare.replace(/\./g,'_')`，点号（profile）与下划线（opencode 存储）双形态均命中 capture_upsert；未登记的自定义 topic 回退原串，不臆造名称。
+- **测试证据**：[tool-labels.test.ts](../../../src/lib/tool-labels.test.ts) +1 用例（genre→题材赛道、episodeDuration→单集时长、点号形态 coreEvent→核心事件、kind→项目性质；自定义 topic 回退原串；走 id 不中文化）。与 B-52 stage0-view 用例、capture-bar 断言同批联跑，最终 `npm run test:run` = **76 文件 937 passed / 1 skipped / 0 failed**（skip 仍为需 ARK Key 的 T8-4）。
+- **类型证据**：`npm run typecheck` 仅剩 canvas-zoom.test.tsx L13/L90 与 runtime-client.test.ts L45 三条存量基线错误，本次增量零新增。
+- **边界复核**：仅呈现层修改——argsPreview 白名单窄口、H6「不回放完整入参/工具结果」口径不变；DTO 形状（`argsPreview?: string`）零改动，未新增 IPC/依赖，未改 shared/types.ts 与 SSE 投影。
+- **偏差登记**：[设计现状与偏差清单.md](../../设计现状与偏差清单.md) B-51。
 
 ### AC1–AC10 验收勾选（2026-10-15）
 

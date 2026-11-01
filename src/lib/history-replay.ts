@@ -85,7 +85,7 @@ export function replayMessages(records: ReplayMessageRecord[]): ChatItem[] {
       }
       if (typeof part.text !== 'string') continue
       if (part.type === 'reasoning') {
-        if (role === 'assistant') reasonings.push(part.text)
+        if (role === 'assistant' && part.text.length > 0) reasonings.push(part.text)
         continue
       }
       if (part.type !== 'text') continue
@@ -100,17 +100,16 @@ export function replayMessages(records: ReplayMessageRecord[]): ChatItem[] {
       if (text.length === 0) continue
       items.push({ id, role: 'user', text })
     } else {
-      // H4：assistant trim 后为空（纯工具轮 / abort / 仅 reasoning）丢弃
-      if (text.trim().length === 0) continue
-      const reasoning = reasonings.join('')
-      // H6：仅 id/role/text/agent 与可选 reasoning/tools，绝不带 brief/trace 或工具结果；
+      // assistant：正文为空但带推理 / 工具时同样保留（修订 H4：仅 reasoning / 纯工具轮不再整条丢弃）
+      if (text.trim().length === 0 && reasonings.length === 0 && tools.length === 0) continue
+      // H6：仅 id/role/text/agent 与可选 reasoningBlocks/tools，绝不带 brief/trace 或工具结果；
       // D-012 起工具参数仅放行主进程白名单摘要 argsPreview（关键字段、已截断），完整入参仍不回放
       items.push({
         id,
         role: 'agent',
-        text,
+        ...(text ? { text } : {}),
         agent: 'showrunner',
-        ...(reasoning ? { reasoning } : {}),
+        ...(reasonings.length > 0 ? { reasoningBlocks: reasonings } : {}),
         ...(tools.length > 0 ? { tools } : {}),
       })
     }

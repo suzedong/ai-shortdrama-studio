@@ -59,7 +59,7 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
     expect(Object.keys(out[0]!).sort()).toEqual(['agent', 'id', 'role', 'text'])
   })
 
-  it('assistant 正文与多个 reasoning part 按原序聚合；user reasoning 不上屏', () => {
+  it('assistant 正文与多个 reasoning part 按原序分段回放（reasoningBlocks，B-48/49）；user reasoning 不上屏', () => {
     expect(replayMessages([
       rec('a1', 'assistant', [
         { type: 'reasoning', text: '先分析', startedAt: 1 },
@@ -74,7 +74,7 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
     ])).toEqual([
       {
         id: 'a1', role: 'agent', text: '正文', agent: 'showrunner',
-        reasoning: '先分析，再作答',
+        reasoningBlocks: ['先分析', '，再作答'],
       },
       { id: 'u1', role: 'user', text: '用户正文' },
     ])
@@ -106,7 +106,8 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
       ]),
     ])).toEqual([
       {
-        id: 'a-tools', role: 'agent', text: '工具处理完成', agent: 'showrunner', reasoning: '先调用工具',
+        id: 'a-tools', role: 'agent', text: '工具处理完成', agent: 'showrunner',
+        reasoningBlocks: ['先调用工具'],
         tools: [
           {
             callId: 'call-done', tool: 'write_file', status: 'completed', args: {},
@@ -196,18 +197,45 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
     ])
   })
 
-  it('H4：assistant 无有效文本（无 startedAt / 纯空白 / 非文本 part）→ 无气泡（abort 空轮同理）', () => {
+  it('H4（B-49 修订）：文本/推理/工具三者全空才丢弃；仅 reasoning 轮保留', () => {
     expect(replayMessages([rec('a1', 'assistant', [t('无时间')])])).toEqual([])
     expect(replayMessages([
       rec('a2', 'assistant', [t('   ', { startedAt: 1 })]),
-      ])).toEqual([])
+    ])).toEqual([])
+    expect(replayMessages([rec('a4', 'assistant', [])])).toEqual([])
+    // 仅 reasoning + 坏工具（无 callId，跳过）→ reasoningBlocks 保留
     expect(replayMessages([
       rec('a3', 'assistant', [
         { type: 'reasoning', text: '思考过程', startedAt: 1 },
         { type: 'tool', tool: 'write_file', startedAt: 2 },
       ]),
-    ])).toEqual([])
-    expect(replayMessages([rec('a4', 'assistant', [])])).toEqual([])
+    ])).toEqual([
+      {
+        id: 'a3', role: 'agent', agent: 'showrunner',
+        reasoningBlocks: ['思考过程'],
+      },
+    ])
+  })
+
+  it('B-49：纯工具轮（无正文无推理）保留，白名单摘要随快照回放', () => {
+    expect(replayMessages([
+      rec('a-tools-only', 'assistant', [
+        {
+          type: 'tool', text: '', callId: 'c1', tool: 'shortdrama_capture_upsert',
+          status: 'completed', startedAt: 1, endedAt: 2, argsPreview: '题材赛道',
+        },
+      ]),
+    ])).toEqual([
+      {
+        id: 'a-tools-only', role: 'agent', agent: 'showrunner',
+        tools: [
+          {
+            callId: 'c1', tool: 'shortdrama_capture_upsert', status: 'completed',
+            args: {}, argsPreview: '题材赛道', startedAt: 1, endedAt: 2,
+          },
+        ],
+      },
+    ])
   })
 
   it('assistant 的 ignored/synthetic 文本即使带 startedAt 也丢弃', () => {

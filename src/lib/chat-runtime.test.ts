@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   reduceRuntimeEvent,
   turnReasoning,
+  turnReasoningBlocks,
   turnText,
   turnToChatMessage,
   type StreamingTurn,
@@ -244,6 +245,49 @@ describe('reduceRuntimeEvent · 定稿与中断', () => {
     ])!
     expect(turn.status).toBe('error')
     expect(turnText(turn)).toBe('已生成正文')
+  })
+})
+
+describe('turnReasoningBlocks · 多段思维链（B-48）', () => {
+  it('真机序：推理→工具→再推理，两个 reasoning part 按首次出现顺序分段返回', () => {
+    const turn = reduceAll([
+      part('m1', 'r1', 'reasoning', '第一段推理：先分析需求'),
+      toolCall('m1', { callId: 'c1', tool: 'read', status: 'running' }),
+      toolCall('m1', { callId: 'c1', tool: 'read', status: 'completed', result: '文件内容' }),
+      part('m1', 'r2', 'reasoning', '第二段推理：拿到结果继续推导'),
+      part('m1', 't1', 'text', '最终答复'),
+    ])!
+    expect(turnReasoningBlocks(turn)).toEqual([
+      '第一段推理：先分析需求',
+      '第二段推理：拿到结果继续推导',
+    ])
+  })
+
+  it('跨 messageId 聚合同一 turn 时，多段顺序仍按 part 首次出现序，不被工具打断重排', () => {
+    const turn = reduceAll([
+      part('m1', 'r1', 'reasoning', '首段'),
+      toolCall('m2', { callId: 'c', tool: 'read', status: 'completed' }),
+      part('m3', 'r2', 'reasoning', '次段'),
+      part('m4', 'r3', 'reasoning', '三段'),
+    ])!
+    expect(turnReasoningBlocks(turn)).toEqual(['首段', '次段', '三段'])
+  })
+
+  it('空 reasoning 快照被过滤；无快照时回退单段 deltaPreview.reasoning；都没有 → []', () => {
+    const turn = reduceAll([
+      part('m1', 'r1', 'reasoning', ''),
+      part('m1', 'r2', 'reasoning', '有效段'),
+    ])!
+    expect(turnReasoningBlocks(turn)).toEqual(['有效段'])
+
+    const deltaOnly = reduceAll([delta('m1', '流式推理', 'reasoning')])!
+    expect(turnReasoningBlocks(deltaOnly)).toEqual(['流式推理'])
+
+    const empty: StreamingTurn = {
+      messageId: 'm', parts: {}, deltaPreview: { text: '', reasoning: '' },
+      status: 'running', tools: {},
+    }
+    expect(turnReasoningBlocks(empty)).toEqual([])
   })
 })
 

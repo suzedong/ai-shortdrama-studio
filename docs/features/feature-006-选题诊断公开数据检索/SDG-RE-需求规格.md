@@ -2,7 +2,7 @@
 
 > **包号**：feature-006（0xx STAGE 0 立项段）
 > **业务名**：选题诊断公开数据检索（showrunner 立项诊断联网检索同赛道公开数据 + 检索词脱敏纪律 + 诊断卡来源标注）
-> **性质**：Agent 工具面扩展 + 指令层修订；**K1 零触发**（不动 `shared/types.ts`）；**K8 触发**（主方案 A：showrunner 请求级工具白名单放行 opencode 服务端内置 web 工具——非新 MCP 工具，属 Agent 工具面变更，按 K8 登记；降级方案 B：自建 `shortdrama_web.*` MCP 工具 25→27，探测后补登）；**K9 方案 A 零触发**（零新依赖；方案 B 优先零依赖原生 fetch，若必须引入依赖则停手补登）
+> **性质**：Agent 工具面扩展 + 指令层修订 + 主进程网络出口治理；**K1 零触发**（不动 `shared/types.ts`）；**K8 已登记且不扩面**（既有 `shortdrama_web.*` 工具 DTO/白名单不变，零新 IPC/DTO）；**K9 零触发**（Electron/Node 内置能力，零新依赖）
 > **事实源**：《短剧Agent平台设计.md》§2.6.2（L152-181 选题诊断卡五区块 + 「基于已捕获口径检索同赛道公开数据」）
 > **前置**：feature-001（立项模型 + showrunner 第 0 步）、feature-005（已捕获口径落盘——检索词的事实源）、D-016（原则六：诊断检索属开放式语义理解，归 AI）
 > **溯源标签**：[Design 原有]（设计书 §2.6.2 明示的主控 Agent 行为，形态对齐）
@@ -39,7 +39,7 @@
 
 | | 方案 A（主） | 方案 B（降级） |
 |---|---|---|
-| 通道 | opencode 服务端内置 web 工具（占位名 `webfetch`/`websearch`，实际 ID 以 T0 探测为准），经 `SHOWRUNNER_DECLARED_TOOLS` 白名单放行 | 自建 MCP 工具 `shortdrama_web.search` / `shortdrama_web.fetch`（主进程原生 fetch，25→27） |
+| 通道 | opencode 服务端内置 web 工具（占位名 `webfetch`/`websearch`，实际 ID 以 T0 探测为准），经 `SHOWRUNNER_DECLARED_TOOLS` 白名单放行 | 自建 MCP 工具 `shortdrama_web.search` / `shortdrama_web.fetch`（主进程代理感知 fetch，25→27） |
 | 成本 | 白名单 +N + 静态测试扩表，最低 | 新工具实现 + 搜索源选型（零 Key 优先），最高 |
 | K9 | 零触发 | 零依赖优先；须引依赖则停手补登 |
 
@@ -84,3 +84,8 @@ T0 探测方法：① 查 opencode-ai 1.18.34 包内服务端内置工具清单�
 | AC4 | 检索失败/未检索路径能力诚实：诊断卡附录显式标注「本次未联网检索」，不编造 URL | 真机 |
 | AC5 | 回归红线：`npx tsc --noEmit` 仅 3 条历史基线零新增；全量测试以 T1 实测基线（上包收尾 53 文件 586 passed / 0 failed / 1 skipped）为准，passed 不减少、skip 不增；方案 A 测试文件净增 0、方案 B 净增恰 1 | 全量回归 |
 | AC6 | 真机：商业类立项对话 → showrunner 实际发起检索 → 诊断卡五区块 + 卡尾检索来源（真实检索词与 URL）；纪念类对话 → 默认无检索、附录标注 | 真机 |
+| AC7 | `web.search` 默认请求 `cn.bing.com`，正确解析标题/直链/摘要且最多 8 条；DTO 与其他 Agent 白名单不变 | mock 单测 + 真机 |
+| AC8 | 主进程公网请求遵循操作系统代理；loopback、私有/链路本地地址、`.local`、单标签主机强制直连；ComfyUI/LM Studio/opencode 地址不被代理接管 | 策略单测 + 请求通道断言 |
+| AC9 | opencode 子进程按 OS 判定获得或清除 HTTP(S)_PROXY，NO_PROXY 始终覆盖 loopback/私网；spawn 参数不变 | manager 单测 |
+| AC10 | 公网连接失败出现系统提示；DIRECT 与代理已启用但失败文案可区分，已知境外服务含代理指引；MCP 原错误信封保留 | mock 单测 + 真机 |
+| AC11 | 零新 IPC/DTO/shared/依赖；全量测试 failed=0、skip 不增，typecheck 仅既有 3 条基线零新增 | 静态核查 + 全量回归 |

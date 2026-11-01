@@ -70,6 +70,13 @@
 
 - [features/README.md](../README.md) 总表 809 行翻 ✅（落地日期 + 测试基线 49 文件 550 passed）；[版本记录.md](../../../版本记录.md) 2026-10 区块增行；任务清单 T1–T6 全勾。本包闭环。
 
+### T7–T9 流式滚动缺陷修复（2026-10-31）
+
+- **用户反馈与根因**：推理分片持续更新 `stream`，既有 effect 对 `[items, stream, pendingGate]` 每次变化均无条件执行 `scrollTop = scrollHeight`，导致用户上翻后被下一分片强制拉回底部。
+- **规格先行**：需求规格补 R7 / §3.7 / AC11，契约补 §3.5 S1–S4，设计补 D8 与滚动测试落点；K1 / K8 / K9 零触发。
+- **实现**：ChatComposer 增加内部吸底 ref 与 48px 距底 `onScroll` 判定；原回底 effect 仅在吸底开启时执行，用户上翻保持位置、回底恢复跟随。零 Props / 归约 / IPC / shared / 依赖改动。
+- **验证**：`chat-liveness.test.tsx` 新增底部跟随、上翻保持、回底恢复 3 例，定向 **29 passed**；`npm run typecheck` 仍恰 3 条既有基线、零新增；全量 **75 文件 900 passed / 0 failed / 1 skipped**。
+
 ## 三、修订记录
 
 ### X-001 契约 §3.1 A4 条件修订（2026-10-17，L2 规格缺陷，用户裁决）

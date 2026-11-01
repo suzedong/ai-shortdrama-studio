@@ -154,4 +154,16 @@
 
 ## X（修复）
 
-（暂无）
+### X-001 B-51/B-52 · 口径 topic 中文化 + 立项中间区成组呈现（2026-11-01，✅）
+
+**背景**：真机上报（test 项目截图）——①右栏口径列表直显 genre / place / coreEvent / kind / platforms / episodeDuration 英文物理键；②顶部链条已显「选题诊断 收集中 6/6」，但 6 条已捕获诊断口径在中间主区无任何呈现。
+
+**落地（纯函数事实源在本包 chain.ts）**：
+- **B-51**：[chain.ts](../../../src/studio/stage0/chain.ts) 新增 `captureTopicLabel(topic)`——由 select.ts 的 FIVE_ELEMENT_FIELDS/PREMISE_FIELDS 动态构表 + 额外 kind=项目性质，空串回空串、未命中回退原 topic（不臆造名称）；[CaptureBar.tsx](../../../src/studio/stage0/CaptureBar.tsx) 只读 topic 经该函数渲染中文名，物理键保留在 `title` 属性供追溯；校验文案改「字段名与内容不能为空」，topic/value 编辑 placeholder 中文化（**输入值与落盘仍持物理原键，只改呈现**）。
+- **B-52（分组能力）**：chain.ts 新增 `selectCaptureGroups(facts)` 及 `CaptureGroups`/`CaptureGroupItem` 类型——复用 matchChainTopic 按词表分 `six`（六要素 6 键）/`premise`（前提 5 键）/`unmatched`，同键多条取文件序最后一条（最新），unmatched 保原序；组件消费方归 feature-013 Stage0View（见其 D-004）。
+
+**卡口**：**K1/K8/K9 零触发**——CaptureFile/CapturedFact 形状、capture 三通道、store 单点读写全部零 diff，纯 renderer 纯函数/呈现层。
+
+**测试**：[capture-bar.test.tsx](../../../src/studio/stage0/capture-bar.test.tsx) 既有展开用例增 4 条中文标签断言（genre→题材赛道、episodeCount→集数、seasonBoundary→本季边界、tone→风格基调，并断言英文裸词 genre 不再出现），placeholder 引用同步改「内容」；B-52 组件用例落 feature-013 stage0-view 套件。最终全量 **76 文件 937 passed / 0 failed / 1 skipped**，typecheck 恰 3 条历史基线零新增；真机目验待用户执行。
+
+**偏差登记**：[设计现状与偏差清单.md](../../设计现状与偏差清单.md) B-51、B-52（均 ✅ 已解决）。

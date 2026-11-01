@@ -12,6 +12,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { setupRuntimeFiles } from './provider.js'
 import { startMcpToolServer, type McpToolServerHandle } from '../mcp/server.js'
+import { buildNoProxy, type RuntimeProxyEnv } from '../network.js'
 import type { RuntimeErrorBody, RuntimeErrorCode, RuntimeStatus } from './types.js'
 
 // -- 常量（契约 §1 / §6） ------------------------------------------------------
@@ -91,6 +92,8 @@ export interface StartRuntimeOptions {
   portRangeStart?: number
   /** feature-014：健康检查超时（随 start 传入，重连即生效；缺省走 ManagerDeps.healthTimeoutMs 注入值） */
   healthTimeoutMs?: number
+  /** feature-006：启动前解析的操作系统代理；仅注入子进程，不改变 loopback 健康检查 */
+  proxyEnv?: RuntimeProxyEnv
 }
 
 export interface RuntimeConnection {
@@ -468,7 +471,7 @@ export const runtimeManager = new OpencodeRuntimeManager()
  * ARK_API_KEY / ARK_MODEL 仅在显式传入时注入（Key 不经命令行、不进 json）。
  */
 export function buildChildEnv(
-  opts: Pick<StartRuntimeOptions, 'arkApiKey' | 'arkModel' | 'arkBaseUrl'>,
+  opts: Pick<StartRuntimeOptions, 'arkApiKey' | 'arkModel' | 'arkBaseUrl' | 'proxyEnv'>,
   userDataDir: string,
   password: string,
   mcp: Pick<McpToolServerHandle, 'url' | 'token'>,
@@ -487,6 +490,15 @@ export function buildChildEnv(
   if (!env.OPENCODE_MCP_URL || !env.OPENCODE_MCP_TOKEN) {
     throw makeError('RUNTIME_START_FAILED', 'OPENCODE_MCP_URL/TOKEN 为空，拒绝启动 opencode')
   }
+
+  // 操作系统代理由 main 在启动前解析；清理宿主大小写代理变量，避免 DIRECT 被环境污染。
+  for (const key of [
+    'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
+    'http_proxy', 'https_proxy', 'all_proxy', 'no_proxy',
+  ]) delete env[key]
+  if (opts.proxyEnv?.HTTP_PROXY) env.HTTP_PROXY = opts.proxyEnv.HTTP_PROXY
+  if (opts.proxyEnv?.HTTPS_PROXY) env.HTTPS_PROXY = opts.proxyEnv.HTTPS_PROXY
+  env.NO_PROXY = opts.proxyEnv?.NO_PROXY ?? buildNoProxy(mcp.url)
 
   if (opts.arkApiKey) env.ARK_API_KEY = opts.arkApiKey
   else delete env.ARK_API_KEY

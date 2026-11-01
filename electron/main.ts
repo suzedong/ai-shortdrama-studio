@@ -39,6 +39,7 @@ import type {
   Canvas, CanvasGate, ComfyInstance, AssetIndexItem, CaptureFile,
 } from '../shared/types.js'
 import { runtimeManager } from './runtime/manager.js'
+import { resolveRuntimeProxyEnv } from './network.js'
 import { OpencodeRuntimeClient } from './runtime/client.js'
 import { subscribeEvents, type EventStreamHandle } from './runtime/projection.js'
 import type { RuntimeEvent, RuntimeStatus } from './runtime/types.js'
@@ -517,6 +518,8 @@ async function ensureRuntime(): Promise<RuntimeStatus> {
   const ark = getArkConfig()
   const lmStudio = getLmStudioConfig()
   const prefs = getRuntimePrefs()
+  const providerUrl = activeProvider === 'lmstudio' ? lmStudio.baseUrl : ark.baseUrl
+  const proxyEnv = await resolveRuntimeProxyEnv(providerUrl)
   return runtimeManager.start({
     userDataDir: app.getPath('userData'),
     cwd: workspaceRoot,
@@ -529,6 +532,7 @@ async function ensureRuntime(): Promise<RuntimeStatus> {
     portRangeStart: prefs.portRangeStart,
     healthTimeoutMs: prefs.healthTimeoutMs,
     mockBaseUrl: prefs.mockBaseUrl,
+    proxyEnv,
   })
 }
 

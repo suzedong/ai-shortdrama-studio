@@ -68,6 +68,15 @@
 
 L508 条件 `items.length === 0 && !stream` → `items.length === 0 && !stream && !generating`。
 
+### 3.5 对话滚动跟随
+
+| 规则 | 约定 |
+|---|---|
+| S1 | 对话滚动容器持有内部吸底标记，初始为 `true`，不新增 Props、不进入共享状态 |
+| S2 | 容器 `onScroll` 时计算 `scrollHeight - scrollTop - clientHeight`；结果 `<= 48` 视为接近底部并开启吸底，否则关闭吸底 |
+| S3 | `[items, stream, pendingGate]` 变化后的既有回底 effect 仅在吸底开启时执行 `scrollTop = scrollHeight`；吸底关闭时不得改写 `scrollTop` |
+| S4 | 用户重新进入 48px 距底阈值后，后续更新恢复自动回底；不降低流式事件或 React 更新频率 |
+
 ## 4. Props 与 data-testid 凭据
 
 ChatComposer Props **零新增**（`stream: StreamingTurn | null`、`generating = false` 已存在，L448）。
@@ -78,6 +87,7 @@ ChatComposer Props **零新增**（`stream: StreamingTurn | null`、`generating 
 | `chat-stream-cursor` | 光标 span | `running && 有正文` |
 | `chat-typing-dots` | 三点动画容器 | 占位气泡 / 空态思考行 |
 | `chat-tool-row` | 单行工具状态 | tools 非空，逐行一个 |
+| `chat-scroll-view` | 对话滚动容器 | 常驻 |
 
 ## 5. 最小 diff 描述
 

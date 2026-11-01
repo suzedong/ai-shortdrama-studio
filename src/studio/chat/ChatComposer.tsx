@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-import { turnReasoning, turnText, type StreamingTurn, type ToolView } from '../../lib/chat-runtime'
+import { turnReasoningBlocks, turnText, type StreamingTurn, type ToolView } from '../../lib/chat-runtime'
 import { summarizeToolActions, toolActionPhrase, toolArgPreview } from '../../lib/tool-labels'
 import type { CanvasGate } from '@shared/types'
 import GateCardView from './GateCardView'
@@ -86,7 +86,8 @@ export interface ChatItem {
   id: string
   role: 'user' | 'agent'
   text?: string
-  reasoning?: string // Agent 本轮推理；正文定稿与历史回放均保留为可折叠内容
+  reasoning?: string // Agent 本轮推理（单段，向后兼容）；与 reasoningBlocks 二选一
+  reasoningBlocks?: string[] // 一个 turn 内多段思维链（推理→工具→再推理…），按发生顺序逐段折叠
   tools?: ToolView[] // Agent 当轮工具快照；正文定稿与历史回放均保留
   agent?: AgentId // agent 消息的发言身份，默认 showrunner
   brief?: BriefRow[] // 立项单卡（kv）
@@ -644,21 +645,49 @@ function ToolTrace({
   )
 }
 
-function ReasoningDetails({ text }: { text: string }) {
+function ReasoningDetails({ text, index, total, defaultOpen = false }: {
+  text: string
+  index: number
+  total: number
+  defaultOpen?: boolean
+}) {
+  const label = total > 1 ? `推理过程 ${index + 1}/${total}` : '推理过程'
   return (
-    <details className="rounded-lg bg-canvas px-3 py-2 text-xs leading-5 text-muted">
-      <summary className="cursor-pointer select-none">推理过程</summary>
+    <details
+      open={defaultOpen}
+      data-testid="chat-reasoning"
+      className="rounded-lg bg-canvas px-3 py-2 text-xs leading-5 text-muted"
+    >
+      <summary className="cursor-pointer select-none">{label}</summary>
       <p className="mt-1 whitespace-pre-wrap">{text}</p>
     </details>
   )
 }
 
+/** 多段思维链：按发生顺序逐段折叠；流式态最后一段默认展开以便看到最新推理。 */
+function ReasoningBlocks({ blocks, streaming = false }: { blocks: string[]; streaming?: boolean }) {
+  if (blocks.length === 0) return null
+  return (
+    <div className="mb-2 space-y-2">
+      {blocks.map((text, i) => (
+        <ReasoningDetails
+          key={i}
+          text={text}
+          index={i}
+          total={blocks.length}
+          defaultOpen={streaming && i === blocks.length - 1}
+        />
+      ))}
+    </div>
+  )
+}
+
 function AgentTurn({ turn, text }: { turn: StreamingTurn; text: string }) {
-  const reasoning = turnReasoning(turn)
+  const reasoningBlocks = turnReasoningBlocks(turn)
   const tools = Object.values(turn.tools)
   return (
     <div className="space-y-2">
-      {reasoning && <ReasoningDetails text={reasoning} />}
+      {reasoningBlocks.length > 0 && <ReasoningBlocks blocks={reasoningBlocks} streaming />}
       {text && (
         <>
           <MarkdownText text={text} />
@@ -684,11 +713,18 @@ export default function ChatComposer({
 }: Props) {
   const [draft, setDraft] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
+  const stickToBottomRef = useRef(true)
 
   useEffect(() => {
     const el = scrollRef.current
-    if (el) el.scrollTop = el.scrollHeight
+    if (el && stickToBottomRef.current) el.scrollTop = el.scrollHeight
   }, [items, stream, pendingGate])
+
+  const handleScroll = (): void => {
+    const el = scrollRef.current
+    if (!el) return
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 48
+  }
 
   const submit = (): void => {
     const text = draft.trim()
@@ -729,7 +765,12 @@ export default function ChatComposer({
       </div>
 
       {/* ── chat-body ── */}
-      <div ref={scrollRef} className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-3.5">
+      <div
+        ref={scrollRef}
+        data-testid="chat-scroll-view"
+        onScroll={handleScroll}
+        className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-3.5"
+      >
         {aiDown && (
           <div
             data-testid="chat-ai-down"
@@ -791,9 +832,9 @@ export default function ChatComposer({
                 return (
                   <div className="relative max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
                     {parsed.label && <LabelTag label={parsed.label} side="left" />}
-                    {item.reasoning && (
-                      <div className="mb-2"><ReasoningDetails text={item.reasoning} /></div>
-                    )}
+                    {item.reasoningBlocks
+                      ? <ReasoningBlocks blocks={item.reasoningBlocks} />
+                      : item.reasoning && <ReasoningBlocks blocks={[item.reasoning]} />}
                     {opt.rest && <MarkdownText text={opt.rest} />}
                     {opt.options && (
                       <OptionCard options={opt.options} disabled={consumed} pickedNum={pickedNum} onPick={pickOption} />

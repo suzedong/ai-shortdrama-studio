@@ -49,4 +49,14 @@
 
 ## X 节 · 修复记录
 
-零修复——T1-T8 全程未触发代码修复（T7 一次通过；T8 目验改动均作用于谱系数据文件且已复原确认）。
+### X-001 B-53 · glob 相对路径错误致 18 张缩略图全落兜底色块（2026-11-01，✅）
+
+**背景**：真机上报（test 项目风格选型截图）——A7/C7/A1 三候选卡左侧全部为 FAMILY_GRAD 纯渐变色块，真实画风 PNG 未显示。
+
+**根因**：[VisualCatalog.tsx](../../../src/studio/style/VisualCatalog.tsx) 位于 `src/studio/style/`（距项目根 3 级），但 `PREVIEW_MODULES` / `VIDEO_MODULES` 的 glob 前缀写成 `'../../resources/H3-Style/_style_preview/**'`，相对当前文件解析到不存在的 `src/resources/...`；glob 零匹配 → `PREVIEW_URL` 空对象 → 谱系抽屉条目卡/预览弹层与对话风格选项卡（[ChatComposer.tsx](../../../src/studio/chat/ChatComposer.tsx) OptionCard，气泡内选项与 composer 选项同源）统一落 `FAMILY_GRAD` 兜底。磁盘实况 18 张 PNG（`resources/H3-Style/_style_preview/<家族>/<ID>_<名称>.png`）齐全、命名正则可匹配，纯路径层级错误。佐证：src 根 [dev-mock-api.ts](../../../src/dev-mock-api.ts) 引用同资源用 `'../resources/'`（1 级）。
+
+**修复**：两处 glob 前缀改 `'../../../resources/H3-Style/_style_preview/**/*.{png,mp4}'`，注释钉死相对层级。**K1/K8/K9 零触发**（纯呈现层；DTO/通道/shared 零 diff）。
+
+**测试**：[visual-catalog.test.tsx](../../../src/studio/style/visual-catalog.test.tsx) 新增「PREVIEW_URL 缩略图收集（B-53）」describe——锁定 18 个 ID 全部命中非空 URL（防 glob 层级再被改错，旧测试因不断言图片 URL 未能拦截此缺陷）。全量 `npm run test:run` = **76 文件 938 passed / 0 failed / 1 skipped**（较前 937 净增 1）；`npm run typecheck` 恰 3 条历史基线零新增；真机目验待用户执行。
+
+**偏差登记**：[设计现状与偏差清单.md](../../设计现状与偏差清单.md) B-53。

@@ -41,6 +41,7 @@ import type { ManifestEvent } from '../../shared/types.js'
 import { loadStyleCatalog } from '../style/loader.js'
 import { validateStyleRefs } from '../style/validate.js'
 import { captureStore } from '../capture/store.js'
+import { publicFetch } from '../network.js'
 
 type ToolErr = { ok: false; error: { code: string; message: string; findings?: HarnessFinding[] } }
 type ToolResult<T> = ({ ok: true } & T) | ToolErr
@@ -998,14 +999,14 @@ export function registerPureTools(server: McpServer): void {
   )
 }
 
-// ---- feature-006 · 公开数据检索纯函数（契约 §2.2 补登；零 Key 公开源 + 主进程原生 fetch，K9 零新依赖）----
-// 导出供 src/test/web-tools.test.ts 直接单测；fetchImpl 依赖注入，单测零外网。
+// ---- feature-006 · 公开数据检索纯函数（Bing 国内站 + 主进程代理感知 fetch，K9 零新依赖）----
+// 导出供 src/test/mcp/web-tools.test.ts 直接单测；fetchImpl 依赖注入，单测零外网。
 
 export const WEB_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) shortdrama-studio/1.0'
 export const WEB_TIMEOUT_MS = 15_000
 export const WEB_FETCH_MAX_CHARS = 20_000
 const WEB_SEARCH_MAX_RESULTS = 8
-const DDG_HTML_ENDPOINT = 'https://html.duckduckgo.com/html/'
+const BING_SEARCH_ENDPOINT = 'https://cn.bing.com/search'
 
 type FetchImpl = typeof fetch
 
@@ -1018,7 +1019,7 @@ export interface WebSearchResultItem {
 /** 常见 HTML 实体解码（命名实体 + 十/十六进制数字实体；单层替换防二次展开） */
 export function decodeHtmlEntities(s: string): string {
   const named: Record<string, string> = {
-    amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
+    amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', ensp: ' ', emsp: ' ',
     ndash: '–', mdash: '—', hellip: '…', middot: '·',
     lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”',
   }
@@ -1038,38 +1039,40 @@ export function htmlToText(html: string): string {
   return decodeHtmlEntities(stripped).replace(/\s+/g, ' ').trim()
 }
 
-/** 结果链接解码：`//duckduckgo.com/l/?uddg=<encoded>` 重定向取 uddg；仅放行 http/https 直链 */
-function resolveDdgUrl(href: string): string | null {
-  let u = href.trim()
-  if (u.startsWith('//')) u = `https:${u}`
+function resolveHttpUrl(href: string): string | null {
+  let value = decodeHtmlEntities(href).trim()
+  if (value.startsWith('//')) value = `https:${value}`
+  if (!/^https?:\/\//i.test(value)) return null
   try {
-    const uddg = new URL(u).searchParams.get('uddg')
-    if (uddg) u = uddg
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
   } catch {
     return null
   }
-  return /^https?:\/\//i.test(u) ? u : null
 }
 
-/**
- * 解析 DuckDuckGo html 端点结果页：逐条 result__a 链接（uddg 解码）配对同区块 result__snippet 摘要。
- * 无法解码为 http/https 的条目剔除；不足 maxResults 条按实际返回。
- */
-export function parseDdgResults(html: string, maxResults = WEB_SEARCH_MAX_RESULTS): WebSearchResultItem[] {
-  const linkRe = /<a\b[^>]*class="[^"]*\bresult__a\b[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi
-  const links = [...html.matchAll(linkRe)]
+/** 解析 Bing b_algo 区块：h2/a 标题与直链配合同区块首个段落摘要。 */
+export function parseBingResults(html: string, maxResults = WEB_SEARCH_MAX_RESULTS): WebSearchResultItem[] {
+  const blockRe = /<li\b[^>]*class=(["'])[^"']*\bb_algo\b[^"']*\1[^>]*>([\s\S]*?)<\/li>/gi
   const items: WebSearchResultItem[] = []
-  for (let i = 0; i < links.length && items.length < maxResults; i++) {
-    const link = links[i]
-    const url = resolveDdgUrl(decodeHtmlEntities(link[1]))
+  for (const match of html.matchAll(blockRe)) {
+    if (items.length >= maxResults) break
+    const block = match[2]
+    const heading = /<h2\b[^>]*>([\s\S]*?)<\/h2>/i.exec(block)
+    const link = heading
+      ? /<a\b[^>]*href=(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a>/i.exec(heading[1])
+      : null
+    if (!link) continue
+    const url = resolveHttpUrl(link[2])
     if (!url) continue
-    const blockStart = (link.index ?? 0) + link[0].length
-    const blockEnd = i + 1 < links.length ? (links[i + 1].index ?? html.length) : html.length
-    const block = html.slice(blockStart, blockEnd)
-    const snip = /<[a-z]+\b[^>]*class="[^"]*\bresult__snippet\b[^"]*"[^>]*>([\s\S]*?)<\/[a-z]+>/i.exec(block)
-    items.push({ title: htmlToText(link[2]), url, snippet: snip ? htmlToText(snip[1]) : '' })
+    const snippet = /<p\b[^>]*>([\s\S]*?)<\/p>/i.exec(block)
+    items.push({ title: htmlToText(link[3]), url, snippet: snippet ? htmlToText(snippet[1]) : '' })
   }
   return items
+}
+
+function isBingChallenge(html: string): boolean {
+  return /id=["']b_captcha["']|class=["'][^"']*b_captcha|g-recaptcha|hcaptcha|请输入验证码|unusual traffic/i.test(html)
 }
 
 /** 拉取页面 HTML（UA/超时/重定向统一在此；非 2xx 抛 HTTP 状态） */
@@ -1083,23 +1086,24 @@ async function fetchHtml(url: string, fetchImpl: FetchImpl): Promise<string> {
   return res.text()
 }
 
-/** 公开网页检索：DuckDuckGo html 端点（零 Key）；网络/HTTP 失败一律报 WEB_SEARCH_FAILED */
-export async function webSearch(query: string, fetchImpl: FetchImpl = fetch): Promise<WebSearchResultItem[]> {
+/** 公开网页检索：Bing 国内站（零 Key）；网络/HTTP/验证页失败一律报 WEB_SEARCH_FAILED */
+export async function webSearch(query: string, fetchImpl: FetchImpl = publicFetch): Promise<WebSearchResultItem[]> {
   const q = query.trim()
   if (!q) throw Object.assign(new Error('检索词为空'), { code: 'INVALID_ARGUMENT' })
   let html: string
   try {
-    html = await fetchHtml(`${DDG_HTML_ENDPOINT}?q=${encodeURIComponent(q)}`, fetchImpl)
+    html = await fetchHtml(`${BING_SEARCH_ENDPOINT}?q=${encodeURIComponent(q)}`, fetchImpl)
+    if (isBingChallenge(html)) throw new Error('搜索源返回人机验证页')
   } catch (e) {
     throw Object.assign(new Error(`公开检索失败：${(e as Error).message}`), { code: 'WEB_SEARCH_FAILED' })
   }
-  return parseDdgResults(html)
+  return parseBingResults(html)
 }
 
 /** 公开网页抓取：仅 http/https，HTML→正文文本，超 maxChars 截断；失败一律报 WEB_FETCH_FAILED */
 export async function webFetchText(
   url: string,
-  fetchImpl: FetchImpl = fetch,
+  fetchImpl: FetchImpl = publicFetch,
   maxChars = WEB_FETCH_MAX_CHARS,
 ): Promise<string> {
   const u = url.trim()

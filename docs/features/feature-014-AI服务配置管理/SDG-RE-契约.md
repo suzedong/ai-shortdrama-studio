@@ -174,3 +174,10 @@ interface AiServiceUpdatePatch {
 | 用户要求明文落盘 / 禁用加密 | 违反 D-021 拍板，停手呈报 |
 | ComfyUI 实例配置诉求混入 | 指引 feature-017 既有通道，不在本包扩面 |
 | spawn 参数 / 端口区间长度可配化诉求 | 违反安全契约常量，停手呈报 |
+
+## 8. 系统代理联动修订（feature-006 D-002，2026-11-01）
+
+- `ark.ts` 的公网请求由 Node 原生 fetch 改为 `electron/network.ts` 的 `publicFetch`，保留动态配置、请求体、鉴权与错误语义；私网地址仍原生直连。
+- `ensureRuntime()` 在 start 前按当前 provider URL 解析操作系统代理，结果经 `StartRuntimeOptions.proxyEnv` 传入；`buildChildEnv` 覆写 HTTP(S)_PROXY/NO_PROXY。此处仅环境变化，`serve --hostname 127.0.0.1 --port` 参数与端口区间不变。
+- LM Studio 为本地/局域网地址时强制直连并清除继承代理；Ark 公网按 OS 代理/PAC 判定。配置变更仍沿用手动重连生效。
+- 本联动零新 IPC/DTO/shared/依赖，feature-014 原「ark.ts/manager.ts 不再改动」历史实施范围以本节为准。

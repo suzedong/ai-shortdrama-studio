@@ -22,11 +22,11 @@ function makeTool(partial: Partial<ToolView> = {}): ToolView {
   return { callId: 'c1', tool: 'file.write', status: 'running', args: {}, ...partial }
 }
 
-function renderWithStream(
+function chatElement(
   stream: StreamingTurn | null,
   props: { generating?: boolean; aiDown?: string | null; onAiRetry?: () => void } = {},
 ) {
-  return render(
+  return (
     <ChatComposer
       items={[]}
       stream={stream}
@@ -42,8 +42,15 @@ function renderWithStream(
       onModelChange={vi.fn()}
       onSend={vi.fn()}
       onDecide={vi.fn()}
-    />,
+    />
   )
+}
+
+function renderWithStream(
+  stream: StreamingTurn | null,
+  props: { generating?: boolean; aiDown?: string | null; onAiRetry?: () => void } = {},
+) {
+  return render(chatElement(stream, props))
 }
 
 describe('纯函数（契约 §2）', () => {
@@ -222,6 +229,50 @@ describe('活跃不变式（AC7，running 五状态参数化遍历）', () => {
   })
 })
 
+describe('流式滚动跟随（AC11 / 契约 §3.5）', () => {
+  function mockViewport(el: HTMLDivElement, scrollHeight: number): void {
+    Object.defineProperty(el, 'scrollHeight', { configurable: true, value: scrollHeight })
+    Object.defineProperty(el, 'clientHeight', { configurable: true, value: 200 })
+  }
+
+  it('接近底部时，新推理分片继续自动回底', () => {
+    const { container, rerender } = renderWithStream(makeTurn({ deltaPreview: { text: '', reasoning: '第一段' } }))
+    const el = container.querySelector<HTMLDivElement>('[data-testid="chat-scroll-view"]')!
+    mockViewport(el, 1000)
+    el.scrollTop = 800
+    fireEvent.scroll(el)
+
+    mockViewport(el, 1200)
+    rerender(chatElement(makeTurn({ deltaPreview: { text: '', reasoning: '第一段第二段' } })))
+    expect(el.scrollTop).toBe(1200)
+  })
+
+  it('主动上翻后，新推理分片保持原滚动位置', () => {
+    const { container, rerender } = renderWithStream(makeTurn({ deltaPreview: { text: '', reasoning: '第一段' } }))
+    const el = container.querySelector<HTMLDivElement>('[data-testid="chat-scroll-view"]')!
+    mockViewport(el, 1200)
+    el.scrollTop = 300
+    fireEvent.scroll(el)
+
+    rerender(chatElement(makeTurn({ deltaPreview: { text: '', reasoning: '第一段第二段' } })))
+    expect(el.scrollTop).toBe(300)
+  })
+
+  it('重新回到底部阈值内后，后续推理分片恢复自动跟随', () => {
+    const { container, rerender } = renderWithStream(makeTurn({ deltaPreview: { text: '', reasoning: '第一段' } }))
+    const el = container.querySelector<HTMLDivElement>('[data-testid="chat-scroll-view"]')!
+    mockViewport(el, 1200)
+    el.scrollTop = 300
+    fireEvent.scroll(el)
+    el.scrollTop = 960
+    fireEvent.scroll(el)
+
+    mockViewport(el, 1300)
+    rerender(chatElement(makeTurn({ deltaPreview: { text: '', reasoning: '第一段第二段' } })))
+    expect(el.scrollTop).toBe(1300)
+  })
+})
+
 describe('D-013 · AI 服务不可用横幅与输入禁用', () => {
   it('aiDown 非空 → 常驻横幅（role=alert）+ 重新检测按钮；aiDown=null 不渲染', () => {
     const { unmount } = renderWithStream(null, { aiDown: 'AI 服务不可用：运行时未能启动', onAiRetry: vi.fn() })
@@ -268,6 +319,70 @@ describe('D-013 · AI 服务不可用横幅与输入禁用', () => {
     const textarea = container.querySelector('textarea')!
     fireEvent.keyDown(textarea, { key: 'Enter' })
     expect(onSend).not.toHaveBeenCalled()
+  })
+})
+
+describe('B-48 · 多段思维链分段渲染', () => {
+  function turnWithReasoning(blocks: string[]): StreamingTurn {
+    const parts: StreamingTurn['parts'] = {}
+    blocks.forEach((text, i) => {
+      const partId = `r${i + 1}`
+      parts[partId] = { partId, kind: 'reasoning', text }
+    })
+    return makeTurn({ parts, status: 'running' })
+  }
+
+  it('两段 reasoning → 两个折叠块，标签为 推理过程 1/2、2/2，正文各自分段', () => {
+    renderWithStream(turnWithReasoning(['第一段：先分析需求', '第二段：拿到结果继续推导']))
+    const blocks = screen.getAllByTestId('chat-reasoning')
+    expect(blocks).toHaveLength(2)
+    expect(blocks[0]!.querySelector('summary')!.textContent).toBe('推理过程 1/2')
+    expect(blocks[1]!.querySelector('summary')!.textContent).toBe('推理过程 2/2')
+    expect(screen.getByText('第一段：先分析需求')).toBeInTheDocument()
+    expect(screen.getByText('第二段：拿到结果继续推导')).toBeInTheDocument()
+  })
+
+  it('流式态最后一段默认展开，其余折叠', () => {
+    renderWithStream(turnWithReasoning(['首段', '次段', '三段']))
+    const blocks = screen.getAllByTestId('chat-reasoning')
+    expect(blocks[0]).not.toHaveAttribute('open')
+    expect(blocks[1]).not.toHaveAttribute('open')
+    expect(blocks[2]).toHaveAttribute('open')
+  })
+
+  it('单段（deltaPreview 回退）时标签不带序号', () => {
+    renderWithStream(makeTurn({ status: 'running', deltaPreview: { text: '', reasoning: '流式思考' } }))
+    const block = screen.getByTestId('chat-reasoning')
+    expect(block.querySelector('summary')!.textContent).toBe('推理过程')
+    expect(block).toHaveAttribute('open')
+  })
+
+  it('历史气泡：reasoningBlocks 分段回放，默认全部折叠', () => {
+    render(
+      <ChatComposer
+        items={[
+          {
+            id: 'h1', role: 'agent', agent: 'showrunner', text: '正文',
+            reasoningBlocks: ['历史推理一', '历史推理二'],
+          },
+        ]}
+        stream={null}
+        pendingGate={null}
+        deciding={false}
+        sending={false}
+        error={null}
+        modelOptions={[{ providerID: 'ark', modelID: 'test-model' }]}
+        selectedModel={{ providerID: 'ark', modelID: 'test-model' }}
+        onModelChange={vi.fn()}
+        onSend={vi.fn()}
+        onDecide={vi.fn()}
+      />,
+    )
+    const blocks = screen.getAllByTestId('chat-reasoning')
+    expect(blocks).toHaveLength(2)
+    expect(blocks[0]!.querySelector('summary')!.textContent).toBe('推理过程 1/2')
+    expect(blocks[0]).not.toHaveAttribute('open')
+    expect(blocks[1]).not.toHaveAttribute('open')
   })
 })
 

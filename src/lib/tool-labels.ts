@@ -12,6 +12,8 @@
 // ID 双形态：opencode 把 MCP 工具名的点号换成下划线（brief.plan → shortdrama_brief_plan），
 // 而 profile / 白名单仍写点号形式（shortdrama_brief.plan）。两种都在表内登记。
 
+import { captureTopicLabel } from '../studio/stage0/chain'
+
 /** 归一后的逻辑工具键 → 中文动作短语（枚举；与 MCP 注册描述同源） */
 const ACTION_PHRASES: Record<string, string> = {
   // 文件
@@ -135,8 +137,12 @@ export function toolArgPreview(physical: string, args: unknown): string {
   if (!keys) return ''
   const record = args as Record<string, unknown>
   for (const key of keys) {
-    const value = record[key]
-    if (typeof value === 'string' && value.trim().length > 0) {
+    const raw = record[key]
+    if (typeof raw === 'string' && raw.trim().length > 0) {
+      // B-51：capture_upsert 的 topic 为英文物理键时显中文字段名
+      const value = bare.replace(/\./g, '_') === 'capture_upsert' && key === 'topic'
+        ? captureTopicLabel(raw)
+        : raw
       return value.length > ARG_PREVIEW_LIMIT ? `${value.slice(0, ARG_PREVIEW_LIMIT)}…` : value
     }
   }

@@ -196,11 +196,12 @@ describe('C7 · StudioApp 立项驱动', () => {
 
 // 三栏布局 / 项目导航 / 只读产物查看
 describe('三栏与产物查看', () => {
-  it('三栏齐出：项目导航 + 画布 + 对话区', async () => {
+  it('三栏齐出：项目导航 + 中间区 + 对话区（立项空项目自动呈现 Stage0View，B-50）', async () => {
     installApi(emptyCanvas())
     render(<StudioApp />)
     expect(screen.getByText('项目')).toBeInTheDocument()
-    expect(screen.getByText(/还没有任何产物/)).toBeInTheDocument()
+    expect(await screen.findByText('立项尚未定案')).toBeInTheDocument()
+    expect(screen.queryByText(/还没有任何产物/)).not.toBeInTheDocument()
     expect(screen.getByPlaceholderText(/描述创作目标/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '返回旧版' })).not.toBeInTheDocument()
   })
@@ -269,11 +270,53 @@ describe('三栏与产物查看', () => {
     h.emitCanvas(same)
     expect(screen.getByText('立项/diagnosis.json')).toBeInTheDocument()
 
-    // projectId 变化：viewer 关闭
+    // projectId 变化：viewer 关闭（p2 为空项目，B-50 自动进 Stage0View）
     const other = emptyCanvas('另一个项目')
     other.projectId = 'p2'
     h.emitCanvas(other)
     expect(screen.queryByText('立项/diagnosis.json')).not.toBeInTheDocument()
-    expect(await screen.findByText(/另一个项目/)).toBeInTheDocument()
+    expect(await screen.findByText('立项尚未定案')).toBeInTheDocument()
+  })
+})
+
+// B-50 · 立项期视图自动投影
+describe('B-50 · 立项期自动切 Stage0View', () => {
+  it('空 nodes 项目进入：中间区呈现 Stage0View；随后节点到达自动回 DAG', async () => {
+    const h = installApi(emptyCanvas())
+    render(<StudioApp />)
+    expect(await screen.findByText('立项尚未定案')).toBeInTheDocument()
+    expect(screen.queryByText(/还没有任何产物/)).not.toBeInTheDocument()
+
+    h.emitCanvas(canvasWithDiagnosis())
+    expect(await screen.findByText('重生复仇：选题诊断')).toBeInTheDocument()
+    expect(screen.queryByText('立项尚未定案')).not.toBeInTheDocument()
+    expect(screen.queryByText(/还没有任何产物/)).not.toBeInTheDocument()
+  })
+
+  it('初始即有 nodes 的项目：直接停在 DAG，不进 Stage0View', async () => {
+    installApi(canvasWithDiagnosis())
+    render(<StudioApp />)
+    expect(await screen.findByText('重生复仇：选题诊断')).toBeInTheDocument()
+    expect(screen.queryByText('立项尚未定案')).not.toBeInTheDocument()
+  })
+
+  it('自动投影每项目仅一次：手动「返回画布」后不再被同项目空推送强切', async () => {
+    const h = installApi(emptyCanvas())
+    render(<StudioApp />)
+    expect(await screen.findByText('立项尚未定案')).toBeInTheDocument()
+
+    await user.click(screen.getAllByText('← 返回画布')[0]!)
+    expect(await screen.findByText(/还没有任何产物/)).toBeInTheDocument()
+
+    // 同 projectId 的空 nodes 推送：不再强切
+    h.emitCanvas(emptyCanvas())
+    expect(screen.getByText(/还没有任何产物/)).toBeInTheDocument()
+    expect(screen.queryByText('立项尚未定案')).not.toBeInTheDocument()
+
+    // 切到另一个空项目：重新放行
+    const other = emptyCanvas('新项目')
+    other.projectId = 'p2'
+    h.emitCanvas(other)
+    expect(await screen.findByText('立项尚未定案')).toBeInTheDocument()
   })
 })

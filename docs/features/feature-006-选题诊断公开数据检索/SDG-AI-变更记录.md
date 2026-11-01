@@ -30,6 +30,16 @@
 
 **技术决策指针**：SDG-OD-设计说明.md D1-D7（探测前置 / 仅 showrunner / 检索词脱敏 / 纪念类默认不检索 / 附录承载来源 / 零 Key 优先 / 失败诚实降级）。
 
+### D-002 国内搜索源与全系统代理治理（2026-11-01）
+
+**用户拍板**：按「`web.search` 改国内地址；整个系统跟随操作系统代理；境外服务无法直连时系统提示；本地/局域网 ComfyUI 不受代理破坏」更新规格并实施。
+
+**实测依据**：DuckDuckGo 直连同时存在 DNS 污染、TCP 超时和指定真实 IP 后 TLS reset；经现有局域网代理可返回正常结果。`cn.bing.com` 直连返回正常搜索页及 `b_algo` 结果，零 Key；Playwright 不能修复底层直连路径，不引入浏览器依赖。
+
+**决策**：① 默认搜索源改为 Bing 国内站并同步替换解析器，工具 DTO/白名单不变；② 主进程公网请求使用 Electron `net.fetch`，私网/loopback 使用原生 fetch 强制直连；③ opencode 启动时按 `session.resolveProxy` 注入标准代理环境和 NO_PROXY；④ 连接失败用主进程原生弹窗提示并保留 MCP 错误信封，不新增 IPC；⑤ 任意 URL 不做物理国家识别，仅已知境外域名提供针对性提示。
+
+**卡口**：K1/K9 零触发；K8 不扩面（零新 IPC/DTO/工具）；feature-014 的 ark/manager 零 diff 旧红线由本决策联动修订，feature-808 会话与 SSE 契约零 diff。
+
 ---
 
 ## T（任务执行）
@@ -104,8 +114,37 @@
 
 **结论**：AC4/AC6 目验通过。
 
+### T8–T12 国内搜索源与系统代理治理实施（2026-11-01）
+
+按 D-002 实施，最小 diff：
+
+1. **新增 [network.ts](../../../electron/network.ts)**：`publicFetch`（公网 Electron `net.fetch` 走系统代理/PAC/绕过；loopback、RFC1918、链路本地、IPv6 ULA/链路本地、`.local`、单标签主机名走原生 fetch 强制直连）；`shouldDirectFetch` / `proxyUrlFromResolve`（PROXY/HTTPS/SOCKS4/SOCKS5 → 标准代理 URL，DIRECT → null）/ `buildNoProxy` / `resolveRuntimeProxyEnv` / `networkFailureMessage`。Electron 一律动态 import，纯策略函数可在裸 Node/Vitest 运行。
+2. **[tools.ts](../../../electron/mcp/tools.ts)**：`parseDdgResults` → `parseBingResults`（`li.b_algo` 区块 h2/a 标题直链 + 同区块首个 `<p>` 摘要，仅 http/https，默认上限 8）；端点改 `https://cn.bing.com/search?q=`；新增人机验证页识别（`b_captcha`/g-recaptcha/hcaptcha/异常流量 → WEB_SEARCH_FAILED）；补 `ensp`/`emsp` 实体；`webSearch`/`webFetchText` 默认 fetch 改 `publicFetch`，注入式测试签名不变；工具 DTO 与白名单零 diff。
+3. **[ark.ts](../../../electron/ark.ts)**：原生 fetch → `publicFetch`，鉴权、请求体与错误语义不变。
+4. **[main.ts](../../../electron/main.ts)**：`ensureRuntime` 按当前 provider（lmstudio/ark）URL 调 `resolveRuntimeProxyEnv`，结果随 `proxyEnv` 传入 `runtimeManager.start`。
+5. **[manager.ts](../../../electron/runtime/manager.ts)**：`StartRuntimeOptions` 增 `proxyEnv`；`buildChildEnv` 先清除继承的大小写 HTTP_PROXY/HTTPS_PROXY/ALL_PROXY/NO_PROXY，再按解析结果覆写大写变量；NO_PROXY 始终覆盖；loopback 健康检查继续用注入的原生 fetch；spawn 参数零 diff。
+
+**失败提示**：仅公网连接异常（非 HTTP 状态码）触发原生 `dialog.showMessageBox`；文案含实际错误、系统代理状态（未启用 DIRECT / 已启用 + URL）；代理仍失败 → 检查节点/端口/绕过规则；DIRECT 且命中已知境外域名清单（DuckDuckGo/Google/OpenAI/GitHub 等）→ 启用代理指引；任意 URL 不断言物理国家；Bearer/api_key/token/password 脱敏。MCP 工具仍返回原错误信封。
+
+**测试**：新增 [network.test.ts](../../src/test/network.test.ts) 19 测；web-tools 改 Bing fixture 15 测；runtime-manager 增代理环境测试（19 测）；ark 5 测；定向 58/58 绿。全量回归 **76 文件 / 921 passed / 0 failed / 1 skipped**；`tsc -p tsconfig.node.json`、`tsc -p tsconfig.preload.json` 均 0 退出；typecheck 恰 3 条存量基线（canvas-zoom ×2、runtime-client ×1）零新增。
+
+**真机实测**：`cn.bing.com/search?q=短剧` 直连返回 97857 字节 / 10 个 `b_algo` / 无验证页；生产解析器对真实页面得 8 条有效直链（爱奇艺、黄果 AI、七猫等），标题/URL/摘要配对且实体正确解码。境外 DIRECT/代理失败与私网直连文案由 network.test.ts 注入式覆盖；Electron 桌面真机弹窗目验留待用户桌面验收。
+
+**红线复核**：package.json、package-lock.json、shared/types.ts、preload/IPC/DTO、spawn 参数、Agent 白名单零 diff；feature-014 联动登记 D-023。
+
 ---
 
 ## X（修复）
 
-本包实施期零修复（T1 基线至 T6 全量回归全程零红灯，无新增修复条目）。
+### X-001 运行时启动 Illegal invocation（resolveProxy 脱 this）（2026-11-01）
+
+**现象**：T8–T12 落地后用户真机反馈「AI 服务不可用：无法连接运行时」，点击横幅「重新检测」无反应；opencode 子进程始终拉不起来。
+
+**根因**：Electron 原生 `session.defaultSession.resolveProxy` 是 Session 对象方法，[network.ts](../../../electron/network.ts) 中 `resolveRuntimeProxyEnv` 与 `publicFetch` 失败分支以脱离对象的方式引用后调用，`this` 绑定丢失，抛 `TypeError: Illegal invocation: Function must be called on an object of type Session`。该错误经 `runtime:start` IPC handler 上抛（主进程日志实证），前端 catch 后仅置横幅，故「重新检测」每次重走同一失败路径。
+
+**修复**：两处默认代理解析均改为箭头函数包裹、在 `session.defaultSession` 上调用：
+`resolver = (url) => session.defaultSession.resolveProxy(url)`；`publicFetch` catch 内同样直接 `await session.defaultSession.resolveProxy(url)`。注入式 `resolveProxy`/`netFetch` 路径与其余行为零 diff。
+
+**测试**：[network.test.ts](../../src/test/network.test.ts) 的 electron mock 增加真实 `this` 绑定校验（脱 Session 调用即抛 Illegal invocation），新增回归用例「公网 provider 不注入 resolver 时默认经 defaultSession.resolveProxy 解析（不脱 this）」，共 20 测全绿；`npx tsc -p tsconfig.node.json` 重建声明 0 退出；typecheck 恰 3 条存量基线零新增；重启 dev 后 electron=5、opencode 子进程正常拉起；全量回归 **76 文件 / 922 passed / 0 failed / 1 skipped**（较 T8–T12 的 921 净增 1 个回归用例）。
+
+**遗留**：应用内 web.search 与横幅消失的真机目验待用户桌面确认；不提交 Git。

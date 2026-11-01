@@ -1,11 +1,11 @@
 // feature-003 · Stage0View 接线测试（契约 §6）
 // 纯函数 select/parse 用例 + 组件四态/叠加态用例；window.api 桩 fileRead / updateBrief（D-017）。
 // 组件凭据为 data-stage0-*（非 data-testid），统一用容器选择器。
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { Canvas, CanvasGate, CanvasNode, ProjectBrief, StepId } from '@shared/types'
+import type { Canvas, CanvasGate, CanvasNode, CapturedFact, ProjectBrief, StepId } from '@shared/types'
 import Stage0View from './Stage0View'
 import {
   dirtyFieldLabel,
@@ -322,6 +322,92 @@ describe('Stage0View · empty', () => {
     installFileRead(() => fail('NO_PROJECT'))
     renderView(canvas({ gates: [gate({ status: 'rejected' })] }))
     expect(screen.getByText(/立项定案门被驳回/)).toBeInTheDocument()
+  })
+
+  // B-52：已收集口径在中间区分组呈现（用户上报「6/6 只看到入口动作」）
+  const mkFact = (id: string, topic: string, value: string, over: Partial<CapturedFact> = {}): CapturedFact => ({
+    id, topic, value, source: 'infer', status: 'confirmed', updatedAt: '2026-10-20T00:00:00.000Z', ...over,
+  })
+
+  it('六要素 6 条已收集 → 中间区渲染「选题诊断口径」分组卡：中文标签 + 最新值，空态卡仍在', async () => {
+    const sixFacts = [
+      mkFact('f1', 'genre', '重生复仇 · 都市女频', { source: 'user' }),
+      mkFact('f2', 'platforms', '抖音 · 红果'),
+      mkFact('f3', 'episodeDuration', '90 秒'),
+      mkFact('f4', 'episodeCount', '80 集'),
+      mkFact('f5', 'tone', '爽感强节奏'),
+      mkFact('f6', 'aspectRatio', '竖屏 9:16'),
+    ]
+    installFileRead(() => fail('NO_PROJECT'))
+    ;(window.api as unknown as { captureList: unknown }).captureList = vi.fn(async () => ({
+      schemaVersion: 1 as const, facts: sixFacts,
+    }))
+    renderView(canvas())
+
+    const group = await waitFor(() => {
+      const el = document.querySelector('[data-stage0-capture-group="six"]')
+      expect(el).not.toBeNull()
+      return el as HTMLElement
+    })
+    expect(within(group).getByText('选题诊断口径')).toBeTruthy()
+    expect(within(group).getByText('· 6/6 已收集')).toBeTruthy()
+    // 中文标签与值逐行出现
+    for (const [label, value] of [
+      ['题材赛道', '重生复仇 · 都市女频'],
+      ['目标平台', '抖音 · 红果'],
+      ['单集时长', '90 秒'],
+      ['集数', '80 集'],
+      ['风格基调', '爽感强节奏'],
+      ['画幅', '竖屏 9:16'],
+    ] as const) {
+      expect(within(group).getByText(label)).toBeTruthy()
+      expect(within(group).getByText(value)).toBeTruthy()
+    }
+    // 空态卡仍在（口径不建节点、未批准规格不变）
+    expect(byStage0('empty')).not.toBeNull()
+    expect(screen.getByText('立项尚未定案')).toBeInTheDocument()
+  })
+
+  it('前提 2 条 + 未命中 1 条 → 前提组与「其他口径」卡出现；无六要素卡', async () => {
+    const facts = [
+      mkFact('p1', 'place', '上海'),
+      mkFact('p2', 'coreEvent', '婚礼现场当众悔婚'),
+      mkFact('x1', '人物关系', '女主与继母是对立关系', { status: 'pending' }),
+    ]
+    installFileRead(() => fail('NO_PROJECT'))
+    ;(window.api as unknown as { captureList: unknown }).captureList = vi.fn(async () => ({
+      schemaVersion: 1 as const, facts,
+    }))
+    renderView(canvas())
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-stage0-capture-group="premise"]')).not.toBeNull()
+    })
+    const premiseGroup = document.querySelector('[data-stage0-capture-group="premise"]') as HTMLElement
+    expect(within(premiseGroup).getByText('· 2/5 已收集')).toBeTruthy()
+    expect(within(premiseGroup).getByText('地点')).toBeTruthy()
+    expect(within(premiseGroup).getByText('婚礼现场当众悔婚')).toBeTruthy()
+
+    const unmatchedGroup = document.querySelector('[data-stage0-capture-group="unmatched"]') as HTMLElement
+    expect(within(unmatchedGroup).getByText('人物关系')).toBeTruthy()
+    expect(within(unmatchedGroup).getByText('女主与继母是对立关系')).toBeTruthy()
+    expect(within(unmatchedGroup).getByText('推断 · 待确认')).toBeTruthy()
+
+    expect(document.querySelector('[data-stage0-capture-group="six"]')).toBeNull()
+  })
+
+  it('captureList 首拉未返回前 → 不渲染口径卡；空 facts → 不渲染口径卡', () => {
+    let resolveList: (f: { schemaVersion: 1; facts: CapturedFact[] }) => void = () => undefined
+    const pending = new Promise<{ schemaVersion: 1; facts: CapturedFact[] }>(res => { resolveList = res })
+    installFileRead(() => fail('NO_PROJECT'))
+    ;(window.api as unknown as { captureList: unknown }).captureList = vi.fn(() => pending)
+    renderView(canvas())
+
+    expect(document.querySelector('[data-stage0-capture-group]')).toBeNull()
+
+    act(() => { resolveList({ schemaVersion: 1, facts: [] }) })
+
+    expect(document.querySelector('[data-stage0-capture-group]')).toBeNull()
   })
 })
 

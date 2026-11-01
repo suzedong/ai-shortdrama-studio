@@ -18,8 +18,9 @@ export const FAMILY_GRAD: Record<string, string> = {
 
 // 真实画风预览图：resources/H3-Style/_style_preview/<家族目录>/<ID>_<名称>.png（共 18 张）
 // Vite glob：dev 直接服务源文件；build 时打包为带 hash 的静态资源（Electron 生产环境同源可加载）
+// B-53：glob 相对当前文件（src/studio/style/），到项目根 resources 需 ../../../（原 ../../ 误指向 src/resources）
 const PREVIEW_MODULES = import.meta.glob<string>(
-  '../../resources/H3-Style/_style_preview/**/*.png',
+  '../../../resources/H3-Style/_style_preview/**/*.png',
   { eager: true, query: '?url', import: 'default' },
 )
 // id（A1/A2/.../E1）→ 图片 URL
@@ -34,7 +35,7 @@ for (const [p, url] of Object.entries(PREVIEW_MODULES)) {
 // 对齐原型 VID_FILES：std 成片基准 / turbo 打样最快 / fast 快速出片；备画风无视频
 type VidTier = 'std' | 'turbo' | 'fast'
 const VIDEO_MODULES = import.meta.glob<string>(
-  '../../resources/H3-Style/_style_preview/**/*.mp4',
+  '../../../resources/H3-Style/_style_preview/**/*.mp4',
   { eager: true, query: '?url', import: 'default' },
 )
 const VIDEO_URL: Record<string, Partial<Record<VidTier, string>>> = {}

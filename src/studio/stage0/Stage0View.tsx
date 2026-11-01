@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-import type { Canvas, ProjectBrief, ProjectKind } from '../../../shared/types'
+import type { Canvas, CapturedFact, ProjectBrief, ProjectKind } from '../../../shared/types'
 import {
   dirtyFieldLabel,
   FIVE_ELEMENT_FIELDS,
@@ -16,6 +16,7 @@ import {
 import { getStyleName, useStyleCatalog } from '../style/style-catalog-store'
 import Stage0Chain, { useCaptureFacts } from './Stage0Chain'
 import { selectPremiseConfirmation } from './premise-facts'
+import { selectCaptureGroups, type CaptureGroupItem } from './chain'
 import { driftDays, driftReminderLabel } from '../canvas/dirty-drift'
 import GateCardView from '../chat/GateCardView'
 import type { BriefUpdatePayload } from '../impact/impact-select'
@@ -180,6 +181,83 @@ export function BackgroundMd({ content }: { content: string }) {
   )
 }
 
+/* ── B-52 · empty 相已收集口径呈现（分组卡；口径仍不建画布节点，0-final 批准才生成节点）── */
+function factSourceText(f: CapturedFact): string {
+  if (f.source === 'user') return '用户原话'
+  return f.status === 'pending' ? '推断 · 待确认' : '推断 · 已确认'
+}
+
+function CaptureFactRows({ items }: { items: CaptureGroupItem[] }) {
+  return (
+    <>
+      {items.map(item => (
+        <div
+          key={item.key}
+          className="flex items-start gap-2 border-b border-[#F6F7FB] px-3.5 py-2 last:border-b-0"
+          data-stage0-capture-row={item.key}
+        >
+          <span className="w-[62px] shrink-0 pt-px text-[10.5px] font-bold text-[#7A8098]">{item.label}</span>
+          <span className="min-w-0 flex-1 break-all text-[11.5px] font-bold leading-snug text-ink">{item.fact.value}</span>
+          <span className="shrink-0 rounded-[5px] border border-line bg-[#F6F7FB] px-1.5 py-px text-[9px] font-bold text-[#7A8098]">
+            {factSourceText(item.fact)}
+          </span>
+        </div>
+      ))}
+    </>
+  )
+}
+
+function CapturedFactsCards({ facts }: { facts: CapturedFact[] }) {
+  const groups = useMemo(() => selectCaptureGroups(facts), [facts])
+  if (groups.six.length === 0 && groups.premise.length === 0 && groups.unmatched.length === 0) return null
+  return (
+    <>
+      {groups.six.length > 0 && (
+        <section className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_10px_30px_rgba(40,42,80,0.06)]" data-stage0-capture-group="six">
+          <div className="flex items-center gap-2 border-b border-[#F2F3F8] px-3.5 py-2">
+            <span className="h-3 w-[3px] rounded-full bg-violet/70" />
+            <span className="text-[11px] font-extrabold text-ink">选题诊断口径</span>
+            <span className="text-[10px] text-muted">· {groups.six.length}/6 已收集</span>
+          </div>
+          <CaptureFactRows items={groups.six} />
+        </section>
+      )}
+      {groups.premise.length > 0 && (
+        <section className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_10px_30px_rgba(40,42,80,0.06)]" data-stage0-capture-group="premise">
+          <div className="flex items-center gap-2 border-b border-[#F2F3F8] px-3.5 py-2">
+            <span className="h-3 w-[3px] rounded-full bg-violet/70" />
+            <span className="text-[11px] font-extrabold text-ink">故事前提口径</span>
+            <span className="text-[10px] text-muted">· {groups.premise.length}/5 已收集</span>
+          </div>
+          <CaptureFactRows items={groups.premise} />
+        </section>
+      )}
+      {groups.unmatched.length > 0 && (
+        <section className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_10px_30px_rgba(40,42,80,0.06)]" data-stage0-capture-group="unmatched">
+          <div className="flex items-center gap-2 border-b border-[#F2F3F8] px-3.5 py-2">
+            <span className="h-3 w-[3px] rounded-full bg-[#E8A33D]/70" />
+            <span className="text-[11px] font-extrabold text-ink">其他口径</span>
+            <span className="text-[10px] text-muted">· {groups.unmatched.length} 条（未归入六要素 / 前提）</span>
+          </div>
+          {groups.unmatched.map(f => (
+            <div
+              key={f.id}
+              className="flex items-start gap-2 border-b border-[#F6F7FB] px-3.5 py-2 last:border-b-0"
+              data-stage0-capture-row={f.topic}
+            >
+              <span className="max-w-[130px] shrink-0 break-all pt-px text-[10.5px] font-bold text-[#7A8098]">{f.topic}</span>
+              <span className="min-w-0 flex-1 break-all text-[11.5px] font-bold leading-snug text-ink">{f.value}</span>
+              <span className="shrink-0 rounded-[5px] border border-line bg-[#F6F7FB] px-1.5 py-px text-[9px] font-bold text-[#7A8098]">
+                {factSourceText(f)}
+              </span>
+            </div>
+          ))}
+        </section>
+      )}
+    </>
+  )
+}
+
 /* ── 空态 ── */
 function EmptyStage0({ state, projectTitle, projectId, onBackToDag, entryQuote = '' }: {
   state: ReturnType<typeof selectStage0State>
@@ -188,14 +266,16 @@ function EmptyStage0({ state, projectTitle, projectId, onBackToDag, entryQuote =
   onBackToDag: () => void
   entryQuote?: string
 }) {
+  const { facts } = useCaptureFacts(projectId)
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#FAFBFE]" data-view="stage0">
       <Header projectTitle={projectTitle} onBackToDag={onBackToDag} />
       <Stage0Chain state={state} projectId={projectId} />
       <div className="absolute inset-0 top-[84px] overflow-y-auto px-[26px] py-[26px]">
-        <div className="mx-auto flex max-w-[680px] flex-col gap-4 pt-[9vh]">
+        <div className="mx-auto flex max-w-[680px] flex-col gap-4 pb-10">
           <EntryQuoteCard quote={entryQuote} />
           {state.gate0 && <GateRetentionCard gate0={state.gate0} />}
+          <CapturedFactsCards facts={facts ?? []} />
           <div className="rounded-[14px] border border-line bg-white p-7 text-center shadow-[0_10px_30px_rgba(40,42,80,0.06)]" data-stage0-empty>
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-violet-soft text-xl text-violet">0</span>
             <div className="mt-3 text-[15px] font-extrabold text-ink">

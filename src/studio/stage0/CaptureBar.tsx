@@ -5,6 +5,7 @@
 // 口径随项目走：projectId 变化（切项目 / 新建项目）即清空旧条目并重拉新项目文件。
 import { useEffect, useState } from 'react'
 import type { CapturedFact } from '../../../shared/types'
+import { captureTopicLabel } from './chain'
 
 // C3 来源三色（复用 B-34 LabelTag 三色语义）
 function sourceTag(f: CapturedFact): { text: string; cls: string } {
@@ -62,7 +63,7 @@ export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
     const topic = editTopic.trim()
     const value = editValue.trim()
     if (!topic || !value) {
-      setRowError({ id: f.id, message: 'topic 与 value 不能为空' })
+      setRowError({ id: f.id, message: '字段名与内容不能为空' })
       return
     }
     try {
@@ -151,13 +152,13 @@ export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
                     <input
                       value={editTopic}
                       onChange={e => setEditTopic(e.target.value)}
-                      placeholder="topic（如 genre / platforms / 人物关系）"
+                      placeholder="字段名（如 genre / platforms / 人物关系）"
                       className="w-full rounded-md border border-line bg-white px-2 py-1 text-[11px] font-bold text-[#1E2233] outline-none focus:border-violet"
                     />
                     <input
                       value={editValue}
                       onChange={e => setEditValue(e.target.value)}
-                      placeholder="value"
+                      placeholder="内容"
                       className="w-full rounded-md border border-line bg-white px-2 py-1 text-[11px] text-[#3A3F55] outline-none focus:border-violet"
                     />
                     <div className="flex gap-1.5">
@@ -182,7 +183,10 @@ export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
                 ) : (
                   <div className="flex items-start gap-1.5">
                     <div className="min-w-0 flex-1 leading-snug">
-                      <span className="text-[11px] font-bold text-[#1E2233]">{f.topic}</span>
+                      <span
+                        className="text-[11px] font-bold text-[#1E2233]"
+                        title={captureTopicLabel(f.topic) !== f.topic ? `字段：${f.topic}` : undefined}
+                      >{captureTopicLabel(f.topic)}</span>
                       <span className="mx-1 text-[10px] text-muted">·</span>
                       <span className="break-all text-[11px] text-[#3A3F55]">{f.value}</span>
                       <span

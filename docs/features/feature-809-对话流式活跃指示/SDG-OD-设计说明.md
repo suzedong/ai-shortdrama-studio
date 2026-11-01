@@ -60,6 +60,7 @@ ChatComposer（props 零新增）
 | D5 | 工具行**仅流式期可见**，定稿落 items 后不保留 | `ChatMessage` 无工具字段，留痕须扩 shared/types.ts（K1），明确排除另立切片 |
 | D6 | spinner 复用 L504 `animate-spin` 圆弧类组合，不用 `dot-spin` | `dot-spin` 为整元素旋转 keyframe，无现成圆弧载体；圆弧形态与 L504 载入行一致，视觉同源 |
 | D7 | 占位气泡与 stream 气泡**同壳同位**（同 Avatar、同气泡类） | 切换一瞬视觉连续，无跳动 |
+| D8 | 流式滚动采用 48px 距底阈值的吸底标记；上翻暂停、回底恢复 | 保留底部实时跟随，同时不打断用户阅读历史；仅改 ChatComposer，无需新 Props 或状态管理 |
 
 ## 5. 测试落点
 
@@ -74,6 +75,7 @@ ChatComposer（props 零新增）
 | 组件 | 工具行三态（running spinner+原名 / completed ✓+耗时 / error ✗+摘要与兜底文案） | AC4 / AC5 / AC6 |
 | 组件 | 活跃不变式参数化遍历（空转 / 仅推理 / 仅正文 / 正文+工具 running / 工具全 completed 静默）每种 ≥1 个 `animate-*` 元素 | AC7 |
 | 组件 | done / error 终态无任何动画指示器 | AC8 |
+| 组件 | 底部跟随 / 上翻后推理分片不改写 scrollTop / 回到底部阈值内恢复跟随 | AC11 |
 
 ## 6. 视觉基线
 

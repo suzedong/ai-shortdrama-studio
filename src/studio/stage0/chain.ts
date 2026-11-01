@@ -1,7 +1,7 @@
 // feature-008 · 立项过程链式呈现（纯函数层）
 // 只消费 canvas 投影（Stage0State）与 capture 事实（CapturedFact）；禁止 fs / window.api / Date / 随机（契约 §2）。
 import type { CapturedFact } from '../../../shared/types'
-import type { Stage0State } from './select'
+import { FIVE_ELEMENT_FIELDS, PREMISE_FIELDS, type Stage0State } from './select'
 
 export type ChainGroup = 'six' | 'premise'
 
@@ -41,6 +41,65 @@ export function matchChainTopic(topic: string): ChainTopicMatch | null {
     if (entry.words.includes(t)) return { group: 'premise', key: entry.key }
   }
   return null
+}
+
+// ===== topic 中文标签（B-51；canonical 键与词表同义，额外 kind=项目性质）=====
+
+const TOPIC_LABELS: Record<string, string> = (() => {
+  const map: Record<string, string> = {}
+  for (const f of FIVE_ELEMENT_FIELDS) map[f.key] = f.label
+  for (const f of PREMISE_FIELDS) map[f.key] = f.label
+  map.kind = '项目性质'
+  return map
+})()
+
+/** 口径 topic → 中文字段名；空串回退空串、未命中回退原 topic（不臆造名称） */
+export function captureTopicLabel(topic: string): string {
+  const t = topic.trim()
+  if (!t) return topic
+  return TOPIC_LABELS[t] ?? t
+}
+
+// ===== 已捕获口径分组（B-52；empty 相中间区呈现，仍不建画布节点）=====
+
+export interface CaptureGroupItem {
+  /** canonical 键 */
+  key: string
+  /** 中文字段名 */
+  label: string
+  /** 该键下最新一条事实（文件序最后出现者） */
+  fact: CapturedFact
+}
+
+export interface CaptureGroups {
+  /** 六要素组（按契约 §1.1 词表键序，仅含有事实的键） */
+  six: CaptureGroupItem[]
+  /** 前提组（按契约 §1.2 词表键序，仅含有事实的键） */
+  premise: CaptureGroupItem[]
+  /** 未命中词表的事实（保持文件原序） */
+  unmatched: CapturedFact[]
+}
+
+/** facts 按词表分组；同键多条取最新一条（文件序最后出现者） */
+export function selectCaptureGroups(facts: CapturedFact[]): CaptureGroups {
+  const latest = new Map<string, CapturedFact>()
+  const unmatched: CapturedFact[] = []
+  for (const fact of facts) {
+    const m = matchChainTopic(fact.topic)
+    if (m) latest.set(m.key, fact)
+    else unmatched.push(fact)
+  }
+  const toItems = (
+    glossary: { key: string }[],
+  ): CaptureGroupItem[] =>
+    glossary
+      .filter(e => latest.has(e.key))
+      .map(e => ({ key: e.key, label: captureTopicLabel(e.key), fact: latest.get(e.key)! }))
+  return {
+    six: toItems(SIX_GLOSSARY),
+    premise: toItems(PREMISE_GLOSSARY),
+    unmatched,
+  }
 }
 
 // ===== 进度统计 =====

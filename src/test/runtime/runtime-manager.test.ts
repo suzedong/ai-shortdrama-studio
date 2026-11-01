@@ -180,6 +180,50 @@ describe('resolveOpencodeBinaryPath / findFreePort / buildChildEnv', () => {
     delete process.env.OPENCODE_CONFIG
     delete process.env.OPENCODE_SERVER_PASSWORD
   })
+
+  it('buildChildEnv：DIRECT 清除宿主代理；PROXY 显式注入；NO_PROXY 始终覆盖', () => {
+    const keys = ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'all_proxy', 'no_proxy']
+    const saved = Object.fromEntries(keys.map((key) => [key, process.env[key]]))
+    try {
+      for (const key of keys) process.env[key] = 'http://host-proxy.invalid:9999'
+      const mcp = { url: 'http://127.0.0.1:4100/mcp', token: 'mcp-token-1' }
+      const direct = buildChildEnv(
+        { proxyEnv: { NO_PROXY: 'localhost,127.0.0.1,192.168.0.0/16' } },
+        '/tmp/userdata',
+        'child-pass',
+        mcp,
+      )
+      expect(direct.HTTP_PROXY).toBeUndefined()
+      expect(direct.HTTPS_PROXY).toBeUndefined()
+      expect(direct.ALL_PROXY).toBeUndefined()
+      expect(direct.http_proxy).toBeUndefined()
+      expect(direct.NO_PROXY).toBe('localhost,127.0.0.1,192.168.0.0/16')
+
+      const proxied = buildChildEnv(
+        {
+          proxyEnv: {
+            HTTP_PROXY: 'http://192.168.21.100:7890',
+            HTTPS_PROXY: 'http://192.168.21.100:7890',
+            NO_PROXY: 'localhost,127.0.0.1,::1,192.168.0.0/16',
+          },
+        },
+        '/tmp/userdata',
+        'child-pass',
+        mcp,
+      )
+      expect(proxied.HTTP_PROXY).toBe('http://192.168.21.100:7890')
+      expect(proxied.HTTPS_PROXY).toBe('http://192.168.21.100:7890')
+      expect(proxied.https_proxy).toBeUndefined()
+      expect(proxied.NO_PROXY).toContain('192.168.0.0/16')
+      expect(proxied.OPENCODE_SERVER_PASSWORD).toBe('child-pass')
+      expect(proxied.OPENCODE_MCP_TOKEN).toBe('mcp-token-1')
+    } finally {
+      for (const key of keys) {
+        if (saved[key] === undefined) delete process.env[key]
+        else process.env[key] = saved[key]
+      }
+    }
+  })
 })
 
 // -- 状态机 -------------------------------------------------------------------

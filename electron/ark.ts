@@ -4,6 +4,7 @@
 // dotenv 保留作 env 回退源；明文 Key 不出主进程内存（日志仅脱敏）。
 import 'dotenv/config'
 import { getArkConfig, maskKeyString } from './settings/ai-service.js'
+import { publicFetch } from './network.js'
 
 interface ArkMessage {
   role: 'system' | 'user' | 'assistant'
@@ -16,7 +17,7 @@ export async function chat(messages: ArkMessage[], temperature = 0.7): Promise<s
     throw new Error('未配置火山方舟接口，请在「AI 服务设置」中配置 API Key 与模型名（或设置 ARK_API_KEY/ARK_MODEL 环境变量）')
   }
 
-  const res = await fetch(`${baseUrl}/chat/completions`, {
+  const res = await publicFetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

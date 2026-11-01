@@ -35,6 +35,18 @@
 - **验证**：全量 **61 文件 722 passed / 0 failed / 1 skipped**（721+1 净增），typecheck 恰 3 条历史基线零新增；过程中发现 runtime-integration 环境性失败（pnpm 拦截 opencode-ai postinstall → spawn ENOEXEC，与本改无关），按官方指引 `node postinstall.mjs` 修复后全绿。
 - **偏差登记**：同步更新 [设计现状与偏差清单.md](../../设计现状与偏差清单.md) B-45 行尾。
 
+### D-003 单 turn 多段思维链分段显示（2026-11-01，B-48）
+
+- **事项**：真机上报——一个 turn 内 reasoning → tool.call → tool.result → 再 reasoning 多段交替时，第一段推理正常显示，工具结果返回后的第二段及以后推理界面不出现。根因：[chat-runtime.ts](../../../src/lib/chat-runtime.ts) 仅有 `turnReasoning`（joinParts 把全部 reasoning part 拼为单串），[ChatComposer.tsx](../../../src/studio/chat/ChatComposer.tsx) 单块 `ReasoningDetails` 无分段概念。
+- **用户拍板**：「修思维链分段显示 + 登记偏差」（循 B-18~B-47 不建包直接修先例）。
+- **落地**：
+  1. [chat-runtime.ts](../../../src/lib/chat-runtime.ts) 新增 `turnReasoningBlocks(turn)`——按 reasoning part 首次出现顺序逐段返回，parts 无 reasoning 时回退单段 deltaPreview.reasoning；
+  2. [ChatComposer.tsx](../../../src/studio/chat/ChatComposer.tsx) 新增 `ReasoningBlocks`：每段独立折叠块，多段标签「推理过程 n/总数」、单段「推理过程」，流式态最后一段默认展开；AgentTurn（流式）与历史气泡（`item.reasoningBlocks`）同源消费；
+  3. [StudioApp.tsx](../../../src/studio/shell/StudioApp.tsx) 定稿转 item 时携带 `reasoningBlocks`。
+- **卡口**：纯 renderer/lib，**K1/K8/K9 零触发**（shared/electron/package 零 diff）。
+- **验证**：[chat-runtime.test.ts](../../../src/lib/chat-runtime.test.ts) +3 纯函数用例、[chat-liveness.test.tsx](../../../src/studio/chat/chat-liveness.test.tsx) +4 组件用例；全量 **76 文件 935 passed / 0 failed / 1 skipped**（T8 首次受遗留 mock 桩占 4099 影响，清理后单跑 8 passed 全绿），typecheck 恰 3 条历史基线零新增。
+- **偏差登记**：[设计现状与偏差清单.md](../../设计现状与偏差清单.md) B-48。
+
 ---
 
 ## T 节 · 任务实测留痕

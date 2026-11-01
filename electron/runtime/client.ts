@@ -398,16 +398,40 @@ const ARG_PREVIEW_KEYS: Record<string, readonly string[]> = {
 const ARG_PREVIEW_LIMIT = 80
 const PHYSICAL_TOOL_PREFIX = 'shortdrama_'
 
+/**
+ * B-51 · capture_upsert topic 中文标签（与 src/studio/stage0/chain.ts captureTopicLabel 同源镜像；
+ * 主进程不可 import renderer 模块，故第三处镜像在此自持；改任一侧必须三处同步）。
+ */
+const CAPTURE_TOPIC_LABELS: Record<string, string> = {
+  genre: '题材赛道',
+  platforms: '目标平台',
+  episodeDuration: '单集时长',
+  episodeCount: '集数',
+  tone: '风格基调',
+  aspectRatio: '画幅',
+  leads: '人物',
+  time: '时间',
+  place: '地点',
+  coreEvent: '核心事件',
+  seasonBoundary: '本季边界',
+  kind: '项目性质',
+}
+
 /** D-012：从工具入参提取白名单关键参数摘要；无白名单 / 无非空字符串值 → ''（不落 DTO） */
 export function toolArgsPreview(tool: string, input: unknown): string {
   if (!tool || typeof input !== 'object' || input === null) return ''
   const bare = tool.startsWith(PHYSICAL_TOOL_PREFIX) ? tool.slice(PHYSICAL_TOOL_PREFIX.length) : tool
-  const keys = ARG_PREVIEW_KEYS[bare.replace(/\./g, '_')]
+  const normalized = bare.replace(/\./g, '_')
+  const keys = ARG_PREVIEW_KEYS[normalized]
   if (!keys) return ''
   const record = input as Record<string, unknown>
   for (const key of keys) {
-    const value = record[key]
+    let value = record[key]
     if (typeof value === 'string' && value.trim().length > 0) {
+      // B-51：capture_upsert 的 topic 为英文物理键时显中文字段名
+      if (normalized === 'capture_upsert' && key === 'topic') {
+        value = CAPTURE_TOPIC_LABELS[value.trim()] ?? value
+      }
       return value.length > ARG_PREVIEW_LIMIT ? `${value.slice(0, ARG_PREVIEW_LIMIT)}…` : value
     }
   }

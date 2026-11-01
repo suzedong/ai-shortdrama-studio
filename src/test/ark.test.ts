@@ -9,6 +9,9 @@ import os from 'node:os'
 const holder = vi.hoisted(() => ({ userData: '' }))
 vi.mock('electron', () => ({
   app: { getPath: () => holder.userData },
+  net: { fetch: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init) },
+  session: { defaultSession: { resolveProxy: async () => 'DIRECT' } },
+  dialog: { showMessageBox: vi.fn() },
   safeStorage: {
     isEncryptionAvailable: () => true,
     encryptString: (s: string) => Buffer.from(`enc:${s}`, 'utf-8'),

@@ -485,7 +485,7 @@ Agent 的两种工作方式：
 
 ### 5.2 工具族（MCP 网关：已落地 + 目标）
 
-平台内置 MCP 网关（仅本机可达），全部工具以 schema 声明、统一鉴权与审计。**已落地（磁盘实况，27 个纯工具 / 10 族；物理工具 ID = `shortdrama_<tool>`）**：
+平台内置 MCP 网关（仅本机可达），全部工具以 schema 声明、统一鉴权与审计。**已落地（磁盘实况，28 个纯工具 / 11 族；物理工具 ID = `shortdrama_<tool>`）**：
 
 | 工具族 | 工具 | 说明 |
 |---|---|---|
@@ -499,8 +499,9 @@ Agent 的两种工作方式：
 | 视觉风格（3） | style.catalog / style.get / style.validate | 谱系 18 项读取、单条取明细、立项风格引用校验（feature-802，读 `resources/H3-Style/`） |
 | 已捕获口径（3） | capture.list / capture.upsert / capture.remove | 立项对话事实库读写：来源 user/infer × 状态 confirmed/pending，常驻区行内编辑与对话纠正共用（feature-005） |
 | 公开数据检索（2） | web.search / web.fetch | 选题诊断公开数据检索与页面抓取（feature-006） |
+| 质检（1） | harness.validate | STAGE 0 harness 基础校验（七条 checkId，0-final 门写盘前拦截同一实现，feature-806） |
 
-showrunner 请求级白名单放行其中 22 个；asset 2 与 comfyui 3 不在其列（27 − 5 = 22），由 subagent 持有——writer 持文件/画布最小集，media-director 另持 asset 2 + comfyui.queue/status，comfyui-operator 持 asset 2 + comfyui 3 全集。subagent 不面对用户，仅经 `task` 接受 showrunner 委派。
+showrunner 请求级白名单放行其中 23 个；asset 2 与 comfyui 3 不在其列（28 − 5 = 23），由 subagent 持有——writer 持文件/画布最小集，media-director 另持 asset 2 + comfyui.queue/status，comfyui-operator 持 asset 2 + comfyui 3 全集。subagent 不面对用户，仅经 `task` 接受 showrunner 委派。
 
 **目标族（随 feature 包逐步落地，§11 路线）**：
 
@@ -699,4 +700,5 @@ initiating → story-outline → story-profiles
 - v1.12（2026-10-14）修订（实现实况反向同步，无新决策编号）：① 摄制组 profile 收口——**director profile 退役，showrunner 为唯一 primary 主控**，实现层固定为 4 个 profile（showrunner + writer / media-director / comfyui-operator 三个 subagent，经 `task` 调度）；§4.1 表后补「实现层摄制组（磁盘实况）」注记，7 角色目标态表不变。② §5.2 已落地工具由 **11 个 / 5 族更正为 22 个 / 8 族**（补 canvas.align；新增立项 brief.* 5、状态机 manifest.* 2、视觉风格 style.* 3，随 feature-001/002/801/802 落地），并注明物理 ID 规则 `shortdrama_<tool>` 与 showrunner 请求级白名单 17 个（asset 2 / comfyui 3 不开放给主控）。③ client 层取消 `shortdrama_` 前缀整体放行，改为逐物理 ID 白名单判定（旧 director 时代的 8 个幽灵工具名直接拒绝）。依据：提交 8114e84 + 用户 2026-10-14 拍板；镜像 HTML 与三张信息图（架构模块关系图 / 进度看板与路线图 / 平台全景图）磁盘实况卡同步（信息图按只增不改纪律保留 2026-10-09 历史快照，新增 2026-10-14 再核卡/注记）。
 - v1.13（2026-10-19/20，提交 6083652）修订（文档偏差回流 + feature-006/810 建包）：新建 feature-006（选题诊断公开数据检索 web.search / web.fetch）、feature-810 任务包；§2.6 数据模型对应段按磁盘实况回流标注；docs/README 与 features/README 计数同步。**本条目系 2026-10-27 补登——当时提交漏记 §13**。
 - v1.14（2026-10-27）修订（实现实况反向同步，无新决策编号）：① §5.2 已落地工具由 22 个 / 8 族更正为 **27 个 / 10 族**——补「已捕获口径 capture.* 3」（feature-005）与「公开数据检索 web.* 2」（feature-006）两族行；showrunner 请求级白名单 17 → **22**（27 − asset 2 − comfyui 3 = 22，feature-005/006 已放行 capture 3 + web 2）。② §7.1 / §8.3 两处 `electron/style-catalog.ts` 旧平铺路径更正为分包后实况 `electron/style/catalog.ts`（同日 src/studio 七组、src/test 十二组镜像分包完成，纯重构零行为变化）。
+- v1.15（2026-11-01）修订（实现实况反向同步，无新决策编号）：§5.2 已落地工具由 **27 个 / 10 族更正为 28 个 / 11 族**——补「质检 harness.validate」族行（feature-806 批一，0-final 门写盘前前置同一校验）；showrunner 请求级白名单 22 → **23**（28 − asset 2 − comfyui 3 = 23，harness.validate 已放行）。
 - 镜像纪律：改本文 md 必须同步 docs/design/ 下同名 .html（人读镜像）；原型（docs/design/短剧Agent平台-原型.html）与本文同步迭代。

@@ -570,7 +570,7 @@
     <div class="card"><div class="ct">无 Key 行为</div><div class="cb">未配置火山方舟 Key → 显式报 <code>UPSTREAM_AUTH_MISSING</code> 提示配置，<b>不静默降级 mock</b>（旧 mock 降级策略随旧 IPC 退役）。</div></div>
   </div>
   <h3>5.2 工具族（MCP 网关：已落地 + 目标）</h3>
-  <p>平台内置 MCP 网关（仅本机），工具以 schema 声明、统一鉴权审计。<b>已落地（磁盘实况，27 个纯工具 / 10 族；物理 ID = <code>shortdrama_&lt;tool&gt;</code>）</b>：</p>
+  <p>平台内置 MCP 网关（仅本机），工具以 schema 声明、统一鉴权审计。<b>已落地（磁盘实况，28 个纯工具 / 11 族；物理 ID = <code>shortdrama_&lt;tool&gt;</code>）</b>：</p>
   <div class="grid g4">
     <div class="card"><div class="ct">画布 3 <code>canvas.get / update / align</code></div><div class="cb">画布节点与连线读写；align 为重生成定稿后清脏并推进血缘版本（feature-002）。</div></div>
     <div class="card"><div class="ct">文件 3 <code>file.list / read / write</code></div><div class="cb">项目内文本产物读写（路径白名单）。</div></div>
@@ -582,8 +582,9 @@
     <div class="card"><div class="ct">视觉风格 3 <code>style.catalog / get / validate</code></div><div class="cb">谱系 18 项读取、单条取明细、立项风格引用校验（feature-802，读 <code>resources/H3-Style/</code>）。</div></div>
     <div class="card"><div class="ct">已捕获口径 3 <code>capture.list / upsert / remove</code></div><div class="cb">立项对话事实库读写：来源 user/infer × 状态 confirmed/pending，常驻区行内编辑与对话纠正共用（feature-005）。</div></div>
     <div class="card"><div class="ct">公开数据检索 2 <code>web.search / fetch</code></div><div class="cb">选题诊断公开数据检索与页面抓取（feature-006）。</div></div>
+    <div class="card"><div class="ct">质检 1 <code>harness.validate</code></div><div class="cb">STAGE 0 harness 基础校验（七条 checkId，0-final 门写盘前拦截同一实现，feature-806）。</div></div>
   </div>
-  <p class="dim">showrunner 请求级白名单放行其中 <b>22 个</b>；asset 2 与 comfyui 3 不在其列（27 − 5 = 22），由 subagent 持有——writer 持文件/画布最小集，media-director 另持 asset 2 + <code>comfyui.queue/status</code>，comfyui-operator 持 asset 2 + comfyui 3 全集。subagent 仅经 <code>task</code> 接受 showrunner 委派。client 层取消 <code>shortdrama_</code> 前缀整体放行，逐物理 ID 判定（v1.12）。</p>
+  <p class="dim">showrunner 请求级白名单放行其中 <b>23 个</b>；asset 2 与 comfyui 3 不在其列（28 − 5 = 23），由 subagent 持有——writer 持文件/画布最小集，media-director 另持 asset 2 + <code>comfyui.queue/status</code>，comfyui-operator 持 asset 2 + comfyui 3 全集。subagent 仅经 <code>task</code> 接受 showrunner 委派。client 层取消 <code>shortdrama_</code> 前缀整体放行，逐物理 ID 判定（v1.12）。</p>
   <p><b>目标族（随 feature 包逐步落地，§11 路线）</b>：</p>
   <div class="grid g4">
     <div class="card"><div class="ct">项目 <span class="src s-c">自研新增</span></div><div class="cb"><code>project.manifest / events / timeline</code>：元信息、事件流、任务地图。</div></div>
@@ -808,6 +809,8 @@
       <div class="vb">新建 feature-006（选题诊断公开数据检索 web.search / web.fetch）、feature-810 任务包；§2.6 数据模型对应段按磁盘实况回流标注；docs/README 与 features/README 计数同步。<b>本条目系 2026-10-27 补登——当时提交（6083652）漏记版本记录段</b>。</div></div>
     <div class="tl"><div class="vh">v1.14 <span class="vd">2026-10-27 · 反向同步</span></div>
       <div class="vb">实现实况反向同步（无新决策编号）。① §5.2 已落地工具由 <b>22 个 / 8 族更正为 27 个 / 10 族</b>——补「已捕获口径 capture.* 3」（feature-005）与「公开数据检索 web.* 2」（feature-006）两族卡；showrunner 请求级白名单 17 → <b>22</b>（27 − asset 2 − comfyui 3）。② §7.1 / §8.3 两处 <code>electron/style-catalog.ts</code> 旧平铺路径更正为 <code>electron/style/catalog.ts</code>（同日 src/studio 七组、src/test 十二组镜像分包完成，纯重构零行为变化）。</div></div>
+    <div class="tl"><div class="vh">v1.15 <span class="vd">2026-11-01 · 反向同步</span></div>
+      <div class="vb">实现实况反向同步（无新决策编号）。§5.2 已落地工具由 <b>27 个 / 10 族更正为 28 个 / 11 族</b>——补「质检 harness.validate」族卡（feature-806 批一，0-final 门写盘前前置同一校验）；showrunner 请求级白名单 22 → <b>23</b>（28 − asset 2 − comfyui 3）。</div></div>
   </div>
   <p class="dim">镜像纪律：md 改动同步 docs/design/ 同名 html；原型（docs/design/短剧Agent平台-原型.html）同步迭代。</p>
 </section>

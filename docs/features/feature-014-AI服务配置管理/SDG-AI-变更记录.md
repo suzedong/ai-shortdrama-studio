@@ -37,6 +37,17 @@
 
 ---
 
+### D-023 ｜ K8 ｜ 系统代理与本地服务商直连联动（feature-006）
+
+- **日期**：2026-11-01
+- **卡口**：K8 联动登记（opencode 子进程代理环境契约修订）；K1/K9 零触发，IPC、DTO、shared types、spawn 参数与依赖均零 diff。
+- **用户决策**：整个系统遵循操作系统代理及绕过规则；公网不可达时明确提示代理状态；loopback、LM Studio 与本地/局域网 ComfyUI 必须直连，不受系统代理影响。
+- **技术决策**：主进程 Ark/MCP 公网请求统一走 Electron `net.fetch`；启动 opencode 前按当前 provider URL 解析系统代理并注入 `HTTP_PROXY`/`HTTPS_PROXY`，DIRECT 时清除继承代理，始终覆写 `NO_PROXY`；主进程到 opencode/MCP 的 loopback 请求保持原生直连。
+- **生效与提示**：沿用保存后手动重连运行时；公网连接失败使用主进程原生提示并保留原错误语义，不新增 IPC 或 renderer 状态。
+- **波及文件**：`electron/network.ts`（新增）、`electron/ark.ts`、`electron/main.ts`、`electron/runtime/manager.ts` 及对应测试；feature-006 任务包同步承载完整验收。
+
+---
+
 ## T 节 · 实施记录（过渡）
 
 > T1-T15 实施与自动验证完成（2026-10-31 收尾）。实测数据以本节为准；真实 LM Studio 服务验收遗留项见 T15。

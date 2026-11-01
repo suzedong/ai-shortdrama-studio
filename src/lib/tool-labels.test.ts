@@ -83,6 +83,18 @@ describe('feature-808 D-012 · toolArgPreview（白名单关键参数摘要）',
     expect(toolArgPreview('shortdrama_file_write', { path: 'brief/立项单.v3.json', content: 'x' })).toBe('brief/立项单.v3.json')
   })
 
+  it('B-51：capture_upsert 的 topic 为英文物理键 → 中文字段名；自定义 topic 回退原串', () => {
+    expect(toolArgPreview('shortdrama_capture_upsert', { topic: 'genre' })).toBe('题材赛道')
+    expect(toolArgPreview('shortdrama_capture_upsert', { topic: 'episodeDuration' })).toBe('单集时长')
+    expect(toolArgPreview('shortdrama_capture.upsert', { topic: 'coreEvent' })).toBe('核心事件')
+    expect(toolArgPreview('shortdrama_capture_upsert', { topic: 'kind' })).toBe('项目性质')
+    // 未收录的自定义 topic 原样显示，不臆造名称
+    expect(toolArgPreview('shortdrama_capture_upsert', { topic: '人物关系' })).toBe('人物关系')
+    expect(toolArgPreview('shortdrama_capture_upsert', { topic: 'customKey' })).toBe('customKey')
+    // topic 落空走 id 时不做中文化
+    expect(toolArgPreview('shortdrama_capture_upsert', { id: 'episodeDuration' })).toBe('episodeDuration')
+  })
+
   it('候选键按优先级取首个非空字符串；非字符串 / 空白串跳过', () => {
     // topic 缺省 → 退到 id
     expect(toolArgPreview('shortdrama_capture_upsert', { id: 'cap-1' })).toBe('cap-1')

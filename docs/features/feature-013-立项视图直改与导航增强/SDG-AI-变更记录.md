@@ -38,6 +38,43 @@
 
 用户批准本包规格，决策点按推荐方案裁决：**1=A**（L0 入立项单 v2 模型，K1 触发）/ **2=b**（仅 diagnosisSummary 直改，diagnosisDetail 保持只读）/ **3=A**（批量一次提交一次再版）/ **4=a**（X = done 且带 parentReference 且非 dirty 的下游产物节点数）/ **5=a**（自定义 hover 卡）。拍板结论已回填需求规格 §3.4；三项包落地值同批登记决策台账 **D-020**。
 
+### D-003 立项期空项目中间区自动切 Stage0View（2026-11-01，B-50）
+
+**背景**：真机上报（已捕获口径 5 条·1 待确认）——进入立项期空项目时中间区停在空 DAG，显示「还没有任何产物」，用户误以为口径捕获未生效。根因：画布节点须等 0-final 门批准才生成（feature-005 口径 = 过程草稿、不建节点），而中间区默认 DAG 视图，进入空项目无自动切 Stage0View 的逻辑；Stage0View 顶部口径链条才是立项期正确反馈面。
+
+**用户拍板**：「Stage0 自动切视图 + 登记偏差」（循 B-18~B-47 不建包直接修先例）。
+
+**落地（[StudioApp.tsx](../../../src/studio/shell/StudioApp.tsx)，纯 renderer）**：
+1. 新增 `viewAutoProjectRef`——`canvas.projectId` 变化且该项目未自动切过时：`nodes.length===0` → `setCenterView('stage0')` + `setActiveStep('0')`，否则切 DAG；自动投影每项目至多一次；
+2. 同项目用户手动「返回画布」后 ref 已记录，后续同项目空推送不再强切；切到另一项目重新放行；
+3. 第二个 effect——同项目首个节点到达（nodes 由空变非空）自动回 DAG。
+
+**过程修复（联跑实测暴露）**：原为单 effect 依赖 `[canvas.projectId, canvas.nodes.length]`，ref 在首次空 nodes 时已标记，同项目节点到达即早退、永远切不回 DAG（studio-flow 5 用例失败坐实）；拆为「per-project 初始投影」+「nodes>0 回 DAG」两个 effect 后修复。
+
+**口径边界**：feature-005「已捕获口径不建画布节点」规格不变，本项不改为把口径灌进画布。
+
+**卡口**：**K1/K8/K9 零触发**（纯 renderer，shared/electron/package 零 diff；无新 IPC）。
+
+**验证**：[studio-flow.test.tsx](../../../src/studio/shell/studio-flow.test.tsx) +3 用例（空项目进 Stage0View 且节点到达自动回 DAG、初始有 nodes 停 DAG、手动返回不强切且切项目重放行），同步修订「三栏齐出」「切项目关查看器」2 处冲突旧断言；全量 **76 文件 935 passed / 0 failed / 1 skipped**，typecheck 恰 3 条历史基线零新增；真机目验待用户执行。
+
+**偏差登记**：[设计现状与偏差清单.md](../../设计现状与偏差清单.md) B-50。
+
+### D-004 立项收集期中间区成组呈现已捕获口径 + 口径字段中文化（2026-11-01，B-51/B-52）
+
+**背景**：真机上报（test 项目截图：顶部链条「选题诊断 收集中 6/6 → 故事前提 收集中 2/5」，中间主区只有「入口动作 · 用户原话『重生复仇都市女频』」卡 +「立项尚未定案」空态；右栏口径列表与对话区工具参数摘要同时直显英文物理键）。
+
+**用户拍板**：「显示中文名 + 中间区呈现已收集口径 + 登记偏差」（循 B-18~B-50 不建包直接修先例）。
+
+**落地（[Stage0View.tsx](../../../src/studio/stage0/Stage0View.tsx)，纯 renderer）**：
+1. **B-52**：新增 `CapturedFactsCards` / `CaptureFactRows` / `factSourceText`；EmptyStage0 经 `useCaptureFacts(projectId)` 取事实，在 GateRetentionCard 与空态卡之间渲染最多三张 section 卡——「选题诊断口径 · x/6 已收集」（`data-stage0-capture-group="six"`）、「故事前提口径 · x/5 已收集」（`="premise"`）、「其他口径 · x 条（未归入六要素 / 前提）」（`="unmatched"`）；逐行显中文字段名 + 粗体值 + 来源徽标（用户原话 / 推断 · 待确认 / 推断 · 已确认），全空不渲染；容器去 `pt-[9vh]` 改 `pb-10`。分组纯函数 `selectCaptureGroups` 归 feature-005 chain.ts（X-001）。**口径不建画布节点、空态卡保留的规格不变**。
+2. **B-51（本包呈现侧）**：字段中文名统一经 feature-005 chain.ts 的 `captureTopicLabel`；CaptureBar 落点见 feature-005 X-001；工具轨迹/回放参数侧见 feature-808 D-015。
+
+**卡口**：**K1/K8/K9 零触发**（shared/electron/package 零 diff，无新 IPC；只读消费 capture 既有订阅）。
+
+**验证**：[stage0-view.test.tsx](../../../src/studio/stage0/stage0-view.test.tsx) +3 用例（6 条六要素→six 卡「6/6 已收集」且空态卡仍在；2 前提 + 1 未命中→premise「2/5」+ unmatched 含原 topic 与「推断 · 待确认」；首拉 pending/空 facts 均无分组卡）；全量 **76 文件 937 passed / 0 failed / 1 skipped**，typecheck 恰 3 条历史基线零新增；真机目验待用户执行。
+
+**偏差登记**：[设计现状与偏差清单.md](../../设计现状与偏差清单.md) B-51、B-52。
+
 ## T 节 · 任务执行记录
 
 | # | 日期 | 实测与结果 |
@@ -51,6 +88,7 @@
 | T7 | 2026-10-28 | 全量回归：**70 文件 821 passed / 0 failed / 1 skipped**；tsc 恰 3 条（构成不变）；MCP 工具 28 / 白名单 23 / `package.json` 零 diff；契约三件套全绿。 |
 | T8 | 2026-10-28 | 真机目验**受限降级**：本包验收面（桌面端全字段直改 → 再版 → 历史/徽标/tooltip）需 Electron 桌面环境，本环境未执行，不臆造通过；以 T4/T5/T6 组件与纯函数单测 + 代码走读替代留证。桌面端目验列入遗留项，与 011 / 012 一并待用户真机验收。 |
 | T9 | 2026-10-28 | 治理收尾：本记录 T/X 回填；`docs/features/README.md` 013 行翻态；`docs/设计现状与偏差清单.md` 登记 013 行；五文件交叉引用复核（包号、决策落地值、基线）；806 五文件无需联动（未改其机制）。 |
+| T10 | 2026-11-01 | **B-50 增量（D-003）**：StudioApp 双 effect 自动投影（空项目进 Stage0View、节点到达自动回 DAG、手动返回不强切），studio-flow.test.tsx +3 用例并修订 2 处旧断言；联跑实测暴露并修复单 effect ref 早退竞态；全量 76 文件 935 passed / 1 skipped，typecheck 恰 3 条零新增；真机目验待用户执行。 |
 
 ## X 节 · 修复记录
 

@@ -95,6 +95,12 @@ describe('CaptureBar · 收起/展开与来源标签（AC5）', () => {
 
     const items = await screen.findAllByTestId('capture-item')
     expect(items.map(el => el.getAttribute('data-fact-id'))).toEqual(['f1', 'f2', 'f3', 'f4'])
+    // B-51：topic 显中文字段名，英文物理键不再裸显（title 保留物理键供追溯）
+    expect(within(items[0]!).getByText('题材赛道')).toBeTruthy()
+    expect(within(items[1]!).getByText('集数')).toBeTruthy()
+    expect(within(items[2]!).getByText('本季边界')).toBeTruthy()
+    expect(within(items[3]!).getByText('风格基调')).toBeTruthy()
+    expect(items[0]!.textContent).not.toMatch(/(?<![a-z])genre(?![a-z])/i)
     const userTag = within(items[0]!).getByText('用户原话')
     expect(userTag.getAttribute('title')).toBe('原话：就按校园恋爱来')
     expect(within(items[1]!).getByText('推断 · 已确认')).toBeTruthy()
@@ -153,7 +159,7 @@ describe('CaptureBar · 面板直改操作（AC6）', () => {
     const row = await rowOf('f3')
 
     fireEvent.click(within(row).getByTestId('capture-item-edit'))
-    fireEvent.change(within(row).getByPlaceholderText('value'), { target: { value: '灯塔悬念留第二季末揭晓' } })
+    fireEvent.change(within(row).getByPlaceholderText('内容'), { target: { value: '灯塔悬念留第二季末揭晓' } })
     fireEvent.click(within(row).getByTestId('capture-item-edit-save'))
 
     await waitFor(() => expect(upsertSpy).toHaveBeenCalledWith({
@@ -169,7 +175,7 @@ describe('CaptureBar · 面板直改操作（AC6）', () => {
     const row = await rowOf('f1')
 
     fireEvent.click(within(row).getByTestId('capture-item-edit'))
-    fireEvent.change(within(row).getByPlaceholderText('value'), { target: { value: '改成别的' } })
+    fireEvent.change(within(row).getByPlaceholderText('内容'), { target: { value: '改成别的' } })
     fireEvent.click(within(row).getByTestId('capture-item-edit-cancel'))
 
     expect(upsertSpy).not.toHaveBeenCalled()

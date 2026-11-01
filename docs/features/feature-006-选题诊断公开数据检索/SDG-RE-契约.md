@@ -18,11 +18,19 @@
 
 `electron/runtime/provider.ts` `SHOWRUNNER_DECLARED_TOOLS` +N 个内置工具实际 ID（占位名 `webfetch`/`websearch`，以 T0 为准），仅 showrunner 一组放行；`writer`/`media-director`/`comfyui-operator` 三组零 diff。注释按既有格式记 feature-006 沿革。非新 MCP 工具——Agent 请求级工具面变更，按 K8 登记（本节约束即工具契约）。
 
-### 2.2 方案 B（降级）：自建 MCP 工具（T0 定案 B，本节已补登填实）
+### 2.2 方案 B（现行）：自建 MCP 工具 + 国内搜索源
 
-- **工具 26 `web.search`**：`{ query } → { results: [{ title, url, snippet }] }`。搜索源 = DuckDuckGo html 端点 `https://html.duckduckgo.com/html/?q=`（零 Key 公开源，K9 零触发）；解析 `result__a` 链接（`uddg` 重定向解码、仅放行 http/https）配对同区块 `result__snippet` 摘要；至多 8 条；网络/HTTP 失败报 `WEB_SEARCH_FAILED`；`query` 空报 `INVALID_ARGUMENT`。
-- **工具 27 `web.fetch`**：`{ url } → { text }`。仅 http/https；HTML→正文文本（去脚本/样式/注释/标签 + 实体解码 + 空白折叠）；超 `WEB_FETCH_MAX_CHARS=20000` 截断；失败报 `WEB_FETCH_FAILED`；非 http/https 报 `INVALID_ARGUMENT`。
-- **实现**：`electron/mcp/tools.ts` 尾部导出纯函数（`decodeHtmlEntities`/`htmlToText`/`parseDdgResults`/`webSearch`/`webFetchText`，`fetchImpl` 依赖注入供单测零外网）+ handler 薄壳；常量 `WEB_UA`/`WEB_TIMEOUT_MS=15000`/`WEB_FETCH_MAX_CHARS`。主进程原生 fetch（Node 22 全局），**零新依赖**，不依赖激活项目。showrunner 白名单 +2（`shortdrama_web.search`/`shortdrama_web.fetch`），其余三组 agent 零 diff。
+- **工具 26 `web.search`**：DTO 保持 `{ query } → { results: [{ title, url, snippet }] }`。搜索源改为 Bing 国内站 `https://cn.bing.com/search?q=`（零 Key，K9 零触发）；解析 `b_algo` 区块内 h2/a 标题与直链、配对同区块摘要，仅放行 http/https，至多 8 条；网络/HTTP/验证页失败报 `WEB_SEARCH_FAILED`；`query` 空报 `INVALID_ARGUMENT`；正常无结果页允许返回空数组。
+- **工具 27 `web.fetch`**：DTO 与正文提取规则不变；仅 http/https，超 `WEB_FETCH_MAX_CHARS=20000` 截断；失败报 `WEB_FETCH_FAILED`；非 http/https 报 `INVALID_ARGUMENT`。
+- **实现**：`electron/mcp/tools.ts` 保留 `fetchImpl` 注入与 handler 薄壳，`parseDdgResults` 更名为 `parseBingResults`；生产默认请求改走 `electron/network.ts` 的代理感知 `publicFetch`，测试仍全 mock 零外网。工具数、DTO、showrunner 白名单均零 diff。
+
+### 2.3 系统代理、直连与失败提示（2026-11-01 用户批准）
+
+1. **主进程公网请求**：`web.search`、`web.fetch` 与 `electron/ark.ts` 统一走 `publicFetch`。公网地址使用 Electron `net.fetch`，由 Chromium 网络栈遵循操作系统代理/PAC/绕过规则；不得用 renderer 请求替代。
+2. **强制直连**：loopback、localhost、私有/链路本地 IP、`.local` 与单标签主机名使用 Node 原生 fetch，不经代理。该判定覆盖 ComfyUI、LM Studio、opencode/MCP 等本地或局域网地址；运行时健康检查、SDK 与 SSE 保持原生直连零 diff。
+3. **opencode 子进程**：启动前经 `session.defaultSession.resolveProxy(当前公网 provider URL)` 取操作系统判定；`DIRECT` 时清除继承的代理变量，代理时注入 `HTTP_PROXY`/`HTTPS_PROXY`；始终覆写 `NO_PROXY`，包含 loopback、常见私网网段和当前本地 provider 主机。spawn 参数不变。
+4. **失败提示**：公网连接异常由主进程原生 `dialog.showMessageBox` 提示，零新 IPC。已知境外服务直连失败时提示启用操作系统代理；代理解析非 DIRECT 仍失败时提示检查代理节点/绕过规则。任意 URL 只报告实际网络错误和代理解析状态，不声称识别物理国家。
+5. **错误可审计**：原生提示不替代 MCP 既有错误信封；Agent 仍按 S4 诚实降级。提示不得含 API Key、口令或完整敏感响应。
 
 ## 3. 指令层契约（showrunner.md step 3 修订）
 
@@ -34,17 +42,20 @@
 | S4 | 失败降级 | 检索工具不存在/调用失败 → 能力诚实（纪律 6）：明示后降级自身推理，附录按 S3 标注未检索，**不编造 URL** |
 | S5 | 回写 | 修订属指令层既有文件改动，按先例归 feature-001 变更记录 **R-007** |
 
-## 4. 最小 diff 描述
+## 4. 最小 diff 描述（含 2026-11-01 网络治理）
 
-- **修改（方案 A，≤3）**：`electron/runtime/provider.ts`（白名单 +N）、`resources/opencode/agents/showrunner.md`（step 3 修订）、`src/test/agent-profiles.test.ts`（真键表扩表）；方案 B 追加：`electron/mcp/tools.ts`（+2 工具，25→27）、`src/test/` 增 1 工具测试文件；
-- **文档（4）**：本包 5 文件、`docs/features/README.md`（增 006 行）、`docs/设计现状与偏差清单.md`（B-39 登记）、`docs/features/feature-001-立项模型重建/SDG-AI-变更记录.md`（R-007 回写）、`版本记录.md`（增行）；
-- **零 diff 红线**：`shared/types.ts`、`electron/brief/*`、`electron/gate/*`、`electron/canvas/*`、`electron/main.ts`、`electron/preload.ts`、`src/**`（除测试与既有静态契约测试扩表）、`package.json`（方案 A）。
+- **新增**：`electron/network.ts`（系统代理感知公网请求、私网直连、代理解析与原生提示）；`src/test/network.test.ts`（纯策略与 mock 测试）。
+- **修改**：`electron/mcp/tools.ts`（Bing + publicFetch）、`electron/ark.ts`（publicFetch）、`electron/main.ts`（启动前解析当前 provider 代理）、`electron/runtime/manager.ts`（子进程代理环境）、`src/test/mcp/web-tools.test.ts`、`src/test/ark.test.ts`、`src/test/runtime/runtime-manager.test.ts`。
+- **文档**：本包五文件；feature-014 契约/变更记录联动。feature-808 零 diff。
+- **零 diff 红线**：`shared/types.ts`、`electron/preload.ts`、`src/global.d.ts`、renderer 生产代码、Agent 工具 DTO/白名单、spawn 参数、`package.json`/lockfile。
 
-## 5. 测试契约
+## 5. 测试契约（含网络治理）
 
-- `src/test/agent-profiles.test.ts`（既有文件）：物理工具真键表随白名单正当扩表（工具面变更的对应更新，同 feature-005 工具数 22→25 时先例），showrunner 含检索工具 ID、其余三组不含；
-- 方案 B 追加：`src/test/web-tools.test.ts`（新，恰净增 1）——search/fetch 形状、错误信封、不依赖激活项目；
-- **回归红线**：typecheck 仅 3 条历史基线零新增；全量以 T1 实测基线（上包收尾 53 文件 586 passed / 0 failed / 1 skipped）为准——passed 不减少、skip 不增、测试文件净增 0（方案 A）/ 恰 1（方案 B）。
+- `src/test/mcp/web-tools.test.ts`：Bing fixture 的标题/直链/摘要配对、无效链接剔除、8 条上限、空结果与验证页、endpoint/query、原错误信封；全部 fetch mock 零外网。
+- `src/test/network.test.ts`：公网走 Electron net.fetch、私网走原生 fetch、DIRECT/PROXY/SOCKS 解析、NO_PROXY、境外/未知地址失败文案与原生通知；Electron 动态 import 全部 mock。
+- `src/test/runtime/runtime-manager.test.ts`：子进程代理变量注入/清除、NO_PROXY 与秘密边界；健康检查仍使用注入的原生 fetch。
+- `src/test/ark.test.ts`：保留动态配置断言，公网请求通道可 mock。
+- **回归红线**：typecheck 仅 3 条历史基线零新增；全量 failed=0、passed 不减少、skip 不增；node/preload 构建退出 0。
 
 ## 6. 卡口与越界处置
 

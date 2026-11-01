@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { Canvas, CanvasGate, CanvasNode, StepId } from '@shared/types'
-import { reduceRuntimeEvent, turnReasoning, turnText, type StreamingTurn } from '../../lib/chat-runtime'
+import { reduceRuntimeEvent, turnReasoningBlocks, turnText, type StreamingTurn } from '../../lib/chat-runtime'
 import { replayMessages } from '../../lib/history-replay'
 import CanvasBoard, { kindLabel, type NodeAction } from '../canvas/CanvasBoard'
 import ChatComposer, { demoChatItems, type ChatItem, type ChatModelOption } from '../chat/ChatComposer'
@@ -143,6 +143,8 @@ export default function StudioApp() {
   const projectSessionSeqRef = useRef(0)
   // SSE 全程只订阅一次（无参订阅，首发送时惰性触发）
   const subscribedRef = useRef(false)
+  // feature-013：记录已自动切过立项视图的项目；同项目用户手动返回 DAG 后不再强切
+  const viewAutoProjectRef = useRef<string | null>(null)
   const [historyLoading, setHistoryLoading] = useState(false)
   // D-013：AI 服务不可用原因（null=可用/未知）；进入对话区探测 + runtime.error 事件置位，
   // 探测 healthy 或发送路径 status 检查通过即清除；不轮询，用户可点横幅「重新检测」复检
@@ -211,14 +213,15 @@ export default function StudioApp() {
         setStream(next)
         if (prev && prev.status === 'running' && next && next.status !== 'running') {
           const text = turnText(next)
-          if (text) {
-            const reasoning = turnReasoning(next)
-            const tools = Object.values(next.tools)
+          const reasoningBlocks = turnReasoningBlocks(next)
+          const tools = Object.values(next.tools)
+          // 纯推理 / 纯工具轮（正文为空）也保留，避免思维链与工具轨迹在定稿时丢失
+          if (text || reasoningBlocks.length > 0 || tools.length > 0) {
             setItems(p => [...p, {
               id: next.messageId,
               role: 'agent',
-              text,
-              ...(reasoning ? { reasoning } : {}),
+              ...(text ? { text } : {}),
+              ...(reasoningBlocks.length > 0 ? { reasoningBlocks } : {}),
               ...(tools.length > 0 ? { tools } : {}),
             }])
           }
@@ -336,6 +339,26 @@ export default function StudioApp() {
         setHistoryLoading(false)
       })
   }, [loadReplay, checkAiHealth])
+
+  // feature-013：进入尚无任何节点的立项期项目，中间区自动切到 Stage0View（口径在顶部链条可视化），
+  // 避免停在空 DAG 产生「无反馈」错觉；同项目首个节点到达自动回 DAG（此时用户还不可能手动返回过）；
+  // 自动投影每项目至多一次，用户手动返回 DAG 后同项目后续推送不再强切（B-50）。
+  useEffect(() => {
+    if (!canvas.projectId) return
+    if (viewAutoProjectRef.current === canvas.projectId) return
+    viewAutoProjectRef.current = canvas.projectId
+    if (canvas.nodes.length === 0) {
+      setCenterView('stage0')
+      setActiveStep('0')
+    } else {
+      setCenterView('dag')
+    }
+  }, [canvas.projectId])
+
+  useEffect(() => {
+    if (!canvas.projectId) return
+    if (canvas.nodes.length > 0) setCenterView('dag')
+  }, [canvas.projectId, canvas.nodes.length])
 
   // ---- 画布初值 + 订阅；项目切换时 canvas:changed 自动刷新 ----
   useEffect(() => {

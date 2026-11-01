@@ -3,7 +3,7 @@
 // 通道 mock：组件仅经 window.api 三桥（styleCatalog / styleUpgradeDiff / updateBrief）——本文件全量 mock 三桥，不触主进程
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import VisualCatalog from './VisualCatalog'
+import VisualCatalog, { PREVIEW_URL } from './VisualCatalog'
 
 type Diff = Awaited<ReturnType<Window['api']['styleUpgradeDiff']>>
 
@@ -319,5 +319,18 @@ describe('谱系面板数据驱动（feature-811）', () => {
     await waitFor(() => expect(container.querySelector('[data-catalog-empty]')?.textContent).toContain('谱系不可用'))
     expect(container.querySelector('[data-cat-tab="all"]')?.textContent).toBe('全部')
     expect(container.querySelector('[data-cat-item]')).toBeNull()
+  })
+})
+
+/* ── B-53：Vite glob 路径回归——18 张真实缩略图必须全部收集进 PREVIEW_URL ── */
+
+describe('PREVIEW_URL 缩略图收集（B-53）', () => {
+  it('18 个风格 ID 全部命中真实 PNG，URL 非空', () => {
+    const ids = ['A1','A2','A3','A4','A5','A7','B1','C1','C2','C5','C6','C7','D1','D2','D3','D4','D5','E1']
+    expect(Object.keys(PREVIEW_URL).sort()).toEqual(ids.sort())
+    for (const id of ids) {
+      expect(typeof PREVIEW_URL[id]).toBe('string')
+      expect(PREVIEW_URL[id]!.length).toBeGreaterThan(0)
+    }
   })
 })

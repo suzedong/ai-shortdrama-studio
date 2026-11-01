@@ -147,6 +147,19 @@ export function turnReasoning(turn: StreamingTurn): string {
 }
 
 /**
+ * 分段推理（D：一个 turn 内 推理→工具→再推理 的多段思维链）：
+ * 有 reasoning 快照时按 part 首次出现顺序逐段返回；无快照则回退单段 delta 预览。
+ */
+export function turnReasoningBlocks(turn: StreamingTurn): string[] {
+  const blocks = Object.values(turn.parts)
+    .filter(p => p.kind === 'reasoning')
+    .map(p => p.text)
+    .filter(text => text.length > 0)
+  if (blocks.length > 0) return blocks
+  return turn.deltaPreview.reasoning ? [turn.deltaPreview.reasoning] : []
+}
+
+/**
  * 定稿轮次 → 共享层 ChatMessage 形态（id 用 messageId；正文按快照/预览优先级）。
  * 结构化工具产物不在此造正文：产物卡由 App 按 completed tool 的 envelope.product 经消息工厂另落。
  */

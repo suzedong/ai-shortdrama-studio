@@ -34,6 +34,7 @@
 | R4 | 创作者 | 工具执行完毕 / 失败 | ✓ + 耗时 / ✗ + 错误摘要，逐行可见 |
 | R5 | 创作者 | 长推理（reasoning 流出中）或 LLM step 切换的静默间隙 | 始终有动画指示器在场 |
 | R6 | 创作者 | 回合定稿（session.idle / runtime.error） | 全部动画指示器撤除，气泡定格为历史消息，无残留 |
+| R7 | 创作者 | 流式输出期间向上滚动阅读历史内容 | 保持当前阅读位置；仅原本接近底部时自动跟随，重新回到底部附近后恢复跟随 |
 
 ## 3. 核心机制
 
@@ -69,13 +70,18 @@ AgentTurn 按首次出现顺序渲染 `Object.values(turn.tools)`，逐行：
 
 status 翻 done / error 后：光标、TypingDots、spinner 一律不渲染；工具行以 ✓ / ✗ 终态定格。流式气泡随 StudioApp 定稿落 items 后整体卸载（feature-808 既有链路），历史气泡为纯文本、不含工具行（见 §4.2）。
 
+### 3.7 流式滚动跟随
+
+对话滚动容器以距底不超过 48px 为「接近底部」。`items` / `stream` / `pendingGate` 更新时，仅当用户接近底部才自动回底；用户主动上翻并离开底部阈值后保持其滚动位置，不得被后续推理或其他流式分片拉回；用户重新滚动至底部附近后恢复自动跟随。
+
 ## 4. 范围
 
 ### 4.1 做
 
 1. [ChatComposer.tsx](../../../src/studio/ChatComposer.tsx)：`toolDurationLabel` / `showStreamCursor` 两纯函数 + TypingDots / ToolRow 两内部组件 + AgentTurn 改造（光标 / TypingDots / 工具行）；
 2. 流式区占位气泡分支 + L508 空态提示联动（§3.2）；
-3. 新增 `src/studio/chat-liveness.test.tsx` 单测。
+3. 新增 `src/studio/chat-liveness.test.tsx` 单测；
+4. 对话滚动容器增加「接近底部跟随、上翻暂停、回底恢复」行为及滚动回归用例。
 
 ### 4.2 不做（显式排除）
 
@@ -101,3 +107,4 @@ status 翻 done / error 后：光标、TypingDots、spinner 一律不渲染；�
 | AC8 | done / error 终态 → 无 cursor、无 TypingDots、无 spinner；工具行呈 ✓/✗ 定格 | 单测 |
 | AC9 | 回归红线：`npx tsc --noEmit` 仅 3 条历史基线零新增；全量测试 **48 文件 528 passed / 0 failed / 1 skipped** 起步，passed 不减少、skip 不增 | 全量回归 |
 | AC10 | 真机目验：发送 → 占位气泡即现 → 正文流出带光标 → 工具行三态 → 定稿指示器全撤 | 真机 |
+| AC11 | 流式更新时：接近底部则继续跟随；主动上翻超过 48px 后保持原滚动位置；重新回到底部阈值内后恢复跟随 | 单测 |

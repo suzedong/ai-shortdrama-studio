@@ -43,10 +43,11 @@ describe('captureStore · upsert（AC1）', () => {
 
   it("U3 新建缺省推导：infer 缺省 pending；user 带 quote 缺省 confirmed；id 自 f1 递增", async () => {
     const a = await captureStore.upsert({ topic: 'genre', value: '甜宠' })
-    expect(a).toMatchObject({ id: 'f1', topic: 'genre', value: '甜宠', source: 'infer', status: 'pending' })
-    expect('quote' in a).toBe(false)
+    expect(a.fact).toMatchObject({ id: 'f1', topic: 'genre', value: '甜宠', source: 'infer', status: 'pending' })
+    expect('quote' in a.fact).toBe(false)
+    expect(a.file.facts.map(x => x.id)).toEqual(['f1'])
     const b = await captureStore.upsert({ topic: 'platforms', value: '抖音', source: 'user', quote: '发抖音' })
-    expect(b).toMatchObject({ id: 'f2', source: 'user', status: 'confirmed', quote: '发抖音' })
+    expect(b.fact).toMatchObject({ id: 'f2', source: 'user', status: 'confirmed', quote: '发抖音' })
     const f = await readJson()
     expect(f.schemaVersion).toBe(1)
     expect(f.facts.map(x => x.id)).toEqual(['f1', 'f2'])
@@ -63,8 +64,8 @@ describe('captureStore · upsert（AC1）', () => {
     await captureStore.upsert({ topic: 'genre', value: '甜宠' })
     const before = await readJson()
     const u = await captureStore.upsert({ topic: ' genre ', value: '都市甜宠' })
-    expect(u.id).toBe('f1')
-    expect(u.value).toBe('都市甜宠')
+    expect(u.fact.id).toBe('f1')
+    expect(u.fact.value).toBe('都市甜宠')
     const f = await readJson()
     expect(f.facts).toHaveLength(1)
     expect(Date.parse(f.facts[0]!.updatedAt)).toBeGreaterThanOrEqual(Date.parse(before.facts[0]!.updatedAt))
@@ -73,7 +74,7 @@ describe('captureStore · upsert（AC1）', () => {
   it('U1 有 id 精确更新：非 undefined 字段覆盖、未给字段原样；id 不存在 → CAPTURE_FACT_NOT_FOUND 零写盘', async () => {
     await captureStore.upsert({ topic: 'genre', value: '甜宠', source: 'user', quote: '就写甜宠' })
     const u = await captureStore.upsert({ id: 'f1', value: '校园' })
-    expect(u).toMatchObject({
+    expect(u.fact).toMatchObject({
       id: 'f1', topic: 'genre', value: '校园',
       source: 'user', status: 'confirmed', quote: '就写甜宠',
     })
@@ -116,7 +117,7 @@ describe('captureStore · remove 与 id 不复用（AC2）', () => {
     await captureStore.upsert({ topic: 'b', value: '2' })
     await captureStore.remove('f2')
     const c = await captureStore.upsert({ topic: 'c', value: '3' })
-    expect(c.id).toBe('f3')
+    expect(c.fact.id).toBe('f3')
     expect((await readJson()).facts.map(x => x.id)).toEqual(['f1', 'f3'])
   })
 })
@@ -166,5 +167,46 @@ describe('captureStore · changed 广播（AC4）', () => {
     expect(seen[1]!.facts.map(x => x.id)).toEqual(['f1', 'f2'])
     expect(seen[2]!.facts.map(x => x.id)).toEqual(['f2'])
     expect(seen[2]!.schemaVersion).toBe(1)
+  })
+})
+
+/* ── F2 upsertMany：一次写盘 / 一次广播 / 返回全量 file ── */
+
+describe('captureStore · upsertMany（F2）', () => {
+  it('批量新建多条：facts 按入参顺序返回、file 为写后全量；仅一次写盘一次广播', async () => {
+    const seen: CaptureFile[] = []
+    const off = captureStore.subscribe(f => seen.push(f))
+    const r = await captureStore.upsertMany([
+      { topic: 'genre', value: '甜宠' },
+      { topic: 'tone', value: '高甜' },
+    ])
+    off()
+    expect(r.facts.map(x => x.id)).toEqual(['f1', 'f2'])
+    expect(r.file.facts.map(x => x.id)).toEqual(['f1', 'f2'])
+    expect(seen).toHaveLength(1)
+    expect(seen[0]!.facts).toHaveLength(2)
+    expect((await readJson()).facts).toHaveLength(2)
+  })
+
+  it('前条新建对后条可见：无 id 按 topic 匹配前条产物即更新，不另新建', async () => {
+    const r = await captureStore.upsertMany([
+      { topic: 'genre', value: '甜宠' },
+      { topic: 'genre', value: '都市甜宠' },
+    ])
+    expect(r.facts.map(x => x.id)).toEqual(['f1', 'f1'])
+    expect(r.file.facts).toHaveLength(1)
+    expect(r.file.facts[0]!.value).toBe('都市甜宠')
+  })
+
+  it('任一条校验失败 → 整批抛错零写盘、不广播', async () => {
+    const seen: CaptureFile[] = []
+    const off = captureStore.subscribe(f => seen.push(f))
+    await expect(captureStore.upsertMany([
+      { topic: 'genre', value: '甜宠' },
+      { topic: 'tone', value: '   ' },
+    ])).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' })
+    off()
+    expect(seen).toHaveLength(0)
+    await expect(fsp.readFile(file(), 'utf-8')).rejects.toMatchObject({ code: 'ENOENT' })
   })
 })

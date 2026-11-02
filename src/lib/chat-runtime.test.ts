@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   reduceRuntimeEvent,
-  turnReasoning,
   turnReasoningBlocks,
+  turnSegments,
   turnText,
   turnToChatMessage,
   type StreamingTurn,
@@ -19,8 +19,9 @@ const delta = (
   messageId: string,
   text: string,
   track: 'text' | 'reasoning' = 'text',
+  partId = '',
 ): RuntimeEvent => ({
-  type: 'message.delta', ts: TS, sessionId: 's', messageId, track, delta: text,
+  type: 'message.delta', ts: TS, sessionId: 's', messageId, track, delta: text, partId,
 })
 const part = (
   messageId: string,
@@ -108,7 +109,7 @@ describe('reduceRuntimeEvent · delta 预览与分轨', () => {
     ])!
     expect(turn.deltaPreview.reasoning).toBe('内心推导')
     expect(turn.deltaPreview.text).toBe('真实回答')
-    expect(turnReasoning(turn)).toBe('内心推导')
+    expect(turnReasoningBlocks(turn)).toEqual(['内心推导'])
     expect(turnText(turn)).toBe('真实回答')
   })
 
@@ -166,7 +167,7 @@ describe('reduceRuntimeEvent · part 快照 replace（D-008）', () => {
       delta('m1', '推理预览', 'reasoning'),
       part('m1', 'pt', 'text', '再回答'),
     ])!
-    expect(turnReasoning(turn)).toBe('先思考')
+    expect(turnReasoningBlocks(turn)).toEqual(['先思考'])
     expect(turnText(turn)).toBe('再回答')
   })
 })
@@ -222,7 +223,7 @@ describe('reduceRuntimeEvent · 定稿与中断', () => {
     ])!
     expect(turn.status).toBe('error')
     expect(turn.deltaPreview.text).toBe('半截预览')
-    expect(turnReasoning(turn)).toBe('思考快照')
+    expect(turnReasoningBlocks(turn)).toEqual(['思考快照'])
   })
 
   it('D-010：done 后 error 不再翻转；error 后 idle 不再翻转', () => {
@@ -284,8 +285,8 @@ describe('turnReasoningBlocks · 多段思维链（B-48）', () => {
     expect(turnReasoningBlocks(deltaOnly)).toEqual(['流式推理'])
 
     const empty: StreamingTurn = {
-      messageId: 'm', parts: {}, deltaPreview: { text: '', reasoning: '' },
-      status: 'running', tools: {},
+      messageId: 'm', parts: {}, deltaParts: {}, deltaPreview: { text: '', reasoning: '' },
+      status: 'running', tools: {}, timeline: [],
     }
     expect(turnReasoningBlocks(empty)).toEqual([])
   })
@@ -315,10 +316,113 @@ describe('turnToChatMessage', () => {
     const turn: StreamingTurn = {
       messageId: 'm3',
       parts: {},
+      deltaParts: {},
       deltaPreview: { text: '', reasoning: '' },
       status: 'done',
       tools: { c: { callId: 'c', tool: 'read', status: 'completed', args: {} } },
+      timeline: [],
     }
     expect(turnToChatMessage(turn).content).toBe('')
+  })
+})
+
+describe('reduceRuntimeEvent · B-54 delta 按 partId 分段累加', () => {
+  it('同一 partId 的 delta 逐片累加进 deltaParts 并入 timeline', () => {
+    const turn = reduceAll([
+      delta('m1', '先', 'reasoning', 'p1'),
+      delta('m1', '推理', 'reasoning', 'p1'),
+    ])!
+    expect(turn.deltaParts.p1).toEqual({ kind: 'reasoning', text: '先推理' })
+    expect(turn.timeline).toEqual([{ kind: 'reasoning', key: 'p1' }])
+  })
+
+  it('不同 partId 各自累加，timeline 按首次出现记录', () => {
+    const turn = reduceAll([
+      delta('m1', 'r-', 'reasoning', 'pr'),
+      delta('m1', 't-', 'text', 'pt'),
+      delta('m1', 'r2', 'reasoning', 'pr'),
+      delta('m1', 't2', 'text', 'pt'),
+    ])!
+    expect(turn.deltaParts.pr).toEqual({ kind: 'reasoning', text: 'r-r2' })
+    expect(turn.deltaParts.pt).toEqual({ kind: 'text', text: 't-t2' })
+    expect(turn.timeline).toEqual([
+      { kind: 'reasoning', key: 'pr' },
+      { kind: 'text', key: 'pt' },
+    ])
+  })
+
+  it('同 partId 快照到达后清除该 part 的 delta，正文不重复', () => {
+    const turn = reduceAll([
+      delta('m1', '增量全量', 'text', 'p1'),
+      part('m1', 'p1', 'text', '快照全量'),
+    ])!
+    expect(turn.deltaParts.p1).toBeUndefined()
+    expect(turnText(turn)).toBe('快照全量')
+  })
+
+  it('delta track 与快照 kind 冲突时，以快照类型权威校正 timeline', () => {
+    const turn = reduceAll([
+      delta('m1', '误判为正文', 'text', 'p1'),
+      part('m1', 'p1', 'reasoning', '实为推理'),
+    ])!
+    expect(turn.timeline).toEqual([{ kind: 'reasoning', key: 'p1' }])
+    expect(turnReasoningBlocks(turn)).toEqual(['实为推理'])
+    expect(turnText(turn)).toBe('')
+  })
+
+  it('partId 缺失的旧路径 delta 仍只进 deltaPreview，不入 timeline/deltaParts', () => {
+    const turn = reduceAll([delta('m1', '旧路径')])!
+    expect(turn.deltaParts).toEqual({})
+    expect(turn.timeline).toEqual([])
+    expect(turn.deltaPreview.text).toBe('旧路径')
+  })
+})
+
+describe('turnSegments · B-56 推理/工具/正文交错', () => {
+  it('真机序：推理→工具→推理→正文，segments 严格按事件到达交错', () => {
+    const turn = reduceAll([
+      part('m1', 'r1', 'reasoning', '第一段推理'),
+      toolCall('m1', { callId: 'c1', tool: 'read', status: 'running' }),
+      toolCall('m1', { callId: 'c1', tool: 'read', status: 'completed', result: '结果' }),
+      part('m1', 'r2', 'reasoning', '第二段推理'),
+      part('m1', 't1', 'text', '最终正文'),
+    ])!
+    expect(turnSegments(turn).map(s => s.kind)).toEqual([
+      'reasoning', 'tool', 'reasoning', 'text',
+    ])
+  })
+
+  it('tool 条目始终保留（含 running）；reasoning/text 空串条目跳过', () => {
+    const turn = reduceAll([
+      part('m1', 'r1', 'reasoning', ''),
+      toolCall('m1', { callId: 'c1', tool: 'read', status: 'running' }),
+    ])!
+    const segments = turnSegments(turn)
+    expect(segments).toHaveLength(1)
+    expect(segments[0]!.kind).toBe('tool')
+  })
+
+  it('tool 段携带最新 ToolView；reasoning/text 段携带 partText', () => {
+    const turn = reduceAll([
+      part('m1', 'r1', 'reasoning', '思考'),
+      toolCall('m1', { callId: 'c1', tool: 'read', status: 'completed', result: '数据' }),
+      part('m1', 't1', 'text', '答复'),
+    ])!
+    const [r, t, x] = turnSegments(turn)
+    expect(r).toMatchObject({ kind: 'reasoning', text: '思考' })
+    expect(t).toMatchObject({ kind: 'tool', key: 'c1' })
+    expect((t as { tool: ToolView }).tool.status).toBe('completed')
+    expect(x).toMatchObject({ kind: 'text', text: '答复' })
+  })
+
+  it('旧路径（无 partId 仅有 deltaPreview）合成单段回退', () => {
+    const turn = reduceAll([
+      delta('m1', '思考中', 'reasoning'),
+      delta('m1', '回答'),
+    ])!
+    expect(turnSegments(turn)).toEqual([
+      { kind: 'reasoning', key: '__legacy_reasoning', text: '思考中' },
+      { kind: 'text', key: '__legacy_text', text: '回答' },
+    ])
   })
 })

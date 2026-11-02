@@ -36,7 +36,7 @@ import { rollbackBriefToVersion } from './brief/rollback.js'
 import { captureStore, type CaptureUpsertInput } from './capture/store.js'
 import { listInstances, upsertInstance, removeInstance } from './comfy/settings.js'
 import type {
-  Canvas, CanvasGate, ComfyInstance, AssetIndexItem, CaptureFile,
+  Canvas, ComfyInstance, AssetIndexItem, CaptureFile,
 } from '../shared/types.js'
 import { runtimeManager } from './runtime/manager.js'
 import { resolveRuntimeProxyEnv } from './network.js'
@@ -161,7 +161,7 @@ ipcMain.handle('project:open', (_e, dir: unknown) => {
   }
   return openProject(dir).then(async res => {
     // feature-017/018：清算旧门 → 丢弃画布投影 → 重挂新项目的 pending 门（顺序固定）
-    gateBridge.settleAll()
+    gateBridge.clearLive()
     canvasStore.reset()
     await gateBridge.recoverPending()
     // 真机修复：切项目后主动推送新画布（persist 才会广播，reset 不会）
@@ -781,7 +781,7 @@ canvasStore.subscribe((canvas: Canvas) => {
   }
 })
 
-gateBridge.setGateListener((e: { gate: CanvasGate; title?: string }) => {
+gateBridge.setGateListener((e) => {
   for (const wc of canvasSubscribers) {
     if (!wc.isDestroyed()) wc.send('gate:changed', e)
   }
@@ -822,7 +822,7 @@ ipcMain.handle('canvas:unsubscribe', (e) => {
   return { ok: true as const }
 })
 
-ipcMain.handle('gate:decide', (_e, arg: unknown) => {
+ipcMain.handle('gate:decide', async (_e, arg: unknown) => {
   if (
     typeof arg !== 'object' || arg === null
     || typeof (arg as { gateId?: unknown }).gateId !== 'string'
@@ -837,8 +837,7 @@ ipcMain.handle('gate:decide', (_e, arg: unknown) => {
     decision: 'approved' | 'rejected'
     note?: string
   }
-  gateBridge.decide(gateId, { decision, note })
-  return { ok: true as const }
+  return gateBridge.decide(gateId, { decision, note })
 })
 
 ipcMain.handle('asset:list', (_e, arg?: unknown) => {
@@ -896,12 +895,12 @@ let runtimeQuitting = false
 app.on('before-quit', (event) => {
   if (runtimeQuitting) return
   if (runtimeManager.getStatus().state === 'stopped') {
-    gateBridge.settleAll()
+    gateBridge.clearLive()
     return
   }
   runtimeQuitting = true
   event.preventDefault()
-  gateBridge.settleAll()
+  gateBridge.clearLive()
   void runtimeManager.stop().finally(() => {
     runtimeQuitting = false
     app.quit()

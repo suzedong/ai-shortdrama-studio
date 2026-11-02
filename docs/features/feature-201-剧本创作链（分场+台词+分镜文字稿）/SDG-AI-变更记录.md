@@ -25,3 +25,4 @@
 - **R-201-3（交叉指针）**：
   - 与 feature-101：`Scene.characterIds[]`、`DialogueLine.speakerId` 引用 101 诞生的 `CharacterProfile.id`；scenes/dialogue 的 parentReference fields 消费小传全集（血缘表 L127–128）。见 feature-101 变更记录 R-101-2。
   - 与 feature-401（未建包）：2-c 所产 `分镜/shotlist.json` 文字稿是 401 的同文件升级起点（D-013 裁决①）；401 建包时须以本包契约 S8/S13 为前置事实，禁止另设第二产物文件。
+- **R-201-4（2-a / 2-b 门后推进改口，2026-11-01，feature-015 联动）**：原契约 §4 S13 要求 showrunner 在门 approved 后显式 `manifest.advance`，现改由系统在用户通过后分别直推 `scenes-approved` / `dialogue-approved`，Agent 不重复 advance；分场 / 台词正文、done 节点、依赖边与 parentReference 仍由 Agent 负责。`2-c` 仍属待实施范围，本修订不新增其后置动作。见 [feature-015 契约](../feature-015-确认门非阻塞化与系统直做后置/SDG-RE-契约.md) §3/§6。

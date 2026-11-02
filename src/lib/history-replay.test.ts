@@ -52,11 +52,11 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
         t('带时间，进', { startedAt: 1000 }),
       ]),
     ])
-    expect(out).toEqual([
-      { id: 'a1', role: 'agent', text: '带时间，进', agent: 'showrunner' },
+    expect(out).toHaveLength(1)
+    expect(out[0]).toMatchObject({ id: 'a1', role: 'agent', text: '带时间，进', agent: 'showrunner' })
+    expect(out[0]!.segments).toEqual([
+      { kind: 'text', key: 't-0', text: '带时间，进' },
     ])
-    // agent 气泡无 brief/trace 字段
-    expect(Object.keys(out[0]!).sort()).toEqual(['agent', 'id', 'role', 'text'])
   })
 
   it('assistant 正文与多个 reasoning part 按原序分段回放（reasoningBlocks，B-48/49）；user reasoning 不上屏', () => {
@@ -71,21 +71,39 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
         { type: 'reasoning', text: '用户侧推理不展示' },
         t('用户正文'),
       ]),
-    ])).toEqual([
-      {
-        id: 'a1', role: 'agent', text: '正文', agent: 'showrunner',
-        reasoningBlocks: ['先分析', '，再作答'],
-      },
-      { id: 'u1', role: 'user', text: '用户正文' },
+    ])).toHaveLength(2)
+    const [a1, u1] = replayMessages([
+      rec('a1', 'assistant', [
+        { type: 'reasoning', text: '先分析', startedAt: 1 },
+        { type: 'tool', tool: 'write_file' },
+        { type: 'reasoning', text: '，再作答', startedAt: 2 },
+        t('正文', { startedAt: 3 }),
+      ]),
+      rec('u1', 'user', [
+        { type: 'reasoning', text: '用户侧推理不展示' },
+        t('用户正文'),
+      ]),
     ])
+    expect(a1).toMatchObject({ id: 'a1', role: 'agent', text: '正文', agent: 'showrunner' })
+    // 坏工具（无 callId）跳过；两段推理与正文按原序交错
+    expect(a1!.segments).toEqual([
+      { kind: 'reasoning', key: 'r-0', text: '先分析' },
+      { kind: 'reasoning', key: 'r-1', text: '，再作答' },
+      { kind: 'text', key: 't-0', text: '正文' },
+    ])
+    expect(u1).toEqual({ id: 'u1', role: 'user', text: '用户正文' })
     expect(replayMessages([
       rec('a2', 'assistant', [
         { type: 'reasoning', text: '' },
         t('无推理字段', { startedAt: 1 }),
       ]),
-    ])).toEqual([
-      { id: 'a2', role: 'agent', text: '无推理字段', agent: 'showrunner' },
-    ])
+    ])).toHaveLength(1)
+    expect(replayMessages([
+      rec('a2', 'assistant', [
+        { type: 'reasoning', text: '' },
+        t('无推理字段', { startedAt: 1 }),
+      ]),
+    ])[0]).toMatchObject({ id: 'a2', role: 'agent', text: '无推理字段', agent: 'showrunner' })
   })
 
   it('H3：正文与推理之外恢复四种工具状态、起止时间和错误，不带参数或结果', () => {
@@ -104,23 +122,44 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
         { type: 'tool', text: '', callId: 'call-pending', tool: 'list_files', status: 'pending' },
         t('工具处理完成', { startedAt: 4 }),
       ]),
-    ])).toEqual([
+    ])).toHaveLength(1)
+    const out0 = replayMessages([
+      rec('a-tools', 'assistant', [
+        { type: 'reasoning', text: '先调用工具', startedAt: 1 },
+        {
+          type: 'tool', text: '', callId: 'call-done', tool: 'write_file', status: 'completed',
+          startedAt: 1000, endedAt: 1250, args: { secret: true }, result: '不回放',
+        },
+        { type: 'tool', text: '', callId: 'call-run', tool: 'read_file', status: 'running', startedAt: 2000 },
+        {
+          type: 'tool', text: '', callId: 'call-error', tool: 'edit_file', status: 'error',
+          startedAt: 3000, endedAt: 3500, error: '写入失败',
+        },
+        { type: 'tool', text: '', callId: 'call-pending', tool: 'list_files', status: 'pending' },
+        t('工具处理完成', { startedAt: 4 }),
+      ]),
+    ])[0]!
+    expect(out0).toMatchObject({ id: 'a-tools', role: 'agent', text: '工具处理完成', agent: 'showrunner' })
+    // 交错顺序：推理 → 四工具（原序）→ 正文；工具不带 args/result
+    expect(out0.segments).toEqual([
+      { kind: 'reasoning', key: 'r-0', text: '先调用工具' },
       {
-        id: 'a-tools', role: 'agent', text: '工具处理完成', agent: 'showrunner',
-        reasoningBlocks: ['先调用工具'],
-        tools: [
-          {
-            callId: 'call-done', tool: 'write_file', status: 'completed', args: {},
-            startedAt: 1000, endedAt: 1250,
-          },
-          { callId: 'call-run', tool: 'read_file', status: 'running', args: {}, startedAt: 2000 },
-          {
-            callId: 'call-error', tool: 'edit_file', status: 'error', args: {},
-            startedAt: 3000, endedAt: 3500, errorText: '写入失败',
-          },
-          { callId: 'call-pending', tool: 'list_files', status: 'pending', args: {}, startedAt: 0 },
-        ],
+        kind: 'tool', key: 'call-done',
+        tool: { callId: 'call-done', tool: 'write_file', status: 'completed', args: {}, startedAt: 1000, endedAt: 1250 },
       },
+      {
+        kind: 'tool', key: 'call-run',
+        tool: { callId: 'call-run', tool: 'read_file', status: 'running', args: {}, startedAt: 2000 },
+      },
+      {
+        kind: 'tool', key: 'call-error',
+        tool: { callId: 'call-error', tool: 'edit_file', status: 'error', args: {}, startedAt: 3000, endedAt: 3500, errorText: '写入失败' },
+      },
+      {
+        kind: 'tool', key: 'call-pending',
+        tool: { callId: 'call-pending', tool: 'list_files', status: 'pending', args: {}, startedAt: 0 },
+      },
+      { kind: 'text', key: 't-0', text: '工具处理完成' },
     ])
   })
 
@@ -142,13 +181,23 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
         t('完成', { startedAt: 5 }),
       ]),
     ])
-    expect(out[0]?.tools).toEqual([
+    expect(out[0]!.segments).toEqual([
       {
-        callId: 'c1', tool: 'shortdrama_capture_upsert', status: 'completed', args: {},
-        argsPreview: '题材赛道', startedAt: 1, endedAt: 2,
+        kind: 'tool', key: 'c1',
+        tool: {
+          callId: 'c1', tool: 'shortdrama_capture_upsert', status: 'completed', args: {},
+          argsPreview: '题材赛道', startedAt: 1, endedAt: 2,
+        },
       },
-      { callId: 'c2', tool: 'shortdrama_canvas_get', status: 'completed', args: {}, startedAt: 3 },
-      { callId: 'c3', tool: 'shortdrama_web_search', status: 'completed', args: {}, startedAt: 4 },
+      {
+        kind: 'tool', key: 'c2',
+        tool: { callId: 'c2', tool: 'shortdrama_canvas_get', status: 'completed', args: {}, startedAt: 3 },
+      },
+      {
+        kind: 'tool', key: 'c3',
+        tool: { callId: 'c3', tool: 'shortdrama_web_search', status: 'completed', args: {}, startedAt: 4 },
+      },
+      { kind: 'text', key: 't-0', text: '完成' },
     ])
   })
 
@@ -164,9 +213,17 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
         t('完成', { startedAt: 50 }),
       ]),
     ])
-    expect(out[0]?.tools).toEqual([
-      { callId: 'call-1', tool: 'write_file', status: 'completed', args: {}, startedAt: 10, endedAt: 40 },
-      { callId: 'call-2', tool: 'read_file', status: 'completed', args: {}, startedAt: 20, endedAt: 30 },
+    // call-1 后快照原地替换但锚点不动 → 顺序仍是 call-1、call-2
+    expect(out[0]!.segments).toEqual([
+      {
+        kind: 'tool', key: 'call-1',
+        tool: { callId: 'call-1', tool: 'write_file', status: 'completed', args: {}, startedAt: 10, endedAt: 40 },
+      },
+      {
+        kind: 'tool', key: 'call-2',
+        tool: { callId: 'call-2', tool: 'read_file', status: 'completed', args: {}, startedAt: 20, endedAt: 30 },
+      },
+      { kind: 'text', key: 't-0', text: '完成' },
     ])
   })
 
@@ -188,12 +245,16 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
         t('保留正文', { startedAt: 1 }),
       ]),
     ])
-    expect(out).toEqual([
-      { id: 'u-tool', role: 'user', text: '用户正文' },
+    expect(out).toHaveLength(2)
+    expect(out[0]).toEqual({ id: 'u-tool', role: 'user', text: '用户正文' })
+    expect(out[1]).toMatchObject({ id: 'a-bad-tools', role: 'agent', text: '保留正文', agent: 'showrunner' })
+    // 坏工具全跳过（无 callId / 空 callId / 非法 status / 坏时间与错误）；合法 good 时间缺省 0、错误非字符串不落
+    expect(out[1]!.segments).toEqual([
       {
-        id: 'a-bad-tools', role: 'agent', text: '保留正文', agent: 'showrunner',
-        tools: [{ callId: 'good', tool: 'write_file', status: 'error', args: {}, startedAt: 0 }],
+        kind: 'tool', key: 'good',
+        tool: { callId: 'good', tool: 'write_file', status: 'error', args: {}, startedAt: 0 },
       },
+      { kind: 'text', key: 't-0', text: '保留正文' },
     ])
   })
 
@@ -203,17 +264,18 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
       rec('a2', 'assistant', [t('   ', { startedAt: 1 })]),
     ])).toEqual([])
     expect(replayMessages([rec('a4', 'assistant', [])])).toEqual([])
-    // 仅 reasoning + 坏工具（无 callId，跳过）→ reasoningBlocks 保留
-    expect(replayMessages([
+    // 仅 reasoning + 坏工具（无 callId，跳过）→ reasoning 段保留，无 text 字段
+    const onlyReasoning = replayMessages([
       rec('a3', 'assistant', [
         { type: 'reasoning', text: '思考过程', startedAt: 1 },
         { type: 'tool', tool: 'write_file', startedAt: 2 },
       ]),
-    ])).toEqual([
-      {
-        id: 'a3', role: 'agent', agent: 'showrunner',
-        reasoningBlocks: ['思考过程'],
-      },
+    ])
+    expect(onlyReasoning).toHaveLength(1)
+    expect(onlyReasoning[0]).toMatchObject({ id: 'a3', role: 'agent', agent: 'showrunner' })
+    expect(onlyReasoning[0]!.text).toBeUndefined()
+    expect(onlyReasoning[0]!.segments).toEqual([
+      { kind: 'reasoning', key: 'r-0', text: '思考过程' },
     ])
   })
 
@@ -225,15 +287,24 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
           status: 'completed', startedAt: 1, endedAt: 2, argsPreview: '题材赛道',
         },
       ]),
-    ])).toEqual([
+    ])).toHaveLength(1)
+    const toolOnly = replayMessages([
+      rec('a-tools-only', 'assistant', [
+        {
+          type: 'tool', text: '', callId: 'c1', tool: 'shortdrama_capture_upsert',
+          status: 'completed', startedAt: 1, endedAt: 2, argsPreview: '题材赛道',
+        },
+      ]),
+    ])[0]!
+    expect(toolOnly).toMatchObject({ id: 'a-tools-only', role: 'agent', agent: 'showrunner' })
+    expect(toolOnly.text).toBeUndefined()
+    expect(toolOnly.segments).toEqual([
       {
-        id: 'a-tools-only', role: 'agent', agent: 'showrunner',
-        tools: [
-          {
-            callId: 'c1', tool: 'shortdrama_capture_upsert', status: 'completed',
-            args: {}, argsPreview: '题材赛道', startedAt: 1, endedAt: 2,
-          },
-        ],
+        kind: 'tool', key: 'c1',
+        tool: {
+          callId: 'c1', tool: 'shortdrama_capture_upsert', status: 'completed',
+          args: {}, argsPreview: '题材赛道', startedAt: 1, endedAt: 2,
+        },
       },
     ])
   })
@@ -248,7 +319,10 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
         t('合成', { startedAt: 3, synthetic: true }),
       ]),
     ])).toEqual([
-      { id: 'a2', role: 'agent', text: '保留', agent: 'showrunner' },
+      {
+        id: 'a2', role: 'agent', text: '保留', agent: 'showrunner',
+        segments: [{ kind: 'text', key: 't-0', text: '保留' }],
+      },
     ])
   })
 
@@ -286,11 +360,13 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
       { info: { role: 'user' }, parts: [t('无 id 记录')] },
     ] as unknown as ReplayMessageRecord[]
     const out = replayMessages(bad)
-    expect(out).toEqual([
-      { id: 'good', role: 'user', text: '有效' },
-      { id: 'agent-good', role: 'agent', text: '有效回复', agent: 'showrunner' },
-      { id: '', role: 'user', text: '无 id 记录' },
+    expect(out).toHaveLength(3)
+    expect(out[0]).toEqual({ id: 'good', role: 'user', text: '有效' })
+    expect(out[1]).toMatchObject({ id: 'agent-good', role: 'agent', text: '有效回复', agent: 'showrunner' })
+    expect(out[1]!.segments).toEqual([
+      { kind: 'text', key: 't-0', text: '有效回复' },
     ])
+    expect(out[2]).toEqual({ id: '', role: 'user', text: '无 id 记录' })
   })
 
   it('不改入参（快照）：返回新数组，入参对象图不被修改', () => {

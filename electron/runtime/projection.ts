@@ -137,6 +137,8 @@ export class EventProjector {
             messageId: props.messageID,
             track: deltaTrackFromPart(props.partID, this.partKinds),
             delta: props.delta,
+            // B-54：透传 partID，renderer 按 part 分段累加（多段推理流式可见）
+            partId: typeof props.partID === 'string' ? props.partID : '',
           }
         }
         break

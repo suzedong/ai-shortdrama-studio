@@ -24,7 +24,7 @@ describe('feature-808 D-011 · tool-labels', () => {
     expect(toolActionPhrase('shortdrama_style_catalog')).toBe('读取风格谱系')
   })
 
-  it('全部 28 个 MCP 工具族均有中文短语', () => {
+  it('全部 29 个 MCP 工具族均有中文短语', () => {
     const ids = [
       'file.read', 'file.list', 'file.write',
       'canvas.get', 'canvas.update', 'canvas.align',
@@ -35,7 +35,7 @@ describe('feature-808 D-011 · tool-labels', () => {
       'brief.impact.assess', 'brief.impact.commit',
       'manifest.get', 'manifest.advance',
       'style.catalog', 'style.get', 'style.validate',
-      'capture.list', 'capture.upsert', 'capture.remove',
+      'capture.list', 'capture.upsert', 'capture.upsert_many', 'capture.remove',
       'web.search', 'web.fetch',
       'harness.validate',
     ]
@@ -81,6 +81,9 @@ describe('feature-808 D-012 · toolArgPreview（白名单关键参数摘要）',
     expect(toolArgPreview('capture_upsert', { topic: '题材赛道' })).toBe('题材赛道')
     expect(toolArgPreview('shortdrama_web_search', { query: '短剧 市场规模' })).toBe('短剧 市场规模')
     expect(toolArgPreview('shortdrama_file_write', { path: 'brief/立项单.v3.json', content: 'x' })).toBe('brief/立项单.v3.json')
+    // F2：批量工具显式空白名单，完整 items 不落摘要
+    expect(toolArgPreview('shortdrama_capture_upsert_many', { items: [{ topic: '题材赛道' }] })).toBe('')
+    expect(toolArgPreview('shortdrama_capture.upsert_many', { items: [] })).toBe('')
   })
 
   it('B-51：capture_upsert 的 topic 为英文物理键 → 中文字段名；自定义 topic 回退原串', () => {

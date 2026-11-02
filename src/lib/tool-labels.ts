@@ -49,6 +49,7 @@ const ACTION_PHRASES: Record<string, string> = {
   // 已捕获口径
   'capture.list': '读取已捕获口径',
   'capture.upsert': '写入已捕获口径',
+  'capture.upsert_many': '批量写入已捕获口径',
   'capture.remove': '删除已捕获口径',
   // 公开检索
   'web.search': '检索公开网页',
@@ -113,6 +114,8 @@ const ARG_PREVIEW_KEYS: Record<string, readonly string[]> = {
   file_list: ['dir'],
   file_write: ['path'],
   capture_upsert: ['topic', 'id'],
+  // F2：批量入参为 { items: [...] }，显式空键——不提取任何字段，完整 items 不落摘要
+  capture_upsert_many: [],
   capture_remove: ['id'],
   web_search: ['query'],
   web_fetch: ['url'],

@@ -43,8 +43,9 @@ export const SHOWRUNNER_AGENT = 'showrunner'
  * `task` 由 profile 常驻（permission.task 白名单），不随请求 tools 传递。
  * feature-001：立项三工具 brief.plan/publish/list 随立项模型重建放行。
  * feature-801：状态机两工具 manifest.get/advance 放行。
- * feature-802：风格谱系三工具 style.catalog/get/validate 放行。
- * feature-005：已捕获口径三工具 capture.list/upsert/remove 放行。
+ * feature-802：风格谱系两工具 style.catalog/validate 放行（B-57 F4：style.get 已收回，
+ *   选型统一用 catalog 全量快照；MCP 工具本体保留供系统侧/未来使用）。
+ * feature-005：已捕获口径四工具 capture.list/upsert/upsert_many/remove 放行（F2 批量 upsert）。
  * feature-006：公开数据检索两工具 web.search/fetch 放行（T0 定案 B，契约 §2.2）。
  * feature-806：STAGE 0 harness 基础校验工具 harness.validate 放行（K8 登记 27→28）。
  */
@@ -61,13 +62,13 @@ export const SHOWRUNNER_DECLARED_TOOLS = [
   'shortdrama_manifest.get',
   'shortdrama_manifest.advance',
   'shortdrama_style.catalog',
-  'shortdrama_style.get',
   'shortdrama_style.validate',
   'shortdrama_brief.impact.assess',
   'shortdrama_brief.impact.commit',
   'shortdrama_canvas.align',
   'shortdrama_capture.list',
   'shortdrama_capture.upsert',
+  'shortdrama_capture.upsert_many',
   'shortdrama_capture.remove',
   'shortdrama_web.search',
   'shortdrama_web.fetch',
@@ -82,8 +83,11 @@ export function isShowrunnerDeclaredTool(tool: string): boolean {
 const CONFIG_DIR_NAME = 'opencode'
 const CONFIG_FILE_NAME = 'opencode.json'
 const AGENTS_DIR_NAME = 'agents'
-/** 模板内 modelID 占位符：启动时替换为 ARK_MODEL，模板与仓库中不写死任何 modelID */
-const MODEL_PLACEHOLDER = '__ARK_MODEL_ID__'
+/**
+ * 模板内模型引用占位符：启动时整体替换为 `<provider>/<model>`（火山方舟 / LM Studio 均适用），
+ * 模板与仓库中不写死任何服务商前缀或 modelID。
+ */
+const MODEL_REF_PLACEHOLDER = '__MODEL_REF__'
 
 export interface AgentProfileSpec {
   name: string
@@ -268,13 +272,12 @@ async function renderAgentFile(
 ): Promise<{ targetPath: string; rendered: string }> {
   const tplPath = templatePath ?? await resolveAgentTemplatePath(spec.file)
   const template = await fsp.readFile(tplPath, 'utf-8')
-  const modelRefPlaceholder = `ark/${MODEL_PLACEHOLDER}`
-  if (!template.includes(modelRefPlaceholder)) {
-    throw makeError('INTERNAL', `${spec.file} 模板缺少 ${modelRefPlaceholder} 占位符：${tplPath}`)
+  if (!template.includes(MODEL_REF_PLACEHOLDER)) {
+    throw makeError('INTERNAL', `${spec.file} 模板缺少 ${MODEL_REF_PLACEHOLDER} 占位符：${tplPath}`)
   }
-  const rendered = template.split(modelRefPlaceholder).join(modelRef)
-  if (rendered.includes(MODEL_PLACEHOLDER)) {
-    throw makeError('INTERNAL', `${spec.file} 模板 modelID 替换失败`)
+  const rendered = template.split(MODEL_REF_PLACEHOLDER).join(modelRef)
+  if (rendered.includes(MODEL_REF_PLACEHOLDER)) {
+    throw makeError('INTERNAL', `${spec.file} 模板模型引用替换失败`)
   }
   const targetPath = path.join(runtimeConfigDir(userDataDir), AGENTS_DIR_NAME, spec.file)
   return { targetPath, rendered }

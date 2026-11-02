@@ -190,7 +190,8 @@ describe('feature-001 brief MCP 工具（契约 §3）', () => {
     }>('brief.list')
     expect(r.ok).toBe(true)
     expect(r.versions.map(v => v.version)).toEqual([1, 2, 3])
-    expect(r.versions[1]).toMatchObject({ kind: 'commercial', approveBy: 'verbal' })
+    // F1：list 仅元数据，kind/approveBy 恒占位值（需要内容请读版本全文）
+    expect(r.versions[1]).toMatchObject({ kind: 'commercial', approveBy: 'gate' })
     expect(r.latestVersion).toBe(3)
     expect(r.warnings).toEqual([])
   })

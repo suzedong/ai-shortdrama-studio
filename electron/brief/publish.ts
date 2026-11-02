@@ -11,7 +11,7 @@ import { enqueue } from '../fs/write-queue.js'
 import { resolveInside } from '../fs/sandbox.js'
 import { MANIFEST_FILE, parseManifest, applyBriefVersion } from '../project/manifest.js'
 import { diffBrief } from './diff.js'
-import { listBriefVersions } from './plan.js'
+import { latestReadableEntry } from './plan.js'
 import { renderBriefMd } from './render-md.js'
 
 /** 已过就绪闸门的完整草案（publish / commit 调用前由 evaluateDraft + zod 保证） */
@@ -44,14 +44,16 @@ export async function publishBriefFiles(
   draft: ReadyBriefDraft,
   approve: BriefApproveInput,
 ): Promise<PublishedBrief> {
-  const listing = await listBriefVersions(projectDir)
-  const version = listing.latestVersion === null ? 1 : listing.latestVersion + 1
+  // F1：版本号以最新「可解析」版本为基分配（高号损坏文件不抬基线、不占新槽位），
+  // 同时作为 diff 基线；损坏占位档与目标槽位撞名时由下方防覆盖拦截
+  const prevEntry = await latestReadableEntry(projectDir)
+  const version = prevEntry === null ? 1 : prevEntry.version + 1
   const jsonName = `立项单.v${version}.json`
   const mdName = `立项单.v${version}.md`
   const jsonAbs = resolveInside(projectDir, jsonName)
   const mdAbs = resolveInside(projectDir, mdName)
 
-  // 理论上不可能（版本号磁盘扫描分配）；命中即拒，绝不覆盖
+  // 槽位已被占用（含损坏占位档）；命中即拒，绝不覆盖
   const [jsonExists, mdExists] = await Promise.all([
     fsp.access(jsonAbs).then(() => true, () => false),
     fsp.access(mdAbs).then(() => true, () => false),
@@ -60,7 +62,6 @@ export async function publishBriefFiles(
     throw Object.assign(new Error(`${jsonExists ? jsonName : mdName} 已存在`), { code: 'BRIEF_VERSION_EXISTS' })
   }
 
-  const prevEntry = listing.versions[listing.versions.length - 1]
   const prev = prevEntry
     ? JSON.parse(await fsp.readFile(path.join(projectDir, prevEntry.path), 'utf-8')) as ProjectBrief
     : null

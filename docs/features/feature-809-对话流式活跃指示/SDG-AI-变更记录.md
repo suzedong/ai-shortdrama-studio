@@ -77,6 +77,15 @@
 - **实现**：ChatComposer 增加内部吸底 ref 与 48px 距底 `onScroll` 判定；原回底 effect 仅在吸底开启时执行，用户上翻保持位置、回底恢复跟随。零 Props / 归约 / IPC / shared / 依赖改动。
 - **验证**：`chat-liveness.test.tsx` 新增底部跟随、上翻保持、回底恢复 3 例，定向 **29 passed**；`npm run typecheck` 仍恰 3 条既有基线、零新增；全量 **75 文件 900 passed / 0 failed / 1 skipped**。
 
+### T10–T12 贴底误判修复 + 交错渲染消费（2026-11-01）
+
+- **用户反馈与根因（B-55）**：对话已拉到底，新发一句、Agent 气泡出现后推理流增长不跟随——程序化 `scrollTop` 赋值触发 onScroll 回算 stickToBottom（48px 阈值在高频增长/异步布局下误判 false）；submit/pickOption 不重置贴底标记；新气泡插入与内容增长同渲染批次，scrollHeight 变化先于 effect。
+- **实现（B-55）**：`programmaticScrollRef` 在程序化赋值期间抑制 onScroll 回算、rAF 后解除；贴底阈值 48→120px；submit / pickOption 入口强制 stick=true；effect 仅按标记执行。零 Props / 归约 / IPC 改动。
+- **实现（B-56 消费）**：新增 `InterleavedContent` 按归约 segments 单序列渲染——ReasoningDetails 逐段折叠（「推理过程 i/total」）/ 相邻 tool 分组进 ToolTrace / MarkdownText 交错；ChatItem.segments 优先于平铺字段。归约与历史回放侧登记见 feature-808 X-002。
+- **联调修两个真机缺陷（X-001，2026-11-01）**：①流式仅推理 / 工具静默段气泡无任何活跃元素 → 尾部挂「正在思考…」TypingDots，条件 `streaming && running && 无正文段`；②done 态正文仍闪光标 → 光标显示条件加 `running`。
+- **验证**：chat-liveness.test.tsx AC11 三个滚动用例改 async，挂载后先 `settleMount()`（等 jsdom 不驱动的 rAF 释放）再模拟用户滚动；各流式用例补 timeline 驱动数据；X-001 仅推理态补显式断言。全量 **76 文件 950 passed / 0 failed / 1 skipped**；`npm run typecheck` 仍恰 3 条既有基线、零新增。
+- **偏差登记**：[设计现状与偏差清单.md](../../设计现状与偏差清单.md) B-55、B-56（均 ✅ 已解决）；真机目验待用户执行。
+
 ## 三、修订记录
 
 ### X-001 契约 §3.1 A4 条件修订（2026-10-17，L2 规格缺陷，用户裁决）

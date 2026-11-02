@@ -55,8 +55,10 @@ function makeStreamTurn(text: string): StreamingTurn {
   return {
     messageId: 'm1',
     parts: {},
+    deltaParts: {},
     deltaPreview: { text, reasoning: '' },
     tools: {},
+    timeline: [],
     status: 'running',
   }
 }
@@ -97,11 +99,10 @@ describe('【追问选项】块解析（组①）', () => {
     expect(r.rest).toBe('问题')
   })
 
-  it('1-4 负例：块后还有非空正文 → 整块不识别，原文原样', () => {
-    const text = '问题\n【追问选项】\n甲\n乙\n【/追问选项】\n后面还有话'
-    const r = parseChatOptions(text)
-    expect(r.chips).toBeUndefined()
-    expect(r.rest).toBe(text)
+  it('1-4 B-59：块后还有非空正文 → chips 照常识别，块前 / 块后正文拼回 rest', () => {
+    const r = parseChatOptions('问题\n【追问选项】\n甲\n乙\n【/追问选项】\n后面还有话')
+    expect(r.chips).toEqual(['甲', '乙'])
+    expect(r.rest).toBe('问题\n后面还有话')
   })
 
   it('1-5 流式 pending：有开标签无闭标签 → 正文截至开标签前', () => {

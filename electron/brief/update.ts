@@ -12,7 +12,7 @@ import { MANIFEST_FILE, parseManifest, applyBriefVersion } from '../project/mani
 import { canvasStore } from '../canvas/store.js'
 import { loadStyleCatalog } from '../style/loader.js'
 import { diffBrief } from './diff.js'
-import { evaluateDraft, listBriefVersions } from './plan.js'
+import { evaluateDraft, latestReadableEntry } from './plan.js'
 import { assessImpact, type ImpactItem, type ImpactReportFile } from './impact.js'
 import { publishBriefFiles, type ReadyBriefDraft } from './publish.js'
 
@@ -68,15 +68,15 @@ export async function updateBriefFields(
   const catalog = await loadStyleCatalog()
 
   return enqueue(async () => {
-    const listing = await listBriefVersions(projectDir)
-    if (listing.latestVersion === null) {
+    // F1：基线取最新「可解析」版本（高号损坏文件向下跳过；全损坏或无历史拒再版）
+    const latestEntry = await latestReadableEntry(projectDir)
+    if (latestEntry === null) {
       throw Object.assign(
         new Error('尚无已发布立项，不存在再版基线；请先在对话中完成立项'),
         { code: 'BRIEF_NO_BASELINE' },
       )
     }
-    const fromVersion = listing.latestVersion
-    const latestEntry = listing.versions[listing.versions.length - 1]!
+    const fromVersion = latestEntry.version
     const prev = JSON.parse(
       await fsp.readFile(path.join(projectDir, latestEntry.path), 'utf-8'),
     ) as ProjectBrief

@@ -37,6 +37,7 @@
 | 2026-10-29 | T7 真机目验遗留项之「approved 留存卡挂载点」面 | 挂起项 HOLD-01 补验（feature-012 方案 B 落地后解除条件成立） | ✅ 真机通过（用例 HOLD-01）：造数 approved 门 → STAGE 0 留存卡三区上屏（已确认横幅 + `data-gate-impact-summary` 影响清单 2 项 + `data-gate-harness-findings` 拦截区仅列 blocker、warning 过滤），无裁决按钮、无 pending 门条；证据回填 [立项阶段整体真机测试用例.md](../../立项阶段整体真机测试用例.md) §6。T7 其余真机面（再版门 payload 注入链路）不在本用例范围，维持原遗留口径 |
 | 2026-10-31 | 契约 §1.2「approved 为终态禁重开」表述 | 真机 PK-012-02 暴露：0-final 门 approved 后无法为下一版重开，与再版需复用同一 0-final 门的设计冲突 | 新增契约 §1.3「0-final approved 门的版本化重开（D-e E1）」：仅 0-final + 新版本严格大于旧版本时覆盖重开为 pending，其余 approved 仍拒绝；需求规格 §6 增 D-e 决策点。bridge.ts approved 分支同步修订（见 T10） |
 | 2026-10-31 | T7「AC6 真机项遗留」口径 | T10 真机复测 PK-012-02 全链路通过，AC6 遗留解除 | ✅ AC6 真机通过（见 T10 与整体测试计划 §6 PK-012-02）；T7 原遗留口径由 T10 闭环 |
+| 2026-11-01 | 契约 §1.1 门 payload 四键、§1.3 版本化重开及门后职责 | feature-015 将 `gate.request` 改为非阻塞协议，并统一系统直做可枚举后置动作 | `0-final` 新增必填 `payload.draft`；同 gateId 覆盖重开语义由 feature-015 接管。再版仍保留 `impactSummary`，点通过只确认草案，三选一后由 `impact.commit` 唯一发布；首版由系统直发。门卡新增系统 `execution` 成功 / 失败摘要，既有影响清单与 findings 留存不变 |
 
 ## 版本记录
 

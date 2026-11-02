@@ -12,6 +12,6 @@
     "esModuleInterop": true,
     "types": ["node"]
   },
-  "include": ["electron", "shared", "src/lib/runtime-types.ts"],
+  "include": ["electron", "shared"],
   "exclude": ["dist", "dist-electron", "node_modules", "electron/preload.ts"]
 }

@@ -103,6 +103,8 @@ export type RuntimeEvent =
       /** 流轨：text=正文；reasoning=推理增量（来自 opencode delta 的 field 前缀） */
       track: 'text' | 'reasoning'
       delta: string
+      /** B-54：delta 归属的 opencode Part.id（多段推理按 part 分段累加）；缺失为空串回退旧路径 */
+      partId: string
     }
   | {
       type: 'message.part'

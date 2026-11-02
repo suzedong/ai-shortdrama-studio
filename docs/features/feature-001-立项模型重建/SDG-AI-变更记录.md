@@ -98,3 +98,23 @@
 - 联动修订：[feature-007](../feature-007-产物重开对齐二次确认/) 需求规格 §3.5——脏读纪律段追加第三条：用户经界面确认发来【产物重新对齐】前缀消息时，先 `shortdrama_canvas_get` 核实该节点脏态（无脏 → 告知已对齐，不动作）；核实后按再版剧本第 6 步同款纪律串行委派专职 agent 重生成（提示词 base 用最新立项单 vM，交接物写明旧产物基于 vN 与命中字段）；重生成定稿后调 `shortdrama_canvas.align({ nodeId })` 清脏并推进血缘；用户选「保持现状」时不做任何动作。
 - 边界注明：新增条仅承接 renderer 三选一确认注入的模板消息（feature-007，UI 不直调 align，D-016 / K8 零）；既有两条脏读纪律与再版六步剧本逐字不变；showrunner frontmatter tools 白名单零新增（`canvas.align` 为 feature-002 既有工具）。
 - 交叉指针：[feature-007 需求规格 §3.5](../feature-007-产物重开对齐二次确认/SDG-RE-需求规格.md)、[feature-007 变更记录](../feature-007-产物重开对齐二次确认/SDG-AI-变更记录.md)、[偏差清单 B-42](../../设计现状与偏差清单.md)、[showrunner.md](../../../resources/opencode/agents/showrunner.md) 脏读纪律段。
+
+### R-009 · B-57 showrunner 提示词中文化 + 配置清残留 + 授权收/补（2026-11-01，B-57 联动）
+
+- 原文口径：本包 T5 重写、历轮 R 条演进后的 [showrunner.md](../../../resources/opencode/agents/showrunner.md) 至 2026-11-01 前存在三类问题——①无中文思考条款，模型内部推理（右栏「推理过程」流）默认英文；②含退役内容：纪律 4 述 `STAGE` 口径与已删除的 `0-a/0-b/0-c/0-d` 门、纪律 6 的假工具前缀 `comfyui.*`、铁律段的 `capture.*` 通配写法与「立项/diagnosis.json」等旧路径禁令；③授权面漂移：`style.get` 仍授权但选型应统一 catalog 快照，发卡前强制 `harness.validate` 与 publish 入口内置校验重复，而 `web.search/web.fetch` 工具 true 却长期缺 permission allow（HEAD 即如此）。
+- 联动修订（纯提示词层，逐条对应偏差清单 B-57）：
+  1. **中文思考条款**：输出要求首条增「内部思考 / 推理过程与对外回复一律使用简体中文，仅工具名、JSON 字段、代码标识符与专有名词保留原文」；同款条款同步落 writer / media-director / comfyui-operator 三个 agent（提示词层实现，**不加主进程 system 注入**）。
+  2. **清残留**：纪律 4 删 `0-a~0-d` 复述、`STAGE N` 统一改「第 N 步」；纪律 6 删 `comfyui.*` 假前缀；铁律段 `capture.*` 改全物理名、旧路径禁令收敛为「除此之外不写任何立项文件」；step 1 超时复述收敛（指向纪律 5）。
+  3. **F4 授权收回**：frontmatter tools + permission 双区删 `shortdrama_style.get`，正文选型口径改「调一次 style.catalog 取全量快照、逐字采用快照的 version、不逐条另取，需要时 style.validate 自检」（MCP 侧 style.get 工具本体保留，归属/留痕见 feature-802 修订）。
+  4. **F3 删重复校验**：纪律 12 删「发卡前必须先调 harness.validate」子条，保留「publish / commit 入口内置校验 + 拦截后修复重发」口径（harness.validate 工具保留供可选自检，见 feature-806 修复记录）。
+  5. **permission 补齐**：补 `shortdrama_web.search: allow` / `shortdrama_web.fetch: allow` 两行——headless 下未显式 allow 会被拦截，而 S1 商业诊断强制联网。
+  6. **F2 授权增项**：tools + permission 双区增 `shortdrama_capture.upsert_many`（工具本体与 K8 归属 feature-005 X-002）。
+- 边界注明：本包仅承担提示词层（showrunner.md 及三个下游 agent）改动，零 K1、零 runtime 协议变更；showrunner 物理工具终态 **23 个**（+upsert_many、−style.get）；工具总数 28→29 的 K8 登记归 feature-005。
+- 交叉指针：[偏差清单 B-57](../../设计现状与偏差清单.md)、[feature-005 X-002](../feature-005-已捕获口径常驻区/SDG-AI-变更记录.md)、[feature-802 修订记录](../feature-802-视觉风格谱系接入/SDG-AI-变更记录.md)、[feature-806 修复记录](../feature-806-Harness基础校验与确认门全链路/SDG-AI-变更记录.md)。
+
+### R-010 · 0-final 非阻塞门与首版 / 再版发布主体改口（2026-11-01，feature-015 联动）
+
+- 原文口径：本包契约 §7 与 R-001 描述「`gate.request` 阻塞至 approved → Agent 调 `brief.publish` → 首版再显式 advance」。
+- 联动修订：`gate.request` 只落盘 pending 并立即返回；新 `0-final` 门必须在 `payload.draft` 携带完整结构化草案。**首版 v1** 点通过后由主进程直接双写立项单、upsert `step-0-brief` 并推进 `brief-published`，Agent 不重复 publish / advance；**再版 v2+** 点通过只确认草案与版本，不发布、不推进 manifest，Agent 下一轮呈报三选一后由 `impact.commit` 唯一发布。
+- 保留边界：verbal 首版仍由 Agent `brief.publish(by:'verbal')` 后自行推进 `brief-published`；历史无草案门的 `brief.publish(by:'gate')` 兜底仅限首版，再版不得走该兜底。工具总数 29、shared 类型均不变。
+- 交叉指针：[feature-015 契约](../feature-015-确认门非阻塞化与系统直做后置/SDG-RE-契约.md) §2–§6、feature-015 D-015-5。

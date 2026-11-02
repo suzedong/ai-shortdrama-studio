@@ -384,6 +384,8 @@ const ARG_PREVIEW_KEYS: Record<string, readonly string[]> = {
   file_list: ['dir'],
   file_write: ['path'],
   capture_upsert: ['topic', 'id'],
+  // F2：批量入参为 { items: [...] }，显式空键——不提取任何字段，完整 items 不落摘要（与 src 侧同源）
+  capture_upsert_many: [],
   capture_remove: ['id'],
   web_search: ['query'],
   web_fetch: ['url'],
@@ -426,12 +428,12 @@ export function toolArgsPreview(tool: string, input: unknown): string {
   if (!keys) return ''
   const record = input as Record<string, unknown>
   for (const key of keys) {
-    let value = record[key]
-    if (typeof value === 'string' && value.trim().length > 0) {
+    const raw = record[key]
+    if (typeof raw === 'string' && raw.trim().length > 0) {
       // B-51：capture_upsert 的 topic 为英文物理键时显中文字段名
-      if (normalized === 'capture_upsert' && key === 'topic') {
-        value = CAPTURE_TOPIC_LABELS[value.trim()] ?? value
-      }
+      const value = normalized === 'capture_upsert' && key === 'topic'
+        ? (CAPTURE_TOPIC_LABELS[raw.trim()] ?? raw)
+        : raw
       return value.length > ARG_PREVIEW_LIMIT ? `${value.slice(0, ARG_PREVIEW_LIMIT)}…` : value
     }
   }

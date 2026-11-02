@@ -5,7 +5,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { Canvas, CanvasGate, CanvasNode, StepId } from '@shared/types'
-import { reduceRuntimeEvent, turnReasoningBlocks, turnText, type StreamingTurn } from '../../lib/chat-runtime'
+import {
+  reduceRuntimeEvent,
+  turnSegments,
+  turnText,
+  type StreamingTurn,
+} from '../../lib/chat-runtime'
 import { replayMessages } from '../../lib/history-replay'
 import CanvasBoard, { kindLabel, type NodeAction } from '../canvas/CanvasBoard'
 import ChatComposer, { demoChatItems, type ChatItem, type ChatModelOption } from '../chat/ChatComposer'
@@ -30,6 +35,7 @@ import AiServicePanel, { getChatModelOptions } from './AiServicePanel'
 import WindowControls from './WindowControls'
 
 type CenterView = 'dag' | 'stage0'
+type DisplayGate = CanvasGate & { execution?: GateExecutionDto }
 
 type LeftView = 'resource' | 'nav'
 type PanTab = 'projects' | 'skills' | 'assets' | 'plugins'
@@ -106,7 +112,7 @@ export default function StudioApp() {
   const [canvas, setCanvas] = useState<Canvas>(emptyCanvas)
   const [items, setItems] = useState<ChatItem[]>(() => (devMockActive() ? demoChatItems() : []))
   const [stream, setStream] = useState<StreamingTurn | null>(null)
-  const [pendingGate, setPendingGate] = useState<CanvasGate | null>(null)
+  const [pendingGate, setPendingGate] = useState<DisplayGate | null>(null)
   const [sending, setSending] = useState(false)
   // feature-808 D-006：生成态独立于 sending（promptAsync 仅代表 HTTP accepted，
   // 流式可能数秒后才开始）；由流式事件置位/复位，驱动停止钮持续可达
@@ -130,6 +136,9 @@ export default function StudioApp() {
   // 对话内逐消息模型：仅保留在当前 renderer，不回写 activeProvider
   const [modelOptions, setModelOptions] = useState<ChatModelOption[]>([])
   const [selectedModel, setSelectedModel] = useState<ChatModelOption | null>(null)
+  // 定稿闭包（SSE 订阅仅一次）经此 ref 读取当前模型，快照写入每条 AI 消息（气泡显示实际模型）
+  const selectedModelRef = useRef<ChatModelOption | null>(null)
+  selectedModelRef.current = selectedModel
   const [centerView, setCenterView] = useState<CenterView>('dag')
   const [toast, setToast] = useState<{ tone: 'ok' | 'bad' | 'info'; text: string } | null>(null)
   const projectNavRef = useRef<ProjectNavHandle>(null)
@@ -213,16 +222,19 @@ export default function StudioApp() {
         setStream(next)
         if (prev && prev.status === 'running' && next && next.status !== 'running') {
           const text = turnText(next)
-          const reasoningBlocks = turnReasoningBlocks(next)
-          const tools = Object.values(next.tools)
+          // B-56：定稿携带有序 segments（推理→工具→推理→工具交错），气泡按此渲染
+          const segments = turnSegments(next)
+          const hasReasoning = segments.some(s => s.kind === 'reasoning')
+          const hasTool = segments.some(s => s.kind === 'tool')
           // 纯推理 / 纯工具轮（正文为空）也保留，避免思维链与工具轨迹在定稿时丢失
-          if (text || reasoningBlocks.length > 0 || tools.length > 0) {
+          if (text || hasReasoning || hasTool) {
             setItems(p => [...p, {
               id: next.messageId,
               role: 'agent',
               ...(text ? { text } : {}),
-              ...(reasoningBlocks.length > 0 ? { reasoningBlocks } : {}),
-              ...(tools.length > 0 ? { tools } : {}),
+              segments,
+              agent: 'showrunner',
+              ...(selectedModelRef.current ? { model: selectedModelRef.current } : {}),
             }])
           }
           streamRef.current = null
@@ -400,10 +412,11 @@ export default function StudioApp() {
     }
   }, [])
 
-  // ---- 门变更（裁决 / 重挂）----
+  // ---- 门变更（裁决 / 重开 / 系统后置动作结果）----
   useEffect(() => {
-    const off = window.api.gate.onChanged(({ gate }) => {
-      setPendingGate(gate.status === 'pending' ? gate : null)
+    const off = window.api.gate.onChanged(({ gate, execution }) => {
+      // 裁决后门卡继续留在右栏；execution 只存在本次推送，不写进 shared CanvasGate。
+      setPendingGate(execution ? Object.assign(gate, { execution }) : gate)
     })
     return off
   }, [])

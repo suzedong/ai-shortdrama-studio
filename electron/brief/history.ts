@@ -22,26 +22,32 @@ export interface BriefHistoryResult {
   warnings: string[] // 损坏文件跳过说明
 }
 
-/** brief:history 主体：扫描 + 逐版读全文取 changeCount/note；无历史返回空集不报错 */
+/** brief:history 主体：扫描定位 + 逐版读全文取全部字段（F1：listing 仅文件元数据，内容字段此处自取；OD D5：历史页打开频率低，IO 可接受）；无历史返回空集不报错 */
 export async function readBriefHistory(projectDir: string): Promise<BriefHistoryResult> {
   const listing = await listBriefVersions(projectDir)
   const versions: BriefHistoryItem[] = []
+  const warnings = [...listing.warnings]
   for (const v of listing.versions) {
-    // changeCount/note 在元信息五字段之外，逐版读全文（OD D5：历史页打开频率低，IO 可接受）
-    const brief = JSON.parse(
-      await fsp.readFile(path.join(projectDir, v.path), 'utf-8'),
-    ) as ProjectBrief
-    versions.push({
-      version: v.version,
-      path: v.path,
-      publishedAt: v.publishedAt,
-      kind: v.kind,
-      approveBy: v.approveBy,
-      changeCount: brief.changesFromPrevious.length,
-      ...(brief.approve.note ? { note: brief.approve.note } : {}),
-    })
+    try {
+      const brief = JSON.parse(
+        await fsp.readFile(path.join(projectDir, v.path), 'utf-8'),
+      ) as ProjectBrief
+      versions.push({
+        version: v.version,
+        path: v.path,
+        publishedAt: brief.publishedAt,
+        kind: brief.kind,
+        approveBy: brief.approve.by,
+        changeCount: brief.changesFromPrevious.length,
+        ...(brief.approve.note ? { note: brief.approve.note } : {}),
+      })
+    } catch (e) {
+      warnings.push(`${v.path} 解析失败已跳过：${(e as Error).message}`)
+    }
   }
-  return { versions, latestVersion: listing.latestVersion, warnings: listing.warnings }
+  // latestVersion 只认成功解析版本：高号损坏文件不抬高最新版（与 F1 前行为一致）
+  const latestVersion = versions.length ? versions[versions.length - 1]!.version : null
+  return { versions, latestVersion, warnings }
 }
 
 /** brief:version-read 主体：vK 全文 + diffToLatest（from=vK 值，to=最新值）；vK=最新 → [] */

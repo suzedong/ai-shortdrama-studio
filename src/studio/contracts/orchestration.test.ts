@@ -1,14 +1,9 @@
-// feature-001 · STAGE 0 新立项模型编排契约测试（设计书 §2.6 / 契约 §7，需求 AC-1/AC-3/AC-4/AC-7）
-// 编排本身由 showrunner 经 prompt 驱动（仓库内无可执行编排代码），故以脚本化 fake
-// showrunner + 纯工具调用记录，固定断言契约要求：
-// - 入口反问 / 选题诊断 / 故事前提阶段不建任何门（旧 0-a/0-b/0-c/0-d 四门作废）；
-// - brief.plan 返回 ready:false 时继续追问，绝不发门；
-// - ready:true 时只发唯一定案门 gateId='0-final'；
-// - approved → brief.publish（by:'gate'），而非 file.write 立项单；
-// - 口头拍板 → brief.publish（by:'verbal' + verbal.quote），等价、可不发门；
-// - publish 由工具 upsert step-0-brief 节点（done + meta.version），Agent 不手拼节点、不连边；
-// - 第 0 步全程不触媒体（comfyui/asset/task）；
-// - pending 门恢复：recover 后重挂同一 gateId 并可继续裁决。
+// feature-015 · 非阻塞确认门编排契约（契约 §3/§6）
+// 仓库内编排由 showrunner prompt 驱动，这里以脚本化 fake showrunner + 工具调用记录锁定职责：
+// - gate.request 只返回 pending；发门即回合收尾，不在同一轮等待裁决或继续调用工具。
+// - 首版按钮路径由系统发布并推进；再版按钮路径仅确认，Agent 下一轮三选一后 impact.commit。
+// - 1-a~2-b 由系统推进 manifest，Agent 只负责正文、done 节点与依赖边。
+// - 口头拍板与历史无草案首版门兜底仍走 brief.publish，并自行推进首版 manifest。
 import { describe, expect, it, vi } from 'vitest'
 
 interface CallRecord {
@@ -19,9 +14,11 @@ interface CallRecord {
 interface FakeTools {
   briefPlan: ReturnType<typeof vi.fn>
   briefPublish: ReturnType<typeof vi.fn>
-  briefList: ReturnType<typeof vi.fn>
+  briefImpactAssess: ReturnType<typeof vi.fn>
+  briefImpactCommit: ReturnType<typeof vi.fn>
   manifestGet: ReturnType<typeof vi.fn>
   manifestAdvance: ReturnType<typeof vi.fn>
+  canvasGet: ReturnType<typeof vi.fn>
   fileWrite: ReturnType<typeof vi.fn>
   gateRequest: ReturnType<typeof vi.fn>
   canvasUpdate: ReturnType<typeof vi.fn>
@@ -40,9 +37,11 @@ function makeTools(): FakeTools {
   return {
     briefPlan: track('shortdrama_brief.plan'),
     briefPublish: track('shortdrama_brief.publish'),
-    briefList: track('shortdrama_brief.list'),
+    briefImpactAssess: track('shortdrama_brief.impact.assess'),
+    briefImpactCommit: track('shortdrama_brief.impact.commit'),
     manifestGet: track('shortdrama_manifest.get'),
     manifestAdvance: track('shortdrama_manifest.advance'),
+    canvasGet: track('shortdrama_canvas_get'),
     fileWrite: track('shortdrama_file_write'),
     gateRequest: track('shortdrama_gate_request'),
     canvasUpdate: track('shortdrama_canvas_update'),
@@ -57,7 +56,7 @@ const DRAFT = {
   kind: 'commercial',
   fiveElements: {
     genre: '校园恋爱', platforms: ['抖音'], episodeDuration: '90 秒',
-    episodeCount: '8 集', tone: '清新治愈', aspectRatio: '9:16',
+    episodeCount: '8 集', tone: '清新治愈', aspectRatio: '竖屏 9:16',
   },
   premise: {
     leads: '安妮 18 / 林屿 19', time: '今夏', place: '海边小城',
@@ -66,255 +65,247 @@ const DRAFT = {
   style: { mainStyleId: 'A7', catalogVersion: 'v1.46' },
 }
 
-/**
- * 脚本化 fake showrunner：严格复刻 showrunner.md「第 0 步立项剧本」。
- * ①入口反问 → ②选题诊断/六要素草案（纯对话态）→ ③故事前提收敛 → brief.plan 自检
- * → ready 则发唯一 0-final 门 → approved/rejected 后 brief.publish。
- * decisions 提供 0-final 每次请求的裁决序列。
- */
+type GateScene = 'pending' | 'approved' | 'rejected'
+
+function readScene(t: FakeTools): void {
+  t.canvasGet()
+  t.manifestGet()
+}
+
+function requestBriefGate(t: FakeTools, version: number): void {
+  if (version > 1) t.briefImpactAssess({ draft: DRAFT })
+  t.gateRequest({
+    gateId: '0-final',
+    options: [`发布立项 v${version}`, '再改改'],
+    payload: {
+      version,
+      pendingMarks: [],
+      changesFromPrevious: [],
+      ...(version > 1 ? { impactSummary: { counts: { high: 1, medium: 0 }, items: [{}] } } : {}),
+      draft: DRAFT,
+    },
+  })
+  // 工具只返回 pending；此处本轮立即收尾，不发布、不推进、不等待人工结果。
+}
+
+/** 第 0 步首/再版按钮路径；resume 模拟用户下一轮发「继续」后读到的门态。 */
 function runStep0(
   t: FakeTools,
-  opts: { ready: boolean; decisions?: ('approved' | 'rejected')[]; verbal?: string; version?: number },
+  opts: { ready: boolean; verbal?: string; version?: number; resume?: GateScene },
 ): void {
-  // brief.plan 自检：未就绪 → 追问，绝不发门（本脚本直接结束推进）
   t.briefPlan(DRAFT)
   if (!opts.ready) return
-
-  // feature-801：publish 返回的版本号决定是否推进状态机（仅 v1 推进）
   const version = opts.version ?? 1
-  const afterPublish = () => {
-    if (version === 1) t.manifestAdvance({ event: 'brief-published' })
-  }
 
   if (opts.verbal !== undefined) {
-    // 口头拍板：不发门，直接 publish 并携带用户原话
     t.briefPublish({ ...DRAFT, approve: { by: 'verbal', verbal: { quote: opts.verbal } } })
-    afterPublish()
+    if (version === 1) t.manifestAdvance({ event: 'brief-published' })
     return
   }
 
-  const decisions = opts.decisions ?? ['approved']
-  let attempt = 0
-  let decision: 'approved' | 'rejected' = 'rejected'
-  for (;;) {
-    t.gateRequest({
-      gateId: '0-final',
-      options: ['发布立项 v' + version, '再改改'],
-      payload: { version, pendingMarks: [], changesFromPrevious: [] },
-    })
-    decision = decisions[Math.min(attempt, decisions.length - 1)]
-    attempt += 1
-    if (decision === 'approved') break
-    // rejected：改完以同一 gateId 重开，不新增 / 跳 / 并门
+  requestBriefGate(t, version)
+  if (!opts.resume) return
+
+  readScene(t)
+  if (opts.resume === 'pending') return
+  if (opts.resume === 'rejected') {
+    // 读取 note 改草案，重新自检后以同一 gateId 重开；本轮同样在发门后结束。
+    t.briefPlan(DRAFT)
+    requestBriefGate(t, version)
+    return
   }
 
-  t.briefPublish({ ...DRAFT, approve: { by: 'gate' } })
-  afterPublish()
+  if (version === 1) {
+    // 系统已发布 v1、upsert 节点并推进 manifest；Agent 只读现场汇报。
+    return
+  }
+
+  // 再版 approved 后先向用户呈报取消 / 仅标记 / 重生成三选一；以下为选择后的唯一发布调用。
+  t.briefImpactCommit({
+    draft: DRAFT,
+    approve: { by: 'gate' },
+    decisions: [{ nodeId: 'step-1-outline', decision: 'regenerate' }],
+  })
 }
 
-/**
- * feature-801 · STAGE 1-2 门后推进脚本（复刻 showrunner.md 第 1/2 步 approved 收尾）。
- * 每道 approved 门：先 canvas_update 置 done（2 步还建依赖边），再 manifest.advance 固定事件；
- * rejected 则以同一 gateId 重开，全程零 advance。
- */
+/** 历史无草案首版 approved 门的兼容兜底，不适用于再版。 */
+function runLegacyApprovedV1(t: FakeTools): void {
+  readScene(t)
+  t.briefPublish({ ...DRAFT, approve: { by: 'gate' } })
+  t.manifestAdvance({ event: 'brief-published' })
+}
+
+/** 第 1/2 步：门已通过由系统推进；Agent 仅确认/补齐 done 节点与依赖边。 */
 function runStage12(
   t: FakeTools,
   opts: { gates: ('1-a' | '1-b' | '2-a' | '2-b')[]; rejectedAt?: ('1-a' | '1-b' | '2-a' | '2-b')[] },
 ): void {
   const rejectedAt = new Set(opts.rejectedAt ?? [])
-  const waitGate = (gateId: '1-a' | '1-b' | '2-a' | '2-b') => {
+  const completeGate = (
+    gateId: '1-a' | '1-b' | '2-a' | '2-b',
+    nodeId: string,
+    edge?: { from: string; to: string; auto: true },
+  ) => {
     t.gateRequest({ gateId })
-    if (rejectedAt.has(gateId)) t.gateRequest({ gateId }) // rejected：同一 gateId 重开，approved 后继续
+    if (rejectedAt.has(gateId)) t.gateRequest({ gateId })
+    readScene(t)
+    t.canvasUpdate({ nodes: [{ id: nodeId, status: 'done' }], ...(edge ? { edges: [edge] } : {}) })
+    // 不调 manifest.advance：对应事件已由系统在裁决时推进。
   }
+
   if (!opts.gates.includes('1-a')) return
-  waitGate('1-a')
-  t.manifestAdvance({ event: 'outline-approved' })
+  completeGate('1-a', 'step-1-outline')
   if (!opts.gates.includes('1-b')) return
-  waitGate('1-b')
-  t.manifestAdvance({ event: 'profiles-approved' })
+  completeGate('1-b', 'step-1-profiles')
   if (!opts.gates.includes('2-a')) return
-  waitGate('2-a')
-  t.canvasUpdate({ nodes: [{ id: 'step-2-scenes', status: 'done' }], edges: [{ from: 'step-1-profiles', to: 'step-2-scenes', auto: true }] })
-  t.manifestAdvance({ event: 'scenes-approved' })
+  completeGate('2-a', 'step-2-scenes', { from: 'step-1-profiles', to: 'step-2-scenes', auto: true })
   if (!opts.gates.includes('2-b')) return
-  waitGate('2-b')
-  t.canvasUpdate({ nodes: [{ id: 'step-2-dialogue', status: 'done' }], edges: [{ from: 'step-2-scenes', to: 'step-2-dialogue', auto: true }] })
-  t.manifestAdvance({ event: 'dialogue-approved' })
+  completeGate('2-b', 'step-2-dialogue', { from: 'step-2-scenes', to: 'step-2-dialogue', auto: true })
 }
 
-/** 恢复续跑：存在 pending 0-final 门时，用同一 gateId 重新 gate.request（不重做产物）。 */
-function runResume(t: FakeTools, decision: 'approved' | 'rejected'): void {
-  t.gateRequest({ gateId: '0-final' })
-  if (decision === 'rejected') t.gateRequest({ gateId: '0-final' })
-  if (decision === 'approved') t.briefPublish({ ...DRAFT, approve: { by: 'gate' } })
-}
-
-describe('feature-001 · showrunner 第 0 步编排契约（单定案门模型）', () => {
-  it('反问 / 诊断 / 前提阶段不建门：未就绪只追问，无任何 gate.request', () => {
+describe('feature-015 · showrunner 第 0 步非阻塞编排', () => {
+  it('未就绪只追问，不发门、不发布、不推进', () => {
     const t = makeTools()
     runStep0(t, { ready: false })
-
-    expect(t.calls.filter(c => c.tool === 'shortdrama_gate_request')).toHaveLength(0)
-    expect(t.briefPlan).toHaveBeenCalledTimes(1)
+    expect(t.gateRequest).not.toHaveBeenCalled()
     expect(t.briefPublish).not.toHaveBeenCalled()
+    expect(t.manifestAdvance).not.toHaveBeenCalled()
   })
 
-  it('就绪 → 唯一 0-final 门 → approved → brief.publish(by:gate)，不 file.write 立项单、节点由工具 upsert', () => {
+  it('首版按钮路径：发门即收尾，payload 携带完整 draft；Agent 不发布、不推进、不手写节点', () => {
     const t = makeTools()
     runStep0(t, { ready: true })
 
-    const gateSeq = t.calls.filter(c => c.tool === 'shortdrama_gate_request').map(c => c.args.gateId)
-    expect(gateSeq).toEqual(['0-final'])
-
-    expect(t.briefPublish).toHaveBeenCalledTimes(1)
-    const pubArgs = t.briefPublish.mock.calls[0][0] as { approve: { by: string } }
-    expect(pubArgs.approve.by).toBe('gate')
-
-    // 不再手写立项单文件，也不手拼 canvas 节点（publish 工具内部完成 upsert）
-    const writes = t.calls.filter(c => c.tool === 'shortdrama_file_write').map(c => c.args.path)
-    expect(writes.some(p => typeof p === 'string' && p.includes('立项单'))).toBe(false)
-    expect(t.calls.some(c => c.tool === 'shortdrama_canvas_update')).toBe(false)
-
-    // 门必须先于 publish
-    const gateIdx = t.calls.findIndex(c => c.tool === 'shortdrama_gate_request')
-    const pubIdx = t.calls.findIndex(c => c.tool === 'shortdrama_brief.publish')
-    expect(pubIdx).toBeGreaterThan(gateIdx)
+    expect(t.gateRequest).toHaveBeenCalledTimes(1)
+    const args = t.gateRequest.mock.calls[0][0] as {
+      gateId: string
+      payload: { version: number; draft: Record<string, unknown> }
+    }
+    expect(args.gateId).toBe('0-final')
+    expect(args.payload.version).toBe(1)
+    expect(args.payload.draft).toEqual(DRAFT)
+    expect(args.payload.draft).not.toHaveProperty('approve')
+    expect(t.briefPublish).not.toHaveBeenCalled()
+    expect(t.manifestAdvance).not.toHaveBeenCalled()
+    expect(t.fileWrite).not.toHaveBeenCalled()
+    expect(t.canvasUpdate).not.toHaveBeenCalled()
+    expect(t.calls.at(-1)!.tool).toBe('shortdrama_gate_request')
   })
 
-  it('口头拍板等价：不发门，直接 brief.publish(by:verbal + verbal.quote)', () => {
+  it('首版下一轮读到 approved：只读现场，不重复 publish / advance', () => {
+    const t = makeTools()
+    runStep0(t, { ready: true, resume: 'approved' })
+    expect(t.canvasGet).toHaveBeenCalledTimes(1)
+    expect(t.manifestGet).toHaveBeenCalledTimes(1)
+    expect(t.briefPublish).not.toHaveBeenCalled()
+    expect(t.briefImpactCommit).not.toHaveBeenCalled()
+    expect(t.manifestAdvance).not.toHaveBeenCalled()
+  })
+
+  it('再版按钮路径：发门后 approved 才进入三选一，由 impact.commit 唯一发布', () => {
+    const t = makeTools()
+    runStep0(t, { ready: true, version: 2, resume: 'approved' })
+    expect(t.briefImpactAssess).toHaveBeenCalledTimes(1)
+    expect(t.briefImpactCommit).toHaveBeenCalledTimes(1)
+    expect(t.briefImpactCommit.mock.calls[0][0]).toMatchObject({
+      draft: DRAFT,
+      approve: { by: 'gate' },
+      decisions: [{ nodeId: 'step-1-outline', decision: 'regenerate' }],
+    })
+    expect(t.briefPublish).not.toHaveBeenCalled()
+    expect(t.manifestAdvance).not.toHaveBeenCalled()
+    expect(t.calls.findIndex(c => c.tool === 'shortdrama_brief.impact.commit'))
+      .toBeGreaterThan(t.calls.findIndex(c => c.tool === 'shortdrama_canvas_get'))
+  })
+
+  it('pending 恢复只读现场，不重发门、不重挂等待', () => {
+    const t = makeTools()
+    runStep0(t, { ready: true, resume: 'pending' })
+    expect(t.gateRequest).toHaveBeenCalledTimes(1)
+    expect(t.canvasGet).toHaveBeenCalledTimes(1)
+    expect(t.briefPublish).not.toHaveBeenCalled()
+    expect(t.briefImpactCommit).not.toHaveBeenCalled()
+  })
+
+  it('rejected 后改草案并以同一 0-final 重开；approved 前零发布零推进', () => {
+    const t = makeTools()
+    runStep0(t, { ready: true, resume: 'rejected' })
+    expect(t.gateRequest.mock.calls.map(c => c[0].gateId)).toEqual(['0-final', '0-final'])
+    expect(t.briefPlan).toHaveBeenCalledTimes(2)
+    expect(t.briefPublish).not.toHaveBeenCalled()
+    expect(t.briefImpactCommit).not.toHaveBeenCalled()
+    expect(t.manifestAdvance).not.toHaveBeenCalled()
+  })
+
+  it('口头首版保留：不发门，brief.publish(by:verbal) 后自行推进 brief-published', () => {
     const t = makeTools()
     runStep0(t, { ready: true, verbal: '行，开始讲故事吧' })
-
-    expect(t.calls.filter(c => c.tool === 'shortdrama_gate_request')).toHaveLength(0)
+    expect(t.gateRequest).not.toHaveBeenCalled()
     expect(t.briefPublish).toHaveBeenCalledTimes(1)
-    const pubArgs = t.briefPublish.mock.calls[0][0] as {
-      approve: { by: string; verbal?: { quote: string } }
-    }
-    expect(pubArgs.approve).toMatchObject({ by: 'verbal', verbal: { quote: '行，开始讲故事吧' } })
+    expect(t.briefPublish.mock.calls[0][0].approve).toMatchObject({
+      by: 'verbal', verbal: { quote: '行，开始讲故事吧' },
+    })
+    expect(t.manifestAdvance).toHaveBeenCalledWith({ event: 'brief-published' })
   })
 
-  it('rejected：以同一 gateId 0-final 重开，不新增 / 跳 / 并门；approved 后才 publish', () => {
+  it('口头再版仍由 brief.publish 发布但不重复推进阶段事件', () => {
     const t = makeTools()
-    runStep0(t, { ready: true, decisions: ['rejected', 'rejected', 'approved'] })
-
-    const gateSeq = t.calls.filter(c => c.tool === 'shortdrama_gate_request').map(c => c.args.gateId)
-    expect(gateSeq).toEqual(['0-final', '0-final', '0-final'])
-    expect(new Set(gateSeq)).toEqual(new Set(['0-final']))
+    runStep0(t, { ready: true, version: 2, verbal: '就按改后的来' })
     expect(t.briefPublish).toHaveBeenCalledTimes(1)
+    expect(t.briefImpactCommit).not.toHaveBeenCalled()
+    expect(t.manifestAdvance).not.toHaveBeenCalled()
   })
 
-  it('第 0 步不触媒体：无 comfyui / asset / task 调用', () => {
+  it('历史无草案首版 approved 门：保留 brief.publish(by:gate) + 首版 advance 兜底', () => {
     const t = makeTools()
-    runStep0(t, { ready: true, decisions: ['rejected', 'approved'] })
-    expect(t.calls.some(c => c.tool.startsWith('shortdrama_comfyui'))).toBe(false)
-    expect(t.calls.some(c => c.tool.startsWith('shortdrama_asset'))).toBe(false)
-    expect(t.calls.some(c => c.tool === 'task')).toBe(false)
+    runLegacyApprovedV1(t)
+    expect(t.briefPublish).toHaveBeenCalledTimes(1)
+    expect(t.briefPublish.mock.calls[0][0].approve.by).toBe('gate')
+    expect(t.manifestAdvance).toHaveBeenCalledWith({ event: 'brief-published' })
+  })
+
+  it('第 0 步全程不触媒体', () => {
+    const t = makeTools()
+    runStep0(t, { ready: true, resume: 'rejected' })
     expect(t.comfyui).not.toHaveBeenCalled()
     expect(t.asset).not.toHaveBeenCalled()
     expect(t.task).not.toHaveBeenCalled()
   })
-
-  it('恢复续跑：pending 0-final 重挂同一 gateId，approved 后 publish', () => {
-    const t = makeTools()
-    runResume(t, 'approved')
-    expect(
-      t.calls.filter(c => c.tool === 'shortdrama_gate_request').map(c => c.args.gateId),
-    ).toEqual(['0-final'])
-    expect(t.briefPublish).toHaveBeenCalledTimes(1)
-    // 恢复时不重做已挂起产物
-    expect(t.calls.some(c => c.tool === 'shortdrama_file_write')).toBe(false)
-
-    const t2 = makeTools()
-    runResume(t2, 'rejected')
-    expect(
-      t2.calls.filter(c => c.tool === 'shortdrama_gate_request').map(c => c.args.gateId),
-    ).toEqual(['0-final', '0-final'])
-    expect(t2.briefPublish).not.toHaveBeenCalled()
-  })
 })
 
-describe('feature-801 · manifest 状态机推进编排契约（STAGE 0→2 定稿事件序列）', () => {
-  it('全链 v1 立项 + 1-a/1-b/2-a/2-b approved：5 次 advance 事件名与次序固定，且均在各自定稿动作之后', () => {
+describe('feature-015 · STAGE 1-2 系统推进与 Agent 产物职责', () => {
+  it('首版按钮 + 四门全链：Agent 零 manifest.advance，只发门并维护节点/边', () => {
     const t = makeTools()
-    runStep0(t, { ready: true })
+    runStep0(t, { ready: true, resume: 'approved' })
     runStage12(t, { gates: ['1-a', '1-b', '2-a', '2-b'] })
 
-    const events = t.calls
-      .filter(c => c.tool === 'shortdrama_manifest.advance')
-      .map(c => (c.args as { event: string }).event)
-    expect(events).toEqual([
-      'brief-published',
-      'outline-approved',
-      'profiles-approved',
-      'scenes-approved',
-      'dialogue-approved',
-    ])
-
-    // brief-published 紧随 publish；门事件在对应 gate.request approved 之后；2-a/2-b 在 canvas_update 之后
-    const order = (tool: string, pred?: (c: CallRecord) => boolean) =>
-      t.calls.findIndex(c => c.tool === tool && (pred?.(c) ?? true))
-    expect(order('shortdrama_manifest.advance', c => (c.args as { event: string }).event === 'brief-published'))
-      .toBeGreaterThan(order('shortdrama_brief.publish'))
-    for (const [event, gateId] of [
-      ['outline-approved', '1-a'],
-      ['profiles-approved', '1-b'],
-      ['scenes-approved', '2-a'],
-      ['dialogue-approved', '2-b'],
-    ] as const) {
-      const advIdx = t.calls.findIndex(
-        c => c.tool === 'shortdrama_manifest.advance' && (c.args as { event: string }).event === event,
-      )
-      // 该门最后一次 gate.request（rejected 重开可能多次）
-      const gateIdx = t.calls.reduce(
-        (acc, c, i) => (c.tool === 'shortdrama_gate_request' && c.args.gateId === gateId ? i : acc), -1,
-      )
-      expect(gateIdx).toBeGreaterThanOrEqual(0)
-      expect(advIdx).toBeGreaterThan(gateIdx)
-    }
-    // 末事件 dialogue-approved 不出现 storyboard-finalized（2-c 随 feature-201 启用）
-    expect(events).not.toContain('storyboard-finalized')
+    expect(t.manifestAdvance).not.toHaveBeenCalled()
+    expect(t.gateRequest.mock.calls.map(c => c[0].gateId)).toEqual(['0-final', '1-a', '1-b', '2-a', '2-b'])
+    expect(t.canvasUpdate).toHaveBeenCalledTimes(4)
+    expect(t.canvasUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      edges: [{ from: 'step-1-profiles', to: 'step-2-scenes', auto: true }],
+    }))
+    expect(t.canvasUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      edges: [{ from: 'step-2-scenes', to: 'step-2-dialogue', auto: true }],
+    }))
   })
 
-  it('门 rejected 路径零 advance（门未 approved 不推进），approved 后该门才补推进', () => {
+  it('rejected 重开不产生 Agent 推进；四门 approved 后仍由系统各推一次', () => {
     const t = makeTools()
     runStage12(t, { gates: ['1-a', '1-b', '2-a', '2-b'], rejectedAt: ['1-a', '2-b'] })
-
-    const events = t.calls
-      .filter(c => c.tool === 'shortdrama_manifest.advance')
-      .map(c => (c.args as { event: string }).event)
-    // rejected 不产生额外事件；approved 收尾后四事件各一次、次序不变
-    expect(events).toEqual(['outline-approved', 'profiles-approved', 'scenes-approved', 'dialogue-approved'])
-  })
-
-  it('立项未就绪 / 0-final rejected 未 approved：不产生 brief-published', () => {
-    const notReady = makeTools()
-    runStep0(notReady, { ready: false })
-    expect(notReady.manifestAdvance).not.toHaveBeenCalled()
-
-    // 0-final 单次 rejected（未 approved，脚本不走到 publish）
-    const rejected = makeTools()
-    rejected.gateRequest({ gateId: '0-final' })
-    expect(rejected.manifestAdvance).not.toHaveBeenCalled()
-  })
-
-  it('publish v2+（立项后变更再版）不产生第二次 brief-published', () => {
-    const t = makeTools()
-    runStep0(t, { ready: true, version: 2 })
-    expect(t.briefPublish).toHaveBeenCalledTimes(1)
     expect(t.manifestAdvance).not.toHaveBeenCalled()
-
-    // 口头拍板再版同样不推进
-    const t2 = makeTools()
-    runStep0(t2, { ready: true, version: 2, verbal: '就按改后的来' })
-    expect(t2.manifestAdvance).not.toHaveBeenCalled()
+    expect(t.gateRequest.mock.calls.map(c => c[0].gateId)).toEqual([
+      '1-a', '1-a', '1-b', '2-a', '2-b', '2-b',
+    ])
   })
 
-  it('partial：仅走到 1-b 时只出现前 3 个事件（含立项），无下游事件', () => {
+  it('口头首版 + 四门：Agent 仅推进一次 brief-published，不重复推进四门事件', () => {
     const t = makeTools()
-    runStep0(t, { ready: true })
+    runStep0(t, { ready: true, verbal: '开始' })
     runStage12(t, { gates: ['1-a', '1-b'] })
-    expect(
-      t.calls.filter(c => c.tool === 'shortdrama_manifest.advance').map(c => (c.args as { event: string }).event),
-    ).toEqual(['brief-published', 'outline-approved', 'profiles-approved'])
+    expect(t.manifestAdvance.mock.calls.map(c => c[0].event)).toEqual(['brief-published'])
+    expect(t.manifestAdvance).not.toHaveBeenCalledWith({ event: 'outline-approved' })
+    expect(t.manifestAdvance).not.toHaveBeenCalledWith({ event: 'profiles-approved' })
+    expect(t.manifestAdvance).not.toHaveBeenCalledWith({ event: 'storyboard-finalized' })
   })
 })

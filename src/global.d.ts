@@ -115,6 +115,10 @@ declare global {
     counts: { high: number; medium: number }
     items: ImpactSummaryItemDto[]
   }
+  // feature-015 · 裁决后置动作结果（IPC 推送体，不进 shared；K1 零触发）
+  type GateExecutionDto =
+    | { ok: true; summary: string }
+    | { ok: false; code: string; message: string; revertToPending?: boolean }
   interface Window {
     api: {
       // 项目库（feature-011 F13）
@@ -238,8 +242,13 @@ declare global {
           gateId: string
           decision: 'approved' | 'rejected'
           note?: string
-        }): Promise<{ ok: true }>
-        onChanged(cb: (e: { gate: CanvasGate; title?: string }) => void): () => void
+        }): Promise<{ ok: true; ignored?: boolean; execution?: GateExecutionDto }>
+        onChanged(cb: (e: {
+          gate: CanvasGate
+          title?: string
+          reopened?: boolean
+          execution?: GateExecutionDto
+        }) => void): () => void
       }
       asset: {
         list(kind?: AssetIndexItem['kind']): Promise<AssetIndexItem[]>

@@ -204,7 +204,7 @@ describe('版本扫描与 planBrief（契约 §3.1/§3.3/§8）', () => {
     expect(r.warnings).toEqual([])
   })
 
-  it('按 N 升序解析；损坏文件跳过并 warning；plan 给出 nextVersion 与 diff', async () => {
+  it('按 N 升序列举（仅文件名+元数据；损坏内容在本层不可见照常列入、无 warnings）；plan 给出 nextVersion 与 diff', async () => {
     const dir = path.join(tmpRoot, 'proj-a')
     await fsp.mkdir(dir, { recursive: true })
     await fsp.writeFile(path.join(dir, '立项单.v1.json'), JSON.stringify(fullBrief(1)))
@@ -212,11 +212,12 @@ describe('版本扫描与 planBrief（契约 §3.1/§3.3/§8）', () => {
     await fsp.writeFile(path.join(dir, '立项单.v2.json'), '{坏 json')
 
     const r = await listBriefVersions(dir)
-    expect(r.versions.map(v => v.version)).toEqual([1, 3])
+    expect(r.versions.map(v => v.version)).toEqual([1, 2, 3])
     expect(r.latestVersion).toBe(3)
-    expect(r.versions[1]).toMatchObject({ kind: 'memorial', approveBy: 'verbal', path: '立项单.v3.json' })
-    expect(r.warnings).toHaveLength(1)
-    expect(r.warnings[0]).toContain('立项单.v2.json')
+    expect(r.warnings).toEqual([])
+    // 内容字段不来自全文：publishedAt=文件 mtime；kind/approveBy 为占位值
+    expect(r.versions[2]).toMatchObject({ kind: 'commercial', approveBy: 'gate', path: '立项单.v3.json' })
+    expect(Date.parse(r.versions[2]!.publishedAt)).toBeGreaterThan(Date.parse('2026-11-01T00:00:00.000Z') - 60_000)
 
     const plan = await planBrief(dir, fullDraft({ kind: 'commercial' }))
     expect(plan.ready).toBe(true)

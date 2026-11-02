@@ -86,7 +86,7 @@ describe('feature-012 · GateCardView 影响清单区（契约 §3.1）', () => 
       harnessValidation: { checkedAt: '2026-10-28T09:00:00.000Z', findings: [FINDING_BLOCKER] },
     })} deciding={false} onDecide={vi.fn()} />)
 
-    expect(screen.getByText('已确认 · 下游 Agent 已接管')).toBeInTheDocument()
+    expect(screen.getByText('已确认 · 等待下一步')).toBeInTheDocument()
     expect(impactBlock()).not.toBeNull()
     expect(harnessBlock()).not.toBeNull()
     expect(screen.getByText(FINDING_BLOCKER.message)).toBeInTheDocument()

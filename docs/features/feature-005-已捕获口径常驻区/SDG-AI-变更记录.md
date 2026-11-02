@@ -167,3 +167,36 @@
 **测试**：[capture-bar.test.tsx](../../../src/studio/stage0/capture-bar.test.tsx) 既有展开用例增 4 条中文标签断言（genre→题材赛道、episodeCount→集数、seasonBoundary→本季边界、tone→风格基调，并断言英文裸词 genre 不再出现），placeholder 引用同步改「内容」；B-52 组件用例落 feature-013 stage0-view 套件。最终全量 **76 文件 937 passed / 0 failed / 1 skipped**，typecheck 恰 3 条历史基线零新增；真机目验待用户执行。
 
 **偏差登记**：[设计现状与偏差清单.md](../../设计现状与偏差清单.md) B-51、B-52（均 ✅ 已解决）。
+
+### X-002 B-57/F2 · capture.upsert_many 批量落盘 + 返回全量（2026-11-01，✅）
+
+**背景**：真机审计（test 项目立项对话，偏差 B-57 第 ⑤ 项）——showrunner 从用户单轮话语中常提取多条口径，既有 `capture.upsert` 单条通道须 N 次「读全量 → 改一条 → 全量写盘 → 全量广播」，磁盘与广播开销随条数线性放大；且 upsert 仅返回单条事实，Agent 落库后无法直接得到全量口径，须再调 `capture.list`。
+
+**落地（store.ts 仍为本包唯一读写点）**：
+- [store.ts](../../../electron/capture/store.ts) 新增 `upsertMany(inputs)`——同一写队列内**一次读入**，抽提共用的纯内存 `applyUpsert`（单条 U1–U4 语义原样下沉，upsert 同步改为调用），**同一时间戳顺序套用 N 条**（前条新建/更新对后条可见，topic 可匹配前条产物），**一次写盘、一次广播**；任一条静态校验失败抛错且零写盘。
+- 返回形状：upsertMany → `{ facts, file }`（facts 按入参顺序，file 为写后全量 CaptureFile，无需再 list）；既有 upsert 同步扩为 `{ fact, file }` 全量返回（调用方随动，remove 形状不变）。
+- [tools.ts](../../../electron/mcp/tools.ts) 注册 `shortdrama_capture.upsert_many`（K8 新增 1 工具：全仓 28→29）；按 D-012 argsPreview 白名单口径，`items` 为批量载荷永不落摘要（空白名单）。
+- [provider.ts](../../../electron/runtime/provider.ts) `SHOWRUNNER_DECLARED_TOOLS` 同步 +1；showrunner frontmatter tools + permission 双区授权（提示词层联动登记归 [feature-001 R-009](../feature-001-立项模型重建/SDG-AI-变更记录.md)）。
+
+**卡口**：**K8 触发**（新增 1 MCP 工具，用户已随 B-57 批准；本登记即凭据）；K1/K9 零触发——CaptureFile / CapturedFact / CaptureUpsertInput 形状零 diff，无新 IPC、无新依赖。
+
+**测试**：[capture-store.test.ts](../../../src/test/capture/capture-store.test.ts) 增 upsert_many 用例（多条一次写盘、前条对后条可见、任一失败零写盘、返回全量 file）；[mcp-pure-tools.test.ts](../../../src/test/mcp/mcp-pure-tools.test.ts) 计数 28→29 + names 补项；runtime-client / runtime-integration 白名单计数与排序清单同步。最终全量 **76 文件 950 passed / 0 failed / 1 skipped**，typecheck 恰 3 条历史基线零新增；真机目验待用户执行。
+
+**偏差登记**：[设计现状与偏差清单.md](../../设计现状与偏差清单.md) B-57（✅ 已解决）。
+
+### X-003 B-64 · 「其他口径」英文键名中文化 + topic canonical 约束（2026-11-01，✅）
+
+- **现象**：真机截图「其他口径 · 3 条」出现 `kind` / `revengeTarget` / `style.mainStyleId` 英文键名，与六要素 / 前提区的中文标签不一致。
+- **根因**：[chain.ts](../../../src/studio/stage0/chain.ts) `TOPIC_LABELS` 只由六要素 / 前提字段 + `kind` 拼成，缺 `style.*` 映射；[Stage0View.tsx](../../../src/studio/stage0/Stage0View.tsx) unmatched 行直接渲染 `f.topic` 原文，未过 `captureTopicLabel`（CaptureBar 已是正确用法）；提示词侧允许 Agent 自造英文键。
+- **修复**：`TOPIC_LABELS` 增补 `style.mainStyleId`（主风格）/ `style.auxiliaryStyleId`（辅助风格）/ `style.catalogVersion`（谱系版本），与 [select.ts](../../../src/studio/stage0/select.ts) 脏字段表同源；unmatched 行改用 `captureTopicLabel`；[showrunner.md](../../../resources/opencode/agents/showrunner.md) 纪律 11 增 canonical 键约束（词表覆盖的事实必须用 canonical 键，词表外事实自取中文短词，禁自造英文键）。
+- **卡口**：纯 renderer 映射 + 提示词，**K1/K8/K9 零触发**（`CapturedFact` 形状零 diff）。
+- **验证**：[stage0-chain.test.tsx](../../../src/studio/stage0/stage0-chain.test.tsx) 新增 1 例（canonical 中文化、中文 topic 原样、未知英文键不臆造回退）；全量 **77 文件 959 passed**，typecheck 恰 3 条历史基线零新增。
+- **遗留**：历史已写入的自造英文键（如 `revengeTarget`）无法离线翻译，原样保留；由 X-004（B-65）存量兼容映射处理。
+
+### X-004 B-65 · 存量自造英文键 `revengeTarget` 中文化（2026-11-01，✅）
+
+- **现象**：X-003 修复后，右栏「其他口径」仍有一条 `revengeTarget` 显示英文键名——它是早期 Agent 自造并已落盘 `已捕获口径.json` 的历史事实，不在 canonical 词表内。
+- **根因**：[chain.ts](../../../src/studio/stage0/chain.ts) `captureTopicLabel` 未命中 `TOPIC_LABELS` 即回退原 topic（「不臆造名称」的保守策略），对存量英文键没有兜底；数据已落盘无法离线改写。
+- **修复**：新增 `LEGACY_TOPIC_LABELS` 存量兼容表（`revengeTarget` → 复仇对象），仅做旧数据映射、不随新字段扩张（新口径由 X-003 的提示词 canonical 约束禁止自造英文键）；[Stage0View.tsx](../../../src/studio/stage0/Stage0View.tsx) unmatched 行补 `title`（`字段：<原键>`），与 [CaptureBar.tsx](../../../src/studio/stage0/CaptureBar.tsx) 同约定，保留原始键可追溯。
+- **卡口**：纯 renderer 映射，**K1/K8/K9 零触发**（`CapturedFact` 形状与落盘格式零 diff）。
+- **验证**：[stage0-chain.test.tsx](../../../src/studio/stage0/stage0-chain.test.tsx) 该用例改为断言 `revengeTarget → 复仇对象`，另以 `budget` 断言未登记 topic 仍原样回退；stage0 五文件 **109 passed**，typecheck 恰 3 条历史基线零新增。

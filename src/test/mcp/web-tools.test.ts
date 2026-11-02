@@ -1,4 +1,4 @@
-// feature-006 · Bing 国内搜索与公开网页抓取契约（契约 §2.2/§5）
+// feature-006 · Bing 搜索与公开网页抓取契约（契约 §2.2/§5；B-58 起走 www.bing.com）
 // 零外网：fetchImpl 依赖注入 mock；纯函数零项目上下文。
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -70,12 +70,12 @@ describe('文本工具函数', () => {
 })
 
 describe('webSearch 形状与错误信封', () => {
-  it('正常路径：请求 Bing 国内站（query 编码）并回结果列表', async () => {
+  it('正常路径：请求 www.bing.com（query 编码 + setlang=zh-CN）并回结果列表', async () => {
     const fetchImpl = mockFetchWithHtml(BING_HTML)
     const results = await webSearch('逆袭 短剧', fetchImpl)
     expect(results).toHaveLength(2)
     const calledUrl = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0] as string
-    expect(calledUrl).toBe(`https://cn.bing.com/search?q=${encodeURIComponent('逆袭 短剧')}`)
+    expect(calledUrl).toBe(`https://www.bing.com/search?q=${encodeURIComponent('逆袭 短剧')}&setlang=zh-CN`)
   })
 
   it('空检索词 → INVALID_ARGUMENT（不发请求）', async () => {
@@ -94,10 +94,16 @@ describe('webSearch 形状与错误信封', () => {
     await expect(webSearch('x', fetchImpl)).rejects.toMatchObject({ code: 'WEB_SEARCH_FAILED' })
   })
 
-  it('人机验证页 → WEB_SEARCH_FAILED；正常无结果页允许空数组', async () => {
+  it('人机验证页 → WEB_SEARCH_FAILED', async () => {
     await expect(webSearch('x', mockFetchWithHtml('<div id="b_captcha">请输入验证码</div>')))
       .rejects.toMatchObject({ code: 'WEB_SEARCH_FAILED' })
-    await expect(webSearch('x', mockFetchWithHtml('<ol id="b_results"></ol>'))).resolves.toEqual([])
+  })
+
+  it('解析 0 条（壳页 / 空结果页）→ WEB_SEARCH_FAILED，不回空数组冒充成功（B-58）', async () => {
+    await expect(webSearch('x', mockFetchWithHtml('<ol id="b_results"></ol>')))
+      .rejects.toMatchObject({ code: 'WEB_SEARCH_FAILED' })
+    await expect(webSearch('x', mockFetchWithHtml('<html><body><form id="sb_form"></form><script>location.href="..."</script></body></html>')))
+      .rejects.toMatchObject({ code: 'WEB_SEARCH_FAILED' })
   })
 })
 

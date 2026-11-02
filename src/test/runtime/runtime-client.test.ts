@@ -323,11 +323,10 @@ describe('prompt / promptAsync 边界与透传', () => {
     })
   })
 
-  it('feature-802 · showrunner 风格谱系三物理工具（style 三件套）放行', async () => {
+  it('feature-802 · showrunner 风格谱系两物理工具（catalog + validate）放行；style.get 已收回（B-57 F4）', async () => {
     const { client, state } = makeFakeClient()
     const tools = [
       'shortdrama_style.catalog',
-      'shortdrama_style.get',
       'shortdrama_style.validate',
     ]
     const r = await client.promptAsync({ ...baseReq, agent: 'showrunner', tools })
@@ -336,9 +335,12 @@ describe('prompt / promptAsync 边界与透传', () => {
     expect(body.agent).toBe('showrunner')
     expect(body.tools).toEqual({
       'shortdrama_style.catalog': true,
-      'shortdrama_style.get': true,
       'shortdrama_style.validate': true,
     })
+    // style.get 不在 showrunner 已声明集合 → 请求级拒绝（MCP 工具本体仍保留）
+    await expect(
+      client.promptAsync({ ...baseReq, agent: 'showrunner', tools: ['shortdrama_style.get'] }),
+    ).rejects.toMatchObject({ name: 'INVALID_ARGUMENT' })
   })
 
   it('feature-002 · showrunner 再版三物理工具（impact.assess / impact.commit / canvas.align）放行', async () => {
@@ -536,7 +538,7 @@ describe('listAgents 与连接缓存', () => {
       ],
     })
 
-    // 省略 tools map（实测 REST 行为）→ showrunner 兜底声明常量（23 个物理 ID，feature-006 检索两工具 + feature-806 校验一工具补登）
+    // 省略 tools map（实测 REST 行为）→ showrunner 兜底声明常量（23 个物理 ID，B-57 F4 收回 style.get）
     state.next.agents = [
       { name: 'showrunner', description: 's', mode: 'primary', permission: {}, options: {} },
       { name: 'director', description: 'd', mode: 'primary', permission: {}, options: {} },
@@ -548,8 +550,10 @@ describe('listAgents 与连接缓存', () => {
     expect(agents2[0]!.tools).toHaveLength(23)
     expect(agents2[0]!.tools).toContain('shortdrama_canvas.align')
     expect(agents2[0]!.tools).toContain('shortdrama_capture.upsert')
+    expect(agents2[0]!.tools).toContain('shortdrama_capture.upsert_many')
     expect(agents2[0]!.tools).toContain('shortdrama_web.search')
     expect(agents2[0]!.tools).toContain('shortdrama_harness.validate')
+    expect(agents2[0]!.tools).not.toContain('shortdrama_style.get')
   })
 
   it('连接信息变化（每次重启新口令）→ 重新经工厂创建句柄；口令不进任何结果', async () => {

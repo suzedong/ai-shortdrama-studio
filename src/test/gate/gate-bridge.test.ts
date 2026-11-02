@@ -1,249 +1,181 @@
-import { describe, expect, it, vi, beforeAll } from 'vitest'
+// feature-015 · GateBridge 非阻塞协议（契约 §1/§3/§4）
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import path from 'node:path'
 import fsp from 'node:fs/promises'
 import os from 'node:os'
 
 const holder = vi.hoisted(() => ({ userData: '' }))
+const executeMock = vi.hoisted(() => ({ applyGateDecision: vi.fn() }))
 vi.mock('electron', () => ({
   app: { getPath: () => holder.userData },
 }))
+vi.mock('../../../electron/gate/execute', () => ({
+  applyGateDecision: executeMock.applyGateDecision,
+}))
 
-import { GateBridge } from '../../../electron/gate/bridge'
+import { gateBridge, type GatePushEvent } from '../../../electron/gate/bridge'
 import { canvasStore } from '../../../electron/canvas/store'
 import { writeSessionState } from '../../../electron/project/library'
 import type { CanvasGate } from '../../../shared/types'
 
-let projDir = ''
+let tmpRoot = ''
+let projectSeq = 0
 
 beforeAll(async () => {
-  const tmpRoot = await fsp.mkdtemp(path.join(os.tmpdir(), 'asd-gate-'))
+  tmpRoot = await fsp.mkdtemp(path.join(os.tmpdir(), 'asd-gate-bridge-'))
   holder.userData = path.join(tmpRoot, 'userdata')
-  projDir = path.join(tmpRoot, 'project-gate')
-  await fsp.mkdir(projDir, { recursive: true })
-  writeSessionState({ currentDir: projDir })
 })
 
-function request(b: GateBridge, gateId: string) {
-  return b.request({ gateId, title: '标题', question: '是否通过？', options: ['通过', '打回'] })
+beforeEach(async () => {
+  const projDir = path.join(tmpRoot, `project-${projectSeq++}`)
+  await fsp.mkdir(projDir, { recursive: true })
+  writeSessionState({ currentDir: projDir })
+  canvasStore.reset()
+  gateBridge.clearLive()
+  gateBridge.setGateListener(null)
+  executeMock.applyGateDecision.mockReset()
+  executeMock.applyGateDecision.mockResolvedValue({ ok: true, summary: '后置动作已完成' })
+})
+
+function request(gateId = 'g1') {
+  return gateBridge.request({ gateId, title: '标题', question: '是否通过？', options: ['通过', '打回'] })
 }
 
 async function seedGate(gate: CanvasGate): Promise<void> {
   await canvasStore.upsertGate(gate)
 }
 
-const tick = () => new Promise(r => setTimeout(r, 10))
+describe('feature-015 · GateBridge request 非阻塞与重开', () => {
+  it('request 无人工操作即返回 pending，落盘后不执行后置动作', async () => {
+    const result = await request()
 
-describe('T4 GateBridge', () => {
-  it('request 后 Promise 挂起；decide 解除并回传 decision/note', async () => {
-    const b = new GateBridge()
-    let settled = false
-    const p = request(b, 'g1').then(d => {
-      settled = true
-      return d
-    })
-    await tick()
-    expect(settled).toBe(false)
-
-    // pending 门已写入画布
-    const canvas = await canvasStore.get()
-    expect(canvas.gates.find(g => g.gateId === 'g1')?.status).toBe('pending')
-
-    b.decide('g1', { decision: 'approved', note: 'ok' })
-    await expect(p).resolves.toEqual({ decision: 'approved', note: 'ok' })
-
-    await tick()
-    const after = await canvasStore.get()
-    expect(after.gates.find(g => g.gateId === 'g1')?.status).toBe('approved')
+    expect(result).toMatchObject({ gateId: 'g1', status: 'pending' })
+    expect(Date.parse(result.requestedAt)).not.toBeNaN()
+    const gate = (await canvasStore.get()).gates.find(g => g.gateId === 'g1')
+    expect(gate).toMatchObject({ status: 'pending', question: '是否通过？' })
+    expect(executeMock.applyGateDecision).not.toHaveBeenCalled()
   })
 
-  it('已有 live entry 时重复 request：幂等返回同一 Promise（不拒绝、不重建）', async () => {
-    const b = new GateBridge()
-    const first = request(b, 'g2')
-    await tick()
-    const second = request(b, 'g2')
-    expect(second).toBe(first)
-    b.settleAll()
-    await expect(first).rejects.toMatchObject({ code: 'GATE_TIMEOUT' })
-  })
-
-  it('磁盘 pending 门无 live entry：request 重挂成功，门仍只一条', async () => {
+  it('重复 gateId 覆盖重开，推送 reopened，画布仍只一条门', async () => {
     await seedGate({
-      gateId: 'g4',
-      status: 'pending',
-      question: '旧问题',
-      options: ['A', 'B'],
+      gateId: 'g-reopen', status: 'approved', question: '旧问题', options: ['旧选项'],
     })
-    const b = new GateBridge()
-    const p = request(b, 'g4')
-    await tick()
+    const events: GatePushEvent[] = []
+    gateBridge.setGateListener(e => events.push(e))
 
-    const canvas = await canvasStore.get()
-    expect(canvas.gates.filter(g => g.gateId === 'g4')).toHaveLength(1)
-    // 恢复路径沿用既有门内容
-    expect(canvas.gates.find(g => g.gateId === 'g4')?.question).toBe('旧问题')
-
-    b.decide('g4', { decision: 'rejected' })
-    await expect(p).resolves.toEqual({ decision: 'rejected' })
-  })
-
-  it('approved 门 request → INVALID_ARGUMENT（approved 终态，禁止重开）', async () => {
-    await seedGate({
-      gateId: 'g5',
-      status: 'approved',
-      question: '已决',
-      options: ['A'],
+    const result = await gateBridge.request({
+      gateId: 'g-reopen', title: '再版', question: '新问题', options: ['通过', '打回'], payload: { version: 2 },
     })
-    const b = new GateBridge()
-    await expect(request(b, 'g5')).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' })
-  })
 
-  it('0-final approved + 新版本 > 旧版本：覆盖重开为 pending（再版定案门）', async () => {
-    await seedGate({
-      gateId: '0-final',
-      status: 'approved',
-      question: 'v2 已决',
-      options: ['A'],
-      payload: { version: 2, pendingMarks: [], changesFromPrevious: [] },
-    })
-    const b = new GateBridge()
-    const seen: string[] = []
-    b.setGateListener(e => seen.push(`${e.gate.gateId}:${e.gate.status}`))
-
-    const p = b.request({
-      gateId: '0-final',
-      title: '再版定案',
-      question: 'v3 再版定案卡',
-      options: ['发布 v3', '再改改'],
-      payload: { version: 3, pendingMarks: [], changesFromPrevious: [], impactSummary: { counts: { high: 1, medium: 0 }, items: [] } },
-    })
-    await tick()
-
-    const canvas = await canvasStore.get()
-    const gates = canvas.gates.filter(g => g.gateId === '0-final')
+    expect(result).toMatchObject({ gateId: 'g-reopen', status: 'pending', payload: { version: 2 } })
+    const gates = (await canvasStore.get()).gates.filter(g => g.gateId === 'g-reopen')
     expect(gates).toHaveLength(1)
-    expect(gates[0].status).toBe('pending')
-    expect(gates[0].question).toBe('v3 再版定案卡')
-    expect((gates[0].payload as { version?: number }).version).toBe(3)
-    expect(seen).toContain('0-final:pending')
-
-    b.decide('0-final', { decision: 'approved' })
-    await expect(p).resolves.toEqual({ decision: 'approved' })
+    expect(gates[0]).toMatchObject({ status: 'pending', question: '新问题', options: ['通过', '打回'] })
+    expect(events.at(-1)).toMatchObject({ reopened: true, gate: { gateId: 'g-reopen', status: 'pending' } })
+    expect(executeMock.applyGateDecision).not.toHaveBeenCalled()
   })
+})
 
-  it('0-final approved + 同版本 → INVALID_ARGUMENT（一张门只授权一版）', async () => {
-    await seedGate({
-      gateId: '0-final',
-      status: 'approved',
-      question: 'v2 已决',
-      options: ['A'],
-      payload: { version: 2 },
-    })
-    const b = new GateBridge()
-    await expect(
-      b.request({ gateId: '0-final', question: 'q', options: ['A'], payload: { version: 2 } }),
-    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' })
-  })
+describe('feature-015 · GateBridge decide 幂等、并发与执行结果', () => {
+  it('approved 执行后置并推送 execution；重复 decide 忽略且不重复执行', async () => {
+    await request('g-approved')
+    const events: GatePushEvent[] = []
+    gateBridge.setGateListener(e => events.push(e))
 
-  it('0-final approved + 新版本 ≤ 旧版本 → INVALID_ARGUMENT', async () => {
-    await seedGate({
-      gateId: '0-final',
-      status: 'approved',
-      question: 'v3 已决',
-      options: ['A'],
-      payload: { version: 3 },
-    })
-    const b = new GateBridge()
-    await expect(
-      b.request({ gateId: '0-final', question: 'q', options: ['A'], payload: { version: 2 } }),
-    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' })
-  })
-
-  it('0-final approved + 新 payload 无 version → INVALID_ARGUMENT', async () => {
-    await seedGate({
-      gateId: '0-final',
-      status: 'approved',
-      question: 'v2 已决',
-      options: ['A'],
-      payload: { version: 2 },
-    })
-    const b = new GateBridge()
-    await expect(
-      b.request({ gateId: '0-final', question: 'q', options: ['A'], payload: {} }),
-    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' })
-  })
-
-  it('rejected 门 request：同一 gateId 重开为 pending（不新增门编号），可再次裁决', async () => {
-    await seedGate({
-      gateId: 'g8',
-      status: 'rejected',
-      question: '旧问题',
-      options: ['A', 'B'],
-    })
-    const b = new GateBridge()
-    const seen: string[] = []
-    b.setGateListener(e => seen.push(`${e.gate.gateId}:${e.gate.status}`))
-
-    const p = b.request({
-      gateId: 'g8',
-      title: '标题',
-      question: '新问题',
-      options: ['通过', '打回'],
-    })
-    await tick()
-
-    // 门仍只一条、状态回退 pending、内容被本次请求覆盖
-    const canvas = await canvasStore.get()
-    const gates = canvas.gates.filter(g => g.gateId === 'g8')
-    expect(gates).toHaveLength(1)
-    expect(gates[0].status).toBe('pending')
-    expect(gates[0].question).toBe('新问题')
-    expect(seen).toContain('g8:pending')
-
-    b.decide('g8', { decision: 'approved' })
-    await expect(p).resolves.toEqual({ decision: 'approved' })
-
-    // approved 后即终态：同一 gateId 再请求仍被拒绝
-    await expect(request(b, 'g8')).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' })
-  })
-
-  it('recoverPending：重挂全部无 live entry 的 pending 门并触发监听', async () => {
-    await seedGate({
-      gateId: 'g6',
-      status: 'pending',
-      question: '待恢复',
-      options: ['通过', '打回'],
-    })
-    const b = new GateBridge()
-    const seen: string[] = []
-    b.setGateListener(e => seen.push(e.gate.gateId))
-
-    await b.recoverPending()
-    expect(seen).toContain('g6')
-
-    // 再调一次：有 live entry 的门不重复重挂
-    seen.length = 0
-    await b.recoverPending()
-    expect(seen).not.toContain('g6')
-
-    // 重挂的门可裁决
-    b.decide('g6', { decision: 'approved' })
-    await tick()
-    const canvas = await canvasStore.get()
-    expect(canvas.gates.find(g => g.gateId === 'g6')?.status).toBe('approved')
-  })
-
-  it('decide 不存在的门 → INVALID_ARGUMENT', () => {
-    const b = new GateBridge()
-    expect(() => b.decide('nope', { decision: 'approved' })).toThrowError(
-      expect.objectContaining({ code: 'INVALID_ARGUMENT' }),
+    const result = await gateBridge.decide('g-approved', { decision: 'approved', note: '可以' })
+    expect(result).toEqual({ ok: true, execution: { ok: true, summary: '后置动作已完成' } })
+    expect(executeMock.applyGateDecision).toHaveBeenCalledTimes(1)
+    expect(executeMock.applyGateDecision).toHaveBeenCalledWith(
+      expect.objectContaining({ gateId: 'g-approved', status: 'approved', note: '可以' }),
+      '可以',
     )
+    expect((await canvasStore.get()).gates[0]!.status).toBe('approved')
+    expect(events.at(-1)).toMatchObject({
+      gate: { gateId: 'g-approved', status: 'approved' },
+      execution: { ok: true, summary: '后置动作已完成' },
+    })
+
+    const repeated = await gateBridge.decide('g-approved', { decision: 'approved' })
+    expect(repeated).toEqual({ ok: true, ignored: true })
+    expect(executeMock.applyGateDecision).toHaveBeenCalledTimes(1)
   })
 
-  it('settleAll 把所有 pending 门 reject 为 GATE_TIMEOUT', async () => {
-    const b = new GateBridge()
-    const p = request(b, 'g7')
-    await tick()
-    b.settleAll()
-    await expect(p).rejects.toMatchObject({ code: 'GATE_TIMEOUT' })
+  it('rejected 不执行后置；重复 rejected / approved 均幂等忽略', async () => {
+    await request('g-rejected')
+    const result = await gateBridge.decide('g-rejected', { decision: 'rejected', note: '重写' })
+    expect(result).toEqual({ ok: true })
+    expect(executeMock.applyGateDecision).not.toHaveBeenCalled()
+    expect((await canvasStore.get()).gates[0]).toMatchObject({ status: 'rejected', note: '重写' })
+
+    expect(await gateBridge.decide('g-rejected', { decision: 'approved' })).toEqual({ ok: true, ignored: true })
+    expect(executeMock.applyGateDecision).not.toHaveBeenCalled()
+  })
+
+  it('草案类失败回退 pending，并随最终门卡推送失败原因', async () => {
+    executeMock.applyGateDecision.mockResolvedValue({
+      ok: false, code: 'BRIEF_NOT_READY', message: '草案未就绪', revertToPending: true,
+    })
+    await request('g-revert')
+    const events: GatePushEvent[] = []
+    gateBridge.setGateListener(e => events.push(e))
+
+    const result = await gateBridge.decide('g-revert', { decision: 'approved' })
+    expect(result).toMatchObject({ ok: true, execution: { code: 'BRIEF_NOT_READY' } })
+    expect((await canvasStore.get()).gates[0]!.status).toBe('pending')
+    expect(events.at(-1)).toMatchObject({
+      gate: { status: 'pending' },
+      execution: { ok: false, code: 'BRIEF_NOT_READY', revertToPending: true },
+    })
+  })
+
+  it('执行故障保持 approved，并推送失败 execution', async () => {
+    executeMock.applyGateDecision.mockResolvedValue({
+      ok: false, code: 'HARNESS_VALIDATION_FAILED', message: '基础校验未通过',
+    })
+    await request('g-execution-failed')
+    const result = await gateBridge.decide('g-execution-failed', { decision: 'approved' })
+    expect(result).toMatchObject({ ok: true, execution: { code: 'HARNESS_VALIDATION_FAILED' } })
+    expect((await canvasStore.get()).gates[0]!.status).toBe('approved')
+  })
+
+  it('并发 decide 只执行一次后置动作，后到的调用返回 ignored', async () => {
+    let release!: (value: { ok: true; summary: string }) => void
+    executeMock.applyGateDecision.mockImplementation(() => new Promise(resolve => { release = resolve }))
+    await request('g-concurrent')
+
+    const first = gateBridge.decide('g-concurrent', { decision: 'approved' })
+    await vi.waitFor(() => expect(executeMock.applyGateDecision).toHaveBeenCalledTimes(1))
+    const second = await gateBridge.decide('g-concurrent', { decision: 'approved' })
+    expect(second).toEqual({ ok: true, ignored: true })
+
+    release({ ok: true, summary: '只执行一次' })
+    expect(await first).toEqual({ ok: true, execution: { ok: true, summary: '只执行一次' } })
+    expect(executeMock.applyGateDecision).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('feature-015 · 清态与磁盘恢复', () => {
+  it('clearLive 只清内存：不改门态、不执行后置；recoverPending 后可裁决', async () => {
+    await request('g-recover')
+    gateBridge.clearLive()
+    expect(executeMock.applyGateDecision).not.toHaveBeenCalled()
+    expect((await canvasStore.get()).gates[0]!.status).toBe('pending')
+
+    const events: GatePushEvent[] = []
+    gateBridge.setGateListener(e => events.push(e))
+    await gateBridge.recoverPending()
+    expect(events.map(e => e.gate.gateId)).toContain('g-recover')
+    expect(executeMock.applyGateDecision).not.toHaveBeenCalled()
+
+    await gateBridge.decide('g-recover', { decision: 'approved' })
+    expect(executeMock.applyGateDecision).toHaveBeenCalledTimes(1)
+    expect((await canvasStore.get()).gates[0]!.status).toBe('approved')
+  })
+
+  it('decide 不存在的门抛 INVALID_ARGUMENT，不执行后置', async () => {
+    await expect(gateBridge.decide('missing', { decision: 'approved' })).rejects.toMatchObject({
+      name: 'INVALID_ARGUMENT',
+    })
+    expect(executeMock.applyGateDecision).not.toHaveBeenCalled()
   })
 })

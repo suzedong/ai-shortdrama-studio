@@ -11,6 +11,7 @@ import type { Canvas, CanvasGate, CanvasNode, CaptureFile, CapturedFact, Project
 import Stage0Chain from './Stage0Chain'
 import Stage0View from './Stage0View'
 import {
+  captureTopicLabel,
   gatePayloadVersion,
   matchChainTopic,
   selectChainNodes,
@@ -282,6 +283,19 @@ describe('matchChainTopic / selectChainProgress（AC1）', () => {
     const p = selectChainProgress([fact('f1', '题材'), fact('f2', '人物')])
     expect(p.sixCovered).toEqual(['genre'])
     expect(p.premiseCovered).toEqual(['leads'])
+  })
+
+  it('q6：canonical 中文键（kind / style.*）与存量英文键上屏为中文名，未登记 topic 原样回退', () => {
+    expect(captureTopicLabel('kind')).toBe('项目性质')
+    expect(captureTopicLabel('style.mainStyleId')).toBe('主风格')
+    expect(captureTopicLabel('style.auxiliaryStyleId')).toBe('辅助风格')
+    expect(captureTopicLabel('genre')).toBe('题材赛道')
+    expect(captureTopicLabel('复仇对象')).toBe('复仇对象')
+    // 存量兼容：历史自造英文键上屏中文（B-65）
+    expect(captureTopicLabel('revengeTarget')).toBe('复仇对象')
+    // 未登记 topic 原样回退（不臆造名称）
+    expect(captureTopicLabel('budget')).toBe('budget')
+    expect(captureTopicLabel('  ')).toBe('  ')
   })
 })
 

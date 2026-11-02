@@ -1,176 +1,162 @@
-// feature-018 · GateBridge：pending 门注册表（单次阻塞 + 跨重启重挂恢复）
+// 裁决门桥（feature-015 非阻塞版）——把 MCP 工具调用与 Electron IPC 裁决连接起来
+// 1) Agent 调 gate.request → upsertGate 落 pending → **立即返回**（契约 §1.2，不再等待用户）。
+// 2) renderer 收到门推送后显示门卡片（用户可读）；
+// 3) 用户点按钮 → IPC gate:decide → decide() 写门态 + 执行系统后置动作（execute.ts）。
+// 4) 项目切换 / 关窗 → clearLive() 仅清内存索引，不触发任何门态变更或后置动作。
+//
+// 与旧版（feature-001~014）的根本区别：不再有「调用即等待」的 Promise，
+// 因此 opencode 的 MCP 调用超时（180s）不再可能打到门上；也不存在重挂与 pending 泄漏。
 import type { CanvasGate } from '../../shared/types.js'
 import { canvasStore } from '../canvas/store.js'
-import { BRIEF_FINAL_GATE_ID, gateVersion } from './guard.js'
+import { applyGateDecision, type GateExecution } from './execute.js'
+
+// shared/types.ts 只读：裁决元数据以运行时扩展字段随门落盘，不改共享类型。
+type GateRecord = CanvasGate & {
+  requestedAt?: string
+  decidedAt?: string
+  note?: string
+}
+
+export interface GateRequest {
+  gateId: string
+  title?: string
+  question: string
+  options: string[]
+  /** 结构化负载（版本、diff、变更说明、0-final 草案等） */
+  payload?: unknown
+}
 
 export interface GateDecision {
   decision: 'approved' | 'rejected'
   note?: string
 }
 
-interface PendingEntry {
-  promise: Promise<GateDecision>
-  resolve: (d: GateDecision) => void
-  reject: (e: Error) => void
+/** 门推送事件：除门本体外，可携带系统后置动作结果（契约 §4.1） */
+export interface GatePushEvent {
+  gate: CanvasGate
   title?: string
+  reopened?: boolean
+  execution?: GateExecution
 }
 
-function error(code: string, message: string): Error {
-  return Object.assign(new Error(message), { code })
+/** 发门返回值：立即返回的 pending 快照（契约 §1.2） */
+export interface GateRequestResult {
+  gateId: string
+  status: 'pending'
+  requestedAt: string
+  payload?: unknown
 }
 
-export class GateBridge {
-  private pending = new Map<string, PendingEntry>()
-  private onGate: ((e: { gate: CanvasGate; title?: string }) => void) | null = null
+export interface GateDecideResult {
+  ok: true
+  /** 门已裁决过或正在裁决，本次忽略（幂等，不重复执行后置动作） */
+  ignored?: boolean
+  execution?: GateExecution
+}
 
-  /** main 注册：把门事件转发给已订阅窗口 */
-  setGateListener(fn: (e: { gate: CanvasGate; title?: string }) => void): void {
-    this.onGate = fn
+class GateBridge {
+  /** 仅作「本项目内已发门」的内存索引，供重启/切项目后的恢复判定；不持有任何等待 Promise */
+  private live = new Map<string, GateRecord>()
+  private listener: ((e: GatePushEvent) => void) | null = null
+  /** 裁决串行化：同一门的连点/并发 decide 不得重复执行后置动作 */
+  private deciding = new Set<string>()
+
+  setGateListener(fn: ((e: GatePushEvent) => void) | null) {
+    this.listener = fn
+  }
+
+  private emit(e: GatePushEvent) {
+    this.listener?.(e)
+  }
+
+  /** MCP gate.request 入口：落 pending 后立即返回，不等待用户 */
+  async request(req: GateRequest): Promise<GateRequestResult> {
+    const canvas = await canvasStore.get()
+    const now = new Date().toISOString()
+    const existing = this.live.get(req.gateId)
+      ?? [...canvas.gates].reverse().find(g => g.gateId === req.gateId)
+    const gate: GateRecord = {
+      gateId: req.gateId,
+      status: 'pending',
+      question: req.question,
+      options: req.options,
+      payload: req.payload,
+      requestedAt: now,
+    }
+    // upsertGate 按 gateId 覆盖（含已 approved/rejected 的历史门 → 重开为 pending）
+    await canvasStore.upsertGate(gate)
+    this.live.set(req.gateId, gate)
+    this.emit({ gate, title: req.title ?? canvas.title, ...(existing ? { reopened: true } : {}) })
+    return { gateId: gate.gateId, status: 'pending', requestedAt: now, ...(req.payload !== undefined ? { payload: req.payload } : {}) }
   }
 
   /**
-   * 请求门并等待裁决（feature-018 契约 §5.1；rejected 重开按 feature-019 契约 §2.4 修订）：
-   * - 已有 live entry → 幂等返回同一 Promise；
-   * - canvas 中无此门 → 新建 pending 门落盘、广播；
-   * - canvas 中为 pending 但无 live entry（重启恢复）→ 重挂等待，不重复建门；
-   * - canvas 中为 rejected 且无 live entry → 以同一 gateId 重开（状态回退 pending、
-   *   用本次请求内容覆盖），不新增门编号；
-   * - canvas 中为 approved：
-   *   · 非 0-final 门 → INVALID_ARGUMENT（approved 为终态，禁止重开）；
-   *   · 0-final 门且新旧 payload.version 均为有效数字、新版本 > 旧版本 → 以同一 gateId
-   *     覆盖重开为 pending（再版定案门复用同一门编号，feature-012 AC6）；
-   *   · 其余 0-final approved（同版本 / 新版本不更高 / 版本不可解析）→ INVALID_ARGUMENT。
+   * IPC gate:decide 入口：写门态 → 系统后置动作。
+   * 幂等：门已裁决过或正在裁决直接 ignored，不重复发布 / 推进。
    */
-  request(input: {
-    gateId: string
-    title?: string
-    question: string
-    options: string[]
-    payload?: unknown
-  }): Promise<GateDecision> {
-    const live = this.pending.get(input.gateId)
-    if (live) return live.promise
-    // 先 arm：无 live entry 时也返回 entry.promise 本身，保证重复请求同一性
-    const entry = this.arm(input.gateId, input.title)
-    void this.initializeEntry(entry, input)
-    return entry.promise
-  }
-
-  /** 无 live entry 时的异步初始化：按 canvas 状态新建或重挂（feature-018 契约 §5.1） */
-  private async initializeEntry(
-    entry: PendingEntry,
-    input: {
-      gateId: string
-      title?: string
-      question: string
-      options: string[]
-      payload?: unknown
-    },
-  ): Promise<void> {
+  async decide(gateId: string, dec: GateDecision): Promise<GateDecideResult> {
+    if (this.deciding.has(gateId)) return { ok: true, ignored: true }
+    this.deciding.add(gateId)
     try {
       const canvas = await canvasStore.get()
-      const found = canvas.gates.find(g => g.gateId === input.gateId)
+      const gate = this.live.get(gateId) ?? [...canvas.gates].reverse().find(g => g.gateId === gateId)
+      if (!gate) {
+        const err = new Error(`裁决门不存在: ${gateId}`)
+        err.name = 'INVALID_ARGUMENT'
+        throw err
+      }
+      // 已裁决（approved/rejected）→ 忽略；只有 pending 可裁决
+      if (gate.status !== 'pending') return { ok: true, ignored: true }
 
-      // approved 终态防护：默认禁止重开；仅 0-final 再版（新版本号严格大于旧版本）例外，
-      // 以同一 gateId 覆盖重开为 pending（feature-012 AC6 再版定案门复用同一门编号）。
-      if (found && found.status === 'approved') {
-        const oldVersion = gateVersion(found)
-        const newVersion = gateVersion({ payload: input.payload } as CanvasGate)
-        const isVersionedRepublish =
-          input.gateId === BRIEF_FINAL_GATE_ID &&
-          oldVersion !== null &&
-          newVersion !== null &&
-          newVersion > oldVersion
-        if (!isVersionedRepublish) {
-          throw error('INVALID_ARGUMENT', `门 ${input.gateId} 已 approved，不可重开`)
-        }
+      const decided: GateRecord = {
+        ...gate,
+        status: dec.decision,
+        ...(dec.note ? { note: dec.note } : {}),
+        decidedAt: new Date().toISOString(),
+      }
+      await canvasStore.upsertGate(decided)
+      this.live.set(gateId, decided)
+      this.emit({ gate: decided, title: canvas.title })
+
+      // rejected 无后置动作
+      if (dec.decision === 'rejected') return { ok: true }
+
+      const execution = await applyGateDecision(decided, dec.note)
+
+      // 草案类失败：门回退 pending（授权内容不完整，让用户修正后重新发门）
+      if (!execution.ok && execution.revertToPending) {
+        const reverted: GateRecord = { ...decided, status: 'pending', decidedAt: undefined }
+        await canvasStore.upsertGate(reverted)
+        this.live.set(gateId, reverted)
+        this.emit({ gate: reverted, title: canvas.title, execution })
+        return { ok: true, execution }
       }
 
-      let gate: CanvasGate
-      if (!found) {
-        gate = {
-          gateId: input.gateId,
-          status: 'pending',
-          question: input.question,
-          options: input.options,
-          payload: input.payload,
-        }
-        await canvasStore.upsertGate(gate)
-      } else if (found.status === 'rejected' || found.status === 'approved') {
-        // rejected：feature-019 §2.4 同一 gateId 重开；
-        // approved（仅 0-final 版本化再版）：用新版本请求覆盖旧 approved 门为 pending。
-        gate = {
-          gateId: input.gateId,
-          status: 'pending',
-          question: input.question,
-          options: input.options,
-          payload: input.payload,
-        }
-        await canvasStore.upsertGate(gate)
-      } else {
-        // pending 恢复路径：沿用 canvas 上的既有门内容，不重写
-        gate = found
-      }
-
-      this.onGate?.({ gate, title: input.title })
-    } catch (e) {
-      this.pending.delete(input.gateId)
-      entry.reject(e as Error)
+      this.emit({ gate: decided, title: canvas.title, execution })
+      return { ok: true, execution }
+    } finally {
+      this.deciding.delete(gateId)
     }
-  }
-
-  /** 门裁决：更新门状态 → canvas:changed；resolve 等待中的 request */
-  decide(gateId: string, decision: GateDecision): void {
-    const entry = this.pending.get(gateId)
-    if (!entry) throw error('INVALID_ARGUMENT', `没有等待裁决的门 ${gateId}`)
-    void (async () => {
-      const canvas = await canvasStore.get()
-      const found = canvas.gates.find(g => g.gateId === gateId)
-      if (!found || found.status !== 'pending') {
-        throw error('INVALID_ARGUMENT', `门 ${gateId} 状态不可裁决`)
-      }
-      found.status = decision.decision
-      await canvasStore.upsertGate(found)
-      this.pending.delete(gateId)
-      entry.resolve({ decision: decision.decision, note: decision.note })
-    })().catch(e => {
-      this.pending.delete(gateId)
-      entry.reject(e as Error)
-    })
   }
 
   /**
-   * 跨重启恢复（feature-018 契约 §5.1-2）：
-   * canvas 中每个无 live entry 的 pending 门重新挂起并通知，不重复建门。
+   * 项目切换 / 关窗：清内存索引。
+   * 不结算任何 Promise（已不存在）、不改门态、不触发后置动作。
    */
-  async recoverPending(): Promise<void> {
+  clearLive() {
+    this.live.clear()
+    this.deciding.clear()
+  }
+
+  /** 从磁盘恢复 pending 门到内存索引（重启 / 切项目后调用） */
+  async recoverPending() {
     const canvas = await canvasStore.get()
-    for (const gate of canvas.gates) {
-      if (gate.status !== 'pending') continue
-      if (this.pending.has(gate.gateId)) continue
-      const entry = this.arm(gate.gateId)
-      this.onGate?.({ gate, title: entry.title })
+    for (const g of canvas.gates) {
+      if (g.status === 'pending') {
+        this.live.set(g.gateId, g)
+        this.emit({ gate: g, title: canvas.title })
+      }
     }
-  }
-
-  /** 清算：所有 pending 门 reject 为 GATE_TIMEOUT（项目切换 / 应用关闭时） */
-  settleAll(): void {
-    for (const [gateId, entry] of this.pending) {
-      entry.reject(error('GATE_TIMEOUT', `门 ${gateId} 因运行结束未获裁决`))
-    }
-    this.pending.clear()
-  }
-
-  /** 创建挂起 entry（不触碰 canvas） */
-  private arm(gateId: string, title?: string): PendingEntry {
-    const partial: Partial<PendingEntry> = { title }
-    partial.promise = new Promise<GateDecision>((resolve, reject) => {
-      partial.resolve = resolve
-      partial.reject = reject
-    })
-    const entry = partial as PendingEntry
-    this.pending.set(gateId, entry)
-    return entry
   }
 }
 

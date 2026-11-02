@@ -1,8 +1,8 @@
 // feature-017 / feature-001 / feature-801 / feature-802 / feature-002 / feature-807 / feature-005 / feature-006 / feature-806 · MCP 纯工具注册（主进程）
-// 28 个零 LLM 工具：文件 / 画布 / 裁决门 / 资产 / ComfyUI 实例 / 立项单（brief.plan/publish/list）
+// 29 个零 LLM 工具：文件 / 画布 / 裁决门 / 资产 / ComfyUI 实例 / 立项单（brief.plan/publish/list）
 //   / manifest 状态机（manifest.get/advance）/ 视觉风格谱系（17–19 style.catalog/get/validate）
 //   / 立项后变更（20–22 brief.impact.assess/commit、canvas.align）
-//   / 已捕获口径（23–25 capture.list/upsert/remove，feature-005）
+//   / 已捕获口径（23–25 capture.list/upsert/upsert_many/remove，feature-005；F2 批量 upsert）
 //   / 公开数据检索（26–27 web.search/fetch，feature-006；零 Key 公开搜索源，不依赖激活项目）
 //   / Harness 基础校验（28 harness.validate，feature-806 批一；与 0-final 门写盘前拦截同一实现）。
 // feature-807：brief.publish 写盘前经 gate/guard 做门态防护（4 个 BRIEF_GATE_* 信封码，工具数不变）。
@@ -27,7 +27,7 @@ import { registerAsset, listAssets } from '../asset/index.js'
 import { getComfyClient } from '../comfy/client.js'
 import { listInstances, requireInstance } from '../comfy/settings.js'
 import { diffBrief } from '../brief/diff.js'
-import { evaluateDraft, listBriefVersions, readLatestBrief } from '../brief/plan.js'
+import { evaluateDraft, latestReadableEntry, listBriefVersions, readLatestBrief } from '../brief/plan.js'
 import { runHarnessValidation } from '../harness/validate.js'
 import type { HarnessFinding } from '../harness/types.js'
 import { renderBriefMd } from '../brief/render-md.js'
@@ -203,10 +203,40 @@ export function registerPureTools(server: McpServer): void {
     },
   )
 
+  const kindSchema = z.enum(['commercial', 'memorial'])
+  const fiveElementsSchema = z.object({
+    genre: z.string(),
+    platforms: z.array(z.string()),
+    episodeDuration: z.string(),
+    episodeCount: z.string(),
+    tone: z.string(),
+    aspectRatio: z.string(),
+  })
+  const premiseSchema = z.object({
+    leads: z.string(),
+    time: z.string(),
+    place: z.string(),
+    coreEvent: z.string(),
+    seasonBoundary: z.string(),
+  })
+  const styleSchema = z.object({
+    mainStyleId: z.string(),
+    catalogVersion: z.string(),
+    auxiliaryStyleId: z.string().optional(),
+  })
+  const gateDraftSchema = z.object({
+    kind: kindSchema,
+    fiveElements: fiveElementsSchema,
+    premise: premiseSchema,
+    style: styleSchema,
+    diagnosisSummary: z.string().optional(),
+    diagnosisDetail: z.string().optional(),
+  })
+
   // 6. gate.request
   server.tool(
     'gate.request',
-    '提交一个待人工裁决的门并阻塞等待结果。',
+    '提交一个待人工裁决的门并立即返回 pending；0-final 必须在 payload.draft 携带完整结构化立项草案。',
     {
       gateId: z.string().min(1),
       title: z.string().optional(),
@@ -216,10 +246,17 @@ export function registerPureTools(server: McpServer): void {
     },
     async (args) => {
       try {
+        if (args.gateId === BRIEF_FINAL_GATE_ID) {
+          const draft = (args.payload as { draft?: unknown } | undefined)?.draft
+          if (!gateDraftSchema.safeParse(draft).success) {
+            return respond(fail('INVALID_ARGUMENT', '0-final 门必须在 payload.draft 携带完整结构化立项草案'))
+          }
+        }
         const result = await gateBridge.request(args)
-        return respond<{ decision: 'approved' | 'rejected'; note?: string }>(
-          result.note ? { ok: true, decision: result.decision, note: result.note } : { ok: true, decision: result.decision },
-        )
+        return respond<{ gateId: string; status: 'pending'; requestedAt: string; payload?: unknown }>({
+          ok: true,
+          ...result,
+        })
       } catch (e) {
         return respond(normalize(e))
       }
@@ -316,28 +353,6 @@ export function registerPureTools(server: McpServer): void {
 
   // ── feature-001 立项单（12–14；零 LLM）──────────────────────
 
-  const kindSchema = z.enum(['commercial', 'memorial'])
-  const fiveElementsSchema = z.object({
-    genre: z.string(),
-    platforms: z.array(z.string()),
-    episodeDuration: z.string(),
-    episodeCount: z.string(),
-    tone: z.string(),
-    aspectRatio: z.string(),
-  })
-  const premiseSchema = z.object({
-    leads: z.string(),
-    time: z.string(),
-    place: z.string(),
-    coreEvent: z.string(),
-    seasonBoundary: z.string(),
-  })
-  const styleSchema = z.object({
-    mainStyleId: z.string(),
-    catalogVersion: z.string(),
-    auxiliaryStyleId: z.string().optional(),
-  })
-
   // 12. brief.plan（只读：就绪校验 + 相对最新版 diff）
   server.tool(
     'brief.plan',
@@ -365,7 +380,9 @@ export function registerPureTools(server: McpServer): void {
         const catalog = await loadStyleCatalog()
         const { missing, pendingMarks, styleIssues } = evaluateDraft(draft, catalog)
         const listing = await listBriefVersions(projectDir)
-        const latestEntry = listing.versions[listing.versions.length - 1]
+        // F1：diff 基线取最新「可解析」版本（高号损坏文件不抬基线、不抛 INTERNAL）；
+        // nextVersion/latestVersion 仍取文件名槽位口径
+        const latestEntry = await latestReadableEntry(projectDir)
         const prev = latestEntry
           ? JSON.parse(await fsp.readFile(path.join(projectDir, latestEntry.path), 'utf-8')) as ProjectBrief
           : null
@@ -496,7 +513,7 @@ export function registerPureTools(server: McpServer): void {
   // 14. brief.list（只读：列全部已发布版本）
   server.tool(
     'brief.list',
-    '列出当前项目根全部已发布立项单（立项单.vN.json），按版本升序；损坏文件跳过并在 warnings 注明。',
+    '列出当前项目根全部已发布立项单（立项单.vN.json），按版本升序；仅取文件名与文件元数据（F1：不解析全文），publishedAt 取文件修改时间，kind/approveBy 为占位值——需要这两项请读对应版本全文（brief:history / version-read）。',
     {},
     async () => {
       try {
@@ -647,17 +664,17 @@ export function registerPureTools(server: McpServer): void {
           diagnosisSummary: args.draft.diagnosisSummary,
           diagnosisDetail: args.draft.diagnosisDetail,
         }
-        const listing = await listBriefVersions(projectDir)
-        if (listing.latestVersion === null) {
+        // F1：基线取最新「可解析」版本（高号损坏文件不抬高基线）
+        const latestEntry = await latestReadableEntry(projectDir)
+        if (latestEntry === null) {
           return respond(fail('BRIEF_NO_BASELINE', '尚无已发布立项，不存在再版基线；首版请走 brief.plan / brief.publish'))
         }
-        const latestEntry = listing.versions[listing.versions.length - 1]!
         const prev = JSON.parse(
           await fsp.readFile(path.join(projectDir, latestEntry.path), 'utf-8'),
         ) as ProjectBrief
         const changes = diffBrief(prev, draft)
         const canvas = await canvasStore.get()
-        const assessment = assessImpact(changes, canvas, listing.latestVersion)
+        const assessment = assessImpact(changes, canvas, latestEntry.version)
         return respond({
           ok: true as const,
           fromVersion: assessment.fromVersion,
@@ -715,15 +732,15 @@ export function registerPureTools(server: McpServer): void {
 
         // 全部读-改-写收进一次写队列
         const result = await enqueue(async () => {
-          const listing = await listBriefVersions(projectDir)
-          if (listing.latestVersion === null) {
+          // F1：基线取最新「可解析」版本（高号损坏占位档不抬高基线）
+          const latestEntry = await latestReadableEntry(projectDir)
+          if (latestEntry === null) {
             throw Object.assign(
               new Error('尚无已发布立项，不存在再版基线；首版请走 brief.publish'),
               { code: 'BRIEF_NO_BASELINE' },
             )
           }
-          const fromVersion = listing.latestVersion
-          const latestEntry = listing.versions[listing.versions.length - 1]!
+          const fromVersion = latestEntry.version
           const prev = JSON.parse(
             await fsp.readFile(path.join(projectDir, latestEntry.path), 'utf-8'),
           ) as ProjectBrief
@@ -919,8 +936,40 @@ export function registerPureTools(server: McpServer): void {
       source?: 'user' | 'infer'; status?: 'pending' | 'confirmed'; quote?: string
     }) => {
       try {
-        const fact = await captureStore.upsert(args)
-        return respond<{ fact: typeof fact }>({ ok: true, fact })
+        const result = await captureStore.upsert(args)
+        return respond<{ fact: typeof result.fact; file: typeof result.file }>({
+          ok: true, fact: result.fact, file: result.file,
+        })
+      } catch (e) {
+        return respond(normalize(e))
+      }
+    },
+  )
+
+  // 24b. capture.upsert_many（F2：一次读入批量改 N 条 → 一次写盘 → 一次广播；
+  //   返回 facts（按入参顺序）+ file 写后全量，Agent 无需再 list）
+  server.tool(
+    'capture.upsert_many',
+    '批量写入/更新多条已捕获口径（一次读盘、一次写盘、一次广播）：条目语义同 capture.upsert——有 id 精确更新；无 id 按 topic（trim 精确匹配）更新或新建，前条新建/更新对后条可见。任一条校验失败整批零写盘。返回 facts（按入参顺序）与写后全量 file，无需再 capture.list。',
+    {
+      items: z.array(z.object({
+        id: z.string().min(1).optional(),
+        topic: z.string().optional(),
+        value: z.string().optional(),
+        source: z.enum(['user', 'infer']).optional(),
+        status: z.enum(['pending', 'confirmed']).optional(),
+        quote: z.string().optional(),
+      })).min(1),
+    },
+    async (args: { items: Array<{
+      id?: string; topic?: string; value?: string
+      source?: 'user' | 'infer'; status?: 'pending' | 'confirmed'; quote?: string
+    }> }) => {
+      try {
+        const result = await captureStore.upsertMany(args.items)
+        return respond<{ facts: typeof result.facts; file: typeof result.file }>({
+          ok: true, facts: result.facts, file: result.file,
+        })
       } catch (e) {
         return respond(normalize(e))
       }
@@ -1006,7 +1055,7 @@ export const WEB_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537
 export const WEB_TIMEOUT_MS = 15_000
 export const WEB_FETCH_MAX_CHARS = 20_000
 const WEB_SEARCH_MAX_RESULTS = 8
-const BING_SEARCH_ENDPOINT = 'https://cn.bing.com/search'
+const BING_SEARCH_ENDPOINT = 'https://www.bing.com/search'
 
 type FetchImpl = typeof fetch
 
@@ -1086,18 +1135,29 @@ async function fetchHtml(url: string, fetchImpl: FetchImpl): Promise<string> {
   return res.text()
 }
 
-/** 公开网页检索：Bing 国内站（零 Key）；网络/HTTP/验证页失败一律报 WEB_SEARCH_FAILED */
+/**
+ * 公开网页检索：Bing 国际站（零 Key；setlang=zh-CN 保中文结果）；
+ * 网络 / HTTP / 验证页 / 解析 0 条一律报 WEB_SEARCH_FAILED。
+ * 注：2026-11-01 实测原 cn.bing.com 对非浏览器请求仅返回约 15KB 的 JS 壳页
+ * （无 b_algo），www.bing.com 返回完整结果页（B-58）。
+ */
 export async function webSearch(query: string, fetchImpl: FetchImpl = publicFetch): Promise<WebSearchResultItem[]> {
   const q = query.trim()
   if (!q) throw Object.assign(new Error('检索词为空'), { code: 'INVALID_ARGUMENT' })
   let html: string
   try {
-    html = await fetchHtml(`${BING_SEARCH_ENDPOINT}?q=${encodeURIComponent(q)}`, fetchImpl)
+    const url = `${BING_SEARCH_ENDPOINT}?q=${encodeURIComponent(q)}&setlang=zh-CN`
+    html = await fetchHtml(url, fetchImpl)
     if (isBingChallenge(html)) throw new Error('搜索源返回人机验证页')
   } catch (e) {
     throw Object.assign(new Error(`公开检索失败：${(e as Error).message}`), { code: 'WEB_SEARCH_FAILED' })
   }
-  return parseBingResults(html)
+  const results = parseBingResults(html)
+  // 解析 0 条 = 源页面结构变化 / 壳页，按失败处理以触发 S4 诚实降级，不得回空数组冒充成功
+  if (results.length === 0) {
+    throw Object.assign(new Error('公开检索失败：搜索源未返回可解析结果'), { code: 'WEB_SEARCH_FAILED' })
+  }
+  return results
 }
 
 /** 公开网页抓取：仅 http/https，HTML→正文文本，超 maxChars 截断；失败一律报 WEB_FETCH_FAILED */

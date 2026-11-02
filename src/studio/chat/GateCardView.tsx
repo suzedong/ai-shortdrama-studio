@@ -4,11 +4,20 @@
 import { useState } from 'react'
 import type { CanvasGate } from '@shared/types'
 import { dirtyFieldLabel } from '../stage0/select'
+import MarkdownText from './ChatMarkdown'
 
 export interface GateCheck {
   label: string
   result: string
   level: 'pass' | 'warn'
+}
+
+export type GateExecutionView =
+  | { ok: true; summary: string }
+  | { ok: false; code: string; message: string }
+
+function executionOf(gate: CanvasGate): GateExecutionView | undefined {
+  return (gate as CanvasGate & { execution?: GateExecutionView }).execution
 }
 
 interface Props {
@@ -26,6 +35,27 @@ function checksOf(gate: CanvasGate): GateCheck[] {
 function stageOf(gate: CanvasGate): string | null {
   const payload = gate.payload as { stage?: string } | undefined
   return payload?.stage ?? null
+}
+
+// ── 门问题排版（q5）：question 拆成「短标题」+「Markdown 正文」 ──
+// showrunner 被要求用 `# 标题` / `## 区块` / `- 字段：值` 组织定案卡；旧版单行密文按首个
+// 句读（。 / ： / ；）切出标题，其余进正文区，避免整卡挤在标题行里看不清。
+const GATE_TITLE_MAX = 24
+
+function splitGateQuestion(question: string): { title: string; body: string } {
+  const lines = question.replace(/\r\n/g, '\n').trim().split('\n')
+  const first = (lines[0] ?? '').trim()
+  const rest = lines.slice(1).join('\n').trim()
+  if (rest) {
+    return { title: first.replace(/^#{1,6}\s+/, '').trim() || first, body: rest }
+  }
+  // 单行：短问题整行作标题；超长密文按首个句读切开
+  if (first.length <= GATE_TITLE_MAX) return { title: first, body: '' }
+  const sepIdx = Array.from(first).findIndex((ch, i) => i >= 4 && '。：；！？'.includes(ch))
+  if (sepIdx > 0) {
+    return { title: first.slice(0, sepIdx + 1).trim(), body: first.slice(sepIdx + 1).trim() }
+  }
+  return { title: first.slice(0, GATE_TITLE_MAX) + '…', body: first.slice(GATE_TITLE_MAX) }
 }
 
 // feature-806 · 0-final 门 payload.harnessValidation 摘要上屏（契约 §2.3/D7；仅列 blocker，warning 不上屏）
@@ -135,21 +165,32 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
   }
 
   const impact = impactSummaryOf(gate)
+  const execution = executionOf(gate)
 
-  // 已放行：成功态（剪辑/下游 Agent 接管）；feature-806：门 payload 挂有 harness 拦截摘要时下方列出待修复 blocker
+  // 已放行：展示系统后置动作结果；不自动唤起 Agent，由用户下一轮发送「继续」。
   if (gate.status === 'approved') {
     const blockers = harnessBlockersOf(gate)
+    const failed = execution !== undefined && !execution.ok
     return (
       <>
-        <div className="mt-2 overflow-hidden rounded-[11px] border-[1.5px] border-[#BFE6D2] bg-gradient-to-b from-[#F4FCF8] to-white">
+        <div
+          data-gate-execution={execution ? (execution.ok ? 'success' : 'failure') : 'idle'}
+          className={`mt-2 overflow-hidden rounded-[11px] border-[1.5px] bg-gradient-to-b to-white ${
+            failed ? 'border-bad/50 from-[#FDF6F5]' : 'border-[#BFE6D2] from-[#F4FCF8]'
+          }`}
+        >
           <div className="px-[11px] pb-3.5 pt-3.5 text-center">
-            <div className="mx-auto mb-2 grid h-[38px] w-[38px] place-items-center rounded-full bg-ok">
+            <div className={`mx-auto mb-2 grid h-[38px] w-[38px] place-items-center rounded-full ${failed ? 'bg-bad' : 'bg-ok'}`}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="h-[19px] w-[19px] text-white">
-                <path d="M20 6 9 17l-5-5" />
+                {failed ? <path d="M12 7v6M12 17h.01" /> : <path d="M20 6 9 17l-5-5" />}
               </svg>
             </div>
-            <div className="text-[12.5px] font-extrabold text-ink">已确认 · 下游 Agent 已接管</div>
-            <div className="mt-[3px] text-[10px] text-muted">后续产物完成后通知你</div>
+            <div className={`text-[12.5px] font-extrabold ${failed ? 'text-bad' : 'text-ink'}`}>
+              {execution?.ok ? `已确认 · ${execution.summary}` : failed ? '已确认 · 后置动作失败' : '已确认 · 等待下一步'}
+            </div>
+            <div className={`mt-[3px] text-[10px] leading-4 ${failed ? 'text-bad' : 'text-muted'}`}>
+              {failed ? execution.message : '发送「继续」让 Agent 读取现场后续跑'}
+            </div>
           </div>
         </div>
         {impact && <ImpactSummaryBlock summary={impact} />}
@@ -179,6 +220,7 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
 
   const rejected = gate.status === 'rejected'
   const stage = stageOf(gate)
+  const question = splitGateQuestion(gate.question)
 
   return (
     <div
@@ -193,9 +235,18 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
           </svg>
         </span>
-        <span className="text-[11.5px] font-extrabold text-ink">{gate.question}</span>
-        {stage && <span className="ml-auto text-[9px] text-muted">{stage}</span>}
+        <span className="text-[11.5px] font-extrabold leading-[1.45] text-ink">{question.title}</span>
+        {stage && <span className="ml-auto shrink-0 text-[9px] text-muted">{stage}</span>}
       </div>
+
+      {question.body && (
+        <div
+          data-gate-question-body
+          className="max-h-[260px] overflow-y-auto border-b border-[#EFEBFD] bg-white px-[11px] py-2 text-[11px] leading-[1.65] text-ink"
+        >
+          <MarkdownText text={question.body} />
+        </div>
+      )}
 
       <div className="flex flex-col gap-1.5 px-[11px] py-[9px]">
         {checksOf(gate).map((c, i) => (
@@ -214,6 +265,15 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
       </div>
 
       {impact && <ImpactSummaryBlock summary={impact} />}
+
+      {!rejected && execution && !execution.ok && (
+        <div
+          data-gate-execution="failure"
+          className="mx-[11px] mb-[9px] rounded-[7px] border border-bad/30 bg-[#FDF6F5] px-[9px] py-1.5 text-[9.5px] leading-4 text-bad"
+        >
+          后置动作未完成：{execution.message}
+        </div>
+      )}
 
       {rejected && (
         <div className="mx-[11px] mb-[9px] rounded-[7px] bg-[#F7F8FC] px-[9px] py-1.5 text-[9.5px] leading-4 text-bad">

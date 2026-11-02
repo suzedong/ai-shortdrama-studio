@@ -1,5 +1,5 @@
 import type { ChatItem } from '../studio/chat/ChatComposer'
-import type { ToolView } from './chat-runtime'
+import type { ToolView, TurnSegment } from './chat-runtime'
 
 /** IPC runtime:session:messages 的单条记录（runtime-types 镜像，主进程从 SDK {info,parts} 映射） */
 export interface ReplayMessageRecord {
@@ -33,6 +33,8 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 /**
  * feature-808：把会话历史记录投影为右栏正文气泡、可选推理与工具状态（契约 §3，规则 H1–H8）。
+ * B-56 起单遍扫描：按 parts 在消息内的原始顺序直接产出交错 segments
+ * （推理 → 工具/结果 → 推理 → 工具/结果），不再先拆三类数组导致顺序丢失。
  * 纯函数：无副作用、不依赖时间/网络、不 mutate 入参；坏数据按无文本丢弃，不抛错。
  */
 export function replayMessages(records: ReplayMessageRecord[]): ChatItem[] {
@@ -48,13 +50,17 @@ export function replayMessages(records: ReplayMessageRecord[]): ChatItem[] {
     const id = typeof raw.info.id === 'string' ? raw.info.id : ''
     const parts = Array.isArray(raw.parts) ? raw.parts : []
 
+    // 单遍有序收集：texts 保留正文全文（气泡级选项/标签解析仍用全文），
+    // segments 保留推理 / 正文 / 工具的交错顺序。
     const texts: string[] = []
-    const reasonings: string[] = []
-    const tools: ToolView[] = []
+    const segments: TurnSegment[] = []
     const toolIndexes = new Map<string, number>()
+    let reasoningCount = 0
+
     for (const part of parts) {
       if (!isRecord(part)) continue
       if (part.ignored === true || part.synthetic === true) continue
+
       if (part.type === 'tool') {
         if (role !== 'assistant') continue
         const { callId, tool, status } = part
@@ -76,22 +82,32 @@ export function replayMessages(records: ReplayMessageRecord[]): ChatItem[] {
         }
         const existing = toolIndexes.get(callId)
         if (existing === undefined) {
-          toolIndexes.set(callId, tools.length)
-          tools.push(snapshot)
+          toolIndexes.set(callId, segments.length)
+          segments.push({ kind: 'tool', key: callId, tool: snapshot })
         } else {
-          tools[existing] = snapshot
+          // 同 callId 多次快照：原地替换（顺序锚点不变）
+          const old = segments[existing]
+          if (old.kind === 'tool') segments[existing] = { ...old, tool: snapshot }
         }
         continue
       }
+
       if (typeof part.text !== 'string') continue
       if (part.type === 'reasoning') {
-        if (role === 'assistant' && part.text.length > 0) reasonings.push(part.text)
+        // H：assistant 非空推理按出现位置落段
+        if (role === 'assistant' && part.text.length > 0) {
+          segments.push({ kind: 'reasoning', key: `r-${reasoningCount++}`, text: part.text })
+        }
         continue
       }
+
       if (part.type !== 'text') continue
       // H3：assistant 仅聚合带 startedAt(number) 的文本 part；H2 用户不认 startedAt
       if (role === 'assistant' && typeof part.startedAt !== 'number') continue
       texts.push(part.text)
+      if (part.text.length > 0) {
+        segments.push({ kind: 'text', key: `t-${texts.length - 1}`, text: part.text })
+      }
     }
 
     const text = texts.join('')
@@ -100,17 +116,16 @@ export function replayMessages(records: ReplayMessageRecord[]): ChatItem[] {
       if (text.length === 0) continue
       items.push({ id, role: 'user', text })
     } else {
-      // assistant：正文为空但带推理 / 工具时同样保留（修订 H4：仅 reasoning / 纯工具轮不再整条丢弃）
-      if (text.trim().length === 0 && reasonings.length === 0 && tools.length === 0) continue
-      // H6：仅 id/role/text/agent 与可选 reasoningBlocks/tools，绝不带 brief/trace 或工具结果；
-      // D-012 起工具参数仅放行主进程白名单摘要 argsPreview（关键字段、已截断），完整入参仍不回放
+      const hasContent = segments.some(s => s.kind !== 'text' || s.text.trim().length > 0)
+      // H4（修订）：正文、reasoning、tools 三者全空才丢弃
+      if (text.trim().length === 0 && !hasContent) continue
+      // H6：segments 中工具仅含白名单 argsPreview，绝不带 brief/trace 或工具结果
       items.push({
         id,
         role: 'agent',
         ...(text ? { text } : {}),
         agent: 'showrunner',
-        ...(reasonings.length > 0 ? { reasoningBlocks: reasonings } : {}),
-        ...(tools.length > 0 ? { tools } : {}),
+        segments,
       })
     }
   }

@@ -79,7 +79,17 @@ export function evaluateDraft(
   return { missing, pendingMarks, styleIssues }
 }
 
-/** 扫描项目根一层 立项单.vN.json；损坏文件跳过并在 warnings 注明，按 N 升序返回 */
+/**
+ * 扫描项目根一层 立项单.vN.json（F1：仅用文件名 + 文件元数据，不读/不解析全文）。
+ * - version/path 取自文件名正则；publishedAt 取 stat.mtime；
+ * - kind/approveBy 无法从元数据获得，给 METADATA_* 占位值（结构不变）：
+ *   真正需要这两项的调用方（readBriefHistory / 各发布回滚主体）一律另读全文自取；
+ * - 仅 stat 失败的文件跳过并在 warnings 注明；内容损坏在本层不可见，文件照常列入。
+ * 按 version 升序返回。
+ */
+const METADATA_KIND_PLACEHOLDER: ProjectKind = 'commercial'
+const METADATA_APPROVE_BY_PLACEHOLDER: 'gate' | 'verbal' | 'ui' = 'gate'
+
 export async function listBriefVersions(projectDir: string): Promise<{
   versions: { version: number; path: string; publishedAt: string; kind: ProjectKind; approveBy: 'gate' | 'verbal' | 'ui' }[]
   latestVersion: number | null
@@ -99,26 +109,46 @@ export async function listBriefVersions(projectDir: string): Promise<{
     if (!m) continue
     const version = Number(m[1])
     try {
-      const obj = JSON.parse(await fsp.readFile(path.join(projectDir, name), 'utf-8')) as ProjectBrief
+      const stat = await fsp.stat(path.join(projectDir, name))
       found.push({
         version,
         path: name,
-        publishedAt: obj.publishedAt,
-        kind: obj.kind,
-        approveBy: obj.approve.by,
+        publishedAt: stat.mtime.toISOString(),
+        kind: METADATA_KIND_PLACEHOLDER,
+        approveBy: METADATA_APPROVE_BY_PLACEHOLDER,
       })
     } catch (e) {
-      warnings.push(`${name} 解析失败已跳过：${(e as Error).message}`)
+      warnings.push(`${name} 元数据读取失败已跳过：${(e as Error).message}`)
     }
   }
   found.sort((a, b) => a.version - b.version)
   return { versions: found, latestVersion: found.length ? found[found.length - 1]!.version : null, warnings }
 }
 
-/** 读取最新版立项单；无历史返回 null；损坏文件抛错 */
-export async function readLatestBrief(projectDir: string): Promise<ProjectBrief | null> {
+/**
+ * 最新「可解析」版本条目（F1 配套：listBriefVersions 的 latestVersion 只看文件名，
+ * 含高号损坏文件；真正需要版本正确性/全文的调用方走此处，损坏文件向下跳过）。
+ * 无任何可解析版本返回 null。
+ */
+export async function latestReadableEntry(
+  projectDir: string,
+): Promise<{ version: number; path: string } | null> {
   const { versions } = await listBriefVersions(projectDir)
-  const latest = versions[versions.length - 1]
+  for (let i = versions.length - 1; i >= 0; i--) {
+    const v = versions[i]!
+    try {
+      JSON.parse(await fsp.readFile(path.join(projectDir, v.path), 'utf-8'))
+      return { version: v.version, path: v.path }
+    } catch {
+      // 损坏版本向下跳过
+    }
+  }
+  return null
+}
+
+/** 读取最新版立项单；无历史返回 null；仅当全部版本均损坏时返回 null（旧版遇最新版损坏即抛错） */
+export async function readLatestBrief(projectDir: string): Promise<ProjectBrief | null> {
+  const latest = await latestReadableEntry(projectDir)
   if (!latest) return null
   return JSON.parse(await fsp.readFile(path.join(projectDir, latest.path), 'utf-8')) as ProjectBrief
 }
@@ -129,11 +159,12 @@ export async function nextBriefVersion(projectDir: string): Promise<number> {
   return latestVersion === null ? 1 : latestVersion + 1
 }
 
-/** brief.plan 全流程（只读）：校验 + diff 磁盘最新版 */
+/** brief.plan 全流程（只读）：校验 + diff 磁盘最新可解析版 */
 export async function planBrief(projectDir: string, draft: BriefDraft): Promise<BriefPlan> {
   const { missing, pendingMarks } = evaluateDraft(draft)
   const listing = await listBriefVersions(projectDir)
-  const latest = listing.versions[listing.versions.length - 1]
+  // F1：diff 基线取最新「可解析」版本（高号损坏文件向下跳过）；版号槽位仍取 listing
+  const latest = await latestReadableEntry(projectDir)
   const prev = latest
     ? JSON.parse(await fsp.readFile(path.join(projectDir, latest.path), 'utf-8')) as ProjectBrief
     : null

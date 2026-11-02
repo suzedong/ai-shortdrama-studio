@@ -119,9 +119,28 @@ describe('气泡标签（B-34 前缀约定）', () => {
     expect(tag?.textContent).toBe('用户')
   })
 
-  it('无前缀消息：不渲染标签', () => {
+  it('无前缀 AI 消息：兜底显示发言身份标签（q2：所有气泡都有标签）', () => {
     const { container } = renderComposer([{ id: 'a4', role: 'agent', text: '普通汇报。' }])
-    expect(container.querySelector('[data-chat-label]')).toBeNull()
+    const tag = container.querySelector('[data-chat-label="ai"]')
+    expect(tag?.textContent).toBe('主控 Agent')
+  })
+
+  it('q1：AI 气泡底部显示当前模型小字', () => {
+    const { container } = renderComposer([{ id: 'a5', role: 'agent', text: '普通汇报。' }])
+    const modelLine = container.querySelector('[data-chat-model="ark/test-model"]')
+    expect(modelLine?.textContent).toContain('火山方舟 · test-model')
+  })
+
+  it('q1：消息自带模型快照时优先用快照（历史消息模型可不同于当前选择器）', () => {
+    const { container } = renderComposer([
+      {
+        id: 'a6', role: 'agent', text: '旧汇报。',
+        model: { providerID: 'lmstudio', modelID: 'qwen3-8' },
+      },
+    ])
+    const modelLine = container.querySelector('[data-chat-model="lmstudio/qwen3-8"]')
+    expect(modelLine?.textContent).toContain('LM Studio · qwen3-8')
+    expect(container.querySelector('[data-chat-model="ark/test-model"]')).toBeNull()
   })
 
   it('B-36：超短消息下标签不折行（whitespace-nowrap），含 agent 短气泡', () => {
@@ -155,11 +174,36 @@ describe('对话内选项卡（B-35 选项块约定）', () => {
     expect(r.options?.[1]).toEqual({ num: '2', text: 'E99' }) // 编号格式在档但谱系未收录 → 无 styleId
   })
 
-  it('parseChatOptions：失配降级——块不在末尾 / 行失配 / 仅一条 / 普通消息均原文保留', () => {
-    expect(parseChatOptions('【选项】\n1. 甲\n2. 乙\n【/选项】\n后面还有话').options).toBeUndefined()
+  it('parseChatOptions：失配降级——行失配 / 仅一条 / 普通消息均原文保留', () => {
     expect(parseChatOptions('【选项】\n1. 甲\n这不是选项行\n【/选项】').options).toBeUndefined()
     expect(parseChatOptions('【选项】\n1. 只有一条\n【/选项】').options).toBeUndefined()
     expect(parseChatOptions('普通消息')).toEqual({ rest: '普通消息' })
+  })
+
+  it('B-59：闭合块后还有补充说明 → 选项识别成功，块前 / 块后正文拼回 rest', () => {
+    const r = parseChatOptions('请先定平台：\n【选项】\n1. 红果\n2. 爱奇艺\n3. 腾讯视频\n【/选项】\n其余要素如无异议我就按上表预填。')
+    expect(r.options?.map(o => o.num)).toEqual(['1', '2', '3'])
+    expect(r.rest).toBe('请先定平台：\n其余要素如无异议我就按上表预填。')
+  })
+
+  it('B-59：选项块后跟补充说明 → 按钮渲染且可点，补充说明保留为正文、块原文不残留', () => {
+    const onSend = vi.fn()
+    const { container } = renderComposer(
+      [{
+        id: 'a1', role: 'agent',
+        text: '请先定平台：\n【选项】\n1. 红果（抖音系免费）\n2. 爱奇艺\n3. 腾讯视频\n【/选项】\n其余要素如无异议我就按上表预填；时长、集数、画幅要改直接说。',
+      }],
+      { onSend },
+    )
+    const opts = container.querySelectorAll('[data-chat-option]')
+    expect(Array.from(opts).map(el => el.getAttribute('data-chat-option'))).toEqual(['1', '2', '3'])
+    const bubble = container.querySelector('.md-bubble')?.textContent ?? ''
+    expect(bubble).toContain('请先定平台：')
+    expect(bubble).toContain('其余要素如无异议我就按上表预填')
+    expect(bubble).not.toContain('【')
+    expect(bubble).not.toContain('红果')
+    fireEvent.click(opts[0])
+    expect(onSend).toHaveBeenCalledWith('1')
   })
 
   it('parseChatOptions：流式未闭合块与键入中标签作 pending（块内容暂不显示）', () => {

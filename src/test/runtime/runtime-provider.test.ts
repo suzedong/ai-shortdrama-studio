@@ -170,7 +170,7 @@ describe('installAgentProfiles · 摄制组 profiles 安装（director 已退役
     for (const { path: target } of installed) {
       const md = await fsp.readFile(target, 'utf-8')
       expect(md).toContain(`model: ark/${ARK_MODEL}`)
-      expect(md).not.toContain('__ARK_MODEL_ID__')
+      expect(md).not.toContain('__MODEL_REF__')
       expect(md).not.toContain(ARK_KEY_SENTINEL)
     }
     // director.md 必须不存在
@@ -188,7 +188,7 @@ describe('installAgentProfiles · 摄制组 profiles 安装（director 已退役
     for (const { path: target } of installed) {
       const md = await fsp.readFile(target, 'utf-8')
       expect(md).toContain('model: lmstudio/qwen2.5-7b-instruct')
-      expect(md).not.toContain('__ARK_MODEL_ID__')
+      expect(md).not.toContain('__MODEL_REF__')
     }
   })
 
@@ -205,7 +205,7 @@ describe('installAgentProfiles · 摄制组 profiles 安装（director 已退役
     const tpl = await resolveAgentTemplatePath('showrunner.md')
     await expect(fsp.access(tpl)).resolves.toBeUndefined()
     const raw = await fsp.readFile(tpl, 'utf-8')
-    expect(raw).toContain('__ARK_MODEL_ID__')
+    expect(raw).toContain('__MODEL_REF__')
   })
 
   it('Electron 开发态：即使 process.resourcesPath 存在，仍定位仓库 resources/ 而非 app 包内（I-003 回归）', async () => {

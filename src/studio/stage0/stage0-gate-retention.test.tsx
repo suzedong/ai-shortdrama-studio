@@ -112,7 +112,7 @@ describe('feature-012 · Stage0View approved 门卡留存挂载（契约 §3.2�
     }))
     await waitFor(() => expect(retained()).not.toBeNull())
 
-    expect(screen.getByText('已确认 · 下游 Agent 已接管')).toBeInTheDocument()
+    expect(screen.getByText('已确认 · 等待下一步')).toBeInTheDocument()
     expect(impactBlock()).not.toBeNull()
     expect(harnessBlock()).not.toBeNull()
     expect(screen.getByText(FINDING_BLOCKER.message)).toBeInTheDocument()
@@ -126,7 +126,7 @@ describe('feature-012 · Stage0View approved 门卡留存挂载（契约 §3.2�
     renderView(canvas({ nodes: [briefNode()], gates: [gate('approved', { version: 3 })] }))
     await waitFor(() => expect(retained()).not.toBeNull())
 
-    expect(screen.getByText('已确认 · 下游 Agent 已接管')).toBeInTheDocument()
+    expect(screen.getByText('已确认 · 等待下一步')).toBeInTheDocument()
     expect(impactBlock()).toBeNull()
     expect(harnessBlock()).toBeNull()
   })
@@ -150,7 +150,7 @@ describe('feature-012 · Stage0View approved 门卡留存挂载（契约 §3.2�
   it('空态 + approved：空态挂载点同样放行留存卡', () => {
     renderView(canvas({ gates: [gate('approved', { version: 3, impactSummary: IMPACT })] }))
     expect(retained()).not.toBeNull()
-    expect(screen.getByText('已确认 · 下游 Agent 已接管')).toBeInTheDocument()
+    expect(screen.getByText('已确认 · 等待下一步')).toBeInTheDocument()
     expect(impactBlock()).not.toBeNull()
   })
 

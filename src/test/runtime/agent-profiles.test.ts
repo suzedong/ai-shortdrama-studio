@@ -37,17 +37,17 @@ const TOOLS_TRUE: Record<string, string[]> = {
     // feature-801：manifest 状态机两工具物理 ID 保留点号
     'shortdrama_manifest.get',
     'shortdrama_manifest.advance',
-    // feature-802：视觉风格谱系三工具物理 ID 保留点号
+    // feature-802：视觉风格谱系两工具物理 ID 保留点号（F4：style.get 已移除，选型统一用 catalog 快照）
     'shortdrama_style.catalog',
-    'shortdrama_style.get',
     'shortdrama_style.validate',
     // feature-002：立项再版评估/提交 + 节点对齐物理 ID 保留点号
     'shortdrama_brief.impact.assess',
     'shortdrama_brief.impact.commit',
     'shortdrama_canvas.align',
-    // feature-005：已捕获口径三工具物理 ID 保留点号
+    // feature-005：已捕获口径四工具物理 ID 保留点号（F2 upsert_many）
     'shortdrama_capture.list',
     'shortdrama_capture.upsert',
+    'shortdrama_capture.upsert_many',
     'shortdrama_capture.remove',
     // feature-006：公开数据检索两工具物理 ID 保留点号
     'shortdrama_web.search',
@@ -70,8 +70,6 @@ const TOOLS_TRUE: Record<string, string[]> = {
     'shortdrama_canvas_update',
     'shortdrama_asset_register',
     'shortdrama_asset_list',
-    'shortdrama_comfyui_queue',
-    'shortdrama_comfyui_status',
   ],
   'comfyui-operator.md': [
     'shortdrama_file_read',
@@ -96,7 +94,7 @@ describe('T1 · profile frontmatter 静态契约', () => {
   it('showrunner：primary + 23 物理工具 + task 常驻 + 占位符 model', async () => {
     const { fm } = splitFrontmatter(await readProfile('showrunner.md'))
     expect(fm).toMatch(/^mode: primary$/m)
-    expect(fm).toMatch(/^model: ark\/__ARK_MODEL_ID__$/m)
+    expect(fm).toMatch(/^model: __MODEL_REF__$/m)
     expect(fm).toMatch(/^temperature: 0\.2$/m)
     expect(fm).toMatch(/^  task: true$/m)
     for (const key of TOOLS_TRUE['showrunner.md']!) {
@@ -121,7 +119,7 @@ describe('T1 · profile frontmatter 静态契约', () => {
     for (const file of ['writer.md', 'media-director.md', 'comfyui-operator.md'] as const) {
       const { fm } = splitFrontmatter(await readProfile(file))
       expect(fm).toMatch(/^mode: subagent$/m)
-      expect(fm).toMatch(/^model: ark\/__ARK_MODEL_ID__$/m)
+      expect(fm).toMatch(/^model: __MODEL_REF__$/m)
       expect(fm).toMatch(new RegExp(`^temperature: ${expectedMode[file]}$`, 'm'))
       expect(fm).toMatch(/^  task: false$/m)
       expect(fm).toMatch(/^  task: deny$/m)
@@ -131,7 +129,7 @@ describe('T1 · profile frontmatter 静态契约', () => {
     }
   })
 
-  it('frontmatter 点号工具键仅允许立项三工具、状态机两工具、feature-802 谱系三工具、feature-002 再版三工具、feature-005 口径三工具、feature-006 检索两工具与 feature-806 校验一工具', async () => {
+  it('frontmatter 点号工具键仅允许立项三工具、状态机两工具、feature-802 谱系三工具、feature-002 再版三工具、feature-005 口径四工具、feature-006 检索两工具与 feature-806 校验一工具', async () => {
     const dottedWhitelist = [
       'shortdrama_brief.plan',
       'shortdrama_brief.publish',
@@ -139,13 +137,13 @@ describe('T1 · profile frontmatter 静态契约', () => {
       'shortdrama_manifest.get',
       'shortdrama_manifest.advance',
       'shortdrama_style.catalog',
-      'shortdrama_style.get',
       'shortdrama_style.validate',
       'shortdrama_brief.impact.assess',
       'shortdrama_brief.impact.commit',
       'shortdrama_canvas.align',
       'shortdrama_capture.list',
       'shortdrama_capture.upsert',
+      'shortdrama_capture.upsert_many',
       'shortdrama_capture.remove',
       'shortdrama_web.search',
       'shortdrama_web.fetch',
@@ -197,21 +195,22 @@ describe('T2 · 系统提示静态契约', () => {
 
   it('feature-802：showrunner 第 0 步动作化——先查后选、6 封闭候选、styleIssues 与装载三码', async () => {
     const { body } = splitFrontmatter(await readProfile('showrunner.md'))
-    // 选型前必须调谱系工具
+    // 选型前必须调谱系工具（F4：仅 catalog 快照 + validate 自检，无 style.get）
     expect(body).toContain('shortdrama_style.catalog')
-    expect(body).toContain('shortdrama_style.get')
+    expect(body).not.toContain('shortdrama_style.get')
     expect(body).toContain('shortdrama_style.validate')
     // 封闭候选域与逐字版本
     expect(body).toContain('`B1` 清新生活流与 `D1`–`D5`')
-    expect(body).toMatch(/逐字采用返回的 `version`/)
+    expect(body).toMatch(/逐字采用(?:返回|快照)的 `version`/)
     // ready:false 时 styleIssues 必须处理
     expect(body).toContain('styleIssues[].message')
     // 装载三码显式阻断
     expect(body).toContain('STYLE_CATALOG_MISSING')
     expect(body).toContain('STYLE_CATALOG_PARSE_ERROR')
     expect(body).toContain('STYLE_CATALOG_DRIFT')
-    // 三工具名不得出现在第 0 步之外（第 0 步为正文唯一章节，计数锚点：第 1/2 步不含）
-    expect(body).not.toMatch(/第 1 步[\s\S]*shortdrama_style\./)
+    // 风格工具名不得出现在「## 第 0 步立项剧本」章节之外（锚定章节标题；
+    // 门纪律等行文中也含「第 1 步」字样，不得用无锚点正则误判）
+    expect(body).not.toMatch(/^## 第 1 步故事剧本[\s\S]*shortdrama_style\./m)
   })
 
   it('feature-802：三个专职 profile 正文不出现 style 谱系工具', async () => {

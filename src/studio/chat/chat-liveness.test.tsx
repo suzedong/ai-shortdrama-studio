@@ -11,8 +11,10 @@ function makeTurn(partial: Partial<StreamingTurn> = {}): StreamingTurn {
   return {
     messageId: 'm1',
     parts: {},
+    deltaParts: {},
     deltaPreview: { text: '', reasoning: '' },
     tools: {},
+    timeline: [],
     status: 'running',
     ...partial,
   }
@@ -20,6 +22,11 @@ function makeTurn(partial: Partial<StreamingTurn> = {}): StreamingTurn {
 
 function makeTool(partial: Partial<ToolView> = {}): ToolView {
   return { callId: 'c1', tool: 'file.write', status: 'running', args: {}, ...partial }
+}
+
+/** 等挂载时程序化滚动的 rAF 抑制解除（jsdom 不自动驱动 rAF），再模拟用户滚动 */
+async function settleMount(): Promise<void> {
+  await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
 }
 
 function chatElement(
@@ -116,7 +123,10 @@ describe('流式光标与空态三点（AC2 / AC3）', () => {
 describe('行内工具状态行（AC4 / AC5 / AC6 / 行序）', () => {
   it('AC4：running 工具 → spinner + 工具原名 + 执行中', () => {
     const { container } = renderWithStream(
-      makeTurn({ tools: { c1: makeTool({ tool: 'file.write', status: 'running' }) } }),
+      makeTurn({
+        tools: { c1: makeTool({ tool: 'file.write', status: 'running' }) },
+        timeline: [{ kind: 'tool', key: 'c1' }],
+      }),
     )
     const row = screen.getByTestId('chat-tool-row')
     // D-011：显示中文动作短语，物理 ID 留在 title 供追溯
@@ -134,6 +144,10 @@ describe('行内工具状态行（AC4 / AC5 / AC6 / 行序）', () => {
           c1: makeTool({ callId: 'c1', tool: 'brief.publish', status: 'completed', startedAt: 1000, endedAt: 2200 }),
           c2: makeTool({ callId: 'c2', tool: 'file.read', status: 'completed', startedAt: 1000 }),
         },
+        timeline: [
+          { kind: 'tool', key: 'c1' },
+          { kind: 'tool', key: 'c2' },
+        ],
       }),
     )
     const rows = screen.getAllByTestId('chat-tool-row')
@@ -151,6 +165,10 @@ describe('行内工具状态行（AC4 / AC5 / AC6 / 行序）', () => {
           c1: makeTool({ callId: 'c1', tool: 'canvas.update', status: 'error', errorText: '磁盘不可写' }),
           c2: makeTool({ callId: 'c2', tool: 'file.write', status: 'error' }),
         },
+        timeline: [
+          { kind: 'tool', key: 'c1' },
+          { kind: 'tool', key: 'c2' },
+        ],
       }),
     )
     const rows = screen.getAllByTestId('chat-tool-row')
@@ -170,6 +188,7 @@ describe('行内工具状态行（AC4 / AC5 / AC6 / 行序）', () => {
           c3: makeTool({ callId: 'c3', tool: 'shortdrama_file_write', status: 'completed', startedAt: 0, endedAt: 100, argsPreview: 'brief/立项单.v3.json', args: { path: '应被忽略.md' } }),
           c4: makeTool({ callId: 'c4', tool: 'shortdrama_canvas_get', status: 'completed', startedAt: 0, endedAt: 100, args: {} }),
         },
+        timeline: ['c1', 'c2', 'c3', 'c4'].map(key => ({ kind: 'tool' as const, key })),
       }),
     )
     const rows = screen.getAllByTestId('chat-tool-row')
@@ -187,6 +206,10 @@ describe('行内工具状态行（AC4 / AC5 / AC6 / 行序）', () => {
           c2: makeTool({ callId: 'c2', tool: 'canvas.update', status: 'running' }),
           c1: makeTool({ callId: 'c1', tool: 'file.write', status: 'completed', startedAt: 0, endedAt: 500 }),
         },
+        timeline: [
+          { kind: 'tool', key: 'c2' },
+          { kind: 'tool', key: 'c1' },
+        ],
       }),
     )
     const rows = screen.getAllByTestId('chat-tool-row')
@@ -235,9 +258,10 @@ describe('流式滚动跟随（AC11 / 契约 §3.5）', () => {
     Object.defineProperty(el, 'clientHeight', { configurable: true, value: 200 })
   }
 
-  it('接近底部时，新推理分片继续自动回底', () => {
+  it('接近底部时，新推理分片继续自动回底', async () => {
     const { container, rerender } = renderWithStream(makeTurn({ deltaPreview: { text: '', reasoning: '第一段' } }))
     const el = container.querySelector<HTMLDivElement>('[data-testid="chat-scroll-view"]')!
+    await settleMount()
     mockViewport(el, 1000)
     el.scrollTop = 800
     fireEvent.scroll(el)
@@ -247,9 +271,10 @@ describe('流式滚动跟随（AC11 / 契约 §3.5）', () => {
     expect(el.scrollTop).toBe(1200)
   })
 
-  it('主动上翻后，新推理分片保持原滚动位置', () => {
+  it('主动上翻后，新推理分片保持原滚动位置', async () => {
     const { container, rerender } = renderWithStream(makeTurn({ deltaPreview: { text: '', reasoning: '第一段' } }))
     const el = container.querySelector<HTMLDivElement>('[data-testid="chat-scroll-view"]')!
+    await settleMount()
     mockViewport(el, 1200)
     el.scrollTop = 300
     fireEvent.scroll(el)
@@ -258,9 +283,10 @@ describe('流式滚动跟随（AC11 / 契约 §3.5）', () => {
     expect(el.scrollTop).toBe(300)
   })
 
-  it('重新回到底部阈值内后，后续推理分片恢复自动跟随', () => {
+  it('重新回到底部阈值内后，后续推理分片恢复自动跟随', async () => {
     const { container, rerender } = renderWithStream(makeTurn({ deltaPreview: { text: '', reasoning: '第一段' } }))
     const el = container.querySelector<HTMLDivElement>('[data-testid="chat-scroll-view"]')!
+    await settleMount()
     mockViewport(el, 1200)
     el.scrollTop = 300
     fireEvent.scroll(el)
@@ -329,7 +355,11 @@ describe('B-48 · 多段思维链分段渲染', () => {
       const partId = `r${i + 1}`
       parts[partId] = { partId, kind: 'reasoning', text }
     })
-    return makeTurn({ parts, status: 'running' })
+    const timeline = Object.keys(parts).map(key => ({
+      kind: 'reasoning' as const,
+      key,
+    }))
+    return makeTurn({ parts, timeline, status: 'running' })
   }
 
   it('两段 reasoning → 两个折叠块，标签为 推理过程 1/2、2/2，正文各自分段', () => {
@@ -391,8 +421,12 @@ describe('终态清除（AC8）', () => {
     const { container } = renderWithStream(
       makeTurn({
         status: 'done',
-        deltaPreview: { text: '定稿正文', reasoning: '' },
+        parts: { t1: { partId: 't1', kind: 'text', text: '定稿正文' } },
         tools: { c1: makeTool({ status: 'completed', startedAt: 0, endedAt: 1200 }) },
+        timeline: [
+          { kind: 'tool', key: 'c1' },
+          { kind: 'text', key: 't1' },
+        ],
       }),
     )
     expect(screen.queryByTestId('chat-stream-cursor')).toBeNull()
@@ -408,6 +442,7 @@ describe('终态清除（AC8）', () => {
       makeTurn({
         status: 'error',
         tools: { c1: makeTool({ status: 'error', errorText: '超时' }) },
+        timeline: [{ kind: 'tool', key: 'c1' }],
       }),
     )
     expect(screen.queryByTestId('chat-stream-cursor')).toBeNull()

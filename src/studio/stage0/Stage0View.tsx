@@ -16,7 +16,7 @@ import {
 import { getStyleName, useStyleCatalog } from '../style/style-catalog-store'
 import Stage0Chain, { useCaptureFacts } from './Stage0Chain'
 import { selectPremiseConfirmation } from './premise-facts'
-import { selectCaptureGroups, type CaptureGroupItem } from './chain'
+import { captureTopicLabel, selectCaptureGroups, type CaptureGroupItem } from './chain'
 import { driftDays, driftReminderLabel } from '../canvas/dirty-drift'
 import GateCardView from '../chat/GateCardView'
 import type { BriefUpdatePayload } from '../impact/impact-select'
@@ -245,7 +245,10 @@ function CapturedFactsCards({ facts }: { facts: CapturedFact[] }) {
               className="flex items-start gap-2 border-b border-[#F6F7FB] px-3.5 py-2 last:border-b-0"
               data-stage0-capture-row={f.topic}
             >
-              <span className="max-w-[130px] shrink-0 break-all pt-px text-[10.5px] font-bold text-[#7A8098]">{f.topic}</span>
+              <span
+                title={captureTopicLabel(f.topic) !== f.topic ? `字段：${f.topic}` : undefined}
+                className="max-w-[130px] shrink-0 break-all pt-px text-[10.5px] font-bold text-[#7A8098]"
+              >{captureTopicLabel(f.topic)}</span>
               <span className="min-w-0 flex-1 break-all text-[11.5px] font-bold leading-snug text-ink">{f.value}</span>
               <span className="shrink-0 rounded-[5px] border border-line bg-[#F6F7FB] px-1.5 py-px text-[9px] font-bold text-[#7A8098]">
                 {factSourceText(f)}

@@ -43,21 +43,34 @@ export function matchChainTopic(topic: string): ChainTopicMatch | null {
   return null
 }
 
-// ===== topic 中文标签（B-51；canonical 键与词表同义，额外 kind=项目性质）=====
+// ===== topic 中文标签（B-51；canonical 键与词表同义，额外 kind / style.* 与 select.ts 脏字段表对齐）=====
 
 const TOPIC_LABELS: Record<string, string> = (() => {
   const map: Record<string, string> = {}
   for (const f of FIVE_ELEMENT_FIELDS) map[f.key] = f.label
   for (const f of PREMISE_FIELDS) map[f.key] = f.label
   map.kind = '项目性质'
+  // 项目性质与视觉风格类事实（Agent 按纪律 11 用 canonical 英文键写入，上屏一律中文）
+  map['style.mainStyleId'] = '主风格'
+  map['style.auxiliaryStyleId'] = '辅助风格'
+  map['style.catalogVersion'] = '谱系版本'
   return map
 })()
+
+/**
+ * 历史自造英文键的存量兼容表（B-65）：早期 Agent 自造键已落在 `已捕获口径.json`，
+ * 无法离线改写，故上屏统一映射为中文；新口径由提示词纪律 11 禁止自造英文键，
+ * 本表只做存量兼容，不随新字段扩张。
+ */
+const LEGACY_TOPIC_LABELS: Record<string, string> = {
+  revengeTarget: '复仇对象',
+}
 
 /** 口径 topic → 中文字段名；空串回退空串、未命中回退原 topic（不臆造名称） */
 export function captureTopicLabel(topic: string): string {
   const t = topic.trim()
   if (!t) return topic
-  return TOPIC_LABELS[t] ?? t
+  return TOPIC_LABELS[t] ?? LEGACY_TOPIC_LABELS[t] ?? t
 }
 
 // ===== 已捕获口径分组（B-52；empty 相中间区呈现，仍不建画布节点）=====

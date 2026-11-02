@@ -76,6 +76,72 @@ function maxFactId(facts: CapturedFact[]): number {
   return max
 }
 
+/**
+ * 单条 upsert 的纯内存应用（U1–U4；原地改 file，返回结果条目），供 upsert / upsertMany 共用：
+ * 校验失败直接抛错（INVALID_ARGUMENT / CAPTURE_FACT_NOT_FOUND），由调用方保证零写盘。
+ */
+function applyUpsert(file: CaptureFile, input: CaptureUpsertInput, now: string): CapturedFact {
+  // 静态校验（零写盘路径）
+  if (input.topic !== undefined && input.topic.trim() === '') {
+    throw invalid('topic trim 后为空')
+  }
+  if (input.value !== undefined && input.value.trim() === '') {
+    throw invalid('value trim 后为空')
+  }
+
+  let idx = -1
+  if (input.id !== undefined) {
+    idx = file.facts.findIndex(f => f.id === input.id)
+    if (idx < 0) throw notFound(input.id)
+  } else {
+    if (input.topic === undefined) throw invalid('无 id 时 topic 必填')
+    idx = file.facts.findIndex(f => f.topic === input.topic!.trim())
+  }
+
+  if (idx >= 0) {
+    // U1/U2 更新：非 undefined 字段覆盖，updatedAt 刷新
+    const old = file.facts[idx]!
+    const next: CapturedFact = {
+      ...old,
+      ...(input.topic !== undefined ? { topic: input.topic.trim() } : {}),
+      ...(input.value !== undefined ? { value: input.value.trim() } : {}),
+      ...(input.source !== undefined ? { source: input.source } : {}),
+      ...(input.status !== undefined ? { status: input.status } : {}),
+      ...(input.quote !== undefined ? { quote: input.quote } : {}),
+      updatedAt: now,
+    }
+    if (next.source === 'user' && !next.quote) {
+      throw invalid("source='user' 必须带 quote 举证")
+    }
+    file.facts[idx] = next
+    return next
+  }
+
+  // U2/U3/U4 新建
+  if (input.value === undefined) throw invalid('新建时 value 必填')
+  const source: CaptureSource = input.source ?? 'infer'
+  if (source === 'user' && !input.quote) {
+    throw invalid("source='user' 必须带 quote 举证")
+  }
+  const status: CaptureStatus =
+    input.status ?? (source === 'user' ? 'confirmed' : 'pending')
+  // D-002 方案 A：id 取高水位 nextId（缺省 = 当前 facts max+1），分配后推进为 n+1 随文件持久化；
+  // 高水位单调不减，删除的 id 不复用（契约 §1）
+  const n = Math.max(file.nextId ?? 1, maxFactId(file.facts) + 1)
+  const result: CapturedFact = {
+    id: `f${n}`,
+    topic: input.topic!.trim(),
+    value: input.value.trim(),
+    source,
+    status,
+    ...(input.quote !== undefined ? { quote: input.quote } : {}),
+    updatedAt: now,
+  }
+  file.nextId = n + 1
+  file.facts.push(result)
+  return result
+}
+
 class CaptureStore {
   private listeners = new Set<CaptureChangeListener>()
 
@@ -91,75 +157,36 @@ class CaptureStore {
    * U3 新建缺省 source='infer'（user 须显式标且带 quote）；status 缺省推导 user→confirmed / infer→pending；
    * U4 value 新建必填、更新可缺省；trim 空串 → INVALID_ARGUMENT；
    * U5 写成功广播 capture:changed（全量）。
+   * 返回 { fact, file }：file 为写后全量，调用方无需再 list 确认状态。
    */
-  async upsert(input: CaptureUpsertInput): Promise<CapturedFact> {
+  async upsert(input: CaptureUpsertInput): Promise<{ fact: CapturedFact; file: CaptureFile }> {
     return enqueue(async () => {
       const file = await readFile()
       const now = new Date().toISOString()
-
-      // 静态校验（零写盘路径）
-      if (input.topic !== undefined && input.topic.trim() === '') {
-        throw invalid('topic trim 后为空')
-      }
-      if (input.value !== undefined && input.value.trim() === '') {
-        throw invalid('value trim 后为空')
-      }
-
-      let idx = -1
-      if (input.id !== undefined) {
-        idx = file.facts.findIndex(f => f.id === input.id)
-        if (idx < 0) throw notFound(input.id)
-      } else {
-        if (input.topic === undefined) throw invalid('无 id 时 topic 必填')
-        idx = file.facts.findIndex(f => f.topic === input.topic!.trim())
-      }
-
-      let result: CapturedFact
-      if (idx >= 0) {
-        // U1/U2 更新：非 undefined 字段覆盖，updatedAt 刷新
-        const old = file.facts[idx]!
-        const next: CapturedFact = {
-          ...old,
-          ...(input.topic !== undefined ? { topic: input.topic.trim() } : {}),
-          ...(input.value !== undefined ? { value: input.value.trim() } : {}),
-          ...(input.source !== undefined ? { source: input.source } : {}),
-          ...(input.status !== undefined ? { status: input.status } : {}),
-          ...(input.quote !== undefined ? { quote: input.quote } : {}),
-          updatedAt: now,
-        }
-        if (next.source === 'user' && !next.quote) {
-          throw invalid("source='user' 必须带 quote 举证")
-        }
-        file.facts[idx] = next
-        result = next
-      } else {
-        // U2/U3/U4 新建
-        if (input.value === undefined) throw invalid('新建时 value 必填')
-        const source: CaptureSource = input.source ?? 'infer'
-        if (source === 'user' && !input.quote) {
-          throw invalid("source='user' 必须带 quote 举证")
-        }
-        const status: CaptureStatus =
-          input.status ?? (source === 'user' ? 'confirmed' : 'pending')
-        // D-002 方案 A：id 取高水位 nextId（缺省 = 当前 facts max+1），分配后推进为 n+1 随文件持久化；
-        // 高水位单调不减，删除的 id 不复用（契约 §1）
-        const n = Math.max(file.nextId ?? 1, maxFactId(file.facts) + 1)
-        result = {
-          id: `f${n}`,
-          topic: input.topic!.trim(),
-          value: input.value.trim(),
-          source,
-          status,
-          ...(input.quote !== undefined ? { quote: input.quote } : {}),
-          updatedAt: now,
-        }
-        file.nextId = n + 1
-        file.facts.push(result)
-      }
-
+      const fact = applyUpsert(file, input, now)
       await fsp.writeFile(capturePath(), JSON.stringify(file, null, 2), 'utf-8')
       this.broadcast(file)
-      return result
+      return { fact, file }
+    })
+  }
+
+  /**
+   * capture.upsert_many（F2）：一次读入 → 顺序应用 N 条 upsert（同单条 U1–U4 语义；
+   * 前条新建/更新对后条可见，topic 可匹配前条产物）→ 一次写盘 → 一次广播。
+   * 任一条校验失败抛错且零写盘（沿用静态校验）。返回 { facts, file }：
+   * facts 为各条结果（按入参顺序），file 为写后全量 CaptureFile，无需再 list。
+   */
+  async upsertMany(inputs: CaptureUpsertInput[]): Promise<{ facts: CapturedFact[]; file: CaptureFile }> {
+    return enqueue(async () => {
+      const file = await readFile()
+      const now = new Date().toISOString()
+      const facts: CapturedFact[] = []
+      for (const input of inputs) {
+        facts.push(applyUpsert(file, input, now))
+      }
+      await fsp.writeFile(capturePath(), JSON.stringify(file, null, 2), 'utf-8')
+      this.broadcast(file)
+      return { facts, file }
     })
   }
 

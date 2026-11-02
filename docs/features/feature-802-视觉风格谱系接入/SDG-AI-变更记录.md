@@ -75,3 +75,13 @@
 - 设计书 §7.1（约 L596）/ §8.3（约 L627）称「当前实现 `electron/style-catalog.ts`（CATALOG_VERSION + assertionCatalog 校验）」；本包落地形态为 `electron/style/` 五文件（types/catalog/parse-md/loader/validate），且版本号从 md 运行时解析、不设代码内 CATALOG_VERSION 常量。
 - 裁决：职责口径（版本跟踪 + ID 校验）一致，文件拆分与版本读法为 D-002 选型的实现细化；**不回改设计书**（契约 §12 / AC10），差异在偏差清单 B-05 与本留痕双处记名。
 - feature-001 契约「style 仅非空校验（B-05）」表述被本包注入式行为增补（evaluateDraft 可选 catalog 参 + styleIssues 返回键，纯函数默认行为与 BriefPlan 形状不变），交叉指针已加：[feature-001 变更记录 R-002](../feature-001-立项模型重建/SDG-AI-变更记录.md)。
+
+### R-002 · B-57 F4：showrunner 收回 style.get 授权，选型固定 catalog 快照（2026-11-01）
+
+- 背景：真机审查「test」项目立项对话（偏差 B-57）发现，原三工具链（catalog 选 ID → get 逐条取明细 → validate 自检）在立项选型场景下，`style.get` 属冗余往返——catalog 快照已含选型所需全部字段，逐条另取只增加对话轮次与工具轨迹噪声。
+- 修订范围（提示词 + 授权层，零协议变更）：
+  1. `resources/opencode/agents/showrunner.md` frontmatter 双区（tools 声明 + permission.allow）删除 `shortdrama_style.get`；正文第 0 步选型口径固定为「一次 `style.catalog` 全量快照 + 逐字采用快照返回的 `version` + 需要时 `style.validate` 自检，不逐条另取」。
+  2. 运行时授权同步收紧：`electron/runtime/provider.ts` `SHOWRUNNER_DECLARED_TOOLS` 删除 `shortdrama_style.get`（24→23），请求级透传对该 ID 由白名单拒绝（INVALID_ARGUMENT），listAgents 兜底常量同步为 23。
+  3. **MCP 工具本体保留**：`electron/mcp/tools.ts` 的 `style.get` 注册、`client.ts` argsPreview 白名单、tool-labels 中文标签均不动——F4 仅收回 showrunner 授权层，工具供系统侧与未来场景使用。
+- 测试联动：agent-profiles（frontmatter 契约 23 项 + 正文 not.toContain，原已随 p4 落地）、runtime-client（两工具放行 + style.get 请求拒绝 + 兜底计数 23）、runtime-integration（listAgents 清单 23 项）同步更新；mcp-style-tools / mcp-pure-tools（MCP 本体 19 个注册）断言不变。
+- 设计书表述不回改，差异在偏差清单 B-57 与本留痕双处记名；零 K1（shared 未动）。交叉指针：[feature-001 R-009](../feature-001-立项模型重建/SDG-AI-变更记录.md)。

@@ -148,3 +148,21 @@
 **测试**：[network.test.ts](../../src/test/network.test.ts) 的 electron mock 增加真实 `this` 绑定校验（脱 Session 调用即抛 Illegal invocation），新增回归用例「公网 provider 不注入 resolver 时默认经 defaultSession.resolveProxy 解析（不脱 this）」，共 20 测全绿；`npx tsc -p tsconfig.node.json` 重建声明 0 退出；typecheck 恰 3 条存量基线零新增；重启 dev 后 electron=5、opencode 子进程正常拉起；全量回归 **76 文件 / 922 passed / 0 failed / 1 skipped**（较 T8–T12 的 921 净增 1 个回归用例）。
 
 **遗留**：应用内 web.search 与横幅消失的真机目验待用户桌面确认；不提交 Git。
+
+### X-002 搜索源 cn.bing.com 失效（JS 壳页）与模型臆造 URL（B-58）（2026-11-01）
+
+**现象**：用户真机走商业短剧立项（都市重生复仇题材），`web.search` 返回的内容与短剧赛道完全不相关（Windows 蓝牙故障、高校师资、招聘网站）；AI 却在诊断卡中声称命中红果 / 七猫 / 爱奇艺短剧 / 黄果 / 野果等平台真实结果，并列出多个平台官网域名；同时把「让我换个词再试」「我按 S4 诚实降级」等内心独白写进正文。
+
+**根因（实测）**：
+1. `cn.bing.com` 对非浏览器请求（本工具 UA）仅返回约 15KB 的 JS 壳页（HTTP 200、`LEN=15121`、`b_algo=0`、无 `b_results`，仅 `sb_form` + `location.href` 跳转脚本），解析器自然得到 0 条；旧实现把 0 条当正常空数组返回，不触发 S4 降级。
+2. 模型在弱 / 空结果下凭平台名臆造域名——DNS 实证 `hongguoduanju.com`、`duanjuapp.cn`、`yeguodj.com.cn` 均无 A 记录；原 S4 仅禁「编造 URL」但未规定「URL 必须逐字来自工具返回」。
+3. 对照实测 `www.bing.com`（`LEN=122334`，`b_algo=10`）、百度、DuckDuckGo html 均可达。
+
+**修复（用户拍板「工具 + 提示词全修」，不建包直接修）**：
+1. 工具层 [tools.ts](../../../electron/mcp/tools.ts)：`BING_SEARCH_ENDPOINT` 由 `https://cn.bing.com/search` 改为 `https://www.bing.com/search`（`parseBingResults` 零改动，结构兼容），URL 增 `&setlang=zh-CN`；解析 0 条一律抛 `WEB_SEARCH_FAILED`（不再回空数组冒充成功），确保触发 S4 诚实降级。
+2. 提示词层 [showrunner.md](../../../resources/opencode/agents/showrunner.md) S4 扩为四子项：弱 / 不相关结果时对标 / 钩子两块降级并逐块标注「（自身推理，无检索支撑）」；**引用 URL 必须逐字来自工具返回 results，严禁按平台名臆造域名**；严禁虚构检索命中；内心独白只属内部推理、不进正文。
+3. 测试联动 [web-tools.test.ts](../../src/test/mcp/web-tools.test.ts)：正常路径端点断言改 `www.bing.com ... &setlang=zh-CN`；新增「解析 0 条（空结果页 / JS 壳页）→ WEB_SEARCH_FAILED」用例。
+
+**验证**：以工具真实 UA 实测新端点 `www.bing.com/search?q=...&setlang=zh-CN` 返回 `LEN=118741`、`b_algo=10`；typecheck 恰 3 条存量基线零新增；全量回归 **76 文件 / 951 passed / 0 failed / 1 skipped**（较 X-001 后 950 净增 1 例）。K1 / K8 / K9 零触发（工具 DTO、白名单、依赖均不变）；规格书 AC7 / 契约原文按治理规则不回改，以本条 X-002 承载。
+
+**遗留**：真机重新走一遍商业短剧立项诊断卡的目验待用户桌面确认；不提交 Git。

@@ -117,3 +117,28 @@
 - **根因**：T6 遗漏 import——误判 CanvasGate 为全局 ambient 类型（类比 StyleCatalogEntryDto 可无 import 使用）；实际 CanvasGate 定义于 shared/types.ts L391，需显式导入。
 - **修复**：文件头补 `import type { CanvasGate } from '@shared/types'`（对齐 ChatComposer.tsx L9 写法与 brief-impact / chat-runtime / brief-history 等 5 处既有测试先例）。
 - **验证**：typecheck 复跑恰 3 条历史基线零新增 ✅；单文件复跑 17/17 全绿（1.27s）✅。
+
+### X-002 闭合协议块仅在消息末尾才识别，块后跟补充句则整块降级纯文本（2026-11-01，B-59）
+
+- **现象**：真机上报（test 项目立项对话）——「先定平台」的【选项】块（6 个平台候选）未渲染为可点按钮，块原文逐字显示在气泡正文；连带平台口径无法经点击选定、口径捕获停在 5 条。
+- **根因**：[ChatComposer.tsx](../../../src/studio/chat/ChatComposer.tsx) 闭合块分支以 `【/(…)]】$` 锚定消息末尾；Agent 本次在块后追加「其余要素如无异议我就按上表预填……」一句，闭合标签不在末尾 → 整块不识别。三类协议块（【选项】/【风格选项】/【追问选项】）同受影响。
+- **修复**：闭合块正则改为非锚定 `/(^|\n)【(风格选项|选项|追问选项)】([\s\S]*?)【\/\2】/`，块前正文与块后正文均拼回 rest；定稿 segments 与流式 segments 两处段级剥离增加 `options/chips` 分支（闭合块统一由气泡级 trailing 渲染，避免按钮 + 原文重复），剥离后空 text 段移除。
+- **卡口**：纯 renderer 解析层，**K1/K8/K9 零触发**。
+- **验证**：[chat-markdown.test.tsx](../../../src/studio/chat/chat-markdown.test.tsx) 失配降级断言移除「块不在末尾」负例，新增 B-59 解析 + 渲染两用例（按钮渲染、补充说明保留、块原文不残留、点击代发「1」）；[chat-chips.test.tsx](../../../src/studio/chat/chat-chips.test.tsx) 1-4 改为块后正文场景的正例。全量 **76 文件 953 passed / 0 failed / 1 skipped**（净增 2），typecheck 恰 3 条历史基线零新增。
+- **遗留**：同一条 text 内出现多个闭合块时只处理首个（其余原文保留），非当前真实形态，不扩展。
+
+### X-003 AI 气泡无兜底身份标签 + 不显示实际使用模型（2026-11-01，B-60）
+
+- **现象**：真机上报（test 项目右栏）——①带 `【AI 反问】` 等协议前缀的气泡有标签，普通汇报 / 历史回放气泡没有标签，同屏两种形态；②所有 AI 气泡都不显示本轮使用的模型，逐消息切换模型后无从确认是否生效。
+- **根因**：`ChatComposer` 的 `LabelTag` 只在解析出协议前缀时渲染（用户气泡有「用户」兜底、AI 侧无）；`ChatItem` 无模型字段，[StudioApp.tsx](../../../src/studio/shell/StudioApp.tsx) 定稿入 items 时不写模型快照。
+- **修复**：新增 `defaultAgentLabel(agent)` 兜底（缺省「主控 Agent」）与 `BubbleModelLine` 模型小字（`火山方舟 · 模型ID` / `LM Studio · 模型ID`），挂到 segments 路径、旧路径、流式气泡、发送占位气泡、纯门卡气泡五处；`ChatItem` 增可选 `model`，定稿经 `selectedModelRef` 写入实际模型（SSE 订阅 effect 仅订阅一次，用 ref 避免闭包过期值）；历史消息无快照时回退当前选择器。
+- **卡口**：纯 renderer，模型快照只存内存**不持久化**（避免改 `shared/types.ts`），**K1/K8/K9 零触发**。
+- **验证**：[chat-markdown.test.tsx](../../../src/studio/chat/chat-markdown.test.tsx) 原「无前缀不渲染标签」断言改为兜底断言，新增模型小字 + 快照优先 2 例。全量 **77 文件 959 passed / 0 failed / 1 skipped**，typecheck 恰 3 条历史基线零新增。
+
+### X-004 立项定案卡整卡挤在门卡标题行（2026-11-01，B-63）
+
+- **现象**：真机截图中 `0-final` 门卡「立项定案卡·首版v1」的六要素 / 前提 5 项 / 风格 / 改动全部挤在标题行一坨纯文本，换行被吞，无法逐项核对。
+- **根因**：[GateCardView.tsx](../../../src/studio/chat/GateCardView.tsx) 直接渲染 `gate.question` 为标题行 `<span>`，既无 Markdown 也无 `whitespace-pre-wrap`；提示词侧也未要求 question 用 Markdown 组织。
+- **修复**：`splitGateQuestion` 把 question 拆「短标题 + 正文」——多行卡首行去 `#` 作标题、其余进可滚动 Markdown 正文区；旧版单行密文按首个句读（。：；！？）切开，无句读则按 24 字截断。`MarkdownText` 抽到 [ChatMarkdown.tsx](../../../src/studio/chat/ChatMarkdown.tsx) 供气泡与门卡共用（避免 ChatComposer ↔ GateCardView 循环依赖）。提示词新增「定案卡排版」条款（`# 标题` + `## 区块` + `- 字段：值`，禁止 JSON / 英文键名）。
+- **卡口**：纯 renderer + 提示词，**K1/K8/K9 零触发**。
+- **验证**：新增 [gate-card-layout.test.tsx](../../../src/studio/chat/gate-card-layout.test.tsx) 3 例（Markdown 卡标题 + 列表渲染、短单行无正文区、超长密文按句读切分）。

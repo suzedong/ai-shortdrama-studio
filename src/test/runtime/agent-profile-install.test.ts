@@ -45,7 +45,7 @@ describe('T3 · Agent profile 安装', () => {
       expect(profile.path).toBe(path.join(agentsDir, AGENT_PROFILES.find(p => p.name === profile.name)!.file))
       const md = await fsp.readFile(profile.path, 'utf-8')
       expect(md).toContain(`model: ark/${ARK_MODEL}`)
-      expect(md).not.toContain('__ARK_MODEL_ID__')
+      expect(md).not.toContain('__MODEL_REF__')
     }
   })
 

@@ -4,7 +4,7 @@ import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { CanvasGate } from '@shared/types'
-import GateCardView from './GateCardView'
+import GateCardView, { type GateExecutionView } from './GateCardView'
 
 function approvedGate(payload: unknown): CanvasGate {
   return {
@@ -44,7 +44,7 @@ const harnessBlock = (): HTMLElement | null =>
 describe('feature-806 · GateCardView harness 拦截摘要（契约 §2.3）', () => {
   it('approved 门无摘要：成功卡照渲染、findings 块不渲染', () => {
     render(<GateCardView gate={approvedGate({ version: 1 })} deciding={false} onDecide={vi.fn()} />)
-    expect(screen.getByText('已确认 · 下游 Agent 已接管')).toBeInTheDocument()
+    expect(screen.getByText('已确认 · 等待下一步')).toBeInTheDocument()
     expect(harnessBlock()).toBeNull()
   })
 
@@ -77,7 +77,45 @@ describe('feature-806 · GateCardView harness 拦截摘要（契约 §2.3）', (
       },
     })
     render(<GateCardView gate={gate} deciding={false} onDecide={vi.fn()} />)
-    expect(screen.getByText('已确认 · 下游 Agent 已接管')).toBeInTheDocument()
+    expect(screen.getByText('已确认 · 等待下一步')).toBeInTheDocument()
     expect(harnessBlock()).toBeNull()
+  })
+})
+
+function gateWithExecution(status: CanvasGate['status'], execution: GateExecutionView): CanvasGate {
+  return Object.assign(approvedGate({ version: 1 }), { status, execution })
+}
+
+describe('feature-015 · GateCardView 系统后置动作结果', () => {
+  it('approved + 执行成功：展示系统摘要与下一轮继续提示', () => {
+    const gate = gateWithExecution('approved', { ok: true, summary: '已发布立项单 v1（立项单.v1.json）' })
+    const { container } = render(<GateCardView gate={gate} deciding={false} onDecide={vi.fn()} />)
+
+    expect(container.querySelector('[data-gate-execution="success"]')).not.toBeNull()
+    expect(screen.getByText('已确认 · 已发布立项单 v1（立项单.v1.json）')).toBeInTheDocument()
+    expect(screen.getByText('发送「继续」让 Agent 读取现场后续跑')).toBeInTheDocument()
+  })
+
+  it('approved + 执行失败：保持已确认并展示失败原因', () => {
+    const gate = gateWithExecution('approved', {
+      ok: false, code: 'HARNESS_VALIDATION_FAILED', message: '基础校验未通过（1 项）',
+    })
+    const { container } = render(<GateCardView gate={gate} deciding={false} onDecide={vi.fn()} />)
+
+    expect(container.querySelector('[data-gate-execution="failure"]')).not.toBeNull()
+    expect(screen.getByText('已确认 · 后置动作失败')).toBeInTheDocument()
+    expect(screen.getByText('基础校验未通过（1 项）')).toBeInTheDocument()
+  })
+
+  it('草案问题回退 pending：展示未完成原因，仍保留人工裁决按钮', () => {
+    const gate = gateWithExecution('pending', {
+      ok: false, code: 'BRIEF_NOT_READY', message: '草案未就绪，请修正后重新发门',
+    })
+    const { container } = render(<GateCardView gate={gate} deciding={false} onDecide={vi.fn()} />)
+
+    expect(container.querySelector('[data-gate-execution="failure"]')).not.toBeNull()
+    expect(screen.getByText('后置动作未完成：草案未就绪，请修正后重新发门')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '确认放行' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: '否决 / 重做' })).toBeEnabled()
   })
 })

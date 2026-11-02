@@ -233,6 +233,16 @@
 - **边界复核**：仅呈现层修改——argsPreview 白名单窄口、H6「不回放完整入参/工具结果」口径不变；DTO 形状（`argsPreview?: string`）零改动，未新增 IPC/依赖，未改 shared/types.ts 与 SSE 投影。
 - **偏差登记**：[设计现状与偏差清单.md](../../设计现状与偏差清单.md) B-51。
 
+### X-002 · B-54/B-56：流式多段推理 partId 契约 + 推理/结果交错 timeline（2026-11-01，✅）
+
+- **背景**：真机上报（test 项目立项对话，右栏 6 段推理）——①Agent 调完工具再推理后，第 2~6 段推理流式期不增长、不出现，要等定稿快照才一次性出现；②流式与定稿均固定「全部推理→正文→全部工具」三段式，同一消息内原始顺序丢失。
+- **K8 契约变更（用户已批准）**：双侧 `message.delta` DTO（[electron/runtime/types.ts](../../../electron/runtime/types.ts) / [runtime-types.ts](../../../src/lib/runtime-types.ts)）增 `partId: string`，两端逐字一致；[projection.ts](../../../electron/runtime/projection.ts) 投影 message.part.delta 时透传 part.partID。
+- **归约（B-54）**：[chat-runtime.ts](../../../src/lib/chat-runtime.ts) 新增 `deltaParts`——按 partId 分段累加 delta，同 partId 快照 parts 到达即清该段 delta；`StreamingTurn` 增 `timeline`（part/tool 首次出现按事件到达追加）；`turnReasoningBlocks` 从 timeline 出多段（快照优先、delta 兜底、空段过滤），不再因任一快照 parts 存在即丢弃全部 delta。
+- **交错（B-56）**：`turnSegments` 从 timeline 出有序 `TurnSegment[]`（tool 始终保留含 running；reasoning/text 空串跳过；timeline 全空回退旧平铺路径兼容）；[history-replay.ts](../../../src/lib/history-replay.ts) 改单遍扫描直接产有序段（同 callId 原地替换锚点，H4/H6 白名单与 ignored/synthetic 过滤不变）。渲染消费（InterleavedContent）与贴底（B-55）归 feature-809 登记；X-001 两个真机缺陷（静默段「正在思考…」、done 态光标）一并见 feature-809。
+- **卡口**：K8 仅 DTO 加字段（本登记即凭据）；K1/K9 零触发，shared/types.ts、IPC、依赖零 diff。
+- **测试**：chat-runtime.test.ts 新增多段流式/跨 messageId 用例；history-replay.test.ts 3 处旧断言改交错期望；双侧镜像测试同步。最终全量 **76 文件 950 passed / 0 failed / 1 skipped**，typecheck 恰 3 条历史基线零新增；真机目验待用户执行。
+- **偏差登记**：[设计现状与偏差清单.md](../../设计现状与偏差清单.md) B-54、B-56（均 ✅ 已解决）。
+
 ### AC1–AC10 验收勾选（2026-10-15）
 
 > 标记口径：`[x]` = 已闭环（自动化+真机双证据）。2026-10-16 D-006/D-007 方案 A 修复后，AC4/AC5 经真机复测改 [x]，本包 AC 10/10 闭环。

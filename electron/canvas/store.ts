@@ -118,8 +118,31 @@ export class CanvasStore {
     mutate(next)
     next.updatedAt = new Date().toISOString()
     const file = this.file()
-    await archiveExisting(file, new Date())
-    await fsp.writeFile(file, JSON.stringify(next, null, 2), 'utf-8')
+    const archived = await archiveExisting(file, new Date())
+    const archivePath = archived[0]
+    try {
+      await fsp.writeFile(file, JSON.stringify(next, null, 2), 'utf-8')
+    } catch (error) {
+      const rollbackErrors: unknown[] = []
+      const attemptRollback = async (operation: () => Promise<unknown>): Promise<void> => {
+        try {
+          await operation()
+        } catch (rollbackError) {
+          rollbackErrors.push(rollbackError)
+        }
+      }
+      await attemptRollback(() => fsp.rm(file, { force: true }))
+      if (archivePath !== undefined) {
+        await attemptRollback(() => fsp.rename(archivePath, file))
+      }
+      if (rollbackErrors.length > 0) {
+        throw Object.assign(
+          new Error(`画布写入失败且旧文件恢复未完成：${(error as Error).message}`),
+          { code: 'CANVAS_RESTORE_FAILED', cause: error, rollbackErrors },
+        )
+      }
+      throw error
+    }
     this.cache = next
     for (const fn of this.listeners) fn(next)
     return next

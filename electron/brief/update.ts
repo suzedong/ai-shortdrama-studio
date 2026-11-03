@@ -2,7 +2,7 @@
 // 与 brief.impact.commit 分工：commit=Agent 对话通道（draft/decisions 由 Agent 传入并校验恰好覆盖）；
 // 本主体=系统直改通道（draft 由最新立项 + 面板 patch 合并，approve.by 恒 'ui'，decisions 恒全 'mark'）。
 // 流程骨架（就绪闸 → 复算 → 双写 → 影响清单 → manifest → 画布挂脏单次队列写）与 commit 对齐；
-// 有意不共抽函数：两通道校验职责与演进方向不同（§2.6.7 三选一面板属 feature-006 未建范围）。
+// 有意不共抽函数：两通道校验职责与演进方向不同（影响面板交互见 feature-011 / D-024）。
 import path from 'node:path'
 import fsp from 'node:fs/promises'
 import type { BriefDraft, ProjectBrief, ProjectKind } from '../../shared/types.js'
@@ -161,10 +161,33 @@ export async function updateBriefFields(
     const canvas0 = await canvasStore.get()
     const assessment = assessImpact(changes, canvas0, fromVersion)
 
-    // 立项单双写（版本防覆盖在 publishBriefFiles 内；approve.by 恒 'ui'）
-    const written = await publishBriefFiles(projectDir, draft as ReadyBriefDraft, { by: 'ui' })
-    const toVersion = written.version
+    // 写前固定目标槽位并记录原态：publishBriefFiles 内部 JSON 成功、MD 失败时，
+    // 外层尚未取得返回值，仍须能补偿已经发生的半写。
+    const toVersion = fromVersion + 1
+    const jsonName = `立项单.v${toVersion}.json`
+    const mdName = `立项单.v${toVersion}.md`
     const reportName = `影响清单.v${fromVersion}-v${toVersion}.json`
+    const jsonAbs = resolveInside(projectDir, jsonName)
+    const mdAbs = resolveInside(projectDir, mdName)
+    const reportAbs = resolveInside(projectDir, reportName)
+    const manifestAbs = path.join(projectDir, MANIFEST_FILE)
+    const [jsonExisted, mdExisted, reportOriginal, manifestOriginal] = await Promise.all([
+      fsp.access(jsonAbs).then(() => true, (error: NodeJS.ErrnoException) => {
+        if (error.code === 'ENOENT') return false
+        throw error
+      }),
+      fsp.access(mdAbs).then(() => true, (error: NodeJS.ErrnoException) => {
+        if (error.code === 'ENOENT') return false
+        throw error
+      }),
+      fsp.readFile(reportAbs, 'utf-8').catch((error: NodeJS.ErrnoException) => {
+        if (error.code === 'ENOENT') return null
+        throw error
+      }),
+      fsp.readFile(manifestAbs, 'utf-8'),
+    ])
+    const manifest = parseManifest(JSON.parse(manifestOriginal), new Date().toISOString())
+    const nextManifest = applyBriefVersion(manifest, toVersion, new Date().toISOString())
     const report: ImpactReportFile = {
       schemaVersion: 1,
       kind: 'brief-impact-report',
@@ -174,56 +197,93 @@ export async function updateBriefFields(
       changes,
       items: assessment.items.map(i => ({ ...i, decision: 'mark' as const })),
     }
-    await fsp.writeFile(
-      resolveInside(projectDir, reportName),
-      JSON.stringify(report, null, 2),
-      'utf-8',
-    )
+    let briefWriteAttempted = false
+    let reportWriteAttempted = false
+    let manifestWriteAttempted = false
 
-    // manifest 指针推进（不追加 statusHistory）
-    const manifestAbs = path.join(projectDir, MANIFEST_FILE)
-    const manifest = parseManifest(
-      JSON.parse(await fsp.readFile(manifestAbs, 'utf-8')),
-      new Date().toISOString(),
-    )
-    const nextManifest = applyBriefVersion(manifest, toVersion, new Date().toISOString())
-    await fsp.writeFile(manifestAbs, JSON.stringify(nextManifest, null, 2), 'utf-8')
+    try {
+      // 立项单双写（版本防覆盖在 publishBriefFiles 内；approve.by 恒 'ui'）
+      briefWriteAttempted = true
+      const written = await publishBriefFiles(projectDir, draft as ReadyBriefDraft, { by: 'ui' })
 
-    // 画布单次写：全部 item 挂脏 + brief 节点 upsert（persistInQueue 自动广播 canvas:changed）
-    const markedDirty = assessment.items.map(i => i.nodeId)
-    // feature-806 B-46：挂脏写入 markedAt（整批同一时间戳；重复挂脏整体覆盖即刷新）
-    const markedAt = new Date().toISOString()
-    await canvasStore.persistInQueue(c => {
-      for (const item of assessment.items) {
-        const idx = c.nodes.findIndex(x => x.id === item.nodeId)
-        if (idx < 0) continue // assess 候选来自当前画布，理论必在
-        const old = c.nodes[idx]!
-        c.nodes[idx] = {
-          ...old,
-          dirty: {
-            sinceBriefVersion: fromVersion,
-            latestBriefVersion: toVersion,
-            fields: item.fields,
-            severity: item.severity,
-            impactReport: reportName,
-            markedAt,
-          },
+      reportWriteAttempted = true
+      await fsp.writeFile(reportAbs, JSON.stringify(report, null, 2), 'utf-8')
+
+      // manifest 指针推进（不追加 statusHistory）
+      manifestWriteAttempted = true
+      await fsp.writeFile(manifestAbs, JSON.stringify(nextManifest, null, 2), 'utf-8')
+
+      // 画布单次写：全部 item 挂脏 + brief 节点 upsert；写失败由 CanvasStore 自恢复
+      const markedDirty = assessment.items.map(i => i.nodeId)
+      // feature-806 B-46：挂脏写入 markedAt（整批同一时间戳；重复挂脏整体覆盖即刷新）
+      const markedAt = new Date().toISOString()
+      await canvasStore.persistInQueue(c => {
+        for (const item of assessment.items) {
+          const idx = c.nodes.findIndex(x => x.id === item.nodeId)
+          if (idx < 0) continue // assess 候选来自当前画布，理论必在
+          const old = c.nodes[idx]!
+          c.nodes[idx] = {
+            ...old,
+            dirty: {
+              sinceBriefVersion: fromVersion,
+              latestBriefVersion: toVersion,
+              fields: item.fields,
+              severity: item.severity,
+              impactReport: reportName,
+              markedAt,
+            },
+          }
+        }
+        const bIdx = c.nodes.findIndex(x => x.id === written.briefNode.id)
+        const { linksTo: _links, ...briefNode } = written.briefNode
+        if (bIdx >= 0) c.nodes[bIdx] = briefNode
+        else c.nodes.push(briefNode)
+      })
+
+      return {
+        version: toVersion,
+        jsonPath: written.jsonName,
+        mdPath: written.mdName,
+        impactReportPath: reportName,
+        changes,
+        items: assessment.items,
+        markedDirty,
+      }
+    } catch (error) {
+      const originalError = error as Error & { code?: string }
+      const rollbackErrors: unknown[] = []
+      const attemptRollback = async (operation: () => Promise<unknown>): Promise<void> => {
+        try {
+          await operation()
+        } catch (rollbackError) {
+          rollbackErrors.push(rollbackError)
         }
       }
-      const bIdx = c.nodes.findIndex(x => x.id === written.briefNode.id)
-      const { linksTo: _links, ...briefNode } = written.briefNode
-      if (bIdx >= 0) c.nodes[bIdx] = briefNode
-      else c.nodes.push(briefNode)
-    })
 
-    return {
-      version: toVersion,
-      jsonPath: written.jsonName,
-      mdPath: written.mdName,
-      impactReportPath: reportName,
-      changes,
-      items: assessment.items,
-      markedDirty,
+      if (briefWriteAttempted) {
+        if (!jsonExisted) await attemptRollback(() => fsp.rm(jsonAbs, { force: true }))
+        if (!mdExisted) await attemptRollback(() => fsp.rm(mdAbs, { force: true }))
+      }
+      if (reportWriteAttempted) {
+        await attemptRollback(() => reportOriginal === null
+          ? fsp.rm(reportAbs, { force: true })
+          : fsp.writeFile(reportAbs, reportOriginal, 'utf-8'))
+      }
+      if (manifestWriteAttempted) {
+        await attemptRollback(() => fsp.writeFile(manifestAbs, manifestOriginal, 'utf-8'))
+      }
+
+      if (rollbackErrors.length > 0 || originalError.code === 'CANVAS_RESTORE_FAILED') {
+        throw Object.assign(
+          new Error(`再版写盘失败且补偿未完成：${originalError.message}`),
+          {
+            code: 'BRIEF_UPDATE_ROLLBACK_FAILED',
+            cause: originalError,
+            rollbackErrors,
+          },
+        )
+      }
+      throw originalError
     }
   })
 }

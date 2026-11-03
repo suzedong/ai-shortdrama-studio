@@ -630,54 +630,66 @@ export function installDevMockApi(): void {
         l0?: { tags?: unknown; notes?: unknown }
       }
       const lib = getDemoBriefs()
-      const latest = lib[lib.length - 1]
-      if (latest) {
-        const fe = p.fiveElements ?? {}
-        const pr = p.premise ?? {}
-        const st = p.style ?? {}
-        latest.kind = (p.kind as ProjectBrief['kind']) ?? latest.kind
-        latest.fiveElements = {
-          ...latest.fiveElements,
-          ...(typeof fe.episodeDuration === 'string' ? { episodeDuration: fe.episodeDuration } : {}),
-          ...(typeof fe.episodeCount === 'string' ? { episodeCount: fe.episodeCount } : {}),
-          ...(typeof fe.aspectRatio === 'string' ? { aspectRatio: fe.aspectRatio } : {}),
-          ...(typeof fe.genre === 'string' ? { genre: fe.genre } : {}),
-          ...(typeof fe.tone === 'string' ? { tone: fe.tone } : {}),
-          ...(Array.isArray(fe.platforms) ? { platforms: fe.platforms as string[] } : {}),
-        }
-        latest.premise = {
-          ...latest.premise,
-          ...(typeof pr.leads === 'string' ? { leads: pr.leads } : {}),
-          ...(typeof pr.time === 'string' ? { time: pr.time } : {}),
-          ...(typeof pr.place === 'string' ? { place: pr.place } : {}),
-          ...(typeof pr.coreEvent === 'string' ? { coreEvent: pr.coreEvent } : {}),
-          ...(typeof pr.seasonBoundary === 'string' ? { seasonBoundary: pr.seasonBoundary } : {}),
-        }
-        latest.style = {
-          ...latest.style,
-          ...(typeof st.mainStyleId === 'string' ? { mainStyleId: st.mainStyleId } : {}),
-          ...(typeof st.catalogVersion === 'string' ? { catalogVersion: st.catalogVersion } : {}),
-          ...(typeof st.auxiliaryStyleId === 'string'
-            ? (st.auxiliaryStyleId === '' ? {} : { auxiliaryStyleId: st.auxiliaryStyleId })
-            : {}),
-        }
-        if (typeof p.diagnosisSummary === 'string') latest.diagnosisSummary = p.diagnosisSummary
-        if (p.l0) {
-          latest.l0 = {
-            ...(Array.isArray(p.l0.tags) ? { tags: p.l0.tags as string[] } : {}),
-            ...(typeof p.l0.notes === 'string' ? { notes: p.l0.notes } : {}),
-          }
+      const latest = lib[lib.length - 1]!
+      const fromVersion = latest.version
+      const next = structuredClone(latest)
+      const fe = p.fiveElements ?? {}
+      const pr = p.premise ?? {}
+      const st = p.style ?? {}
+      next.kind = (p.kind as ProjectBrief['kind']) ?? next.kind
+      next.fiveElements = {
+        ...next.fiveElements,
+        ...(typeof fe.episodeDuration === 'string' ? { episodeDuration: fe.episodeDuration } : {}),
+        ...(typeof fe.episodeCount === 'string' ? { episodeCount: fe.episodeCount } : {}),
+        ...(typeof fe.aspectRatio === 'string' ? { aspectRatio: fe.aspectRatio } : {}),
+        ...(typeof fe.genre === 'string' ? { genre: fe.genre } : {}),
+        ...(typeof fe.tone === 'string' ? { tone: fe.tone } : {}),
+        ...(Array.isArray(fe.platforms) ? { platforms: fe.platforms as string[] } : {}),
+      }
+      next.premise = {
+        ...next.premise,
+        ...(typeof pr.leads === 'string' ? { leads: pr.leads } : {}),
+        ...(typeof pr.time === 'string' ? { time: pr.time } : {}),
+        ...(typeof pr.place === 'string' ? { place: pr.place } : {}),
+        ...(typeof pr.coreEvent === 'string' ? { coreEvent: pr.coreEvent } : {}),
+        ...(typeof pr.seasonBoundary === 'string' ? { seasonBoundary: pr.seasonBoundary } : {}),
+      }
+      next.style = {
+        ...next.style,
+        ...(typeof st.mainStyleId === 'string' ? { mainStyleId: st.mainStyleId } : {}),
+        ...(typeof st.catalogVersion === 'string' ? { catalogVersion: st.catalogVersion } : {}),
+        ...(typeof st.auxiliaryStyleId === 'string' && st.auxiliaryStyleId !== ''
+          ? { auxiliaryStyleId: st.auxiliaryStyleId }
+          : {}),
+      }
+      if (st.auxiliaryStyleId === '') delete next.style.auxiliaryStyleId
+      if (typeof p.diagnosisSummary === 'string') next.diagnosisSummary = p.diagnosisSummary
+      if (p.l0) {
+        next.l0 = {
+          ...(Array.isArray(p.l0.tags) ? { tags: p.l0.tags as string[] } : {}),
+          ...(typeof p.l0.notes === 'string' ? { notes: p.l0.notes } : {}),
         }
       }
+      const changes = diffBrief(latest, next)
+      if (changes.length === 0) {
+        return Promise.reject(demoCaptureInvalid('没有实际字段变化，无需再版'))
+      }
+      const now = new Date().toISOString()
+      next.version = fromVersion + 1
+      next.approve = { at: now, by: 'ui' }
+      next.changesFromPrevious = changes
+      next.publishedAt = now
+      lib.push(next)
+
       // feature-011：仅 L0 元数据（低级）改动 → 空影响清单（保存后静默，不弹面板）；
       // 其余字段改动 → 演示清单（自动弹出面板的四要素数据）
       const metaOnly = Object.keys(p).filter(k => k !== 'l0').length === 0
       return resolve({
         ok: true as const,
-        version: 3,
-        jsonPath: '立项单.v3.json',
-        mdPath: '立项单.v3.md',
-        impactReportPath: '影响清单.v2-v3.json',
+        version: next.version,
+        jsonPath: `立项单.v${next.version}.json`,
+        mdPath: `立项单.v${next.version}.md`,
+        impactReportPath: `影响清单.v${fromVersion}-v${next.version}.json`,
         changes: metaOnly ? [] : DEMO_IMPACT_CHANGES,
         items: metaOnly ? [] : DEMO_IMPACT_ITEMS,
         markedDirty: metaOnly ? [] : ['n-outline'],
@@ -839,7 +851,13 @@ export function installDevMockApi(): void {
     settings: {
       comfy: {
         list: () => resolve([]),
-        upsert: () => resolve({ id: 'mock', name: 'mock', url: 'http://localhost:8188', enabled: true }),
+        upsert: () => resolve({
+          id: 'mock',
+          name: 'mock',
+          baseUrl: 'http://localhost:8188',
+          enabled: true,
+          addedAt: new Date().toISOString(),
+        }),
         remove: () => resolve({ ok: true as const }),
       },
       // feature-014 · 固定双服务商演示桩：保留双方配置，与真实 patch 语义一致

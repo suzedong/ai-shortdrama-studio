@@ -1,7 +1,7 @@
 // feature-011 · 影响评估面板（契约 §3.2-§3.6；设计书 §2.6.7 L331-349 形态对齐）
-// 非阻断弹层，与 RealignConfirm 同级挂 StudioApp；防误触关闭（仅按钮关闭，无 Esc / 背景点击）。
+// 非阻断弹层，与 RealignConfirm 同级挂 StudioApp；Esc / 显式关闭控件仅退出，背景点击不关闭（D-024）。
 // 数据恒经 impact-select 归一为 ImpactView；勾选是即时决策不落盘（decision 不回写，D-017 维持）。
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { dirtyFieldLabel } from '../canvas/CanvasBoard'
 import {
@@ -23,10 +23,10 @@ export interface ImpactPanelProps {
   degrade?: string
   /** 一键重生成选中：携带批量模板消息（含前缀与勾选产物清单） */
   onBatchRealign: (message: string) => void
-  /** 仅标记脏：关闭面板，已落盘脏标记不变 */
+  /** 仅标记脏：关闭面板，已落盘再版与脏标记不变 */
   onMarkOnly: () => void
-  /** 取消：与「仅标记脏」同效关闭（面板不撤销已落盘脏标记） */
-  onCancel: () => void
+  /** Esc / 显式关闭控件：仅退出面板，不撤销已落盘再版或脏标记 */
+  onClose: () => void
 }
 
 const LEVEL_TEXT: Record<ChangeLevel, string> = {
@@ -107,12 +107,20 @@ function ItemRow({ item, fromVersion, toVersion, checked, onToggle }: {
   )
 }
 
-export default function ImpactPanel({ data, degrade, onBatchRealign, onMarkOnly, onCancel }: ImpactPanelProps) {
+export default function ImpactPanel({ data, degrade, onBatchRealign, onMarkOnly, onClose }: ImpactPanelProps) {
   const [selection, setSelection] = useState<ImpactSelection>(() => defaultSelection(data?.items ?? []))
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
 
   if (!data) {
     return (
-      <div className="fixed inset-0 z-[70] grid place-items-center bg-ink/30 p-6">
+      <div className="fixed inset-0 z-[70] grid place-items-center bg-ink/30 p-6" data-impact-panel-backdrop>
         <div role="dialog" aria-label="影响评估" data-impact-panel className="w-[520px] rounded-xl border border-line bg-white p-5 shadow-card">
           <h3 className="text-[13px] font-extrabold text-ink">影响评估</h3>
           <p className="mt-2.5 text-[11.5px] leading-[1.7] text-[#4A4F68]" data-impact-panel-degrade>
@@ -121,9 +129,9 @@ export default function ImpactPanel({ data, degrade, onBatchRealign, onMarkOnly,
           <div className="mt-4 flex justify-end">
             <button
               type="button"
-              onClick={onCancel}
+              onClick={onClose}
               className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink"
-              data-impact-panel-cancel
+              data-impact-panel-close
             >
               关闭
             </button>
@@ -141,13 +149,22 @@ export default function ImpactPanel({ data, degrade, onBatchRealign, onMarkOnly,
   const toggle = (nodeId: string) => setSelection(s => ({ ...s, [nodeId]: !s[nodeId] }))
 
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center bg-ink/30 p-6">
+    <div className="fixed inset-0 z-[70] grid place-items-center bg-ink/30 p-6" data-impact-panel-backdrop>
       <div role="dialog" aria-label="影响评估" data-impact-panel className="w-[560px] rounded-xl border border-line bg-white p-5 shadow-card">
-        <div className="flex items-baseline gap-2">
+        <div className="flex items-center gap-2">
           <h3 className="text-[13px] font-extrabold text-ink">影响评估</h3>
           <span className="text-[10.5px] text-muted" data-impact-panel-version>
             立项 v{data.fromVersion} → v{data.toVersion}
           </span>
+          <button
+            type="button"
+            aria-label="关闭影响评估"
+            onClick={onClose}
+            className="ml-auto rounded px-1.5 py-0.5 text-sm leading-none text-muted hover:bg-[#F7F8FC] hover:text-ink"
+            data-impact-panel-close
+          >
+            ×
+          </button>
         </div>
 
         <div className="mt-3 flex flex-col gap-3">
@@ -184,18 +201,10 @@ export default function ImpactPanel({ data, degrade, onBatchRealign, onMarkOnly,
         </div>
 
         <p className="mt-3 text-[10px] leading-[1.6] text-[#A6ABC0]">
-          「仅标记脏」与「取消」同效关闭：脏标记已在保存时落盘，不撤销；黄条与漂移提醒继续提示。
+          再版与脏标记已在保存时落盘；仅标记脏、Esc 或关闭控件均不撤销，黄条与漂移提醒继续提示。
         </p>
 
         <div className="mt-3 flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink"
-            data-impact-panel-cancel
-          >
-            取消
-          </button>
           <button
             type="button"
             onClick={onMarkOnly}

@@ -84,7 +84,10 @@ zod 入参不含 dirty 键 → 普通 update 永远走保留分支。
 ## 6. 错误流与就绪语义
 
 - assess 只有两类信封错误：NO_ACTIVE_PROJECT、BRIEF_NO_BASELINE；草案不完整、谱系非法都不拦（只读干跑，Agent 在 plan 阶段把关）。
-- commit 闸门顺序：激活项目 → 基线存在 → 谱系装载（失败三码即停）→ 就绪（BRIEF_NOT_READY）→ verbal quote → 复算+决策覆盖校验（IMPACT_DECISION_MISMATCH）→ 防覆盖（BRIEF_VERSION_EXISTS）。任一失败零写盘（闸门全部在第一次写盘前完成；写盘开始后错误向上抛，由全局串行队列保证无半写并发，已写文件按“宁可失败可见”不回滚——与既有 publish 同策略）。
+- commit 闸门顺序：激活项目 → 基线存在 → 谱系装载（失败三码即停）→ 就绪（BRIEF_NOT_READY）→ verbal quote → 复算+决策覆盖校验（IMPACT_DECISION_MISMATCH）→ 防覆盖（BRIEF_VERSION_EXISTS）。任一闸门失败零写盘；Agent commit 写盘开始后的既有策略不变，不在本轮扩改 v1/MCP 发布通道。
+- D-017 `updateBriefFields` 系统直改通道改为失败补偿：第一次写盘前按 `fromVersion + 1` 固定目标槽位，记录立项单 JSON/MD 与影响清单的调用前状态、manifest 原文；任一后续步骤失败时，只删除本次调用前不存在的立项单/影响清单，恢复被尝试覆写的影响清单与 manifest。目标槽位调用前已存在时，防覆盖失败不得删除既有文件。
+- `CanvasStore.persistInQueue` 对单次画布写自恢复：新 `canvas.json` 写失败时清理半成品，并将本次 `archiveExisting` 移走的旧文件移回原路径；cache 不推进、listeners 不广播。调用前无旧文件时只清理半成品。
+- 所有补偿动作均执行并收集错误；系统直改补偿或画布恢复失败时分别抛 `BRIEF_UPDATE_ROLLBACK_FAILED` / `CANVAS_RESTORE_FAILED`，保留原错误与补偿错误。外层捕获画布恢复失败后统一以 `BRIEF_UPDATE_ROLLBACK_FAILED` 报告本次再版未完全恢复，不宣称回滚成功。
 - align 错误：NO_ACTIVE_PROJECT / CANVAS_NODE_NOT_FOUND / INVALID_ARGUMENT；无 dirty 幂等成功。
 
 ## 7. 对既有行为的影响面（已逐一核实）

@@ -380,6 +380,10 @@ interface Props {
   modelOptions: ChatModelOption[]
   selectedModel: ChatModelOption | null
   onModelChange: (model: ChatModelOption) => void
+  /** feature-812：无项目等"整体不可对话"原因（null/undefined = 不锁定）；非空即以该文案禁用输入与发送 */
+  lockedReason?: string | null
+  /** feature-812 X-005：锁定期间的空态说明（缺省按"未打开项目"表述；加载中传"正在读取…"） */
+  lockedHint?: string | null
 }
 
 function chatModelKey(model: ChatModelOption): string {
@@ -788,6 +792,8 @@ function InterleavedContent({
 export default function ChatComposer({
   items, stream, pendingGate, deciding, sending, generating = false, error, onSend, onDecide, onStop,
   historyLoading, aiDown = null, onAiRetry, modelOptions, selectedModel, onModelChange,
+  lockedReason = null,
+  lockedHint = null,
 }: Props) {
   const [draft, setDraft] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -815,6 +821,8 @@ export default function ChatComposer({
   }
 
   const submit = (): void => {
+    // feature-812（契约 L4）：锁定原因优先——回车 / 点击 / 选项代发三入口同源早退
+    if (lockedReason) return
     const text = draft.trim()
     if (!text || sending || generating || historyLoading || aiDown || !selectedModel) return
     setDraft('')
@@ -824,7 +832,8 @@ export default function ChatComposer({
   }
 
   // B-35：选项点击 = 代发编号（与手打同路径）；忙态或无可用模型禁点
-  const busy = sending || generating || historyLoading || !!stream || !!aiDown || !selectedModel
+  // feature-812：lockedReason 并入忙态，锁定时选项一并禁点
+  const busy = sending || generating || historyLoading || !!stream || !!aiDown || !selectedModel || !!lockedReason
   const pickOption = (num: string): void => {
     if (busy) return
     // B-55：点选项等同主动发送，强制贴底跟随新一轮流式
@@ -893,8 +902,10 @@ export default function ChatComposer({
           </div>
         )}
         {items.length === 0 && !stream && !generating && (
-          <div className="text-xs leading-6 text-muted">
-            输入一句灵感（如「重生复仇都市女频」），主控 Agent 会理解拆解，并按当前阶段依次请你裁决确认门。
+          <div className="text-xs leading-6 text-muted" data-chat-empty>
+            {lockedReason
+              ? (lockedHint ?? '还没有打开项目。先新建一个，或在左栏选择已有项目。')
+              : '输入一句灵感（如「重生复仇都市女频」），主控 Agent 会理解拆解，并按当前阶段依次请你裁决确认门。'}
           </div>
         )}
 
@@ -1110,8 +1121,8 @@ export default function ChatComposer({
               }
             }}
             rows={1}
-            disabled={!!aiDown}
-            placeholder={aiDown ? 'AI 服务不可用，恢复后可继续对话' : '描述创作目标，或 / 唤起 Skill…'}
+            disabled={!!aiDown || !!lockedReason}
+            placeholder={lockedReason ?? (aiDown ? 'AI 服务不可用，恢复后可继续对话' : '描述创作目标，或 / 唤起 Skill…')}
             className="h-[34px] w-full resize-none border-none bg-transparent text-[12px] text-ink outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-60"
           />
           <div className="mt-1 flex items-center gap-1.5">
@@ -1176,7 +1187,7 @@ export default function ChatComposer({
                 title="发送"
                 data-testid="chat-send"
                 onClick={submit}
-                disabled={sending || generating || historyLoading || !!aiDown || !draft.trim() || !selectedModel}
+                disabled={sending || generating || historyLoading || !!aiDown || !!lockedReason || !draft.trim() || !selectedModel}
                 className="ml-auto grid h-7 w-7 place-items-center rounded-lg bg-violet text-white transition hover:bg-[#5B4BD6] disabled:opacity-50"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="h-[13px] w-[13px]">

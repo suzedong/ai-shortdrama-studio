@@ -243,6 +243,15 @@ export interface ImpactReportFile {
   - 显式传 `parentReference`（含定稿场景）→ 覆盖；dirty 无入口可传故不可经此工具清除。
 - upsert 新节点（idx<0）时两字段按入参原值（通常 undefined）。
 
+### 4.5 D-017 系统直改再版的失败终态（本轮可靠性修订）
+
+- 仅修订 `updateBriefFields` 系统直改通道的跨文件补偿，以及 `CanvasStore.persistInQueue` 的单次画布写自恢复；v1 publish 与 `brief.impact.commit` 的跨文件写策略不扩大修改。
+- 第一次写盘前固定 `toVersion = fromVersion + 1`，记录目标立项单 JSON/MD 是否存在、影响清单是否存在及原文、manifest 原文。`publishBriefFiles` 内部 JSON 成功而 MD 失败时，外层仍按该槽位补偿，不依赖其成功返回值。
+- 任一写盘步骤失败后：调用前不存在的立项单 JSON/MD、影响清单仅在有本次写尝试后清理；调用前已存在的影响清单在写尝试后恢复原文；manifest 仅在实际写尝试后恢复原文。防覆盖失败不得误删既有目标文件。
+- 画布写失败由 `CanvasStore.persistInQueue` 清理半成品并恢复本次归档旧文件；cache 保持旧值且不广播。外层不以旧 cache 二次盲写画布。
+- 补偿步骤全部尝试并收集错误。外层补偿失败或画布恢复失败均抛 `BRIEF_UPDATE_ROLLBACK_FAILED`，错误保留原始失败与各补偿失败；独立画布调用恢复失败抛 `CANVAS_RESTORE_FAILED`。
+- 失败后全局写队列仍可继续；公共返回 DTO、`shared/types.ts`、IPC/preload 与 MCP 工具形状均不变。
+
 ## 5. parentReference 字段表（showrunner 定稿纪律；契约固定取值集）
 
 产物节点 `fields[]` 声明该产物内容实际消费的立项字段。平台不校验字段名合法性（自由字符串集会误伤），但 showrunner.md 固定如下取值表；assess 按交集工作，**少声明 = 漏标影响**（Agent 纪律责任，测试只断言机制）。
@@ -296,8 +305,10 @@ export interface ImpactReportFile {
 | `INVALID_ARGUMENT` | commit / align | 错误信封（沿用） | verbal 缺 quote；align 目标版本不高于旧版 |
 | `IMPACT_DECISION_MISMATCH` | commit | 错误信封（新增） | decisions 节点集合 ≠ 复算影响清单全集，message 列缺失/多余 id |
 | `CANVAS_NODE_NOT_FOUND` | align | 错误信封（新增） | nodeId 在画布不存在 |
+| `BRIEF_UPDATE_ROLLBACK_FAILED` | brief:update | 主进程错误（本轮） | 再版失败且补偿未全部完成，保留原错误与补偿错误 |
+| `CANVAS_RESTORE_FAILED` | 画布持久化 | 主进程错误（本轮） | 新画布写失败且旧文件恢复未全部完成 |
 
-新增码共 3 个：`BRIEF_NO_BASELINE`、`IMPACT_DECISION_MISMATCH`、`CANVAS_NODE_NOT_FOUND`。
+原 MCP 新增码共 3 个：`BRIEF_NO_BASELINE`、`IMPACT_DECISION_MISMATCH`、`CANVAS_NODE_NOT_FOUND`；本轮另增上述 2 个主进程可靠性错误码。
 
 ## 9. 测试契约
 
@@ -336,6 +347,13 @@ export interface ImpactReportFile {
 ### 9.5 renderer
 
 - CanvasBoard/StageNavPanel 为既有 studio-flow 渲染测试薄弱区（基线 10 failed 在该域）：以不扩大失败为红线；若现有套件挂得住则加 dirty 角标/黄条/导航计数的轻断言，挂不住则以人工/typecheck 验证并在变更记录登记。
+
+### 9.6 系统直改故障注入与 dev-mock 直接契约（本轮）
+
+- 对 `updateBriefFields` 分别注入：立项单 MD、影响清单、manifest、画布写失败；断言本次新文件被清理、既有影响清单与 manifest 原文恢复、旧立项单不变。
+- 画布失败同时断言原路径恢复、归档不遗留本次副本、cache 仍为旧对象且零广播；防覆盖失败不得清理既有目标文件。
+- 注入补偿自身失败，断言 `BRIEF_UPDATE_ROLLBACK_FAILED` 同时保留原错误与补偿错误；失败后的再次再版成功，证明写队列可继续。
+- 直接安装 `installDevMockApi()` 验证：辅助风格空串删除；连续再版版本递增、历史库新增且旧版不变、返回路径随版本变化；谱系采纳读取最新版；ComfyUI upsert 返回 `ComfyInstance` 的 `baseUrl/addedAt` 形状。每个用例重置模块级演示库，不依赖执行顺序。
 
 ## 10. 路径与命名约定
 

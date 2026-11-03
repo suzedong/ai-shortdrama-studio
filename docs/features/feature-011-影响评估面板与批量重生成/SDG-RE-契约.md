@@ -56,7 +56,7 @@
 | 3.3 | 查看器黄条仅在既有结构内追加一个按钮（StudioViewer.tsx L620-638 块内），既有漂移文案行（L626）与「一键对齐」钮（L628-635）零回归；按钮出现条件 = `node.dirty.impactReport` 非空 |
 | 3.4 | 画布顶栏 banner（CanvasBoard L620-629）与 RealignConfirm 组件**零 diff**（非阻断纯提醒 / 单产物确认语义维持） |
 | 3.5 | Stage0View DirtyBar（L232-245）默认零 diff（保存后已自动弹出，不重复入口）；submitBriefEdit 仅在成功后追加上报调用，既有校验 / 错误条 / onClose 语义零回归 |
-| 3.6 | 面板非阻断：不锁画布交互；Esc / 背景点击关闭策略与 RealignConfirm 对齐（防误触语义，007 契约 §3.2 先例）；data-testid 锚点前缀 `data-impact-panel-*`（新锚点，不占用既有 testid） |
+| 3.6 | 面板非阻断：不锁画布交互；Esc 与显式关闭控件仅退出，背景点击不关闭以防误触；所有关闭路径均不撤销已落盘再版或脏标记（D-024）；data-testid 锚点前缀 `data-impact-panel-*`（新锚点，不占用既有 testid） |
 | 3.7 | dev-mock-api.ts 增补：updateBrief mock 返回携带 items/changes 的演示结果 + DEMO_FILES 增补演示影响清单（string 工厂，format:'md'/json 对齐既有 fileRead 桩模式）；既有演示行为零回归 |
 
 ## 4. 最小 diff 白名单
@@ -66,7 +66,7 @@
 | 文件 | 内容 |
 | :-- | :-- |
 | `src/studio/impact/impact-select.ts` | 纯函数层：数据归一（两入口 → 视图模型）/ 分组 / 默认勾选映射 / 计数 / 批量模板消息构建（buildRealignPrompt 同源扩展） |
-| `src/studio/impact/ImpactPanel.tsx` | 面板组件（改动字段摘要区 + 分组勾选列表 + 三动作行） |
+| `src/studio/impact/ImpactPanel.tsx` | 面板组件（改动字段摘要区 + 分组勾选列表 + 两业务动作 + Esc / 显式关闭控件） |
 | `src/studio/impact/impact-panel.test.tsx` | 组件 + 纯函数单测 |
 | `src/studio/viewer/studio-viewer.test.tsx` 内新增用例组 | 黄条新钮渲染 / 点击回读重开 / 降级（**修改既有文件见 4.2**） |
 | `src/dev-mock-api.ts` 增补 | 见 4.2 |
@@ -100,7 +100,7 @@
 | T-② | 分组：high/medium 分两组、组内原序、低级别不出现（输入构造不含 low，断言无额外分组） | 同上 |
 | T-③ | 默认勾选：regenerate 预勾 / mark 不勾；改勾后计数同步；N=0 禁用 | 同上 |
 | T-④ | 一键重生成选中：点击 → 恰好一次 handleSend，消息含【产物重新对齐】前缀 + 勾选产物清单（nodeId/title/版本对/字段逐项）；未勾选产物不出现在消息中 | 同上 |
-| T-⑤ | 仅标记脏 / 取消：零 handleSend 调用、面板关闭回调触发 | 同上 |
+| T-⑤ | 仅标记脏 / Esc / 显式关闭控件：零 handleSend 调用、关闭回调各触发一次；无「取消」业务按钮 | 同上 |
 | T-⑥ | 空清单不自动弹（items=0 不上报弹窗） | stage0-view.test.tsx 或 impact-panel.test.tsx |
 | T-⑦ | 黄条新钮：dirty.impactReport 非空渲染、为空不渲染；既有漂移文案与一键对齐钮断言零回归 | studio-viewer.test.tsx |
 | T-⑧ | 黄条点击回读：fileRead 被以 dirty.impactReport 路径调用；清单解析成功 → 打开回调携带归一视图模型；读取失败 / JSON 损坏 → 降级提示不崩溃 | studio-viewer.test.tsx |

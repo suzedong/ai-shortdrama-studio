@@ -11,8 +11,8 @@
 | :-- | :-- | :-- | :-- |
 | T1 | **基线冻结**：复测并留痕 tsc（恰 3 条）/ 全量测试（66/761/0/1）/ 工具数（28）/ 白名单数（23）/ `git status` 干净度 | 变更记录 T1 行 | 实测数字与本文基线一致；不一致 → 停手呈报 |
 | T2 | 纯函数层：数据归一（两入口→视图模型）/ 分组 / 默认勾选 / 计数 / 批量模板消息构建 | 新建 `src/studio/impact/impact-select.ts` | 契约 T-①②③ 对应用例先写或同写；纯函数零副作用 |
-| T3 | 面板组件：改动字段摘要区 + 高/中分组勾选列表 + 三动作行（N 计数 / N=0 禁用）+ 降级态（空清单 / 读取失败） | 新建 `src/studio/impact/ImpactPanel.tsx` | 契约 T-③④⑤；形态对齐设计书 §2.6.7 L331-349 |
-| T4 | 面板组件与纯函数单测 | 新建 `src/studio/impact/impact-panel.test.tsx` | 契约 T-①~⑤ 全绿 |
+| T3 | 面板组件：改动字段摘要区 + 高/中分组勾选列表 + 两业务动作（N 计数 / N=0 禁用）+ Esc / 显式关闭控件 + 降级态（空清单 / 读取失败） | `src/studio/impact/ImpactPanel.tsx` | 契约 T-③④⑤；形态对齐设计书 §2.6.7（D-024 终态） |
+| T4 | 面板组件与纯函数单测（含 Esc / 关闭控件不撤销语义） | `src/studio/impact/impact-panel.test.tsx` | 契约 T-①~⑤ 全绿 |
 | T5 | StudioApp 接线：面板 state + 打开/关闭回调 + 勾选集 → 批量模板消息经 handleSend 注入 + 面板挂载（RealignConfirm 同级） | `src/studio/shell/StudioApp.tsx` | 既有用例零回归；契约 T-④ 消息体断言 |
 | T6 | Stage0View 上报：submitBriefEdit 成功后 items>0 才上报（消费 updateBrief 返回值）；StudioViewer 黄条追加「查看影响评估」钮 + fileRead 回读重开 + 降级 | `src/studio/stage0/Stage0View.tsx`、`src/studio/viewer/StudioViewer.tsx` | 契约 T-⑥⑦⑧；L620 注释同步更新 |
 | T7 | dev-mock 增补：updateBrief 演示返回 + 影响清单演示桩 | `src/dev-mock-api.ts` | 既有演示路径零回归 |

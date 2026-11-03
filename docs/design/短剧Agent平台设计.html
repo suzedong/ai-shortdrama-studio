@@ -180,19 +180,19 @@
 
 <header>
   <div class="kicker">AI SHORT DRAMA · AGENT PLATFORM</div>
-  <h1>短剧 Agent 平台设计<span class="tag">v1.12 · 2026-10-14</span></h1>
+  <h1>短剧 Agent 平台设计<span class="tag">v1.17 · 2026-11-02</span></h1>
   <div class="sub">模仿 MiniMax Design、为 AI 短剧从零设计的 Agent 驱动内容生产平台 · 一块画布 = 一条生产线，一个指令 = 一支团队</div>
   <div class="stats">
     <div class="stat"><div class="sv">8</div><div class="sl">业务闭环</div><div class="su">0 立项 → 7 发布</div></div>
     <div class="stat"><div class="sv">10</div><div class="sl">画布节点</div><div class="su">Stage 枚举</div></div>
     <div class="stat"><div class="sv">7</div><div class="sl">状态机态数</div><div class="su">manifest.status</div></div>
     <div class="stat"><div class="sv">25</div><div class="sl">IPC 通道</div><div class="su">main.ts 实测</div></div>
-    <div class="stat"><div class="sv">22</div><div class="sl">MCP 纯工具</div><div class="su">8 族 · 磁盘实况</div></div>
+    <div class="stat"><div class="sv">28</div><div class="sl">MCP 纯工具</div><div class="su">11 族 · 磁盘实况</div></div>
     <div class="stat"><div class="sv">14</div><div class="sl">runtime 错误码</div><div class="su">electron/runtime</div></div>
-    <div class="stat"><div class="sv">35</div><div class="sl">测试文件</div><div class="su">369 通过 · 0 失败 · 1 skipped（typecheck 全绿）</div></div>
+    <div class="stat"><div class="sv">80</div><div class="sl">测试文件</div><div class="su">1001 通过 · 0 失败 · 1 skipped（typecheck 3 条现存基线）</div></div>
   </div>
-  <div class="fact">可视化呈现 · 事实以 <a href="../短剧Agent平台设计.md">短剧Agent平台设计.md</a> 为准
-    <span class="src">来源：设计 md v1.12</span><span class="src">台账 D-005·D-011·D-012</span><span class="src">2026-10-14</span>
+  <div class="fact">可视化呈现 · 事实以 <a href="../../短剧Agent平台设计.md">短剧Agent平台设计.md</a> 为准
+    <span class="src">来源：设计 md v1.17</span><span class="src">台账 D-016·D-023·D-024</span><span class="src">2026-11-02</span>
   </div>
 </header>
 
@@ -242,7 +242,7 @@
 <section id="sec-1">
   <div class="sec-head"><span class="sec-no">01</span><h2>设计原则</h2><span class="hint">§1 · 8 条</span></div>
   <div class="grid g4">
-    <div class="card"><div class="ct">1 · Agent 一等公民 <span class="src s-a">Design 原有</span></div><div class="cb">用户只与主控 Agent 对话；界面是 Agent 的工作台，不是用户的工具箱。</div></div>
+    <div class="card"><div class="ct">1 · 系统承载，AI 辅助 <span class="src s-b">改编 · D-016</span></div><div class="cb">确定性操作由系统直做，AI 仅承担文本生成与开放式语义理解；系统直改为默认入口，对话为开放式兜底，双通道共用数据模型与追溯机制。</div></div>
     <div class="card"><div class="ct">2 · 画布即真相 <span class="src s-a">Design 原有</span></div><div class="cb">全部产物与过程在画布可见，节点自动连线，数据流即视觉。</div></div>
     <div class="card"><div class="ct">3 · 人是导演 <span class="src s-b">改编</span></div><div class="cb">人只在关键节点做方向决策，不做参数搬运与文件拼接。</div></div>
     <div class="card"><div class="ct">4 · 专职并行 <span class="src s-b">改编</span></div><div class="cb">编剧 / 美术 / 镜头 / 声音 / 引擎各司其职，无依赖任务并行。</div></div>
@@ -386,7 +386,7 @@
   <div class="grid g3">
     <div class="card"><div class="ct">① 全字段可改</div><div class="cb">L0（项目名 / 标签 / 备注）、L1（集数 / 时长 / 受众 / 基调 / 画幅）、L2（故事前提 / 主风格）任何字段在 STAGE 0/1/2/3/4/5/6 任何阶段都可改。无 disabled、无锁形 icon。</div></div>
     <div class="card"><div class="ct">② 影响必标记</div><div class="cb">每次保存（落盘 v(N+1)）时，按 <code>project.manifest.json</code> 依赖图反向追溯所有<b>已生成的引用被改字段的下游产物</b>，列入"待对齐清单"。</div></div>
-    <div class="card"><div class="ct">③ 决策归用户</div><div class="cb">受影响产物<b>不自动重生成</b>；从"一键重生成 / 仅标记脏 / 取消"三选一；不重生成的产物继续保留，下游走脏读（"基于 vN 立项生成，与 v(N+1) 不一致"提示）。</div></div>
+    <div class="card"><div class="ct">③ 决策归用户</div><div class="cb">受影响产物<b>不自动重生成</b>；再版、影响清单与脏标记在保存时先行落盘，用户再从"一键重生成选中 / 仅标记脏"两个业务动作中选择，也可关闭面板暂不处理。<b>关闭面板不撤销再版</b>；不重生成的产物继续保留，下游走脏读。</div></div>
   </div>
   <p><b>触发入口</b>（在 STAGE 0 步骤内的 v1.9 立项视图中可改；也支持在 STAGE 1+ 通过对话提出）：</p>
   <ul>
@@ -423,8 +423,8 @@
   </table>
   <p>详见 §2.6.7 影响评估机制、§2.6.8 画布布局与界面对应。</p>
 
-  <h4>2.6.7 影响评估机制：追溯算法、面板与三选一动作（v1.10 新增）</h4>
-  <div class="note">本节细化 §2.6.6 提出的"影响必标记 + 决策归用户"，给出可执行算法与 UI 草图。数据模型与 Agent 提示词已随 feature-002 落地；影响评估面板 UI 尚未建包（现状为对话态呈报 + 系统直改恒 mark，D-017）。</div>
+  <h4>2.6.7 影响评估机制：追溯算法、面板与处理动作（v1.10 新增，v1.17 修订）</h4>
+  <div class="note">本节细化 §2.6.6 提出的"影响必标记 + 决策归用户"，给出可执行算法与 UI 草图。数据模型与 Agent 提示词已随 feature-002 落地；系统直改再版与影响评估面板已随 feature-011 落地。保存成功后先完成再版与挂脏，再弹出面板（D-017）；面板关闭不撤销已落盘内容（D-024）。</div>
   <div class="chain">
     <span class="c">① diff 提取</span><span class="ca">→</span>
     <span class="c">② 依赖图反向遍历</span><span class="ca">→</span>
@@ -444,9 +444,9 @@
   <tr><td>中</td><td>集数 / 单集时长 / 受众 / 基调 改动</td><td>黄色 ⚠️ 建议重生成</td><td>仅标记脏（需用户勾选才重生成）</td></tr>
   <tr><td>低</td><td>仅元数据（项目名 / 标签 / 备注）</td><td>灰色 · 无影响</td><td>不在清单中（直接落盘）</td></tr>
   </table>
-  <p><b>影响评估面板 UI 草图</b>（保存时自动弹出，用户必须三选一后才能关闭）：</p>
+  <p><b>影响评估面板 UI 草图</b>（保存并成功落盘后自动弹出；两个业务动作之外可经 Esc / 关闭控件退出，不阻断画布）：</p>
   <div class="mock-card">
-    <div class="mock-head"><span class="mock-dot warn"></span><span class="mock-title">影响评估 · 立项 v3 相对 v2 改动</span><span class="mock-ver">必选其一</span></div>
+    <div class="mock-head"><span class="mock-dot warn"></span><span class="mock-title">影响评估 · 立项 v3 相对 v2 改动</span><span class="mock-ver">再版与挂脏已落盘</span></div>
     <div class="mock-body">
       <div class="mock-sect">改动字段（3 项）</div>
       <div class="mock-list">
@@ -465,12 +465,12 @@
         <div class="li"><span class="m">☐</span><span class="t">STAGE 6 · 后期 <span class="mock-sub">(BGM 选曲 / 调色)</span></span><span class="lvl mid">中</span></div>
       </div>
     </div>
-    <div class="mock-actions"><span class="btn pub">一键重生成选中 (4)</span><span class="btn ghost">仅标记脏</span><span class="btn link">取消</span></div>
+    <div class="mock-actions"><span class="btn pub">一键重生成选中 (4)</span><span class="btn ghost">仅标记脏</span><span class="btn link">关闭</span></div>
   </div>
   <div class="grid g3">
     <div class="card"><div class="ct">一键重生成选中</div><div class="cb">已生成产物按"旧版本重新生成"（提示词 base + 参考资产 = 旧版，但 <code>parentReference.briefVersion</code> 改为 v(N+1)）；未生成的按 v(N+1) 立即生成。Agent 串行/并行执行，进度实时回报。</div></div>
-    <div class="card"><div class="ct">仅标记脏</div><div class="cb">受影响产物保留旧内容，节点挂 ⚠️ 角标，<code>parentReference.briefVersion</code> 仍为 vN；下次手动打开该产物编辑时，触发"按 v(N+1) 重新对齐"二次确认。</div></div>
-    <div class="card"><div class="ct">取消</div><div class="cb">v(N+1) 不落盘，字段改动只在内存中保留——用户放弃本次发布。</div></div>
+    <div class="card"><div class="ct">仅标记脏</div><div class="cb">关闭面板；所有受影响产物保留旧内容与已落盘脏标记，节点挂 ⚠️ 角标，<code>parentReference.briefVersion</code> 仍为 vN；下次手动打开该产物编辑时，触发"按 v(N+1) 重新对齐"二次确认。</div></div>
+    <div class="card"><div class="ct">关闭面板（Esc / 关闭控件）</div><div class="cb">仅退出面板、暂不处理；v(N+1)、影响清单与脏标记均已落盘且保持不变，零写盘、零消息。撤销须走"以历史内容再发一版"的既有回滚通道（D-024）。</div></div>
   </div>
   <p><b>脏读运行时表现</b>：产物使用旧立项版本生成，运行时照常；UI 顶部出现黄色提示条："当前基于 vN 立项，与最新 v(N+1) 不一致；点此查看差异 [查看影响评估] [一键对齐]"。Agent 引用产物时自动在提示词中追加"⚠️ 此产物基于 vN，与项目最新立项 v(N+1) 不一致"标记。不阻止用户继续创作——用户主权优先。</p>
   <p><b>Harness 校验补充</b>（§9 质量层联动）：影响清单 <code>影响清单.vN-v(N+1).json</code>（项目根）永久留底，下次发布 v(N+2) 时一并作为历史参考；用户选择"仅标记脏"超过 30 天未处理，Harness 给出"立项基线已漂移 N 天"提醒（不阻塞）。</p>
@@ -541,7 +541,7 @@
     <div class="card"><div class="ct">引擎 Agent <span class="src s-b">改编</span></div><div class="cb"><b>片场/工程</b>：引擎调度、工作流装载、队列轮询、落盘、断点续跑。</div></div>
     <div class="card"><div class="ct">剪辑 Agent <span class="src s-b">改编</span></div><div class="cb"><b>剪辑</b>：粗剪、字幕、转场、合流、混音、切片、封面。</div></div>
   </div>
-  <p class="dim"><b>实现层摄制组（磁盘实况，v1.12）</b>：opencode profile 已安装 <b>4 个</b>——<code>showrunner</code>（唯一 primary 主控）+ <code>writer</code> / <code>media-director</code> / <code>comfyui-operator</code>（3 个 subagent，经 <code>task</code> 调度）；早期同名 <code>director</code> profile 已于 2026-10-14 退役（提交 8114e84）。上表 7 角色为目标态分工，随 STAGE 3-7 逐步扩编。</p>
+  <p class="dim"><b>实现层摄制组（磁盘实况，v1.12；调度边界见 D-023）</b>：opencode profile 已安装 <b>4 个</b>——<code>showrunner</code>（唯一 primary 主控）+ <code>writer</code> / <code>media-director</code> / <code>comfyui-operator</code>（3 个 subagent）。仅 showrunner 持有 <code>task</code>，三个 subagent 均由它统一调度且自身不派 task；早期同名 <code>director</code> profile 已于 2026-10-14 退役（提交 8114e84）。上表 7 角色为目标态分工，随 STAGE 3-7 逐步扩编。</p>
   <div class="grid g3">
     <div class="card"><div class="ct">主控 → 专职</div><div class="cb">任务地图派发到收件箱，完成后回报产物状态。</div></div>
     <div class="card"><div class="ct">并行</div><div class="cb">无依赖任务并行（定妆与场景并行、多镜批量）；有依赖经数据节点合流。</div></div>
@@ -584,7 +584,7 @@
     <div class="card"><div class="ct">公开数据检索 2 <code>web.search / fetch</code></div><div class="cb">选题诊断公开数据检索与页面抓取（feature-006）。</div></div>
     <div class="card"><div class="ct">质检 1 <code>harness.validate</code></div><div class="cb">STAGE 0 harness 基础校验（七条 checkId，0-final 门写盘前拦截同一实现，feature-806）。</div></div>
   </div>
-  <p class="dim">showrunner 请求级白名单放行其中 <b>23 个</b>；asset 2 与 comfyui 3 不在其列（28 − 5 = 23），由 subagent 持有——writer 持文件/画布最小集，media-director 另持 asset 2 + <code>comfyui.queue/status</code>，comfyui-operator 持 asset 2 + comfyui 3 全集。subagent 仅经 <code>task</code> 接受 showrunner 委派。client 层取消 <code>shortdrama_</code> 前缀整体放行，逐物理 ID 判定（v1.12）。</p>
+  <p class="dim">showrunner 请求级白名单放行其中 <b>23 个</b>；asset 2 与 comfyui 3 不在其列（28 − 5 = 23），由 subagent 持有——writer 持文件/画布最小集，media-director 另持 asset 2，comfyui-operator 持 asset 2 + comfyui 3 全集。subagent 仅接受 showrunner 委派且自身不派 <code>task</code>；media-director 回交媒体任务交接物，由 showrunner 另行委派 comfyui-operator 执行引擎操作。client 层取消 <code>shortdrama_</code> 前缀整体放行，逐物理 ID 判定（v1.12）。</p>
   <p><b>目标族（随 feature 包逐步落地，§11 路线）</b>：</p>
   <div class="grid g4">
     <div class="card"><div class="ct">项目 <span class="src s-c">自研新增</span></div><div class="cb"><code>project.manifest / events / timeline</code>：元信息、事件流、任务地图。</div></div>
@@ -811,14 +811,18 @@
       <div class="vb">实现实况反向同步（无新决策编号）。① §5.2 已落地工具由 <b>22 个 / 8 族更正为 27 个 / 10 族</b>——补「已捕获口径 capture.* 3」（feature-005）与「公开数据检索 web.* 2」（feature-006）两族卡；showrunner 请求级白名单 17 → <b>22</b>（27 − asset 2 − comfyui 3）。② §7.1 / §8.3 两处 <code>electron/style-catalog.ts</code> 旧平铺路径更正为 <code>electron/style/catalog.ts</code>（同日 src/studio 七组、src/test 十二组镜像分包完成，纯重构零行为变化）。</div></div>
     <div class="tl"><div class="vh">v1.15 <span class="vd">2026-11-01 · 反向同步</span></div>
       <div class="vb">实现实况反向同步（无新决策编号）。§5.2 已落地工具由 <b>27 个 / 10 族更正为 28 个 / 11 族</b>——补「质检 harness.validate」族卡（feature-806 批一，0-final 门写盘前前置同一校验）；showrunner 请求级白名单 22 → <b>23</b>（28 − asset 2 − comfyui 3）。</div></div>
+    <div class="tl"><div class="vh">v1.16 <span class="vd">2026-11-02 · D-023</span></div>
+      <div class="vb">§1 原则一由「Agent 一等公民」统一为 D-016 的「<b>系统承载，AI 辅助</b>」；§4.1 / §5.2 明确 showrunner 独占 <code>task</code> 调度、三个 subagent 不嵌套委派，media-director 仅回交媒体任务交接物，comfyui.queue/status 仅由 comfyui-operator 持有。</div></div>
+    <div class="tl"><div class="vh">v1.17 <span class="vd">2026-11-02 · D-024</span></div>
+      <div class="vb">§2.6.6/§2.6.7 统一为「<b>再版与挂脏先落盘</b>，面板提供一键重生成选中 / 仅标记脏两个业务动作；Esc / 关闭控件仅退出，不撤销再版」，删除「取消则 v(N+1) 不落盘」旧语义；docs/README 改按职责划分事实源，磁盘代码仅为实现证据，冲突按 L1/L2/L3 处理。</div></div>
   </div>
   <p class="dim">镜像纪律：md 改动同步 docs/design/ 同名 html；原型（docs/design/短剧Agent平台-原型.html）同步迭代。</p>
 </section>
 
 <footer>
-  <span>短剧 Agent 平台设计 · v1.12 · 2026-10-14 · 人读镜像（源为同名 md）</span>
-  <span class="src">事实源：短剧Agent平台设计.md v1.12</span>
-  <span class="src">台账 D-005 · D-011 · D-012</span>
+  <span>短剧 Agent 平台设计 · v1.17 · 2026-11-02 · 人读镜像（源为同名 md）</span>
+  <span class="src">事实源：短剧Agent平台设计.md v1.17</span>
+  <span class="src">台账 D-005 · D-011 · D-012 · D-016 · D-023 · D-024</span>
 </footer>
 
 </main>

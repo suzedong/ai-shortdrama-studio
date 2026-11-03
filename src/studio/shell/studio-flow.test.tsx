@@ -1,6 +1,6 @@
 // feature-019 C7 · renderer 驱动测试（契约 §4，需求 AC-2/AC-3/AC-4）
 // 发送（agent:'showrunner'）→ 流式文本 → GateCard 挂载 → 裁决推进 → 画布更新。
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -114,7 +114,7 @@ describe('C7 · StudioApp 立项驱动', () => {
     const h = installApi(emptyCanvas())
     render(<StudioApp />)
 
-    await user.type(screen.getByPlaceholderText(/描述创作目标/), '重生复仇都市女频')
+    await user.type(await screen.findByPlaceholderText(/描述创作目标/), '重生复仇都市女频')
     await user.click(screen.getByRole('button', { name: '发送' }))
 
     expect(h.promptAsync).toHaveBeenCalledWith({
@@ -318,5 +318,92 @@ describe('B-50 · 立项期自动切 Stage0View', () => {
     other.projectId = 'p2'
     h.emitCanvas(other)
     expect(await screen.findByText('立项尚未定案')).toBeInTheDocument()
+  })
+})
+
+// feature-812 · 无项目态（canvas.projectId === ''，与主进程 canvas:get 兜底形状一致）
+function canvasNoProject(): Canvas {
+  const c = emptyCanvas()
+  c.projectId = ''
+  c.title = ''
+  return c
+}
+
+describe('feature-812 · 无项目态', () => {
+  it('AC1/AC5/AC7：中栏欢迎页 + 底栏隐藏 + 标题「未打开项目」', async () => {
+    installApi(canvasNoProject())
+    render(<StudioApp />)
+
+    expect(await screen.findByText('开始一部短剧')).toBeInTheDocument()
+    expect(document.querySelector('[data-view="welcome"]')).toBeTruthy()
+    expect(screen.getByText('短剧 Agent · 未打开项目')).toBeInTheDocument()
+    expect(document.querySelector('footer')).toBeNull()
+    expect(screen.queryByText('火山方舟（文本）')).not.toBeInTheDocument()
+    // 误导性空态不得出现
+    expect(screen.queryByText(/还没有任何产物/)).not.toBeInTheDocument()
+    expect(screen.queryByText('立项尚未定案')).not.toBeInTheDocument()
+  })
+
+  it('AC4/AC6：右栏锁定（输入/发送/空态文案），runtime 全桥零调用', async () => {
+    installApi(canvasNoProject())
+    render(<StudioApp />)
+
+    const box = await screen.findByPlaceholderText('先新建或打开项目再开始对话')
+    expect(box).toBeDisabled()
+    expect(screen.getByTestId('chat-send')).toBeDisabled()
+    expect(screen.getByText('还没有打开项目。先新建一个，或在左栏选择已有项目。')).toBeInTheDocument()
+
+    // 契约 L4：即便事件绕过 disabled，submit 也早退
+    fireEvent.keyDown(box, { key: 'Enter' })
+
+    const runtime = window.api.runtime as unknown as Record<string, ReturnType<typeof vi.fn>>
+    expect(runtime.status).not.toHaveBeenCalled()
+    expect(runtime.start).not.toHaveBeenCalled()
+    expect(runtime.createSession).not.toHaveBeenCalled()
+    expect(runtime.promptAsync).not.toHaveBeenCalled()
+  })
+
+  it('AC4：首拉未回（加载中）也不得放开输入与发送——防止「有内容即可点」的假可用', async () => {
+    installApi(canvasNoProject())
+    // 卡住 canvas:get：此刻还不知道有没有项目，属于"加载中"而非"无项目"
+    ;(window.api.canvas.get as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      () => new Promise(() => undefined),
+    )
+    render(<StudioApp />)
+
+    const box = screen.getByPlaceholderText('正在载入项目…')
+    expect(box).toBeDisabled()
+    expect(screen.getByTestId('chat-send')).toBeDisabled()
+    expect(screen.getByText('正在读取上次打开的项目，请稍候…')).toBeInTheDocument()
+
+    // 即使绕过 DOM 锁写进草稿，提交路径仍不得放开
+    fireEvent.change(box, { target: { value: '重生复仇都市女频' } })
+    expect(screen.getByTestId('chat-send')).toBeDisabled()
+    fireEvent.keyDown(box, { key: 'Enter' })
+
+    const runtime = window.api.runtime as unknown as Record<string, ReturnType<typeof vi.fn>>
+    expect(runtime.createSession).not.toHaveBeenCalled()
+    expect(runtime.promptAsync).not.toHaveBeenCalled()
+  })
+
+  it('AC7：点 STAGE 0 不切立项视图（八步进度仅展示）', async () => {
+    installApi(canvasNoProject())
+    render(<StudioApp />)
+    await screen.findByText('开始一部短剧')
+
+    await user.click(document.querySelector('[data-stp="0"]') as HTMLElement)
+    expect(document.querySelector('[data-view="stage0"]')).toBeNull()
+    expect(document.querySelector('[data-view="welcome"]')).toBeTruthy()
+  })
+
+  it('AC2：「＋ 新建项目」→ createProject → openProject 串联', async () => {
+    installApi(canvasNoProject())
+    render(<StudioApp />)
+    await screen.findByText('开始一部短剧')
+
+    await user.click(document.querySelector('[data-welcome-create]') as HTMLElement)
+
+    await waitFor(() => expect(window.api.openProject).toHaveBeenCalledWith('/ws/project-p2'))
+    expect(window.api.createProject).toHaveBeenCalledTimes(1)
   })
 })

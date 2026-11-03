@@ -16,6 +16,7 @@ import CanvasBoard, { kindLabel, type NodeAction } from '../canvas/CanvasBoard'
 import ChatComposer, { demoChatItems, type ChatItem, type ChatModelOption } from '../chat/ChatComposer'
 import CaptureBar from '../stage0/CaptureBar'
 import ProjectNav, { type ProjectNavHandle } from './ProjectNav'
+import WelcomeView from './WelcomeView'
 import { AssetsPanel, PluginsPanel, SkillsPanel } from './LeftPanels'
 import StageNavPanel from '../canvas/StageNavPanel'
 import { deriveBriefDisplay, stage0Tooltip } from '../canvas/brief-display'
@@ -110,6 +111,10 @@ export default function StudioApp() {
   // feature-804：平台形态（契约 §7）；防御式访问，部分桩/缺段按 win32 渲染
   const platform = window.api.window?.platform ?? 'win32'
   const [canvas, setCanvas] = useState<Canvas>(emptyCanvas)
+  // feature-812：区分「首拉未回」与「确实无项目」——否则首帧会闪一下欢迎页，并让既有断言误判
+  const [canvasLoaded, setCanvasLoaded] = useState(false)
+  /** feature-812：无项目判定的唯一来源（契约 §1.1）；加载中不算"无项目"（中栏走 loading），但同样锁定对话 */
+  const hasProject = canvasLoaded && canvas.projectId !== ''
   const [items, setItems] = useState<ChatItem[]>(() => (devMockActive() ? demoChatItems() : []))
   const [stream, setStream] = useState<StreamingTurn | null>(null)
   const [pendingGate, setPendingGate] = useState<DisplayGate | null>(null)
@@ -396,12 +401,16 @@ export default function StudioApp() {
       .then(c => {
         if (!alive) return
         setCanvas(c)
+        setCanvasLoaded(true)
         setPendingGate(pendingFromCanvas(c))
         syncProjectSession(c.projectId)
       })
       .catch(e => {
         console.error('canvas.get failed', e)
-        if (alive) setError('画布加载失败，请重试。')
+        if (alive) {
+          setCanvasLoaded(true) // 失败也结束加载态：由错误条提示，不把用户永久挡在欢迎页
+          setError('画布加载失败，请重试。')
+        }
       })
     window.api.canvas.subscribe().catch(e => console.error('canvas.subscribe failed', e))
 
@@ -430,6 +439,11 @@ export default function StudioApp() {
 
   // ---- 发送一轮：复用绑定会话；无绑定才惰性建会话并回写，指定 showrunner 与当前模型 ----
   const handleSend = useCallback(async (text: string) => {
+    // feature-812（契约 §6）：无项目零副作用早退——不建会话、不拉运行时、不烧 token
+    if (!hasProject) {
+      setError('请先新建或打开项目，再开始对话。')
+      return
+    }
     if (!selectedModel) {
       setError('请先在 AI 服务设置中配置模型。')
       return
@@ -474,7 +488,17 @@ export default function StudioApp() {
     } finally {
       setSending(false)
     }
-  }, [ensureSubscribedOnce, selectedModel])
+  }, [hasProject, ensureSubscribedOnce, selectedModel])
+
+  // ---- feature-812：无项目态两入口（异常向上抛，由 WelcomeView 就地显示，不升级为全局 error）----
+  // 画布刷新由主进程 project:open 主动推送 canvas:changed 完成，这里不重复 setCanvas
+  const handleCreateProject = useCallback(async () => {
+    const { dir } = await window.api.createProject()
+    await window.api.openProject(dir)
+  }, [])
+  const handleOpenProject = useCallback(async (dir: string) => {
+    await window.api.openProject(dir)
+  }, [])
 
   // feature-808（R4 / D-006）：停止当前轮；不本地复位 generating
   // （由 session.idle / runtime.error 事件链复位；abort 被引擎接受后必发 idle）
@@ -609,7 +633,14 @@ export default function StudioApp() {
     setToast({ tone: 'bad', text: `产物不可跨步骤移动，已回到原步骤 · ${title}` })
   }, [canvas.nodes])
 
-  const projectTitle = canvas.title || '未命名项目'
+  // feature-812：无项目时不得自称"未命名项目"
+  const projectTitle = hasProject ? (canvas.title || '未命名项目') : '未打开项目'
+  // feature-812 X-005：锁定必须覆盖"加载中"——首拉未回时 projectId 仍为空，
+  // 若只按 hasProject 判定，输入框会短暂可用且按钮随内容变亮，形成"可发但必失败"的假可用。
+  const composerLock = !canvasLoaded
+    ? '正在载入项目…'
+    : hasProject ? null : '先新建或打开项目再开始对话'
+  const composerLockHint = canvasLoaded ? null : '正在读取上次打开的项目，请稍候…'
   const lpTitle = centerView === 'stage0'
     ? '立项视图'
     : leftView === 'nav' ? '项目内流程' : PAN_TAB_TITLE[panTab]
@@ -643,6 +674,8 @@ export default function StudioApp() {
   })()
   const curStep: StepId = activeStep ?? defaultCur
   const stageTrack: { step: StepId; state: 'done' | 'cur' | 'active' | 'idle' }[] = (['0', '1', '2', '3', '4', '5', '6', '7'] as StepId[]).map(step => {
+    // feature-812（契约 §3.2）：无项目时八格全 idle，不得出现"正在立项"的 cur 假象
+    if (!hasProject) return { step, state: 'idle' as const }
     if (step === curStep) return { step, state: 'cur' as const }
     const matched = canvas.nodes.filter(n => n.step === step)
     if (matched.length === 0) return { step, state: 'idle' as const }
@@ -676,6 +709,8 @@ export default function StudioApp() {
               <button
                 type="button"
                 onClick={() => {
+                  // feature-812：无项目时八步进度仅展示，不切视图（否则进到没有落点的 STAGE 0）
+                  if (!hasProject) return
                   if (s.step === '0') {
                     setCenterView('stage0')
                     setActiveStep('0')
@@ -879,7 +914,18 @@ export default function StudioApp() {
 
         {/* ── 中栏画布 ── */}
         <main className="relative min-w-0 flex-1 bg-canvas">
-          {centerView === 'stage0' ? (
+          {!canvasLoaded ? (
+            // feature-812：首拉未回——不渲染任何"空态结论"，避免闪一下欢迎页
+            <div className="grid h-full place-items-center" data-view="loading">
+              <span className="flex items-center gap-2 text-[11px] text-muted" role="status">
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-line border-t-violet" />
+                正在载入项目…
+              </span>
+            </div>
+          ) : !hasProject ? (
+            // feature-812（契约 §2.1）：无项目态中栏唯一入口，优先于 centerView
+            <WelcomeView onCreate={handleCreateProject} onOpen={handleOpenProject} />
+          ) : centerView === 'stage0' ? (
             <Stage0View
               canvas={canvas}
               projectTitle={projectTitle}
@@ -923,7 +969,7 @@ export default function StudioApp() {
               degrade={impactPanel.degrade}
               onBatchRealign={handleImpactBatch}
               onMarkOnly={handleImpactClose}
-              onCancel={handleImpactClose}
+              onClose={handleImpactClose}
             />
           )}
         </main>
@@ -993,6 +1039,8 @@ export default function StudioApp() {
               modelOptions={modelOptions}
               selectedModel={selectedModel}
               onModelChange={setSelectedModel}
+              lockedReason={composerLock}
+              lockedHint={composerLockHint}
               onSend={handleSend}
               onStop={handleStop}
               onDecide={handleDecide}
@@ -1001,7 +1049,8 @@ export default function StudioApp() {
         </aside>
       </div>
 
-      {/* ═══ 底栏状态条 ═══ */}
+      {/* ═══ 底栏状态条（feature-812：无项目时整块不渲染，避免假状态）═══ */}
+      {hasProject && (
       <footer className="flex h-9 shrink-0 items-center gap-3.5 border-t border-line bg-white px-4 text-[10.5px] text-muted">
         <div className="flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-ok" />
@@ -1032,6 +1081,7 @@ export default function StudioApp() {
           <span>2 分钟前自动保存</span>
         </div>
       </footer>
+      )}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 // D-017 · updateBriefFields 系统直改通道测试（原则六 · 系统优先：确定性字段编辑不经 AI 对话）
 // 与 brief.impact.commit（Agent 通道）分工：approve.by 恒 'ui'、decisions 恒全 'mark'、无三选一面板。
 // 夹具同 mcp-brief-impact-tools：mkdtemp 项目 + writeSessionState + canvasStore.reset。
-import { describe, expect, it, vi, beforeAll, beforeEach } from 'vitest'
+import { describe, expect, it, vi, beforeAll, beforeEach, afterEach } from 'vitest'
 import path from 'node:path'
 import fsp from 'node:fs/promises'
 import os from 'node:os'
@@ -95,6 +95,10 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await seed()
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe('D-017 修改立项面板直写（updateBriefFields）', () => {
@@ -425,5 +429,208 @@ describe('feature-013 · 全字段直改（genre/tone/platforms/premise/diagnosi
       updateBriefFields(projDir, { premise: { time: '   ' } }),
     ).rejects.toMatchObject({ code: 'BRIEF_NOT_READY' })
     await expect(fsp.readdir(projDir)).resolves.toEqual(before)
+  })
+})
+
+const originalWriteFile = fsp.writeFile.bind(fsp)
+const originalRename = fsp.rename.bind(fsp)
+
+/** 仅对指定目标注入写失败；默认只失败首次，让补偿写可透传。 */
+function mockWriteFailure(target: string, message: string, always = false): void {
+  let injected = false
+  vi.spyOn(fsp, 'writeFile').mockImplementation(((
+    file: unknown, ...rest: unknown[]
+  ) => {
+    if (path.resolve(String(file)) === target && (always || !injected)) {
+      injected = true
+      return Promise.reject(Object.assign(new Error(message), { code: 'INJECT_WRITE' }))
+    }
+    return (originalWriteFile as (...args: unknown[]) => Promise<unknown>)(file, ...rest)
+  }) as unknown as typeof fsp.writeFile)
+}
+
+async function expectAbsent(name: string): Promise<void> {
+  await expect(fsp.access(path.join(projDir, name))).rejects.toMatchObject({ code: 'ENOENT' })
+}
+
+describe('updateBriefFields 跨文件失败补偿', () => {
+  const jsonName = '立项单.v2.json'
+  const mdName = '立项单.v2.md'
+  const reportName = '影响清单.v1-v2.json'
+  const patch = { fiveElements: { episodeCount: '100 集' } }
+
+  it('首笔 JSON 写失败并留下半成品 → 清理新文件，旧磁盘/cache 不变且零广播', async () => {
+    const jsonAbs = path.join(projDir, jsonName)
+    const v1Before = await fsp.readFile(path.join(projDir, '立项单.v1.json'), 'utf-8')
+    const manifestBefore = await fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')
+    const canvasBefore = await fsp.readFile(path.join(projDir, 'canvas.json'), 'utf-8')
+    const cachedBefore = await canvasStore.get()
+    const broadcasts: Canvas[] = []
+    const unsubscribe = canvasStore.subscribe(c => broadcasts.push(c))
+    let injected = false
+    vi.spyOn(fsp, 'writeFile').mockImplementation(((
+      file: unknown, ...rest: unknown[]
+    ) => {
+      if (path.resolve(String(file)) === jsonAbs && !injected) {
+        injected = true
+        return (originalWriteFile as (...args: unknown[]) => Promise<unknown>)(file, '{"partial":', 'utf-8')
+          .then(() => {
+            throw Object.assign(new Error('INJECT_JSON'), { code: 'INJECT_WRITE' })
+          })
+      }
+      return (originalWriteFile as (...args: unknown[]) => Promise<unknown>)(file, ...rest)
+    }) as unknown as typeof fsp.writeFile)
+
+    try {
+      await expect(updateBriefFields(projDir, patch)).rejects.toMatchObject({
+        message: 'INJECT_JSON',
+        code: 'INJECT_WRITE',
+      })
+      expect(injected).toBe(true)
+      await expectAbsent(jsonName)
+      await expectAbsent(mdName)
+      await expectAbsent(reportName)
+      await expect(fsp.readFile(path.join(projDir, '立项单.v1.json'), 'utf-8')).resolves.toBe(v1Before)
+      await expect(fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')).resolves.toBe(manifestBefore)
+      await expect(fsp.readFile(path.join(projDir, 'canvas.json'), 'utf-8')).resolves.toBe(canvasBefore)
+      expect(await canvasStore.get()).toBe(cachedBefore)
+      expect(broadcasts).toEqual([])
+    } finally {
+      unsubscribe()
+    }
+  })
+
+  it('JSON 成功、MD 失败 → 清理本次 JSON/MD，旧立项、manifest 与画布不变', async () => {
+    const v1Before = await fsp.readFile(path.join(projDir, '立项单.v1.json'), 'utf-8')
+    const manifestBefore = await fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')
+    const canvasBefore = await fsp.readFile(path.join(projDir, 'canvas.json'), 'utf-8')
+    mockWriteFailure(path.join(projDir, mdName), 'INJECT_MD')
+
+    await expect(updateBriefFields(projDir, patch)).rejects.toThrow('INJECT_MD')
+    await expectAbsent(jsonName)
+    await expectAbsent(mdName)
+    await expectAbsent(reportName)
+    await expect(fsp.readFile(path.join(projDir, '立项单.v1.json'), 'utf-8')).resolves.toBe(v1Before)
+    await expect(fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')).resolves.toBe(manifestBefore)
+    await expect(fsp.readFile(path.join(projDir, 'canvas.json'), 'utf-8')).resolves.toBe(canvasBefore)
+  })
+
+  it('影响清单写失败 → 清理新立项与半写清单，manifest 保持原文', async () => {
+    const manifestBefore = await fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')
+    mockWriteFailure(path.join(projDir, reportName), 'INJECT_REPORT')
+
+    await expect(updateBriefFields(projDir, patch)).rejects.toThrow('INJECT_REPORT')
+    await expectAbsent(jsonName)
+    await expectAbsent(mdName)
+    await expectAbsent(reportName)
+    await expect(fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')).resolves.toBe(manifestBefore)
+  })
+
+  it('manifest 写失败 → 新立项清理，已有影响清单与 manifest 均恢复原文', async () => {
+    const reportAbs = path.join(projDir, reportName)
+    const reportBefore = '{"existing":"impact"}\n'
+    await fsp.writeFile(reportAbs, reportBefore, 'utf-8')
+    const manifestAbs = path.join(projDir, MANIFEST_FILE)
+    const manifestBefore = await fsp.readFile(manifestAbs, 'utf-8')
+    mockWriteFailure(manifestAbs, 'INJECT_MANIFEST')
+
+    await expect(updateBriefFields(projDir, patch)).rejects.toThrow('INJECT_MANIFEST')
+    await expectAbsent(jsonName)
+    await expectAbsent(mdName)
+    await expect(fsp.readFile(reportAbs, 'utf-8')).resolves.toBe(reportBefore)
+    await expect(fsp.readFile(manifestAbs, 'utf-8')).resolves.toBe(manifestBefore)
+  })
+
+  it('画布写失败 → 恢复旧磁盘与 cache、零广播、归档无残留，其余新文件清理', async () => {
+    const canvasAbs = path.join(projDir, 'canvas.json')
+    const canvasBefore = await fsp.readFile(canvasAbs, 'utf-8')
+    const manifestBefore = await fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')
+    const cachedBefore = await canvasStore.get()
+    const broadcasts: Canvas[] = []
+    const unsubscribe = canvasStore.subscribe(c => broadcasts.push(c))
+    mockWriteFailure(canvasAbs, 'INJECT_CANVAS')
+
+    try {
+      await expect(updateBriefFields(projDir, patch)).rejects.toThrow('INJECT_CANVAS')
+      await expectAbsent(jsonName)
+      await expectAbsent(mdName)
+      await expectAbsent(reportName)
+      await expect(fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')).resolves.toBe(manifestBefore)
+      await expect(fsp.readFile(canvasAbs, 'utf-8')).resolves.toBe(canvasBefore)
+      await expect(fsp.readdir(path.join(projDir, '版本'))).resolves.toEqual([])
+      expect(await canvasStore.get()).toBe(cachedBefore)
+      expect(broadcasts).toEqual([])
+    } finally {
+      unsubscribe()
+    }
+  })
+
+  it('目标版本已存在 → BRIEF_VERSION_EXISTS，既有 JSON/MD 不被补偿误删', async () => {
+    const jsonAbs = path.join(projDir, jsonName)
+    const mdAbs = path.join(projDir, mdName)
+    await fsp.writeFile(jsonAbs, '{"existing":', 'utf-8')
+    await fsp.writeFile(mdAbs, '# existing md\n', 'utf-8')
+
+    await expect(updateBriefFields(projDir, patch)).rejects.toMatchObject({ code: 'BRIEF_VERSION_EXISTS' })
+    await expect(fsp.readFile(jsonAbs, 'utf-8')).resolves.toBe('{"existing":')
+    await expect(fsp.readFile(mdAbs, 'utf-8')).resolves.toBe('# existing md\n')
+    await expectAbsent(reportName)
+  })
+
+  it('manifest 补偿也失败 → BRIEF_UPDATE_ROLLBACK_FAILED 保留原错误与补偿错误', async () => {
+    const manifestAbs = path.join(projDir, MANIFEST_FILE)
+    mockWriteFailure(manifestAbs, 'INJECT_MANIFEST_ALWAYS', true)
+
+    await expect(updateBriefFields(projDir, patch)).rejects.toMatchObject({
+      code: 'BRIEF_UPDATE_ROLLBACK_FAILED',
+      cause: expect.objectContaining({ message: 'INJECT_MANIFEST_ALWAYS' }),
+      rollbackErrors: [expect.objectContaining({ message: 'INJECT_MANIFEST_ALWAYS' })],
+    })
+    await expectAbsent(jsonName)
+    await expectAbsent(mdName)
+    await expectAbsent(reportName)
+  })
+
+  it('画布归档恢复失败 → 外层报补偿未完成并保留 CANVAS_RESTORE_FAILED 原因', async () => {
+    const canvasAbs = path.join(projDir, 'canvas.json')
+    const canvasBefore = await fsp.readFile(canvasAbs, 'utf-8')
+    const cachedBefore = await canvasStore.get()
+    const broadcasts: Canvas[] = []
+    const unsubscribe = canvasStore.subscribe(c => broadcasts.push(c))
+    mockWriteFailure(canvasAbs, 'INJECT_CANVAS')
+    vi.spyOn(fsp, 'rename').mockImplementation(((
+      from: unknown, to: unknown
+    ) => {
+      if (path.resolve(String(to)) === canvasAbs && String(from).includes(`${path.sep}版本${path.sep}`)) {
+        return Promise.reject(new Error('INJECT_CANVAS_RESTORE'))
+      }
+      return (originalRename as (...args: unknown[]) => Promise<unknown>)(from, to)
+    }) as unknown as typeof fsp.rename)
+
+    try {
+      await expect(updateBriefFields(projDir, patch)).rejects.toMatchObject({
+        code: 'BRIEF_UPDATE_ROLLBACK_FAILED',
+        cause: expect.objectContaining({ code: 'CANVAS_RESTORE_FAILED' }),
+      })
+      const archives = await fsp.readdir(path.join(projDir, '版本'))
+      expect(archives).toHaveLength(1)
+      await expect(fsp.readFile(path.join(projDir, '版本', archives[0]!), 'utf-8')).resolves.toBe(canvasBefore)
+      expect(await canvasStore.get()).toBe(cachedBefore)
+      expect(broadcasts).toEqual([])
+    } finally {
+      unsubscribe()
+    }
+  })
+
+  it('一次写失败后写队列可继续，再次再版成功落齐 v2', async () => {
+    mockWriteFailure(path.join(projDir, mdName), 'INJECT_MD_ONCE')
+    await expect(updateBriefFields(projDir, patch)).rejects.toThrow('INJECT_MD_ONCE')
+    await expectAbsent(jsonName)
+
+    vi.restoreAllMocks()
+    const result = await updateBriefFields(projDir, patch)
+    expect(result).toMatchObject({ version: 2, jsonPath: jsonName, mdPath: mdName })
+    const manifest = JSON.parse(await fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')) as ProjectManifest
+    expect(manifest.briefVersion).toBe(2)
   })
 })

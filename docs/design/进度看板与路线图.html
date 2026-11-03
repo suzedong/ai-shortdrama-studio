@@ -10,6 +10,7 @@
   事实来源见页底「事实来源索引」。无构建、无外部依赖（Google Fonts 除外），仅含展示脚本。
   数据快照日期：2026-10-09（当日复核 test:run / typecheck，与 2026-10-08 首测结果一致）。
   2026-10-27 再核（v1.14 反向同步）：磁盘实况更新为 27 个纯 MCP 工具 / 10 族、4 个 Agent profile（showrunner 单 primary）、20 个现行 feature 包（19 落地 / 201 部分）；测试基线 722 通过 / 0 失败 / 1 跳过（61 文件），typecheck 恰 3 条历史基线。
+  2026-11-02 再核（v1.17 反向同步）：28 个纯 MCP 工具 / 11 族、showrunner 23 白名单且独占 task、27 个现行 feature 包；当前测试与类型基线见下方实测卡。
   D-005：旧 22 个 feature 包已整体作废归档，本看板内 F-001~F-010 均为旧包历史，新包从 feature-001 重建。
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -200,22 +201,23 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   <p class="lede">面向不读规格的人：<b>旧 10 个 Feature 已随 D-005 作废归档、八步闭环覆盖、测试质量与三期路线</b>，一眼看全局。对话通道已按 D-012 定稿 runtime 单轨终态；业务层从 feature-001 反向补录重建。</p>
   <div class="verline">
     <span class="chip">旧包 <b>22 个已作废归档（D-005）</b></span>
-    <span class="chip">新包 <b>20 个（001~010/101/801/802/804/807~811；19 落地 / 201 部分）</b></span>
-    <span class="chip">当前焦点 <b>立项 → 故事 → 剧本分场反向补录</b></span>
+    <span class="chip">新包 <b>27 个（逐包状态以任务清单为准）</b></span>
+    <span class="chip">当前焦点 <b>Agent 权限与影响面板语义收口</b></span>
     <span class="chip">画像 <b>P2</b></span>
   </div>
   <div class="snapshot">数据快照：2026-10-09 复核 · npm run test:run（197 通过 / 1 跳过）/ typecheck（0 错误），与 10-08 首测一致；F-001~F-010 为旧包历史</div>
   <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-10-14 再核（v1.12）：磁盘实况已演进为 <b>22 个纯 MCP 工具 / 8 族 · 4 个 Agent profile（director 退役，showrunner 唯一 primary）· 5 个现行 feature 包</b>；当前测试基线 <b>369 通过 / 0 失败 / 1 跳过（35 文件，同日存量清零）</b>；typecheck 双 tsconfig + tsc -b 全绿。</div>
+  <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-11-02 再核（v1.17）：<b>28 个纯 MCP 工具 / 11 族 · showrunner 23 白名单且独占 task · 27 个现行 feature 包</b>；当前测试基线见下方实测卡，renderer typecheck 保留 3 条现存测试夹具基线。</div>
   <div class="truth-banner">
     <span class="tb-ic">⚠ FACT</span>
     <span>本页是 <b>B 类可视化文档</b>，仅用于汇报与快速理解，<b>不是事实源</b>。进度以各任务清单与 A 类文档为准；如冲突以 A 类为准并修正本页。事实来源见 <a href="#sources">页底索引</a>。</span>
   </div>
 
   <div class="stats rv">
-    <div class="stat"><div class="num"><span data-to="22">0</span><small> 个旧包</small></div><div class="lbl">已整体作废归档（D-005）；现行新包 20 个（001~010/101/801/802/804/807~811，2026-10-27）</div></div>
-    <div class="stat"><div class="num"><span data-to="722">0</span><small> 通过</small></div><div class="lbl">2026-10-27 再核（61 文件 · 1 跳过 · 0 失败）；10-14 再核 369 通过 / 35 文件（存量同日清零）；10-09 快照 197 通过 / 24 文件</div></div>
+    <div class="stat"><div class="num"><span data-to="22">0</span><small> 个旧包</small></div><div class="lbl">已整体作废归档（D-005）；2026-11-02 共有 27 个现行 Feature 包</div></div>
+    <div class="stat"><div class="num"><span data-to="1001">0</span><small> 通过</small></div><div class="lbl">2026-11-02 当前基线（80 文件 · 1 跳过 · 0 失败）；历史：10-27 722 / 61 文件，10-14 369 / 35 文件，10-09 197 / 24 文件</div></div>
     <div class="stat"><div class="num"><span data-to="0">0</span><small> /8 步</small></div><div class="lbl">新设计已落地步数；旧代码覆盖前 3 步形态（对话通道已定稿终态），业务层待反补重建</div></div>
-    <div class="stat"><div class="num"><span data-to="0">0</span><small> 个</small></div><div class="lbl">typecheck 待清错误</div></div>
+    <div class="stat"><div class="num"><span data-to="3">0</span><small> 条</small></div><div class="lbl">renderer typecheck 现存测试夹具基线（2026-11-02）；10-09 的 0 错误为历史快照</div></div>
   </div>
 </header>
 
@@ -343,6 +345,13 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </div>
     </div>
     <div class="alert">
+      <span class="alvl al-ok">实测·11-02</span>
+      <div>
+        <h4>2026-11-02 当前基线：1001 通过 · 1 跳过 · 0 失败</h4>
+        <p>80 个测试文件通过；node / preload 类型检查通过，renderer typecheck 有 3 条现存测试夹具错误。最终数字以本轮全量复测为准，历史快照不改写。</p>
+      </div>
+    </div>
+    <div class="alert">
       <span class="alvl al-warn">再核·10-14</span>
       <div>
         <h4>2026-10-14 再核（v1.12 反向同步，提交 8114e84）：工具 / Agent 已对齐</h4>
@@ -420,7 +429,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="src-grid">
       <div class="src-row">
         <span class="si-base">A · 规划</span>
-        <div><div class="si-ti">短剧Agent平台设计.md（v1.14）</div><div class="si-sub">§2.6 新立项模型 · §4 多 Agent 架构（4 profile 实况） · §5.1 对话生成网关（runtime 单轨） · §5.2 已落地 27 工具 / 10 族 · §7.1 数据血缘（最终设计） · §8.3 系统级外部数据源 · §11 三期路线 · §13 版本记录</div></div>
+        <div><div class="si-ti">短剧Agent平台设计.md（v1.17）</div><div class="si-sub">§2.6 新立项模型 · §4 多 Agent 架构（4 profile 实况） · §5.1 对话生成网关（runtime 单轨） · §5.2 已落地 28 工具 / 11 族 · §7.1 数据血缘（最终设计） · §8.3 系统级外部数据源 · §11 三期路线 · §13 版本记录</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 归档</span>
@@ -428,11 +437,11 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </div>
       <div class="src-row">
         <span class="si-base">A · 决策</span>
-        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005 / D-011 / D-012 … 最新 D-018）</div><div class="si-sub">立项模型重建 + 旧 22 包作废 + 谱系定位系统级外部数据源 + 对话通道定稿 runtime 单轨终态</div></div>
+        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005 / D-011 / D-012 / D-023 / D-024 · 最新 D-024）</div><div class="si-sub">立项模型重建 + 旧 22 包作废 + 谱系定位系统级外部数据源 + 对话通道定稿 runtime 单轨终态；D-023 收口 Agent 调度权限，D-024 明确影响面板关闭语义</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 新包</span>
-        <div><div class="si-ti">docs/features/（20 个现行包 · 2026-10-27）</div><div class="si-sub">feature-001~010 业务闭环 / 101 / 801·802·804·807~811 基建与体验；19 个已落地（201 部分落地）；按反向补录六步法建立</div></div>
+        <div><div class="si-ti">docs/features/（27 个现行包 · 2026-11-02）</div><div class="si-sub">feature-001~015 / 101 / 201 / 801·802·804·806~812；逐包状态与验收口径以各任务清单为准</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">实测</span>
@@ -443,8 +452,12 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
         <div><div class="si-ti">2026-10-14 命令行再核（v1.12 同步基线，同日存量清零）</div><div class="si-sub"><code>npm run test:run</code> → 369 通过 / 35 文件 / 0 失败 / 1 跳过（仅 T8-4 真机 ark 用例需 Key）；<code>npm run typecheck</code> + <code>tsc -b</code> 全绿</div></div>
       </div>
       <div class="src-row">
+        <span class="si-base">实测·11-02</span>
+        <div><div class="si-ti">2026-11-02 当前命令行基线</div><div class="si-sub"><code>npm run test:run</code> → 1001 通过 / 80 文件 / 0 失败 / 1 跳过；node / preload 类型检查通过；renderer typecheck → 3 条现存测试夹具错误。最终登记以本轮复测为准</div></div>
+      </div>
+      <div class="src-row">
         <span class="si-base">代码核对</span>
-        <div><div class="si-ti">磁盘实况（只读核对 · 2026-10-27）</div><div class="si-sub"><code>electron/main.ts</code>（42 个 invoke 处理器，含 4 窗口控制）· <code>electron/mcp/server.ts · tools.ts</code>（27 纯工具 / 10 族）· <code>resources/opencode/agents/</code>（4 profile：showrunner 持 22 白名单 + writer/media-director/comfyui-operator）· <code>src/studio/</code>（七组分包 shell/canvas/chat/viewer/stage0/style/contracts）· <code>src/lib/chat-runtime.ts</code> · <code>electron/runtime/ · fs/ · comfy/</code></div></div>
+        <div><div class="si-ti">磁盘实况（只读核对 · 2026-11-02）</div><div class="si-sub"><code>electron/main.ts</code>（42 个 invoke 处理器，含 4 窗口控制）· <code>electron/mcp/server.ts · tools.ts</code>（28 纯工具 / 11 族）· <code>resources/opencode/agents/</code>（4 profile：showrunner 持 23 白名单且独占 task + writer/media-director/comfyui-operator）· <code>src/studio/</code>（七组分包 shell/canvas/chat/viewer/stage0/style/contracts）· <code>src/lib/chat-runtime.ts</code> · <code>electron/runtime/ · fs/ · comfy/</code></div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 治理</span>
@@ -454,7 +467,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   </div>
 </details>
 
-<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准（设计 v1.14 / 决策台账 D-005·D-018）· 2026-10-09 / 10-14 快照保留，2026-10-27 随 v1.14 反向同步（4 profile · 27 工具 / 10 族 · 20 现行包）</div>
+<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准（设计 v1.17 / 决策台账 D-005·D-024）· 2026-10-09 / 10-14 / 10-27 历史快照保留，2026-11-02 随 v1.17 反向同步（4 profile · 28 工具 / 11 族 · 27 现行包）</div>
 </main>
 </div>
 

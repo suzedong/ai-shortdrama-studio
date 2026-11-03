@@ -181,6 +181,7 @@ describe('T2 · 系统提示静态契约', () => {
       const { body } = splitFrontmatter(await readProfile(file))
       expect(body).toContain('不发门')
       expect(body).toMatch(/不派\s?task/)
+      expect(body).not.toMatch(/经\s*`task`\s*委派/)
     }
   })
 

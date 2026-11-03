@@ -31,7 +31,8 @@ const THUMB_GRADIENTS = [
   'linear-gradient(135deg,#A8C4FF,#4A7DD8)',
 ]
 
-function relativeTime(iso: string): string {
+// feature-812：导出供 WelcomeView 复用（同一"多久前"口径，避免复制实现）
+export function relativeTime(iso: string): string {
   const t = Date.parse(iso)
   if (Number.isNaN(t)) return ''
   const diff = Date.now() - t

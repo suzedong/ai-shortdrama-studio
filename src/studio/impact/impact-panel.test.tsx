@@ -1,5 +1,5 @@
 // feature-011 · 影响评估面板单测（契约 §5 T-①~T-⑤ + 降级态）
-// 纯函数层（归一 / 分组 / 默认勾选 / 计数 / 批量模板）+ 组件交互（三动作 / N=0 禁用）。
+// 纯函数层（归一 / 分组 / 默认勾选 / 计数 / 批量模板）+ 组件交互（两业务动作 / Esc / 关闭控件 / N=0 禁用）。
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
@@ -47,14 +47,14 @@ function renderPanel(over: Partial<ComponentProps<typeof ImpactPanel>> = {}) {
     data: view,
     onBatchRealign: vi.fn(),
     onMarkOnly: vi.fn(),
-    onCancel: vi.fn(),
+    onClose: vi.fn(),
     ...over,
   }
   render(<ImpactPanel {...props} />)
   return {
     batch: screen.getByRole('button', { name: /一键重生成选中/ }),
     mark: screen.getByRole('button', { name: '仅标记脏' }),
-    cancel: screen.getByRole('button', { name: '取消' }),
+    close: screen.getByRole('button', { name: '关闭影响评估' }),
     ...props,
   }
 }
@@ -147,12 +147,12 @@ describe('feature-011 · T-③ 默认勾选 / 改勾计数 / N=0 禁用', () => 
 describe('feature-011 · T-④ 一键重生成选中：一次提交 + 消息内容', () => {
   it('默认勾选（1 项）点击 → 恰好一次回调，消息含前缀 / 版本对 / nodeId / title / 字段', async () => {
     const user = userEvent.setup()
-    const { batch, onBatchRealign, onMarkOnly, onCancel } = renderPanel()
+    const { batch, onBatchRealign, onMarkOnly, onClose } = renderPanel()
     await user.click(batch)
 
     expect(onBatchRealign).toHaveBeenCalledTimes(1)
     expect(onMarkOnly).not.toHaveBeenCalled()
-    expect(onCancel).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
 
     const message = vi.mocked(onBatchRealign).mock.calls[0][0] as string
     expect(message).toContain('【产物重新对齐】')
@@ -179,23 +179,44 @@ describe('feature-011 · T-④ 一键重生成选中：一次提交 + 消息内�
   })
 })
 
-/* ── T-⑤ 仅标记脏 / 取消 ── */
+/* ── T-⑤ 仅标记脏 / Esc / 显式关闭 ── */
 
-describe('feature-011 · T-⑤ 仅标记脏 / 取消：零批量回调 + 关闭回调', () => {
-  it('仅标记脏 → onMarkOnly 一次，批量零调用', async () => {
+describe('feature-011 · T-⑤ 关闭语义：零批量调用 + 不撤销再版', () => {
+  it('仅标记脏 → onMarkOnly 一次，批量与 onClose 零调用', async () => {
     const user = userEvent.setup()
-    const { mark, onBatchRealign, onMarkOnly } = renderPanel()
+    const { mark, onBatchRealign, onMarkOnly, onClose } = renderPanel()
     await user.click(mark)
     expect(onMarkOnly).toHaveBeenCalledTimes(1)
     expect(onBatchRealign).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
   })
 
-  it('取消 → onCancel 一次，批量零调用', async () => {
+  it('Esc → onClose 一次，批量与仅标记脏零调用', async () => {
     const user = userEvent.setup()
-    const { cancel, onBatchRealign, onCancel } = renderPanel()
-    await user.click(cancel)
-    expect(onCancel).toHaveBeenCalledTimes(1)
+    const { onBatchRealign, onMarkOnly, onClose } = renderPanel()
+    await user.keyboard('{Escape}')
+    expect(onClose).toHaveBeenCalledTimes(1)
     expect(onBatchRealign).not.toHaveBeenCalled()
+    expect(onMarkOnly).not.toHaveBeenCalled()
+  })
+
+  it('显式关闭控件 → onClose 一次，批量与仅标记脏零调用', async () => {
+    const user = userEvent.setup()
+    const { close, onBatchRealign, onMarkOnly, onClose } = renderPanel()
+    await user.click(close)
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onBatchRealign).not.toHaveBeenCalled()
+    expect(onMarkOnly).not.toHaveBeenCalled()
+  })
+
+  it('无「取消」业务按钮，背景点击不关闭', async () => {
+    const user = userEvent.setup()
+    const { onBatchRealign, onMarkOnly, onClose } = renderPanel()
+    expect(screen.queryByRole('button', { name: '取消' })).toBeNull()
+    await user.click(document.querySelector('[data-impact-panel-backdrop]') as HTMLElement)
+    expect(onClose).not.toHaveBeenCalled()
+    expect(onBatchRealign).not.toHaveBeenCalled()
+    expect(onMarkOnly).not.toHaveBeenCalled()
   })
 })
 
@@ -209,7 +230,7 @@ describe('feature-011 · 降级态与空清单', () => {
         degrade="影响清单读取失败（NOT_FOUND）"
         onBatchRealign={vi.fn()}
         onMarkOnly={vi.fn()}
-        onCancel={vi.fn()}
+        onClose={vi.fn()}
       />,
     )
     expect(document.querySelector('[data-impact-panel-degrade]')?.textContent).toContain('影响清单读取失败')

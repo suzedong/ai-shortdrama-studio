@@ -49,6 +49,28 @@ describe('T3 · Agent profile 安装', () => {
     }
   })
 
+  it('真实安装产物保留 showrunner 独占委派与三个 subagent 禁止嵌套委派', async () => {
+    const installed = await installAgentProfiles({ userDataDir, modelRef: `ark/${ARK_MODEL}` })
+    const docs = new Map<string, string>()
+    for (const profile of installed) {
+      docs.set(profile.name, await fsp.readFile(profile.path, 'utf-8'))
+    }
+
+    const showrunner = docs.get('showrunner')!
+    expect(showrunner).toContain('\n  task: true\n')
+    const taskRules = showrunner.match(/permission:\n  task:\n([\s\S]*?)(?=\n  read:)/)?.[1] ?? ''
+    expect(taskRules).toContain('    "*": deny')
+    expect(Array.from(taskRules.matchAll(/^    ([\w-]+): allow$/gm), m => m[1])).toEqual([
+      'writer', 'media-director', 'comfyui-operator',
+    ])
+
+    for (const name of ['writer', 'media-director', 'comfyui-operator']) {
+      const md = docs.get(name)!
+      expect(md).toContain('\n  task: false\n')
+      expect(md).toContain('\npermission:\n  task: deny\n')
+    }
+  })
+
   it('ARK_MODEL 缺失 / 空白：抛 UPSTREAM_AUTH_MISSING，无 profile 写出', async () => {
     await expect(installAgentProfiles({ userDataDir, modelRef: '' })).rejects.toMatchObject({
       name: 'UPSTREAM_AUTH_MISSING',

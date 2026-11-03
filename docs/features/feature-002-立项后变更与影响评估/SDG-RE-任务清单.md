@@ -12,12 +12,14 @@
   - `shared/types.ts`（仅契约 §1 三处字段 + 两条注释）
   - `electron/brief/impact.ts`（新）、`electron/brief/publish.ts`（新）
   - `electron/brief/plan.ts`（只读复用，预期零改；如需微调仅限导出）
+  - `electron/brief/update.ts`（本轮 D-017 失败补偿）
   - `electron/project/library.ts`、`electron/project/manifest.ts`
   - `electron/canvas/store.ts`、`electron/canvas/edges.ts`（仅类型传导）
   - `electron/mcp/tools.ts`、`electron/runtime/provider.ts`
   - `resources/opencode/agents/showrunner.md`
   - `src/studio/CanvasBoard.tsx`、`src/studio/StageNavPanel.tsx`
-  - 测试：`src/test/brief-impact.test.ts`（新）、`src/test/mcp-brief-impact-tools.test.ts`（新）、canvas-store.test.ts、agent-profiles.test.ts、mcp-pure-tools*、runtime-client*、runtime-integration*、既有 brief/mcp-brief 测试按 §7 影响面最小增补
+  - `src/dev-mock-api.ts`（本轮用户直接指示的浏览器 mock 契约对齐）
+  - 测试：`src/test/brief-impact.test.ts`（新）、`src/test/mcp-brief-impact-tools.test.ts`（新）、`src/test/brief/brief-update.test.ts`、`src/test/style/style-upgrade.test.ts`、`src/test/dev-mock-api.test.ts`（本轮新）、canvas-store.test.ts、agent-profiles.test.ts、mcp-pure-tools*、runtime-client*、runtime-integration*、既有 brief/mcp-brief 测试按 §7 影响面最小增补
 - 红线：不碰 writer.md / media-director.md / comfyui-operator.md；不碰 gate、comfy、asset、style 模块逻辑；不新增 IPC/preload；不改立项单 schema 与 diff 比较范围；不升 Canvas schemaVersion。
 
 ## 1. 原子任务
@@ -86,6 +88,24 @@
 - 红线：typecheck 7 不增；302 passed / 7 skipped / 12 failed 不扩大（本包净增断言计入 passed）。
 - 治理：features/README 002 行状态更新（K1/K8/工具数 22/showrunner 17）；偏差清单 B-03 标 ✅ 并记名两处形态差异（影响清单路径/文件名、manifest.nodes→CanvasNode）；feature-001/801 变更记录加交叉指针；本包变更记录回填实施记录与登记（错误码 3 个、工具 19→22、白名单 14→17）。
 - **结果（2026-10-14）**：全量 **353 passed / 7 skipped / 12 failed**（对照基线 302/7/12，净增 51 passed、failed 零扩大）；typecheck 7 持平（本包净新增 0，T6 两处测试夹具类型修复后回到基线）；node/preload tsc 零错误；canvas-board 套件 23/23（新增 5 轻断言）。治理五项全部完成（README、偏差清单 B-03、001/801 交叉指针、本包变更记录 R-001~R-004、设计说明 §9 实施补记）。包闭环。
+
+### ✅ T10 · 系统直改失败补偿与 dev-mock 契约对齐（2026-11-02 完成）
+
+- [x] `updateBriefFields` 写前记录目标槽位与 manifest 原态，中途失败执行最小补偿；补偿失败显式报 `BRIEF_UPDATE_ROLLBACK_FAILED`。
+- [x] `CanvasStore.persistInQueue` 写失败清理半成品并恢复本次归档；cache 不推进、零广播，恢复失败显式报错。
+- [x] brief-update 故障注入覆盖 JSON/MD 半写、影响清单、manifest、画布、防覆盖、补偿失败与队列继续；重跑 style-upgrade。
+- [x] dev-mock 修复辅助风格空串清除、连续再版新增版本与动态路径、ComfyUI `baseUrl/addedAt`；新增直接契约测试并隔离模块状态。
+- [x] 重跑 Agent profile 权限测试、相关聚焦测试与全量回归；实测结果追加变更记录，不改写 T1–T9 历史结果。
+- **结果（2026-11-02）**：brief-update 23/23、dev-mock 4/4、style-upgrade + agent-profiles 32/32；全量 80 个测试文件通过，997 passed / 1 skipped；node/preload tsc 与 `git diff --check` 通过。renderer typecheck 剩 3 条现存测试夹具错误，本轮未新增错误。
+
+### ✅ T11 · 工程收敛与真实契约回归（2026-11-02 完成）
+
+- [x] dev-mock 空 patch / 同值 patch 与真实再版通道对齐：拒绝 `INVALID_ARGUMENT`，不推进内存版本、不生成影响清单路径。
+- [x] brief-update 增补首笔 JSON 半写故障契约：保留原错误，清理本次新文件，旧立项单、manifest、canvas 磁盘原文与 cache 不变，画布零广播。
+- [x] agent-profile-install 直接校验真实安装产物：showrunner 独占 `task` 且仅可委派 writer / media-director / comfyui-operator；三个 subagent 均为 `task: false` + `permission.task: deny`。
+- [x] `CanvasStore.persistInQueue` 仅在原 catch 内抽取局部 `attemptRollback`，保持删除→恢复顺序、原错误与恢复失败语义不变。
+- [x] 五份 B 类 HTML 同步设计 v1.17 与 D-023/D-024 当前口径；修正平台全景图根设计链接、feature-812 漂移行号；清理 `dist/`、`dist-electron/`。`scripts/.DS_Store` 删除后由 macOS 立即重建，属被忽略的系统元数据，非构建产物。
+- **结果（2026-11-02）**：聚焦回归 5 文件 **53/53**（brief-update 24、dev-mock 6、canvas-store 9、agent-profile-install 4、agent-profiles 10）；`npm run test:run` 全量 **80 个测试文件通过，1001 passed / 1 skipped（共 1002）**。node/preload tsc 通过；renderer typecheck 仍恰为 3 条现存测试夹具错误，本轮未新增错误。T10 及更早历史实测保持不变。
 
 ## 2. 产出物清单
 

@@ -911,6 +911,17 @@ export function installDevMockApi(): void {
           return resolve(structuredClone(next))
         },
       },
+      // feature-813 · 工作目录更换（契约 §4：浏览器无真实文件系统与原生选择器）
+      workspace: {
+        get: () => resolve({
+          root: '/demo/workspace',
+          defaultRoot: '/demo/workspace',
+          source: 'default' as const,
+        }),
+        pick: () => resolve({ dir: null as string | null }),
+        change: () =>
+          Promise.reject(Object.assign(new Error('浏览器开发环境不支持更换工作目录'), { code: 'INVALID_ARGUMENT' })),
+      },
     },
 
     // feature-804 · Windows 窗口标题栏（契约 §5）：浏览器预览固定 win32 形态，操作 no-op

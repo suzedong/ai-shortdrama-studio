@@ -33,6 +33,7 @@ import {
 } from '../impact/impact-select'
 import VisualCatalog from '../style/VisualCatalog'
 import AiServicePanel, { getChatModelOptions } from './AiServicePanel'
+import WorkspacePanel from './WorkspacePanel'
 import WindowControls from './WindowControls'
 
 type CenterView = 'dag' | 'stage0'
@@ -138,6 +139,8 @@ export default function StudioApp() {
   const [sysMenuOpen, setSysMenuOpen] = useState(false)
   // feature-014：系统菜单「AI 服务设置」模态面板
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  // feature-813：系统菜单「工作目录」模态面板
+  const [wsPanelOpen, setWsPanelOpen] = useState(false)
   // 对话内逐消息模型：仅保留在当前 renderer，不回写 activeProvider
   const [modelOptions, setModelOptions] = useState<ChatModelOption[]>([])
   const [selectedModel, setSelectedModel] = useState<ChatModelOption | null>(null)
@@ -810,6 +813,8 @@ export default function StudioApp() {
                 <button type="button" role="menuitem" data-sys-menu-item="export" onClick={() => setSysMenuOpen(false)} className="block w-full px-3 py-2 text-left text-[12.5px] text-ink hover:bg-canvas">导出</button>
                 {/* feature-014：AI 服务设置入口（点击关菜单、开模态面板） */}
                 <button type="button" role="menuitem" data-sys-menu-item="ai-settings" onClick={() => { setSysMenuOpen(false); setAiPanelOpen(true) }} className="block w-full px-3 py-2 text-left text-[12.5px] text-ink hover:bg-canvas">AI 服务设置</button>
+                {/* feature-813：工作目录入口（点击关菜单、开模态面板） */}
+                <button type="button" role="menuitem" data-sys-menu-item="workspace-settings" onClick={() => { setSysMenuOpen(false); setWsPanelOpen(true) }} className="block w-full px-3 py-2 text-left text-[12.5px] text-ink hover:bg-canvas">工作目录</button>
               </div>
             )}
           </div>
@@ -991,6 +996,11 @@ export default function StudioApp() {
               void refreshChatModels()
             }}
           />
+        )}
+
+        {/* feature-813：工作目录更换（成功/失败均面板内呈现，不自动重连运行时） */}
+        {wsPanelOpen && (
+          <WorkspacePanel onClose={() => setWsPanelOpen(false)} />
         )}
 
         {/* 节点操作 toast（feature-026） */}

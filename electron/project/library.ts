@@ -6,6 +6,7 @@ import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import type { ProjectManifest, ProjectSession, SessionStateFile } from '../../shared/types.js'
 import { enqueue } from '../fs/write-queue.js'
+import { resolveWorkspaceRoot } from '../settings/workspace.js'
 
 function stateFilePath(): string {
   return path.join(app.getPath('userData'), 'session-state.json')
@@ -31,9 +32,9 @@ export function writeSessionState(state: SessionStateFile): void {
   fs.writeFileSync(stateFilePath(), JSON.stringify(state, null, 2), 'utf-8')
 }
 
-// 平台工作区根目录（与 runtime cwd 同源）
+// 平台工作区根目录（与 runtime cwd 同源）；feature-813：根目录可更换，取设置 store 生效值
 function workspaceRoot(): string {
-  return path.join(app.getPath('documents'), 'ai-shortdrama-studio')
+  return resolveWorkspaceRoot()
 }
 
 // feature-808：路径硬边界（openProject 与绑定读写共用）；仅允许工作区内 project-* 目录

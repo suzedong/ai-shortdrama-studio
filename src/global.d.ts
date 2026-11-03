@@ -103,6 +103,19 @@ declare global {
     message: string
   }
   type HarnessGateSummary = { checkedAt: string; findings: HarnessFindingDto[] }
+  // feature-813 · 工作目录更换 DTO（镜像 electron/settings/workspace.ts，不进 shared；K1 零触发，同 feature-014 先例）
+  type WorkspaceSettingsView = {
+    root: string
+    defaultRoot: string
+    source: 'store' | 'default'
+    updatedAt?: string
+  }
+  type WorkspaceChangeResult = {
+    ok: true
+    root: string
+    moved: string[]
+    movedCount: number
+  }
   // feature-012 · 再版门 payload 影响清单摘要镜像（主进程 002 impact.assess 返回同形，不进 shared；K1 零触发）
   type ImpactSummaryItemDto = {
     nodeId: string
@@ -268,6 +281,12 @@ declare global {
         ai: {
           get(): Promise<AiServiceSettingsView>
           update(patch: AiServiceUpdatePatch): Promise<AiServiceSettingsView>
+        }
+        // feature-813 · 工作目录更换（K8 已批；pick 取消返回 dir=null）
+        workspace: {
+          get(): Promise<WorkspaceSettingsView>
+          pick(): Promise<{ dir: string | null }>
+          change(dir: string): Promise<WorkspaceChangeResult>
         }
       }
       // feature-804 · Windows 窗口标题栏（契约 §4）

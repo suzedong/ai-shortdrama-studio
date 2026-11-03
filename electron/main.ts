@@ -23,6 +23,13 @@ import {
   updateSettings,
   type AiServiceUpdatePatch,
 } from './settings/ai-service.js'
+// feature-813 · 工作区根目录（单一全局根，可更换；K8 已批，契约见 feature-813 任务包）
+import {
+  changeDir,
+  getSettingsView as getWorkspaceSettingsView,
+  pickDir,
+  resolveWorkspaceRoot,
+} from './settings/workspace.js'
 import { canvasStore } from './canvas/store.js'
 import { gateBridge } from './gate/bridge.js'
 import { listAssets } from './asset/index.js'
@@ -510,8 +517,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** 惰性自启（契约 §6.1）：首次访问业务通道 / runtime:start 时拉起 */
 async function ensureRuntime(): Promise<RuntimeStatus> {
-  // serve cwd 固定为平台工作区根目录（契约 §1）；确保目录存在，否则 spawn ENOENT
-  const workspaceRoot = path.join(app.getPath('documents'), 'ai-shortdrama-studio')
+  // serve cwd 取平台工作区根目录（feature-813：根目录可更换，取设置 store 生效值）；确保目录存在，否则 spawn ENOENT
+  const workspaceRoot = resolveWorkspaceRoot()
   fs.mkdirSync(workspaceRoot, { recursive: true })
   // feature-014：固定双服务商与运行时参数取 store→env→default 合并值
   const activeProvider = getActiveProvider()
@@ -879,6 +886,19 @@ ipcMain.handle('settings:ai:get', () => getSettingsView())
 
 ipcMain.handle('settings:ai:update', (_e, patch: unknown) =>
   updateSettings((patch ?? {}) as AiServiceUpdatePatch))
+
+// feature-813 · 工作目录更换（恰 3 个 IPC；错误信封与全仓一致：Error.code + 中文 message）
+ipcMain.handle('settings:workspace:get', () => getWorkspaceSettingsView())
+
+ipcMain.handle('settings:workspace:pick', (e) => {
+  const win = BrowserWindow.fromWebContents(e.sender)
+  return win ? pickDir(win) : Promise.resolve({ dir: null })
+})
+
+ipcMain.handle('settings:workspace:change', (_e, arg: unknown) => {
+  const dir = (arg as { dir?: unknown } | undefined)?.dir
+  return changeDir(typeof dir === 'string' ? dir : '')
+})
 
 app.whenReady().then(() => {
   // 开发态启用辅助功能树（供自动化验证读取 UI 语义；feature-005 T9 真机验证辅助，无业务影响）

@@ -139,5 +139,5 @@ ai-shortdrama-studio/
 ## 安全与隐私
 
 - 密钥（火山方舟 Key）只存本机 `.env`，不入库、不写入文档；首启引导填写。
-- 项目数据默认纯本地（`~/Documents/ai-shortdrama-studio/project-*/`）；媒体生成不出公网。
+- 项目数据默认纯本地（默认 `~/Documents/ai-shortdrama-studio/project-*/`，根目录可在设置面板更换，feature-813）；媒体生成不出公网。
 - Agent 不持有删除 / 不可逆操作权限；所有变更经事件流留痕、可重放。

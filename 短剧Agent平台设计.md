@@ -566,7 +566,7 @@ showrunner 请求级白名单放行其中 23 个；asset 2 与 comfyui 3 不在�
 
 > 本节为数据血缘与持久化的**最终状态设计**（v1.11 由"现存代码现状"定稿，2026-10-09 用户拍板"旧链路不回退、以磁盘实况为终态"）。§7 上方的项目目录为终态目标布局；本节描述会话 / 产物层的数据血缘、状态机、版本归档与术语约定，字段契约以 [shared/types.ts](./shared/types.ts) 为准。确认门口径（2026-10-15 B-12 订正）：STAGE 0 旧 4 门 0-a~0-d 已随 D-005 退役（见 §2.6，现仅 `0-final` 一道立项定稿门）；STAGE 1/2 的 `1-a`（大纲）/`1-b`（小传）/`2-a`（分场）/`2-b`（台词）/`2-c`（分镜文字稿）**仍为现行确认门**（`GateId` 已定义，showrunner 编排持有门序；其中 2-c 已预留、随 feature-201 待实施激活），并非作废。
 
-会话数据目录（`~/Documents/ai-shortdrama-studio/project-*/`，纯文件持久化、无数据库）：
+会话数据目录（工作区根目录可更换，feature-813；默认 `~/Documents/ai-shortdrama-studio/project-*/`，纯文件持久化、无数据库）：
 
 ```
 project-*/
@@ -703,4 +703,5 @@ initiating → story-outline → story-profiles
 - v1.15（2026-11-01）修订（实现实况反向同步，无新决策编号）：§5.2 已落地工具由 **27 个 / 10 族更正为 28 个 / 11 族**——补「质检 harness.validate」族行（feature-806 批一，0-final 门写盘前前置同一校验）；showrunner 请求级白名单 22 → **23**（28 − asset 2 − comfyui 3 = 23，harness.validate 已放行）。
 - v1.16（2026-11-02，D-023）修订（根原则与 Agent 调度权限一致性）：§1 原则一由「Agent 一等公民」统一为 D-016 的「系统承载，AI 辅助」；§4.1 / §5.2 明确 showrunner 独占 `task` 调度、三个 subagent 不嵌套委派，media-director 仅回交媒体任务交接物，comfyui.queue/status 仅由 comfyui-operator 持有。镜像 HTML 同步。
 - v1.17（2026-11-02，D-024）修订（影响面板关闭语义 + 事实源分层裁决）：§2.6.6/§2.6.7 统一为「再版与挂脏先落盘，面板提供一键重生成选中 / 仅标记脏两个业务动作；Esc / 关闭控件仅退出，不撤销再版」，删除「取消则 v(N+1) 不落盘」旧语义；docs/README 改按职责划分事实源，磁盘代码仅为实现证据，冲突按 L1/L2/L3 处理。
+- v1.18（2026-11-03）修订（工作区根目录可更换，feature-813，用户 2026-11-03 三项范围裁决 + K8 批准）：§7.1 会话数据目录由「默认 `~/Documents/ai-shortdrama-studio/`（硬编码）」升级为「**根目录可更换（单一全局根）**」——设置面板新增「工作目录」入口，系统直做（D-016，不经 AI）；旧根 `project-*` 目录随更换整体搬移、失败回滚零半搬态；session-state 同步重映射；设置落盘 `<userData>/workspace.json`；跨盘（EXDEV）不支持；K8 新增 3 条 IPC（settings:workspace:get/pick/change），K1 零触发（DTO 镜像 global.d.ts）。详见 [feature-813 任务包](./docs/features/feature-813-工作目录更换/)。
 - 镜像纪律：改本文 md 必须同步 docs/design/ 下同名 .html（人读镜像）；原型（docs/design/短剧Agent平台-原型.html）与本文同步迭代。

@@ -103,4 +103,25 @@ describe('浏览器 dev-mock 直接契约', () => {
     })
     expect(Number.isNaN(Date.parse(instance.addedAt))).toBe(false)
   })
+
+  // feature-813 · 工作目录更换三键（契约 §4：浏览器无真实文件系统与原生选择器）
+  it('workspace.get 返回默认演示视图', async () => {
+    await expect(window.api.settings.workspace.get()).resolves.toEqual({
+      root: '/demo/workspace',
+      defaultRoot: '/demo/workspace',
+      source: 'default',
+    })
+  })
+
+  it('workspace.pick 恒返回 dir=null（浏览器无原生选择器，视为取消）', async () => {
+    await expect(window.api.settings.workspace.pick()).resolves.toEqual({ dir: null })
+  })
+
+  it('workspace.change 拒绝且错误信封含 INVALID_ARGUMENT 中文 message', async () => {
+    await expect(window.api.settings.workspace.change('/demo/other'))
+      .rejects.toMatchObject({
+        code: 'INVALID_ARGUMENT',
+        message: '浏览器开发环境不支持更换工作目录',
+      })
+  })
 })

@@ -135,6 +135,12 @@ contextBridge.exposeInMainWorld('api', {
       get: () => ipcRenderer.invoke('settings:ai:get'),
       update: (patch: unknown) => ipcRenderer.invoke('settings:ai:update', patch),
     },
+    // feature-813 · 工作目录更换（K8 已批；3 桥，错误信封与全仓一致）
+    workspace: {
+      get: () => ipcRenderer.invoke('settings:workspace:get'),
+      pick: () => ipcRenderer.invoke('settings:workspace:pick'),
+      change: (dir: string) => ipcRenderer.invoke('settings:workspace:change', { dir }),
+    },
   },
 
   // feature-804 · Windows 窗口标题栏（契约 §3）

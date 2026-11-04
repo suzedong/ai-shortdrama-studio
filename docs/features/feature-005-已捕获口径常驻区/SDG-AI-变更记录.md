@@ -200,3 +200,11 @@
 - **修复**：新增 `LEGACY_TOPIC_LABELS` 存量兼容表（`revengeTarget` → 复仇对象），仅做旧数据映射、不随新字段扩张（新口径由 X-003 的提示词 canonical 约束禁止自造英文键）；[Stage0View.tsx](../../../src/studio/stage0/Stage0View.tsx) unmatched 行补 `title`（`字段：<原键>`），与 [CaptureBar.tsx](../../../src/studio/stage0/CaptureBar.tsx) 同约定，保留原始键可追溯。
 - **卡口**：纯 renderer 映射，**K1/K8/K9 零触发**（`CapturedFact` 形状与落盘格式零 diff）。
 - **验证**：[stage0-chain.test.tsx](../../../src/studio/stage0/stage0-chain.test.tsx) 该用例改为断言 `revengeTarget → 复仇对象`，另以 `budget` 断言未登记 topic 仍原样回退；stage0 五文件 **109 passed**，typecheck 恰 3 条历史基线零新增。
+
+### X-005 B-69 · 存量自造英文键 `audience` 中文化（2026-11-03，✅）
+
+- **现象**：真机「其他口径」/ 口径条出现 `audience` 英文键名，与同区中文标签不一致（与 B-65 同类）。
+- **根因**：`audience` 是早期 Agent 自造并已落盘 `已捕获口径.json` 的存量键，不在 canonical 词表，[chain.ts](../../../src/studio/stage0/chain.ts) `captureTopicLabel` 按「不臆造名称」回退原文。
+- **修复**：`LEGACY_TOPIC_LABELS` 追加 `audience → 目标受众`，仍只做旧数据映射，不随新字段扩张。
+- **卡口**：纯 renderer 映射，**K1/K8/K9 零触发**。
+- **验证**：[stage0-chain.test.tsx](../../../src/studio/stage0/stage0-chain.test.tsx) 增 `audience → 目标受众` 断言；stage0 三文件 **88 passed / 0 failed**。

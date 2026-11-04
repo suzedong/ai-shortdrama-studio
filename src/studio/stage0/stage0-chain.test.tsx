@@ -293,6 +293,7 @@ describe('matchChainTopic / selectChainProgress（AC1）', () => {
     expect(captureTopicLabel('复仇对象')).toBe('复仇对象')
     // 存量兼容：历史自造英文键上屏中文（B-65）
     expect(captureTopicLabel('revengeTarget')).toBe('复仇对象')
+    expect(captureTopicLabel('audience')).toBe('目标受众')
     // 未登记 topic 原样回退（不臆造名称）
     expect(captureTopicLabel('budget')).toBe('budget')
     expect(captureTopicLabel('  ')).toBe('  ')

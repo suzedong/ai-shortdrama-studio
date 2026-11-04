@@ -64,6 +64,7 @@ const TOPIC_LABELS: Record<string, string> = (() => {
  */
 const LEGACY_TOPIC_LABELS: Record<string, string> = {
   revengeTarget: '复仇对象',
+  audience: '目标受众',
 }
 
 /** 口径 topic → 中文字段名；空串回退空串、未命中回退原 topic（不臆造名称） */

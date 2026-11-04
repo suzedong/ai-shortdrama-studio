@@ -6,7 +6,7 @@
 
 - **D-101-1（反向补录基线，2026-10-15）**：按《AI-SDG-AI工具执行指令.md》§7 对已落地的 STAGE 1 故事创作链反向补录任务包 5 文件；补录时点 git HEAD = `c1ee4e9`（「test: 修复跨平台测试与类型错误，全量测试基线清零」，2026-10-14）。批准方式：用户拍板「下一步做 101/201 反向补录」。批准范围：仅固化既有实现，不改任何生产代码/提示词/共享类型/测试（**无 K1、无 K8**）。
 - **溯源**：[改编]。设计依据《短剧Agent平台设计.md》§4.1 编剧 Agent（L435）、§7.1 数据血缘与状态机（L556–590）。
-- **旧编号血缘（仅注释留痕，不回改）**：实现期提示词/类型注释使用的 `feature-018`（故事类型 + writer profile）、`feature-020`（showrunner 第 1 步编排）是旧 22 包体系编号（旧包已于 2026-10-08 作废，见 [features/README.md](../../README.md) §5）；同一实现现统一归入本包 feature-101。`shared/types.ts` StoryOutline/CharacterProfile 无旧包号注释。
+- **编号归属**：本实现统一归入 feature-101；`shared/types.ts` StoryOutline / CharacterProfile 不再携带历史编号注释。
 
 ## 二、实施记录
 

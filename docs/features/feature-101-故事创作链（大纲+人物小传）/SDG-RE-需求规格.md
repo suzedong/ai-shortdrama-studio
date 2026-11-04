@@ -12,8 +12,8 @@
 
 STAGE 1 在本仓**没有任何 electron 业务模块、没有专用 MCP 工具、没有内容 zod 校验程序**。它完全由两层 Agent 提示词经通用工具实现（提示词驱动形态）：
 
-- **主控 [showrunner.md](../../../resources/opencode/agents/showrunner.md)「第 1 步故事剧本」段（L141–155，提示词内编号 feature-020）**：负责前置校验、`task` 委派、发确认门、门 approved 后置完画布节点、推进 manifest。
-- **编剧 [writer.md](../../../resources/opencode/agents/writer.md)（frontmatter 标 feature-018）**：仅持 5 个 MCP 工具（file.read/list/write + canvas.get/update），负责大纲/小传正文推理、JSON+MD 双写、节点 upsert；不发门、不派 task、不碰媒体。
+- **主控 [showrunner.md](../../../resources/opencode/agents/showrunner.md)「第 1 步故事剧本」段**：负责前置校验、`task` 委派、发确认门、门 approved 后置完画布节点、推进 manifest。
+- **编剧 [writer.md](../../../resources/opencode/agents/writer.md)（frontmatter 摄制组 profile）**：仅持 5 个 MCP 工具（file.read/list/write + canvas.get/update），负责大纲/小传正文推理、JSON+MD 双写、节点 upsert；不发门、不派 task、不碰媒体。
 
 产物：项目目录 `故事/故事大纲.json/.md`、`故事/人物小传.json/.md`（覆盖前由通用 [electron/fs/archive.ts](../../../electron/fs/archive.ts) 归档到同目录 `版本/`，与立项单的 `立项单.vN.json` 版本化模型不同）。编排契约测试：[story-orchestration.test.ts](../../../src/studio/story-orchestration.test.ts) 6 例。
 

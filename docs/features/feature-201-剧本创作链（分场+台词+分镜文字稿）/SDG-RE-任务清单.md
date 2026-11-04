@@ -4,7 +4,7 @@
 >
 > **本包为[反向补录]，但仅部分落地**：2-a 分场、2-b 台词任务在补录前**已由既有提示词/测试落地**，逐项核对磁盘实况后勾选并标 [已完成·反向补录]；**2-c 分镜文字稿尚未实现（showrunner.md L170 明示当前不执行），其任务保留未勾选**，不虚构（《指令》§7 ④；用户 2026-10-15 拍板）。补录基线锚点 `c1ee4e9`（2026-10-14）。
 >
-> **卡口：本包无 K1/K8**——不改 `shared/types.ts`（Shot/ShotList/2-c/storyboard-finalized 均已预留）、不新增 MCP 工具/IPC。旧实现期编号（feature-004 分场/台词类型注释、feature-018 writer、feature-021 STAGE2 编排）仅作血缘注释保留，本包不回改编号。
+> **卡口：本包无 K1/K8**——不改 `shared/types.ts`（Shot/ShotList/2-c/storyboard-finalized 均已预留）、不新增 MCP 工具/IPC。
 
 ## 0. 上下文加载清单（工作围栏）
 

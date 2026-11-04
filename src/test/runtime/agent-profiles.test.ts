@@ -1,4 +1,4 @@
-// feature-018 · T1/T2：4 个摄制组 profile 的 frontmatter 与系统提示静态契约
+// 摄制组 profile T1/T2：4 个 profile 的 frontmatter 与系统提示静态契约
 import { describe, expect, it } from 'vitest'
 import path from 'node:path'
 import fsp from 'node:fs/promises'

@@ -316,7 +316,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     </div>
     <div class="bcard b-ok">
       <h4><span class="dot"></span>绞杀者收口（磁盘实况）</h4>
-      <p>旧 ark 直连对话 IPC（8 个 agent:*）已删除；对话统一走 runtime 单轨（D-012 定稿终态，不重建）。残留 ark.ts 已无引用方，随 §5.2 目标族对齐清理。</p>
+      <p>旧 ark 直连对话 IPC（8 个 agent:*）已删除；对话统一走 runtime 单轨（D-012 定稿终态，不重建）。残留 ark.ts 仅 isConfigured 供 app:config-status 使用（chat() 已无生产调用方），待按 §5.2 目标族对齐清理。</p>
     </div>
     <div class="bcard b-info">
       <h4><span class="dot"></span>renderer 零直连</h4>
@@ -408,7 +408,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 04 数据血缘 ══════ -->
 <section id="data">
   <div class="sec-head rv"><span class="sec-no">04</span><h2>会话目录与数据血缘</h2></div>
-  <p class="sec-sub rv">纯 JSON / Markdown 文件持久化，无数据库。<b>下列目录树为 2026-10-09 磁盘实况</b>（feature-017/022 形态；工作区位于「文稿/ai-shortdrama-studio/」）；数据血缘按设计 §7.1「最终设计」定稿（v1.12，立项单.vN.json 取代 brief.json）。</p>
+  <p class="sec-sub rv">纯 JSON / Markdown 文件持久化，无数据库。<b>下列目录树为 2026-10-09 磁盘实况</b>（现行实现形态；工作区位于「文稿/ai-shortdrama-studio/」）；数据血缘按设计 §7.1「最终设计」定稿（v1.12，立项单.vN.json 取代 brief.json）。</p>
 
   <div class="dltree rv"><span class="cmt"># 磁盘实况：项目工作区（2026-10-09 核对）</span>
 <span class="dir">~/Documents/ai-shortdrama-studio/</span>   <span class="cmt"># 默认根，可经设置面板更换（feature-813）</span>
@@ -523,12 +523,8 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
         <div><div class="si-ti">短剧Agent平台设计.md（v1.18）</div><div class="si-sub">§2.6 新立项模型 · §4 多 Agent 架构（实现层摄制组 4 profile 实况注记） · §5 MCP 工具层与对话生成网关（§5.1 runtime 单轨 · §5.2 已落地 28 工具 / 11 族） · §7/§7.1 目录与实体（最终设计） · §8/§8.3 引擎通道与系统级外部数据源 · §11 路线 · §13 版本记录</div></div>
       </div>
       <div class="src-row">
-        <span class="si-base">A · 归档</span>
-        <div><div class="si-ti">docs/archive/README.md（旧包作废说明）</div><div class="si-sub">旧 22 个 feature 包（feature-001~022）2026-10-08 作废、2026-10-10 已从工作区删除（历史见 git ef4a175）；不作任何实现依据</div></div>
-      </div>
-      <div class="src-row">
         <span class="si-base">A · 决策</span>
-        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005 / D-011 / D-012 / D-023 / D-024 · 最新 D-024）</div><div class="si-sub">立项模型重建 + 旧 22 包作废归档 + 谱系定位系统级外部数据源；对话通道经 D-012 定稿 runtime 单轨终态；D-023 收口 Agent 调度权限，D-024 明确影响面板关闭不撤销再版</div></div>
+        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005 / D-011 / D-012 / D-023 / D-024 · 最新 D-024）</div><div class="si-sub">立项模型重建 + 谱系定位系统级外部数据源；对话通道经 D-012 定稿 runtime 单轨终态；D-023 收口 Agent 调度权限，D-024 明确影响面板关闭不撤销再版</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 治理</span>

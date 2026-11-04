@@ -8,8 +8,8 @@ STAGE 2 与 STAGE 1 同构：没有 `electron/script/*` 业务模块，也没有
 
 | 层 | 载体 | 承担 |
 |---|---|---|
-| 主控编排 | [showrunner.md](../../../resources/opencode/agents/showrunner.md) 第 2 步段（L158–181，提示词内编号 feature-021） | 前置校验、`task` 委派 writer、读回结构校验、发 2-a/2-b 门、approved 后置 done、建正确方向边、manifest.advance、恢复续跑 |
-| 文本生产 | [writer.md](../../../resources/opencode/agents/writer.md)（frontmatter feature-018），5 工具白名单 | 分场/台词推理、JSON+MD 双写、节点 active upsert（不带 linksTo） |
+| 主控编排 | [showrunner.md](../../../resources/opencode/agents/showrunner.md) 第 2 步段 | 前置校验、`task` 委派 writer、读回结构校验、发 2-a/2-b 门、approved 后置 done、建正确方向边、manifest.advance、恢复续跑 |
+| 文本生产 | [writer.md](../../../resources/opencode/agents/writer.md)，5 工具白名单 | 分场/台词推理、JSON+MD 双写、节点 active upsert（不带 linksTo） |
 | 复用平台能力 | `file.*`、`canvas.*`、`gate.request`、`manifest.*`、`brief.*`（feature-001/002/801 已落地） | 落盘/归档、画布、门桥、状态机、立项读取 |
 
 关键事实：

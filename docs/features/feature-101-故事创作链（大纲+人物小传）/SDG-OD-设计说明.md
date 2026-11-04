@@ -8,8 +8,8 @@ STAGE 1 没有 `electron/story/*` 之类的业务模块，也没有专用 MCP �
 
 | 层 | 载体 | 承担 |
 |---|---|---|
-| 主控编排 | [showrunner.md](../../../resources/opencode/agents/showrunner.md) 第 1 步段（L141–155，提示词内编号 feature-020） | 前置校验、`task` 委派 writer、发 1-a/1-b 门、approved 后置 done、建边、manifest.advance、恢复续跑 |
-| 文本生产 | [writer.md](../../../resources/opencode/agents/writer.md)（frontmatter 标 feature-018），5 工具白名单 | 大纲/小传推理、JSON+MD 双写、节点 active upsert |
+| 主控编排 | [showrunner.md](../../../resources/opencode/agents/showrunner.md) 第 1 步段 | 前置校验、`task` 委派 writer、发 1-a/1-b 门、approved 后置 done、建边、manifest.advance、恢复续跑 |
+| 文本生产 | [writer.md](../../../resources/opencode/agents/writer.md)，5 工具白名单 | 大纲/小传推理、JSON+MD 双写、节点 active upsert |
 | 复用平台能力 | `file.*`、`canvas.*`、`gate.request`、`manifest.*`、`brief.*`（feature-001/002/801 已落地） | 落盘/归档、画布、门桥、状态机、立项读取 |
 
 关键事实：内容结构（字段恰好、裸数组、≥2 角色、id 主键等）是 **writer/showrunner 的 prompt 纪律**，不是 zod/TypeScript 的运行时校验。`file.write` 的 zod schema 只约束 `{path, content}`（[tools.ts 约 L103–122](../../../electron/mcp/tools.ts)），写入的 JSON 字符串内容不被解析校验。

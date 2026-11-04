@@ -1,4 +1,4 @@
-// feature-018 · T3：installAgentProfiles / setupRuntimeFiles 安装契约
+// T3：installAgentProfiles / setupRuntimeFiles 安装契约
 import { describe, expect, it, beforeAll, beforeEach, vi } from 'vitest'
 import path from 'node:path'
 import fsp from 'node:fs/promises'

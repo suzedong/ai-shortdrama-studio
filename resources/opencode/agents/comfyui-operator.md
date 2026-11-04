@@ -1,5 +1,5 @@
 ---
-description: 引擎操作员 Agent（feature-018）。选择 / 参数化 ComfyUI 工作流、提交任务、轮询产出、回写资产与画布；不做创意文本。
+description: 引擎操作员 Agent（平台基础）。选择 / 参数化 ComfyUI 工作流、提交任务、轮询产出、回写资产与画布；不做创意文本。
 mode: subagent
 model: __MODEL_REF__
 temperature: 0.1

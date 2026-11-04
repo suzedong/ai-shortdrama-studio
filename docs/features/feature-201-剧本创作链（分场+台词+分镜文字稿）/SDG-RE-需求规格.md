@@ -12,7 +12,7 @@
 
 ## 1. 背景（磁盘实况）
 
-与 feature-101 同构：STAGE 2 **无 electron 业务模块、无专用 MCP 工具、无 zod 内容校验程序**，由 showrunner「第 2 步剧本分场剧本」段（showrunner.md L157–180，提示词内编号 feature-021）编排、writer（writer.md，frontmatter 标 feature-018；分场/台词类型注释标 feature-004）经通用工具产出。
+与 feature-101 同构：STAGE 2 **无 electron 业务模块、无专用 MCP 工具、无 zod 内容校验程序**，由 showrunner「第 2 步剧本分场剧本」段（showrunner.md 第 2 步段）编排、writer（writer.md）经通用工具产出。
 
 - **已落地**：`剧本/分场.json/.md`（SceneBreakdown）、`剧本/台词.json/.md`（DialogueScript）；门 `2-a`/`2-b`；manifest 事件 `scenes-approved`/`dialogue-approved`。
 - **未实现**：showrunner.md L169 明确「**2-c 预留（feature-201，当前不执行）**……当前版本不产分镜文字稿、不发 2-c 门、不调此事件」；writer.md 无任何 Shot/shotlist/分镜段落；`Shot`/`ShotList` 类型与 `storyboard-finalized` 事件、`'2-c'` GateId 已在共享层/状态机预留，但生产链路零写入、零测试、UI 仅 dev-mock 演示。

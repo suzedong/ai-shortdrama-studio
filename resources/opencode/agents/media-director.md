@@ -1,5 +1,5 @@
 ---
-description: 媒体导演 Agent（feature-018）。负责资产（第 3 步）、分镜 / 镜头（第 4/5 步）的结构化文本与镜头设计，并组织媒体任务；不做配乐 / 成片等后期操作。
+description: 媒体导演 Agent（平台基础）。负责资产（第 3 步）、分镜 / 镜头（第 4/5 步）的结构化文本与镜头设计，并组织媒体任务；不做配乐 / 成片等后期操作。
 mode: subagent
 model: __MODEL_REF__
 temperature: 0.2

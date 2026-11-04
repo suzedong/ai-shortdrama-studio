@@ -1,5 +1,5 @@
 ---
-description: 编剧 Agent（feature-018）。负责故事大纲、人物小传、分场、台词的文本推理与落盘；只做文本，不发门、不派任务、不碰媒体提交。
+description: 编剧 Agent（101/201）。负责故事大纲、人物小传、分场、台词的文本推理与落盘；只做文本，不发门、不派任务、不碰媒体提交。
 mode: subagent
 model: __MODEL_REF__
 temperature: 0.3

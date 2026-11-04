@@ -277,7 +277,7 @@ describe('prompt / promptAsync 边界与透传', () => {
     ).rejects.toMatchObject({ name: 'INVALID_ARGUMENT' })
   })
 
-  it('feature-018 · showrunner + 白名单 6 工具通过，body.agent=showrunner', async () => {
+  it('showrunner + 白名单 6 工具通过，body.agent=showrunner', async () => {
     const { client, state } = makeFakeClient()
     const tools = [
       'shortdrama_file_read',
@@ -370,7 +370,7 @@ describe('prompt / promptAsync 边界与透传', () => {
     expect(body.tools).toEqual({ 'shortdrama_harness.validate': true })
   })
 
-  it('feature-018 · subagent 名作 agent → INVALID_ARGUMENT', async () => {
+  it('subagent 名作 agent → INVALID_ARGUMENT', async () => {
     const { client } = makeFakeClient()
     for (const agent of ['writer', 'media-director', 'comfyui-operator']) {
       await expect(
@@ -379,7 +379,7 @@ describe('prompt / promptAsync 边界与透传', () => {
     }
   })
 
-  it('feature-018 · showrunner 传越权工具（task/read/asset 键）→ INVALID_ARGUMENT', async () => {
+  it('showrunner 传越权工具（task/read/asset 键）→ INVALID_ARGUMENT', async () => {
     const { client } = makeFakeClient()
     for (const tools of [
       ['task'],

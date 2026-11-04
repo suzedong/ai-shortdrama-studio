@@ -300,9 +300,9 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
   </div>
 
   <div class="stats">
-    <div class="stat"><div class="num">22<small> 个旧包</small></div><div class="lbl">已整体作废归档（D-005）；2026-11-03 共有 28 个现行 Feature 包（feature-813 已落地）</div></div>
+    <div class="stat"><div class="num">28<small> 个现行包</small></div><div class="lbl">按八步模块分段编号（0xx–8xx）；截至 2026-11-03，feature-813 已落地，逐包状态以任务清单为准</div></div>
     <div class="stat"><div class="num" data-to="1029">0</div><div class="lbl">2026-11-03 当前基线：1029 通过 / 0 失败 / 1 跳过（82 测试文件，renderer typecheck 3 条现存基线）；历史：11-02 1001 通过 / 80 文件，10-27 722 通过 / 61 文件，10-14 369 通过 / 35 文件，10-09 197 通过 / 24 文件</div></div>
-    <div class="stat"><div class="num">0<small>/8 步</small></div><div class="lbl">2026-10-09 快照：新设计尚未反补；2026-10-14 已反补 0~2 步文本侧（feature-001/002/801/802）</div></div>
+    <div class="stat"><div class="num">3<small>/8 步</small></div><div class="lbl">新设计已落地 0–2 步（2-c 分镜文字稿待实施）；3–7 步待建包</div></div>
     <div class="stat"><div class="num">47<small> 个IPC</small></div><div class="lbl">现行通道实况（2026-11-03 main.ts 实测 · runtime 单轨 · D-012 终态；含 4 窗口控制与 feature-813 +3）</div></div>
   </div>
 </header>
@@ -361,10 +361,9 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
       <div class="src-row">
         <span class="sr-ch">04 进度</span>
         <span class="sr-files">
-          <a href="../archive/README.md">archive/README.md（旧包已删 · git 可恢复）</a><span class="sep">·</span>
           <a href="../features/">docs/features/（28 个现行包 · 2026-11-03）</a>
         </span>
-        <span class="sr-cap">旧 22 包 2026-10-10 已删除（历史见 git）；现行 Feature 包共 28 个，逐包状态以各自任务清单为准</span>
+        <span class="sr-cap">现行 Feature 包共 28 个，逐包状态以各自任务清单为准</span>
       </div>
 
       <div class="src-row">
@@ -403,7 +402,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
     </div>
     <div class="card gap">
       <div class="big">GAP ②</div>
-      <h4>不具备旧体系的完整生产闭环</h4>
+      <h4>不具备我定义的生产体系的完整闭环</h4>
       <p>从立项、故事、分场、资产、分镜、镜头到后期、发布的 8 步业务链，Design 没有完整覆盖。</p>
       <span class="arrow">→</span>
     </div>
@@ -423,9 +422,9 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
   <p class="mut" style="font-size:13px">实线/绿色 = 现存代码已建成；琥珀色 = 规划中（媒体侧）；对话通道已按 D-012 定稿 runtime 单轨终态（不回退、不重建旧 IPC/工具）；业务层按设计 v1.18 口径认定。</p>
   <div class="grid g4 rv" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">
     <div class="card"><h4>渲染进程</h4><p>项目库 / 中央画布（10 节点 Stage）/ ChatPanel / 流式 UI；经 contextBridge 安全桥走 IPC，不直连外部服务。</p></div>
-    <div class="card"><h4>主进程（信任边界）</h4><p>JSON 会话持久化（单写队列）、RuntimeManager（opencode 端口 4096 · 随机口令）、MCP 工具服务（28 纯工具 / 11 族）、ark.ts 工具内复用。</p></div>
+    <div class="card"><h4>主进程（信任边界）</h4><p>JSON 会话持久化（单写队列）、RuntimeManager（opencode 端口 4096 · 随机口令）、MCP 工具服务（28 纯工具 / 11 族）、AI 服务配置（火山方舟 / LM Studio 内置服务商可切换，Key 经 safeStorage 加密落盘）。</p></div>
     <div class="card"><h4>opencode 子进程</h4><p>showrunner 单主控：意图理解 → 拆解 → 调工具 → 合流；经 28 个纯 MCP 工具（11 族）产出业务产物（§5.2）。showrunner 独占 task 调度；writer / media-director / comfyui-operator 不嵌套委派（D-023）。</p></div>
-    <div class="card"><h4>外部世界</h4><p>火山方舟（唯一出公网文本 LLM）；局域网 ComfyUI 池（媒体零公网）+ FFmpeg/MediaKit 后期。</p></div>
+    <div class="card"><h4>外部世界</h4><p>文本 LLM：火山方舟（公网）+ LM Studio（本地 / 局域网，OpenAI 兼容）；局域网 ComfyUI 池（媒体零公网）+ FFmpeg/MediaKit 后期。</p></div>
   </div>
   <p class="more"><a href="./架构模块关系图.html">完整四层架构 → 架构模块关系图.html</a><span class="sep">·</span><a href="./短剧Agent平台设计.html#sec-5">§5 对话生成网关</a><span class="sep">·</span><a href="./短剧Agent平台设计.html#sec-8">§8 引擎与生成通道 →</a></p>
 
@@ -441,7 +440,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
       <div class="step todo"><div class="bar"></div><div class="dot">6</div><div class="sn">后期</div></div>
       <div class="step todo"><div class="bar"></div><div class="dot">7</div><div class="sn">发布</div></div>
     </div>
-    <p class="mut" style="font-size:12.5px;margin-top:14px">红色 0/1/2 = <b style="color:var(--red)">旧代码曾覆盖的形态</b>（与 §2.6 新模型不符），按反向补录六步法对照设计 v1.17 重建（对话通道已定稿终态）；3-7 待建。各步产物明细见设计书 §2 与进度看板。</p>
+    <p class="mut" style="font-size:12.5px;margin-top:14px">红色 0/1/2 = <b style="color:var(--red)">现存代码已覆盖</b>，但按旧立项门模型实现（与设计 §2.6 新模型不符），不计为新设计落地，按现行任务包对照设计 v1.18 重建（对话通道已定稿终态）；3-7 待建。各步产物明细见设计书 §2 与进度看板。</p>
   </div>
   <p class="more"><a href="./进度看板与路线图.html">八步覆盖与落地进度 → 进度看板与路线图.html</a><span class="sep">·</span><a href="./短剧Agent平台设计.html#sec-0-1">§0.1 原则三 · 八步闭环完整性 →</a></p>
 
@@ -517,55 +516,55 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
     </div>
   </div>
 
-  <h3>3.2 对话通道收口（D-012 定稿终态）：runtime 单轨</h3>
-  <div class="strangle rv">
-    <div class="scol old" style="opacity:.6">
-      <h4>旧世界 · Ark 对话 IPC <span class="sbadge" style="background:rgba(240,98,93,.15);color:var(--red)">已退役</span></h4>
-      <ul>
-        <li>agent:* 对话 ×8（整卡返回）— 已删除</li>
-        <li>ark.ts 仅保留供 MCP 工具复用</li>
-        <li>删除前已快照，快照并入设计 §5.1 后删除</li>
+  <h3>3.2 对话通道 <span class="sbadge" style="background:rgba(70,201,140,.15);color:var(--green)">runtime 单轨 · D-012 终态</span></h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+    <div class="card" style="border-color:var(--green)">
+      <h4>Runtime 单轨（在用）</h4>
+      <ul style="padding-left:18px;margin:0;font-size:13px">
+        <li><code>runtime:start / stop / status</code></li>
+        <li><code>runtime:session:create / list / abort / delete</code></li>
+        <li><code>runtime:prompt / prompt:async</code> 流式发起</li>
+        <li><code>runtime:event:subscribe</code> + SSE 推送</li>
       </ul>
     </div>
-    <div style="text-align:center;font-family:var(--mono);font-size:22px;color:var(--green)">✓</div>
-    <div class="scol new">
-      <h4>新世界 · Runtime 单轨 <span class="sbadge" style="background:rgba(70,201,140,.15);color:var(--green)">在用</span></h4>
-      <ul>
-        <li>runtime:start / stop / status</li>
-        <li>runtime:session:create / list / abort / delete</li>
-        <li>runtime:prompt / prompt:async 流式发起</li>
-        <li>runtime:event:subscribe + SSE 推送</li>
+    <div class="card" style="border-color:var(--amber)">
+      <h4>AI 服务配置</h4>
+      <p style="font-size:13px;margin:0">内置两家服务商可切换：火山方舟（公网文本 LLM）/ LM Studio（本地 / 局域网 OpenAI 兼容）；Key 经 safeStorage 加密落盘。</p>
+    </div>
+    <div class="card" style="border-color:var(--faint)">
+      <h4>退役注记（历史事实，不重建）</h4>
+      <ul style="padding-left:18px;margin:0;font-size:12px;color:var(--faint)">
+        <li>8 个 <code>agent:*</code> 旧对话 IPC（整卡返回）已删除</li>
+        <li><code>ark.ts</code> 仅 <code>isConfigured()</code> 供 <code>app:config-status</code> 使用；<code>chat()</code> 无生产调用方</li>
+        <li>旧通道快照并入设计 §5.1</li>
       </ul>
     </div>
   </div>
-  <p class="mut" style="font-size:13px;margin-top:12px">对话通道经 D-012 定稿为终态：runtime 单轨不回退、旧 8 个 agent:* IPC 与 shortdrama_* 生成工具不重建；残留 ark.ts 按 §5.2 目标族对齐清理。旧 feature-010 曾执行"最后一刀"，业务逻辑迁入主进程 MCP 工具后删除 8 个对话 IPC（先快照、旧包级决策二次签字）；旧包已随 D-005 整体作废归档。</p>
+  <p class="mut" style="font-size:13px;margin-top:12px">终态约束（D-012）：runtime 单轨不回退、不重建 <code>agent:*</code> 旧 IPC 与 <code>shortdrama_*</code> 生成工具；旧通道快照已并入设计 §5.1。</p>
 
   <h3>3.3 三期落地路线</h3>
   <div class="grid g3 rv">
     <div class="card">
-      <h4>一期 · MVP 单集闭环 <span class="src n">对话通道已定稿 · 业务层待反补</span></h4>
-      <p>按反补六步法重建立项 → 故事 → 剧本分场（对话通道已定稿终态），再推进第 3 步「资产」→ ComfyUI 统一媒体引擎（qwen-image/H3/Music3）→ T2A 配音 → FFmpeg 产出第一集成片。</p>
+      <h4>一期 · MVP 单集闭环 <span class="src n">0–2 已落地 · 803 引擎 + 3–7 媒体链待建</span></h4>
+      <p>一期覆盖全部八步闭环：沿「803 ComfyUI 统一媒体引擎先行 → 301 资产（角色定妆/场景/道具）→ 401 生产分镜 → 501 逐镜视频（H3）→ 601 声音（T2A 配音 + Music3 配乐）→ 602 时间线剪辑（MediaKit/FFmpeg）→ 701 成片交付」推进，产出第一集成片。当前 0–2 步已按现行任务包对齐落地，28 个现行包，201 的 2-c 分镜文字稿待实施。</p>
     </div>
     <div class="card" style="opacity:.75">
       <h4>二期 · 能力补全</h4>
-      <p>语音 OpenAPI 与声音复刻、任务级画布展开、资产完整沉淀、工作流插件、多项目管理。</p>
+      <p>语音能力补全（OpenAPI 与声音复刻）、T2A 人机配音通道规模化、任务级画布展开、ComfyUI 多实例调度与批处理、多项目管理（重命名/删除/批量）、工作流插件体系。</p>
     </div>
     <div class="card" style="opacity:.75">
       <h4>三期 · 规模化</h4>
-      <p>Skill 广场社区、模板中心、批量跨集生产、多用户协作、渠道分发。</p>
+      <p>Skill 广场社区（检索/执行/沉淀/投稿）、模板中心、批量跨集生产、多用户协作、渠道分发自动化。</p>
     </div>
   </div>
 
   <h3>3.4 推进时间线</h3>
   <div class="timeline rv">
-    <div class="tl" style="opacity:.6"><div class="date">2026-10-02</div><div class="tt">旧 feature-001 立项链路（已作废归档）</div><div class="td">旧模型 0-a/0-b/0-c 三门 + 画布立项节点；已被设计 §2.6 取代（当时 v1.11；2026-10-14 现行 v1.12）</div></div>
-    <div class="tl" style="opacity:.6"><div class="date">2026-10-03</div><div class="tt">旧 feature-002 / 003 / 004（已归档）</div><div class="td">消息动态化持久化 · 编剧 Agent · 剧本分镜（台词/分镜文本）</div></div>
-    <div class="tl" style="opacity:.6"><div class="date">2026-10-03 ~ 04</div><div class="tt">旧 feature-005 / 006 / 007（已归档）</div><div class="td">产物解锁重做 · 通用产物查看器 · 三层数据治理</div></div>
-    <div class="tl" style="opacity:.6"><div class="date">2026-10-04</div><div class="tt">旧 feature-008 / 009（已归档）</div><div class="td">opencode 运行时集成（旧包级通道裁决）· 运行时调试抽屉</div></div>
-    <div class="tl" style="opacity:.6"><div class="date">2026-10-05</div><div class="tt">旧 feature-010 对话通道全量接入（已归档）</div><div class="td">流式正文/推理分轨/工具卡/停止 · 删旧 8 对话 IPC</div></div>
-    <div class="tl" style="opacity:.6"><div class="date">2026-10-09</div><div class="tt">D-005：立项模型重建 + 旧 22 包整体作废归档；D-012：对话通道 runtime 单轨定稿终态</div><div class="td">新设计 v1.11：2 节点 + 1 定案门、谱系定位系统级外部数据源；下一步从 feature-001 反向补录重建，再接资产/媒体引擎</div></div>
-    <div class="tl"><div class="date">2026-10-14</div><div class="tt">设计升 v1.12（实现实况反向同步）：director 退役、showrunner 单 primary</div><div class="td">已反补落地 5 个新包 feature-001/002/801/802/804；22 个纯 MCP 工具 / 8 族、4 个 Agent profile；取消 shortdrama_ 前缀整体放行、8 个幽灵工具直接拒绝；35 文件 369 通过 / 0 失败 / 1 跳过（存量失败同日清零，typecheck 全绿）</div></div>
-    <div class="tl"><div class="date">2026-10-27</div><div class="tt">设计升 v1.14（文档集中回流）：八步业务闭环反补完成、工具族扩容</div><div class="td">已反补落地 19 个新包（001~010/101/801/802/804/807~811；201 部分）；27 个纯 MCP 工具 / 10 族（补 capture 3 / web 2）；showrunner 白名单 17 → 22；src/studio 七组分包、src/test 十二组分包；61 文件 722 通过 / 0 失败 / 1 跳过（typecheck 恰 3 条历史基线）</div></div>
+    <div class="tl"><div class="date">2026-10-02</div><div class="tt">设计 v1.0 立项</div><div class="td">八步业务闭环与多 Agent 摄制组架构定稿</div></div>
+    <div class="tl"><div class="date">2026-10-04</div><div class="tt">用户拍板项目必要性六原则</div><div class="td">缺口对齐 · 局域网 ComfyUI 硬边界 · 生成通道红线（v1.7 执行路径终局）</div></div>
+    <div class="tl"><div class="date">2026-10-09</div><div class="tt">设计升 v1.9：立项模型重建；D-012 对话通道 runtime 单轨定稿终态</div><div class="td">改为 2 节点 + 1 定案门、谱系定位系统级外部数据源；任务包自 feature-001 起按八步模块分段编号</div></div>
+    <div class="tl"><div class="date">2026-10-14</div><div class="tt">设计升 v1.12（实现实况反向同步）：director 退役、showrunner 单 primary</div><div class="td">已落地 5 个包（feature-001/002/801/802/804）；22 个纯 MCP 工具 / 8 族、4 个 Agent profile；取消 shortdrama_ 前缀整体放行、8 个幽灵工具直接拒绝；35 文件 369 通过 / 0 失败 / 1 跳过（存量失败同日清零，typecheck 全绿）</div></div>
+    <div class="tl"><div class="date">2026-10-27</div><div class="tt">设计升 v1.14（文档集中回流）：八步业务闭环对齐完成、工具族扩容</div><div class="td">已落地 19 个包（001~010/101/801/802/804/807~811；201 部分）；27 个纯 MCP 工具 / 10 族（补 capture 3 / web 2）；showrunner 白名单 17 → 22；src/studio 七组分包、src/test 十二组分包；61 文件 722 通过 / 0 失败 / 1 跳过（typecheck 恰 3 条历史基线）</div></div>
     <div class="tl"><div class="date">2026-11-02</div><div class="tt">设计升 v1.17（D-023 / D-024）：Agent 权限与影响面板语义收口</div><div class="td">showrunner 独占 task，三个 subagent 禁止嵌套委派；media-director 仅回交交接物。再版与挂脏先落盘，影响面板保留两个业务动作，关闭不撤销再版。当前 28 个纯 MCP 工具 / 11 族、showrunner 白名单 23、27 个现行 Feature 包。</div></div>
     <div class="tl cur"><div class="date">2026-11-03 · 现在</div><div class="tt">设计升 v1.18（feature-813）：工作区根目录可更换</div><div class="td">单一全局根，设置面板「工作目录」入口系统直做（D-016）；旧根 project-* 整体搬移、失败回滚零半搬态；session-state 同步重映射；跨盘（EXDEV）不支持。IPC 47 通道（+3 settings:workspace:*）· 28 个现行 Feature 包 · 82 文件 1029 通过 / 1 跳过。</div></div>
   </div>
@@ -574,11 +573,11 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
 <!-- ══════════ PROGRESS ══════════ -->
 <section id="progress">
   <div class="sec-head"><span class="sec-no">04</span><h2>现在做到了哪一步</h2></div>
-  <p class="sec-sub">下列 F-001~F-010（及 F-011~F-022）均为<b style="color:var(--red)">已作废的旧任务包</b>，随 D-005 整体归档冻结；新任务包将从 feature-001 重新编号、按反向补录六步法重建。现存代码即这些旧包的产物（对话通道已按 D-012 定稿终态，不重建）。</p>
+  <p class="sec-sub">任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段）；截至 2026-11-03 共 <b>28 个现行包</b>，已覆盖 0–2 步，3–7 步待建包（201 的 2-c 分镜文字稿待实施）。</p>
 
   <div class="grid g3 rv" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
-    <div class="card"><h4>旧 22 包已整体作废</h4><p>F-001~F-010（及 F-011~F-022）随 D-005 归档冻结：立项链路 / 对话动态化 / 编剧 Agent / 剧本分镜 / 产物解锁 / 查看器 / 数据治理 / 运行时集成 / 调试抽屉 / 对话通道接入。</p></div>
-    <div class="card"><h4>新任务包从 feature-001 重建</h4><p>按反向补录六步法对照设计 v1.17 重建（对话通道已 D-012 定稿终态）；截至 2026-11-02 共有 27 个现行包，逐卡验收以各包任务清单与 AC 为准。</p></div>
+    <div class="card"><h4>28 个现行任务包</h4><p>0xx 立项 15 个 · 1xx 故事 1 个 · 2xx 剧本分场 1 个 · 8xx 平台基础 11 个；3xx–7xx 共 7 个待建包，另 803 媒体引擎、805 Skill 待建/二期。</p></div>
+    <div class="card"><h4>按八步模块分段编号</h4><p>编号百位 = 业务阶段段，跨阶段机制归 8xx；每段保留 99 个序号，逐包验收以任务清单与 AC 为准。</p></div>
     <div class="card"><h4>详情见进度看板</h4><p>Feature 看板 / 八步覆盖 / 质量实测 / 三期路线均在进度看板与路线图.html 展开。</p></div>
   </div>
 
@@ -593,51 +592,24 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
 <!-- ══════════ PROBLEMS ══════════ -->
 <section id="problems">
   <div class="sec-head"><span class="sec-no">05</span><h2>有什么问题</h2></div>
-  <p class="sec-sub">首要风险是<b style="color:var(--red)">现存业务层与设计 v1.17 的系统性偏差</b>（对话通道已 D-012 定稿终态），按 feature 包反向补录重建——截至 2026-11-02 共有 27 个现行包，逐包状态以任务清单为准；其余为工程债与远期关口。</p>
+  <p class="sec-sub">当前落地进度 <b>3/8 步</b>（0–2 已落地，2-c 分镜文字稿待实施）；主要缺口是<b style="color:var(--amber)">八步后半段（3–7 媒体生产链）尚未建包</b>，其余为工程债与远期关口。</p>
 
   <div class="grid" style="gap:12px">
+    <div class="pcard rv" style="border-color:rgba(245,158,11,.45)">
+      <div class="plvl lvl-h">P2 前置</div>
+      <div style="flex:1">
+        <h4>ComfyUI 统一媒体引擎（feature-803）尚未建包，是 3–7 步前置</h4>
+        <p>图像/视频/音乐三类媒体接入度为 0；803 要交付 B0/B5/B8/B9 工作流模板装载、队列 / WebSocket 进度 / 收片、局域网多实例池（零公网）。Music3 的音频节点选型与权重部署需走 K2/K9 卡口。</p>
+        <div class="fix" style="background:rgba(245,158,11,.08);color:var(--amber)">建包顺序：803 引擎先行，再沿 301 资产 → 401 分镜 → 501 镜头 → 601/602 后期 → 701 发布推进。</div>
+      </div>
+    </div>
+
     <div class="pcard rv" style="border-color:rgba(240,98,93,.45)">
-      <div class="plvl lvl-h">高</div>
+      <div class="plvl lvl-h">待建包</div>
       <div style="flex:1">
-        <h4>现存代码整体基于旧模型，需反向补录重建（D-005）</h4>
-        <p>旧 22 包已作废归档，但其产物仍构成现存代码基底：旧立项门（0-a~0-d 多 tab）、固化在 style-catalog 的谱系快照、10 节点画布（Stage）、runtime 单轨对话通道。代码可运行，但与设计 v1.17 §2.6/§8.3 仍有偏差，不能当作新设计已全部落地（对话通道例外：经 D-012 定稿终态；截至 2026-11-02 共有 27 个现行包，逐包状态以任务清单为准）。</p>
-        <div class="fix" style="background:rgba(240,98,93,.08);color:var(--red)">从 feature-001 起按《AI-SDG 执行指令》§7 存量功能反向补录六步法，逐步对照设计重建、改一项核一项。</div>
-      </div>
-    </div>
-
-    <div class="pcard rv" style="opacity:.7">
-      <div class="plvl" style="background:rgba(139,124,246,.13);color:var(--violet)">旧包历史</div>
-      <div style="flex:1">
-        <h4>对话通道双轨割裂 —— 旧 feature-010 曾收敛为 runtime 单轨（已归档）</h4>
-        <p>旧代码中 ChatPanel 已切到 opencode runtime：流式正文、推理分轨折叠、工具调用卡、可中途停止；旧 8 个对话 IPC 已删除（快照并入设计后删）。该事实随旧包归档冻结；对话通道经 D-012 定稿终态，不回退。</p>
-        <div class="fix" style="background:rgba(139,124,246,.08);color:var(--violet)">决策留痕：归档包 + 台账 D-012；2026-10-09 实测 197 passed / 1 skipped（当日快照，随旧包冻结；2026-10-14 再核 369 passed / 0 failed / 1 skipped，存量同日清零）。</div>
-      </div>
-    </div>
-
-    <div class="pcard rv">
-      <div class="plvl lvl-m">中</div>
-      <div style="flex:1">
-        <h4>ComfyUI 媒体引擎完全未动工，且存在未决技术选型</h4>
-        <p>图像/视频/音乐三类媒体接入度为 0，footer 仍标"待接入"；Music3 的 ComfyUI 音频节点选型未定（需走 K2/K9 卡口）；三类权重与 GPU/显存首启检测未做；音乐仅 CPU 兜底方案待验证。</p>
-        <div class="fix">媒体 Feature 排在文本侧反补重建之后：先定音频节点与权重部署，再做引擎探活/队列/收片与多实例批处理。</div>
-      </div>
-    </div>
-
-    <div class="pcard rv">
-      <div class="plvl lvl-m">中</div>
-      <div style="flex:1">
-        <h4>左栏项目库是硬编码静态稿，多项目能力缺失</h4>
-        <p>项目列表/新建已接真实 project IPC，projectDir→opencode session 映射在旧代码中已建立；完整的多项目管理（重命名/删除/批量等）仍列二期补齐。</p>
-        <div class="fix">旧映射随会话恢复，反补时重新认定；剩余多项目管理能力列二期。</div>
-      </div>
-    </div>
-
-    <div class="pcard rv">
-      <div class="plvl lvl-l">低</div>
-      <div style="flex:1">
-        <h4>文档与代码状态的小不同步</h4>
-        <p>旧包未勾选项随包冻结归档，不再作为待办；T2A 人工配音通道在反补重建时需"待配/已配"清单防漏镜。</p>
-        <div class="fix">旧勾选差异已作废；以新包 AC 为准。</div>
+        <h4>3–7 步业务包尚未建（301/302/401/501/601/602/701）</h4>
+        <p>八步前 3 步（立项 → 故事 → 剧本分场）已按现行任务包对齐落地（001–015 / 101 / 201，28 个已建包）；3–7 步覆盖资产 / 分镜 / 镜头 / 后期 / 发布，共 7 个包 + 201 的 2-c 分镜文字稿待实施。</p>
+        <div class="fix" style="background:rgba(240,98,93,.08);color:var(--red)">各步产物明细：设计书 §2；逐包状态：docs/features/。</div>
       </div>
     </div>
 
@@ -653,7 +625,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
 
 <footer>
   <span>短剧 Agent 平台 · 全景图 · 2026-11-02 再核（历史快照保留，B 类人读文档）</span>
-  <span>事实源：设计 v1.18 / 决策台账 D-005 · D-011 · D-023 · D-024 / docs/archive/ / 当前基线：1029 passed · 0 failed · 1 skipped（82 文件）；renderer typecheck 3 条现存基线</span>
+  <span>事实源：设计 v1.18 / 决策台账 D-005 · D-011 · D-023 · D-024 / 当前基线：1029 passed · 0 failed · 1 skipped（82 文件）；renderer typecheck 3 条现存基线</span>
 </footer>
 
 </main>

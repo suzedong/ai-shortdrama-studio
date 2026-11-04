@@ -813,7 +813,7 @@ ipcMain.handle('canvas:get', async () => {
 
 ipcMain.handle('canvas:subscribe', (e) => {
   canvasSubscribers.add(e.sender)
-  // feature-018 修复：renderer 订阅时重挂 pending 门，确保重启后 decide 可用
+  // 门重挂修复：renderer 订阅时重挂 pending 门，确保重启后 decide 可用
   void (async () => {
     try { await gateBridge.recoverPending() } catch { /* 无项目时忽略 */ }
     try {

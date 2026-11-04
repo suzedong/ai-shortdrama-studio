@@ -214,7 +214,7 @@ export interface CharacterProfile {
   voice: string          // 台词风格 / 音色提示
 }
 
-// ===== 分场（一场戏，编剧 Agent · feature-004）=====
+// ===== 分场（一场戏，编剧 Agent · feature-201）=====
 export interface Scene {
   ep: number                    // 集号，一期恒为 1
   sceneNo: number               // 场号 1..N（台词、分镜引用键）
@@ -230,7 +230,7 @@ export interface Scene {
 }
 export type SceneBreakdown = Scene[]
 
-// ===== 台词（按场组织，编剧 Agent · feature-004）=====
+// ===== 台词（按场组织，编剧 Agent · feature-201）=====
 export interface DialogueLine {
   speakerId: string             // 引用 CharacterProfile.id；功能性无小传角色用 '' 兜底
   speakerName?: string          // speakerId 为空时的显示名（路人 / 画外音）
@@ -246,7 +246,7 @@ export interface DialogueScene {
 }
 export type DialogueScript = DialogueScene[]
 
-// ===== 分镜表（对齐架构 §7 分镜条目，编剧 Agent · feature-004）=====
+// ===== 分镜表（对齐架构 §7 分镜条目，编剧 Agent · feature-201）=====
 export interface ShotDialogue {
   speakerId: string
   speakerName?: string
@@ -288,9 +288,9 @@ export type MessageKind =
   | 'stage'              // 阶段进入标记（data.phase: 'story' | 'script'）
   | 'story-outline'      // 故事大纲结果
   | 'character-profiles' // 人物小传结果
-  | 'scenes'             // 分场结果（feature-004）
-  | 'dialogue'           // 台词结果（feature-004）
-  | 'storyboard'         // 分镜表结果（feature-004）
+  | 'scenes'             // 分场结果（feature-201）
+  | 'dialogue'           // 台词结果（feature-201）
+  | 'storyboard'         // 分镜表结果（feature-201）
   | 'unlock'             // 变更定稿事实：下游失效（feature-005 D-016）
   | 'revision'           // 修改会话生命周期（data.action: 'start' | 'cancel' · feature-005 D-016）
   | 'revision-draft'     // 人工事实候选文本（创意/档案对话改写 · feature-005 D-016）

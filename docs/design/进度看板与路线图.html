@@ -12,7 +12,7 @@
   2026-10-27 再核（v1.14 反向同步）：磁盘实况更新为 27 个纯 MCP 工具 / 10 族、4 个 Agent profile（showrunner 单 primary）、20 个现行 feature 包（19 落地 / 201 部分）；测试基线 722 通过 / 0 失败 / 1 跳过（61 文件），typecheck 恰 3 条历史基线。
   2026-11-02 再核（v1.17 反向同步）：28 个纯 MCP 工具 / 11 族、showrunner 23 白名单且独占 task、27 个现行 feature 包；当前测试与类型基线见下方实测卡。
   2026-11-03 再核（v1.18 反向同步）：feature-813 工作目录更换落地（根目录可更换，单一全局根，IPC 47 通道）· 28 个现行 feature 包；当前测试基线 1029 通过 / 1 跳过 / 0 失败（82 文件）。
-  D-005：旧 22 个 feature 包已整体作废归档，本看板内 F-001~F-010 均为旧包历史，新包从 feature-001 重建。
+  D-005：立项模型重建已落地；任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段），本看板按现行 28 个任务包展示。
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -103,9 +103,11 @@ code{font-family:var(--mono);font-size:12px;background:#1d2233;border:1px solid 
 .st-part{background:rgba(242,181,68,.13);color:var(--amber);border:1px solid rgba(242,181,68,.32)}
 .st-warn{background:rgba(240,98,93,.12);color:var(--red);border:1px solid rgba(240,98,93,.32)}
 .st-arch{background:rgba(240,98,93,.12);color:var(--red);border:1px solid rgba(240,98,93,.32)}
+.st-todo{background:rgba(91,99,120,.12);color:var(--faint);border:1px solid var(--line)}
 .fcard.done{border-left:3px solid rgba(70,201,140,.5)}
 .fcard.part{border-left:3px solid rgba(242,181,68,.55)}
 .fcard.arch{border-left:3px solid rgba(240,98,93,.5);opacity:.62}
+.fcard.todo{border-left:3px solid var(--line);opacity:.82}
 .fcard.arch .pb-green,.fcard.arch .pb-amber{background:rgba(240,98,93,.55)}
 
 /* progress bar */
@@ -199,14 +201,14 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <header class="hero" id="top">
   <div class="kicker">PROGRESS · ROADMAP</div>
   <h1>进度<em>看板</em>与路线图</h1>
-  <p class="lede">面向不读规格的人：<b>旧 10 个 Feature 已随 D-005 作废归档、八步闭环覆盖、测试质量与三期路线</b>，一眼看全局。对话通道已按 D-012 定稿 runtime 单轨终态；业务层从 feature-001 反向补录重建。</p>
+  <p class="lede">面向不读规格的人：<b>现行 28 个任务包、八步闭环覆盖、测试质量与三期路线</b>，一眼看全局。对话通道已按 D-012 定稿 runtime 单轨终态；业务层按八步模块分段建包推进。</p>
   <div class="verline">
-    <span class="chip">旧包 <b>22 个已作废归档（D-005）</b></span>
-    <span class="chip">新包 <b>28 个（逐包状态以任务清单为准）</b></span>
+    <span class="chip">现行任务包 <b>28 个（逐包状态以任务清单为准）</b></span>
+    <span class="chip">待建包 <b>3xx–7xx 共 7 个 + 803/805</b></span>
     <span class="chip">当前焦点 <b>Agent 权限与影响面板语义收口</b></span>
     <span class="chip">画像 <b>P2</b></span>
   </div>
-  <div class="snapshot">数据快照：2026-10-09 复核 · npm run test:run（197 通过 / 1 跳过）/ typecheck（0 错误），与 10-08 首测一致；F-001~F-010 为旧包历史</div>
+  <div class="snapshot">数据快照：2026-10-09 复核 · npm run test:run（197 通过 / 1 跳过）/ typecheck（0 错误），与 10-08 首测一致</div>
   <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-10-14 再核（v1.12）：磁盘实况已演进为 <b>22 个纯 MCP 工具 / 8 族 · 4 个 Agent profile（director 退役，showrunner 唯一 primary）· 5 个现行 feature 包</b>；当前测试基线 <b>369 通过 / 0 失败 / 1 跳过（35 文件，同日存量清零）</b>；typecheck 双 tsconfig + tsc -b 全绿。</div>
   <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-11-02 再核（v1.17）：<b>28 个纯 MCP 工具 / 11 族 · showrunner 23 白名单且独占 task · 27 个现行 feature 包</b>；当前测试基线见下方实测卡，renderer typecheck 保留 3 条现存测试夹具基线。</div>
   <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-11-03 再核（v1.18）：<b>feature-813 工作目录更换落地（根目录可更换，单一全局根，+3 IPC，47 通道）· 28 个现行 feature 包</b>；当前测试基线 <b>1029 通过 / 0 失败 / 1 跳过（82 文件）</b>；renderer typecheck 保留 3 条现存测试夹具基线。</div>
@@ -216,86 +218,275 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   </div>
 
   <div class="stats rv">
-    <div class="stat"><div class="num"><span data-to="22">0</span><small> 个旧包</small></div><div class="lbl">已整体作废归档（D-005）；2026-11-03 共有 28 个现行 Feature 包（feature-813 已落地）</div></div>
+    <div class="stat"><div class="num"><span data-to="28">0</span><small> 个现行包</small></div><div class="lbl">0xx 立项 15 · 1xx 故事 1 · 2xx 剧本分场 1 · 8xx 平台基础 11；3xx–7xx 共 7 个待建</div></div>
     <div class="stat"><div class="num"><span data-to="1029">0</span><small> 通过</small></div><div class="lbl">2026-11-03 当前基线（82 文件 · 1 跳过 · 0 失败）；历史：11-02 1001 / 80 文件，10-27 722 / 61 文件，10-14 369 / 35 文件，10-09 197 / 24 文件</div></div>
-    <div class="stat"><div class="num"><span data-to="0">0</span><small> /8 步</small></div><div class="lbl">新设计已落地步数；旧代码覆盖前 3 步形态（对话通道已定稿终态），业务层待反补重建</div></div>
+    <div class="stat"><div class="num"><span data-to="3">0</span><small> /8 步</small></div><div class="lbl">新设计已落地 0–2 步（2-c 分镜文字稿待实施）；3–7 步待建包；对话通道已定稿终态</div></div>
     <div class="stat"><div class="num"><span data-to="3">0</span><small> 条</small></div><div class="lbl">renderer typecheck 现存测试夹具基线（2026-11-02）；10-09 的 0 错误为历史快照</div></div>
   </div>
 </header>
 
 <!-- ══════ 01 Feature 看板 ══════ -->
 <section id="features">
-  <div class="sec-head rv"><span class="sec-no">01</span><h2>Feature 看板</h2></div>
-  <p class="sec-sub rv">下列 F-001~F-010（及 F-011~F-022）均为<b>已作废的旧任务包</b>，2026-10-08 整体归档（D-005）；卡片只保留历史事实。对话通道经 D-012 定稿 runtime 单轨终态；其余业务层产物按 §5.2 目标族在 feature 包中对齐重建。</p>
+  <div class="sec-head rv"><span class="sec-no">01</span><h2>任务包看板</h2></div>
+  <p class="sec-sub rv">现行任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段），<b>已建 28 个</b>；另列 9 个待建包（3xx–7xx 共 7 个 + 803 媒体引擎 + 805 Skill）。对话通道经 D-012 定稿 runtime 单轨终态，其余按包内任务清单与 AC 逐项验收。</p>
 
   <div class="kanban">
-    <div class="fcard arch rv">
-      <div class="ftop"><span class="fid">旧 F-001</span><h4>立项</h4><span class="status st-arch">已作废归档</span></div>
-      <p class="fdesc">旧立项门模型（4 节点 + 4 门 + 多 tab 立项单），已被设计 §2.6「2 节点 + 1 定案门」取代。</p>
-      <div class="fmeta"><span>archive/README.md（旧包已删）</span><span>旧模型·按 feature 包重建</span></div>
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">001</span><h4>立项模型重建</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">单定案门 0-final + ProjectBrief v2 版本化；brief 三工具 + showrunner 第 0 步重写。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>自研新增</span></div>
       <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
     </div>
 
-    <div class="fcard arch rv">
-      <div class="ftop"><span class="fid">旧 F-002</span><h4>对话消息动态化</h4><span class="status st-arch">已作废归档 v1.1</span></div>
-      <p class="fdesc">演示态 → 真实对话消息；背景档案落盘、消息持久化、可回放。</p>
-      <div class="fmeta"><span>docs/archive/</span><span>v1.1</span></div>
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">002</span><h4>立项后变更与影响评估</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">全字段可改 + diff + 依赖图反向追溯 + 影响清单 + 三选一动作 + 脏读。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>自研新增</span></div>
       <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
     </div>
 
-    <div class="fcard arch rv">
-      <div class="ftop"><span class="fid">旧 F-003</span><h4>编剧 Agent</h4><span class="status st-arch">已作废归档 v1.1</span></div>
-      <p class="fdesc">故事大纲 + 人物小传；STAGE 1 编剧链路（63 测试）。</p>
-      <div class="fmeta"><span>63 测试</span><span>v1.1</span></div>
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">003</span><h4>立项视图接线</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">静态原型壳换真实立项单只读视图；四态 + 门镜像条 + 脏读黄条。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>改编</span></div>
       <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
     </div>
 
-    <div class="fcard arch rv">
-      <div class="ftop"><span class="fid">旧 F-004</span><h4>剧本分镜</h4><span class="status st-arch">已作废归档 v1.2</span></div>
-      <p class="fdesc">分场 → 台词 → 分镜表；STAGE 2 画布与产物（99 测试）。</p>
-      <div class="fmeta"><span>99 测试</span><span>v1.2</span></div>
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">004</span><h4>立项单历史与回滚</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">历史版本列表 + 双栏 diff + 任选历史版回滚（系统直做，全历史保留）。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>自研新增</span></div>
       <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
     </div>
 
-    <div class="fcard arch rv">
-      <div class="ftop"><span class="fid">旧 F-005</span><h4>产物变更传播（解锁重做）</h4><span class="status st-arch">已作废归档</span></div>
-      <p class="fdesc">上游产物变更向下游传播失效态 / 解锁重做（旧包 D-016~023）。</p>
-      <div class="fmeta"><span>旧包 D-016~023</span><span>变更传播</span></div>
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">005</span><h4>已捕获口径常驻区</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">已捕获口径.json 落盘 + 右栏常驻条；面板直改与对话纠正同库同追溯。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>Design 原有</span></div>
       <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
     </div>
 
-    <div class="fcard arch rv">
-      <div class="ftop"><span class="fid">旧 F-006</span><h4>通用产物查看</h4><span class="status st-arch">已作废归档</span></div>
-      <p class="fdesc">各类产物的统一查看器；旧包时 AC 基本全过，仅余 2 项真机验收未勾选（状态随包冻结）。</p>
-      <div class="fmeta"><span>AC 状态冻结</span><span>历史记录</span></div>
-      <div class="pbar"><i class="pb-amber" style="width:92%"></i></div>
-    </div>
-
-    <div class="fcard arch rv">
-      <div class="ftop"><span class="fid">旧 F-007</span><h4>数据治理</h4><span class="status st-arch">已作废归档</span></div>
-      <p class="fdesc">manifest 字段漂移 / 双份存储等历史数据债务治理；旧包 T1–T9 完成。</p>
-      <div class="fmeta"><span>旧包 T1–T9</span><span>数据治理</span></div>
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">006</span><h4>选题诊断公开数据检索</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">自建 web.search/fetch（DDG 零 Key）+ 检索词脱敏纪律 + 来源附录。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>Design 原有</span></div>
       <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
     </div>
 
-    <div class="fcard arch rv">
-      <div class="ftop"><span class="fid">旧 F-008</span><h4>Agent 运行时集成（opencode 基座）</h4><span class="status st-arch">已作废归档</span></div>
-      <p class="fdesc">opencode 生命周期、client、SSE 投影、12+2 IPC；旧通道零回归。</p>
-      <div class="fmeta"><span>旧包 AC-1~11</span><span>运行时基座</span></div>
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">007</span><h4>产物重开对齐二次确认</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">dirty 节点三选一实确认 + 查看器脏读黄条 + 一键对齐再唤起。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>Design 原有</span></div>
       <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
     </div>
 
-    <div class="fcard arch rv">
-      <div class="ftop"><span class="fid">旧 F-009</span><h4>运行时界面接入（调试面板）</h4><span class="status st-arch">已作废归档</span></div>
-      <p class="fdesc">420px 右侧抽屉、状态条、会话列表、事件日志；旧基线 357/1（该数字已随代码演进失真）。</p>
-      <div class="fmeta"><span>旧基线 357/1</span><span>调试面板</span></div>
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">008</span><h4>立项过程链式呈现</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">STAGE 0 顶部链态条：① 选题诊断 → ② 故事前提 → 🚪 定案卡。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>Design 原有</span></div>
       <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
     </div>
 
-    <div class="fcard arch rv">
-      <div class="ftop"><span class="fid">旧 F-010</span><h4>对话通道全量接入</h4><span class="status st-arch">已作废归档</span></div>
-      <p class="fdesc">ChatComposer ⇄ opencode runtime 流式单轨：正文/推理分轨、可停止；旧 8 个对话 IPC 已删除（快照并入设计后删）。通道收口经 D-012 定稿为终态：runtime 单轨不回退、旧 IPC / shortdrama_* 生成工具不重建。</p>
-      <div class="fmeta"><span>旧包 T1–T10</span><span>D-006~D-012（旧包级）</span></div>
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">009</span><h4>前提卡分色与不可篡改水印</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">五键按已捕获口径分色；人确认 / AI 拟稿双徽标。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>Design 原有</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">010</span><h4>对话内缺口追问与拍板提示</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">追问选项 chip + 发卡拍板提示 qh；合 D-016 系统直做。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>改编</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">011</span><h4>影响评估面板与批量重生成</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">保存后自动弹面板 + 分组勾选 + 一键重生成 / 仅标脏。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>Design 原有</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">012</span><h4>定案门信息完整性与门卡留存</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">再版门拍板前列改动与影响清单；approved 门卡真机留存。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>Design 原有</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">013</span><h4>立项视图直改与导航增强</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">L0/L1/L2 全字段直改 + 版本历史 hover + 对齐状态 tooltip。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>Design 原有</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">014</span><h4>AI 服务配置管理</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">火山方舟 / LM Studio 双服务商可切换；方舟 Key 经 safeStorage 加密落盘。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>自研新增</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard part rv">
+      <div class="ftop"><span class="fid">015</span><h4>确认门非阻塞化与系统直做后置</h4><span class="status st-part">已实施 · 真机待验收</span></div>
+      <p class="fdesc">gate.request 落盘 pending 即返回；首版系统直发、再版三选一后 commit。</p>
+      <div class="fmeta"><span>0xx · 立项</span><span>自研新增</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:90%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">101</span><h4>故事创作链（大纲 + 人物小传）</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">大纲 + 人物小传定稿；CharacterProfile.id 主键；JSON 源 + MD 镜像双写。</p>
+      <div class="fmeta"><span>1xx · 故事</span><span>改编</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard part rv">
+      <div class="ftop"><span class="fid">201</span><h4>剧本创作链（分场 + 台词 + 分镜文字稿）</h4><span class="status st-part">部分落地 · 2-c 待实施</span></div>
+      <p class="fdesc">2-a 分场 / 2-b 台词已落地；2-c 分镜文字稿待实施（与 401 同一文件两阶段演进）。</p>
+      <div class="fmeta"><span>2xx · 剧本分场</span><span>改编</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:66%"></i></div>
+    </div>
+
+    <div class="fcard todo rv">
+      <div class="ftop"><span class="fid">301</span><h4>资产中心与角色定妆</h4><span class="status st-todo">未建包 · P3</span></div>
+      <p class="fdesc">资产索引选定 / 沉淀；角色卡一致性配方（seed / 参考图 / 提示词）；qwen-image B0 定妆。</p>
+      <div class="fmeta"><span>3xx · 资产</span><span>改编</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
+    </div>
+
+    <div class="fcard todo rv">
+      <div class="ftop"><span class="fid">302</span><h4>场景与道具资产</h4><span class="status st-todo">未建包 · P3</span></div>
+      <p class="fdesc">场景图 / 道具图流水线；主风格一致性配方复用。</p>
+      <div class="fmeta"><span>3xx · 资产</span><span>改编</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
+    </div>
+
+    <div class="fcard todo rv">
+      <div class="ftop"><span class="fid">401</span><h4>生产分镜表</h4><span class="status st-todo">未建包 · P3</span></div>
+      <p class="fdesc">分镜文字稿升级为可生产分镜：资产引用 refs、景别 / 运镜 / 逐镜时长 / 台词对位。</p>
+      <div class="fmeta"><span>4xx · 分镜</span><span>改编</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
+    </div>
+
+    <div class="fcard todo rv">
+      <div class="ftop"><span class="fid">501</span><h4>逐镜视频生成</h4><span class="status st-todo">未建包 · P3</span></div>
+      <p class="fdesc">H3 工作流（B5 参考生视频 / B8 文生视频）+ 收片 + 断点续跑 + 单镜失败隔离。</p>
+      <div class="fmeta"><span>5xx · 镜头</span><span>改编</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
+    </div>
+
+    <div class="fcard todo rv">
+      <div class="ftop"><span class="fid">601</span><h4>声音通道（配音 + 配乐）</h4><span class="status st-todo">未建包 · P3</span></div>
+      <p class="fdesc">一期 T2A 人机通道（待配 / 已配清单防漏镜）；Music3 B9 配乐 / 音效。</p>
+      <div class="fmeta"><span>6xx · 后期</span><span>自研新增</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
+    </div>
+
+    <div class="fcard todo rv">
+      <div class="ftop"><span class="fid">602</span><h4>时间线与程序化剪辑</h4><span class="status st-todo">未建包 · P3</span></div>
+      <p class="fdesc">timeline.json（采用版本 / 切点 / 字幕 / 音量 / 过渡）+ edit.*（MediaKit / FFmpeg）。</p>
+      <div class="fmeta"><span>6xx · 后期</span><span>改编</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
+    </div>
+
+    <div class="fcard todo rv">
+      <div class="ftop"><span class="fid">701</span><h4>成片交付与切片</h4><span class="status st-todo">未建包 · P3</span></div>
+      <p class="fdesc">成片 / 封面 / 切片导出；渠道规格校验；成片确认门。</p>
+      <div class="fmeta"><span>7xx · 发布</span><span>改编</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">801</span><h4>manifest 状态机推进</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">7 态 initiating → storyboard-done；每次定稿读-改-写推进一格。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>自研新增</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">802</span><h4>视觉风格谱系接入</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">系统级外部数据源接入：路径注册 / 版本跟踪 / 风格 ID + 谱系版本引用 / 主辅选型。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>自研新增</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard todo rv">
+      <div class="ftop"><span class="fid">803</span><h4>ComfyUI 统一媒体引擎</h4><span class="status st-todo">未建包 · P2 前置</span></div>
+      <p class="fdesc">B0/B5/B8/B9 工作流模板装载 / 队列 / WebSocket 进度 / 收片；局域网多实例池，媒体零公网。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>改编</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">804</span><h4>Windows 窗口标题栏</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">外壳平台分支 + 自绘最小化 / 最大化 / 关闭三按钮 + 4 IPC 1 推送。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>改编</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard todo rv">
+      <div class="ftop"><span class="fid">805</span><h4>Skill 体系</h4><span class="status st-todo">二期</span></div>
+      <p class="fdesc">Skill 检索 / 执行 / 沉淀 / 投稿；模板中心。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>Design 原有</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">806</span><h4>Harness 基础校验与确认门全链路</h4><span class="status st-done">批一已落地</span></div>
+      <p class="fdesc">结构 / 内容 / 规格 / 一致性多轮校验 + 各阶段确认门卡片；校验不过不可确认。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>Design 原有 + 改编</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">807</span><h4>确认门口头拍板约束与门态防护</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">门 pending/rejected 禁止 verbal 绕过发布；版本绑定 + 门卡字段来源回溯。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>自研新增</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">808</span><h4>会话续聊（项目会话绑定与历史回放）</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">一项目绑定一条活跃会话；重开项目回放历史气泡并续聊；404 自愈清绑定。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>改编</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">809</span><h4>对话流式活跃指示</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">首事件前占位气泡 + 行尾闪烁光标 + 行内工具状态行；活跃不变式全程 ≥1 动画元素。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>Design 原有</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">810</span><h4>谱系升级差异工作流</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">主进程差异检测 + VisualCatalog 真实数据驱动；采纳仅升版本，忽略不持久化。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>Design 原有</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">811</span><h4>谱系面板全量真实化</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">六家族计数与 18 条目卡片数据驱动；对话内风格选项卡版本号真实化。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>Design 原有</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">812</span><h4>未选项目空态与首启引导</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">WelcomeView（新建 + 最近 5 个项目）+ 右栏锁定输入 + 无项目发送守卫。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>自研新增</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">813</span><h4>工作目录更换</h4><span class="status st-done">已落地</span></div>
+      <p class="fdesc">单一全局根可更换：换根整体搬移 + 失败回滚 + session-state 重映射；系统直做。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>自研新增</span></div>
       <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
     </div>
   </div>
@@ -304,7 +495,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 02 八步闭环 ══════ -->
 <section id="steps">
   <div class="sec-head rv"><span class="sec-no">02</span><h2>八步生产闭环覆盖</h2></div>
-  <p class="sec-sub rv">红色 0/1/2 = 旧代码曾覆盖的形态（旧立项门模型与设计 §2.6 不符），<b>属旧代码现状、不计为新设计落地，按 feature 包反向补录重建</b>；重建顺序为立项 → 故事 → 剧本分场，随后第 3 步「资产」接入 ComfyUI 统一媒体引擎。</p>
+  <p class="sec-sub rv">红色 0/1/2 = 现存代码已覆盖，但按旧立项门模型实现（与设计 §2.6 不符），<b>属待重建现状、不计为新设计落地，按现行任务包对齐重建</b>；重建顺序为立项 → 故事 → 剧本分场，随后第 3 步「资产」接入 ComfyUI 统一媒体引擎。</p>
 
   <div class="steps rv">
     <div class="step legacy"><div class="dot">0</div><div class="sn">立项</div><div class="sd">诊断（含六要素草案）/ 故事前提 / 定案卡</div><div class="bar"></div></div>
@@ -316,7 +507,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="step todo"><div class="dot">6</div><div class="sn">后期</div><div class="sd">剪辑 / 配乐 / 配音</div><div class="bar"></div></div>
     <div class="step todo"><div class="dot">7</div><div class="sn">发布</div><div class="sd">成片 / 分发</div><div class="bar"></div></div>
   </div>
-  <p class="mut rv" style="margin-top:18px">现存分镜仅为<b>文本结构</b>（旧 F-004 产物），不含视觉画面；3–7 步尚未开始，全部媒体经局域网 ComfyUI（qwen-image / H3 / Music3）。新设计当前落地进度为 <b>0/8 步</b>。</p>
+  <p class="mut rv" style="margin-top:18px">现存分镜仅为<b>文本结构</b>（现存代码产物），不含视觉画面；3–7 步尚未开始，全部媒体经局域网 ComfyUI（qwen-image / H3 / Music3）。新设计当前落地进度为 <b>3/8 步</b>（0–2 已落地，2-c 待实施）。</p>
 </section>
 
 <!-- ══════ 03 质量实况 ══════ -->
@@ -343,7 +534,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       <span class="alvl al-warn">文档-代码·10-09</span>
       <div>
         <h4>2026-10-09 时点：现存业务层与设计 v1.11 存在偏差（D-005 → D-012）</h4>
-        <p>磁盘实况（2026-10-09 核对）：代码已是 feature-019/020/022 新壳——src/studio 三栏工作台 + canvas.json 数据驱动画布 + 11 个纯 MCP 工具 + 25 个 IPC；旧的立项门多 tab、style-catalog、9 节点画布等文件已不存在。对话通道已按 D-012 定稿 runtime 单轨终态（不重建旧 IPC / shortdrama_* 生成工具）；当日业务口径仍基于旧立项模型，Agent 定义放行名（shortdrama_*）与 §5.2 目标族工具名不符。此卡为当日历史盘点，后续演进见下卡。</p>
+        <p>磁盘实况（2026-10-09 核对）：src/studio 三栏工作台 + canvas.json 数据驱动画布 + 11 个纯 MCP 工具 + 25 个 IPC；旧立项门多 tab、style-catalog、9 节点画布等文件已不存在。对话通道已按 D-012 定稿 runtime 单轨终态（不重建旧 IPC / shortdrama_* 生成工具）；当日业务口径仍基于旧立项模型，Agent 定义放行名（shortdrama_*）与 §5.2 目标族工具名不符。此卡为当日历史盘点，后续演进见下卡。</p>
       </div>
     </div>
     <div class="alert">
@@ -380,15 +571,15 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       <div class="ph-head">
         <div class="ph-name">PHASE Ⅰ</div>
         <h4>一期 MVP · 单集闭环</h4>
-        <span class="ph-state">重新启动（旧 10 Feature 已作废归档；先反向补录前 3 步）</span>
+        <span class="ph-state">进行中（已落地 0–2 步，2-c 待实施；3–7 待建包）</span>
       </div>
       <ul>
         <li class="done">应用骨架 + MCP 网关 + Agent 运行时（磁盘实况；对话通道已定稿终态）</li>
-        <li class="done">三栏工作台 / 画布节点 / 状态着色（feature-020/022 形态）</li>
-        <li class="done">编剧 → 剧本 / 分场 / 分镜文本（旧模型产物，按 feature 包重建）</li>
-        <li class="done">runtime 对话单轨（旧包级收口，经 D-012 定稿终态）</li>
-        <li class="doing">feature-001 起：立项 → 故事 → 剧本分场反向补录重建</li>
-        <li>第 3 步「资产」：美术 Agent + 定妆 / 场景图（排在文本侧反补之后）</li>
+        <li class="done">三栏工作台 / 画布节点 / 状态着色（现存实现）</li>
+        <li class="done">编剧 → 剧本 / 分场 / 分镜文本（现存实现，按现行任务包对齐）</li>
+        <li class="done">runtime 对话单轨（D-012 定稿终态）</li>
+        <li class="doing">现行任务包：立项 → 故事 → 剧本分场对齐重建</li>
+        <li>第 3 步「资产」：美术 Agent + 定妆 / 场景图（排在文本侧对齐之后）</li>
         <li>ComfyUI 统一媒体引擎（B0/B5/B8/B9）</li>
         <li>分镜 → 镜头：逐镜图生视频</li>
         <li>立项定案门 + 各步确认门全链路 · Harness 校验</li>
@@ -441,12 +632,8 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
         <div><div class="si-ti">短剧Agent平台设计.md（v1.18）</div><div class="si-sub">§2.6 新立项模型 · §4 多 Agent 架构（4 profile 实况） · §5.1 对话生成网关（runtime 单轨） · §5.2 已落地 28 工具 / 11 族 · §7.1 数据血缘（最终设计） · §8.3 系统级外部数据源 · §11 三期路线 · §13 版本记录</div></div>
       </div>
       <div class="src-row">
-        <span class="si-base">A · 归档</span>
-        <div><div class="si-ti">docs/archive/README.md（旧包作废说明）</div><div class="si-sub">旧 22 包（feature-001~022）2026-10-08 作废、2026-10-10 已删除（历史见 git ef4a175）；卡片仅保留历史事实</div></div>
-      </div>
-      <div class="src-row">
         <span class="si-base">A · 决策</span>
-        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005 / D-011 / D-012 / D-023 / D-024 · 最新 D-024）</div><div class="si-sub">立项模型重建 + 旧 22 包作废 + 谱系定位系统级外部数据源 + 对话通道定稿 runtime 单轨终态；D-023 收口 Agent 调度权限，D-024 明确影响面板关闭语义</div></div>
+        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005 / D-011 / D-012 / D-023 / D-024 · 最新 D-024）</div><div class="si-sub">立项模型重建 + 谱系定位系统级外部数据源 + 对话通道定稿 runtime 单轨终态；D-023 收口 Agent 调度权限，D-024 明确影响面板关闭语义</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 新包</span>

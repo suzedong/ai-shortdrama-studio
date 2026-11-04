@@ -7,7 +7,7 @@
 - **D-201-1（反向补录基线与范围，2026-10-15）**：按《AI-SDG-AI工具执行指令.md》§7 对已落地的 STAGE 2 剧本创作链反向补录任务包 5 文件；补录时点 git HEAD = `c1ee4e9`（「test: 修复跨平台测试与类型错误，全量测试基线清零」，2026-10-14）。批准方式：用户拍板「下一步做 101/201 反向补录」，并对范围拍板「**补录分场+台词，2-c 列为待实施**」。批准范围：仅固化 2-a/2-b 既有实现、登记 2-c 待办，不改任何生产代码/提示词/共享类型/测试（**无 K1、无 K8**）。
 - **D-201-2（2-c 边界，引自既有裁决）**：2-c 启用时产 `分镜/shotlist.json` **文字稿**（ShotList；一期 `dialogue:null`、`refs:[]`、不排镜），feature-401 在**同一文件**内升级生产分镜——裁决①（D-013），出处 [features/README.md](../../README.md) §3 与决策台账，非设计书正文。
 - **溯源**：[改编]。设计依据《短剧Agent平台设计.md》§4.1 编剧 Agent（L435 职责含「分镜文字稿」）、§7.1 数据血缘与 7 态状态机（L581–588）。
-- **旧编号血缘（仅注释留痕，不回改）**：实现期编号 `feature-004`（[shared/types.ts](../../../shared/types.ts) L184/L200/L216 分场/台词/分镜类型注释）、`feature-018`（writer profile）、`feature-021`（[showrunner.md](../../../resources/opencode/agents/showrunner.md) L158 第 2 步编排标题）属旧 22 包体系（2026-10-08 作废，见 [features/README.md](../../README.md) §5）；同一实现现统一归入本包 feature-201。
+- **编号归属**：本实现统一归入 feature-201；`shared/types.ts` 分场 / 台词 / 分镜类型注释与 showrunner 第 2 步编排标题均不再携带历史编号。
 
 ## 二、实施记录
 

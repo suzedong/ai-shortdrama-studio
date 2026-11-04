@@ -31,10 +31,10 @@ export const ENABLED_PROVIDERS = [ARK_PROVIDER_ID, LMSTUDIO_PROVIDER_ID, MOCK_PR
 /** MCP 业务服务器在 opencode config 中的注册名（工具 ID = shortdrama_<tool>） */
 export const SHORTDRAMA_MCP_NAME = 'shortdrama'
 
-/** MCP 远程工具调用超时（ms，契约 §6.3 D-012）：工具内部走 ark 整段生成（20–60s），10s 会误超时 */
+/** MCP 远程工具调用超时（ms，契约 §6.3 D-012）：工具内部走 AI 服务商整段生成（20–60s），10s 会误超时 */
 export const SHORTDRAMA_MCP_TIMEOUT_MS = 180_000
 
-// -- feature-018 · 摄制组 profiles -------------------------------------------
+// -- 摄制组 profiles --------------------------------------------------------
 
 export const SHOWRUNNER_AGENT = 'showrunner'
 
@@ -96,7 +96,7 @@ export interface AgentProfileSpec {
 
 /**
  * 启动时安装的全部 profile：showrunner 单主控 + 三个 subagent。
- * 物理文件名与进程内 agent name 一致（见 feature-018 契约 §1/§2）。
+ * 物理文件名与进程内 agent name 一致（见契约 §1/§2）。
  */
 export const AGENT_PROFILES: readonly AgentProfileSpec[] = [
   { name: SHOWRUNNER_AGENT, file: 'showrunner.md' },
@@ -129,7 +129,7 @@ export interface GeneratedRuntimeConfig {
 
 export interface RuntimeFilesResult {
   config: GeneratedRuntimeConfig
-  /** feature-018：全部已安装 profile（缺 model 时为空数组） */
+  /** 全部已安装 profile（缺 model 时为空数组） */
   profiles: InstalledAgentProfile[]
   /** profile 不可用原因（供状态展示 / 结构化错误），可用时为 null */
   profileError: RuntimeErrorBodyShape | null
@@ -297,7 +297,7 @@ export interface InstalledAgentProfile {
 }
 
 /**
- * 按 AGENT_PROFILES 顺序渲染安装全部 profile（feature-018 契约 §2）。
+ * 按 AGENT_PROFILES 顺序渲染安装全部 profile（契约 §2）。
  * 当前服务商模型缺失 / 空白：抛 UPSTREAM_AUTH_MISSING，不静默回退。
  */
 export async function installAgentProfiles(

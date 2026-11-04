@@ -1,4 +1,4 @@
-// feature-021 C4 · 第 2 步编排契约测试（契约 §2~§6，需求 AC-1~AC-6/AC-8）
+// 第 2 步编排契约测试（契约 §2~§6，需求 AC-1~AC-6/AC-8）
 // 编排由 showrunner 经 prompt 驱动（仓库内无可执行编排代码），故以脚本化 fake
 // showrunner + 纯工具调用记录，固定断言契约要求：
 // - 分场 / 台词的写作均经 task 委派 writer（showrunner 不自行撰写）；

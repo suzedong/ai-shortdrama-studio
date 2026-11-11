@@ -9,8 +9,8 @@ import StudioApp from './StudioApp'
 
 function emptyCanvas(): Canvas {
   return {
-    schemaVersion: 2, projectId: 'p1', title: '', nodes: [], edges: [], gates: [],
-    updatedAt: new Date().toISOString(),
+    schemaVersion: 3, projectId: 'p1', title: '', nodes: [], edges: [], gates: [],
+    revision: 0, receipts: [], updatedAt: new Date().toISOString(),
   }
 }
 

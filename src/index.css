@@ -1,5 +1,3 @@
-@import './assets/fonts/misans/misans.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,7 +12,7 @@ body {
   background-image: radial-gradient(#D9DCEA 1px, transparent 1px);
   background-size: 22px 22px;
   color: #1A1A2E;
-  font-family: 'MiSans VF', 'MiSansLatin VF', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -62,7 +60,7 @@ body {
 .md-bubble em { font-style: italic; }
 .md-bubble del { color: #7A8098; }
 .md-bubble code {
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, 'Cascadia Code', 'Cascadia Mono', Consolas, monospace;
   font-size: 11px;
   background: rgba(108, 92, 231, .1);
   color: #5A4BC4;

@@ -79,7 +79,9 @@ function gate(partial: Partial<CanvasGate> & { status: CanvasGate['status'] }): 
 
 function canvas(over: Partial<Canvas> = {}): Canvas {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
+    revision: 0,
+    receipts: [],
     projectId: 'p1',
     title: '测试项目',
     nodes: [],

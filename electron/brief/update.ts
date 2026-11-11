@@ -213,7 +213,7 @@ export async function updateBriefFields(
       manifestWriteAttempted = true
       await fsp.writeFile(manifestAbs, JSON.stringify(nextManifest, null, 2), 'utf-8')
 
-      // 画布单次写：全部 item 挂脏 + brief 节点 upsert；写失败由 CanvasStore 自恢复
+      // 画布单次写：全部 item 挂脏 + brief 节点 upsert；原子写失败保留旧正档与 cache
       const markedDirty = assessment.items.map(i => i.nodeId)
       // feature-806 B-46：挂脏写入 markedAt（整批同一时间戳；重复挂脏整体覆盖即刷新）
       const markedAt = new Date().toISOString()

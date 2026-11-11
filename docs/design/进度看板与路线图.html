@@ -7,23 +7,21 @@
 <!--
   B 类可视化文档（AI-SDG v1.4 三层文档模型）
   ⚠ 本文件仅为可视化呈现，不是事实源；进度与规划以 A 类 .md 文档为准。
-  事实来源见页底「事实来源索引」。无构建、无外部依赖（Google Fonts 除外），仅含展示脚本。
+  事实来源见页底「事实来源索引」。无构建、无外部依赖，仅含展示脚本。
   数据快照日期：2026-10-09（当日复核 test:run / typecheck，与 2026-10-08 首测结果一致）。
   2026-10-27 再核（v1.14 反向同步）：磁盘实况更新为 27 个纯 MCP 工具 / 10 族、4 个 Agent profile（showrunner 单 primary）、20 个现行 feature 包（19 落地 / 201 部分）；测试基线 722 通过 / 0 失败 / 1 跳过（61 文件），typecheck 恰 3 条历史基线。
   2026-11-02 再核（v1.17 反向同步）：28 个纯 MCP 工具 / 11 族、showrunner 23 白名单且独占 task、27 个现行 feature 包；当前测试与类型基线见下方实测卡。
   2026-11-03 再核（v1.18 反向同步）：feature-813 工作目录更换落地（根目录可更换，单一全局根，IPC 47 通道）· 28 个现行 feature 包；当前测试基线 1029 通过 / 1 跳过 / 0 失败（82 文件）。
   D-005：立项模型重建已落地；任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段），本看板按现行 28 个任务包展示。
 -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0B0D14; --panel:#12151F; --panel2:#171C2B; --line:#252B3D;
   --ink:#E9EBF3; --muted:#8B93A9; --faint:#5B6378;
   --amber:#F2B544; --violet:#8B7CF6; --green:#46C98C; --red:#F0625D; --cyan:#58C7D8;
-  --serif:"Noto Serif SC",Georgia,"Songti SC",serif;
-  --mono:"JetBrains Mono",Menlo,Consolas,monospace;
-  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  --serif:Georgia,"Songti SC","STSong","SimSun",serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,"Cascadia Code","Cascadia Mono",Consolas,monospace;
+  --sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}

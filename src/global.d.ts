@@ -1,7 +1,8 @@
 /// <reference types="vite/client" />
 // 渲染进程全局类型声明 —— 对应 electron/preload.ts 暴露的 API
 import type {
-  Canvas, CanvasGate, ComfyInstance, AssetIndexItem, BriefChange, ProjectBrief, ProjectKind,
+  Canvas, CanvasGate, CanvasCommandRequest, CanvasCommandResult,
+  ComfyInstance, AssetIndexItem, BriefChange, ProjectBrief, ProjectKind,
   CaptureFile, CapturedFact,
 } from '../shared/types'
 import type {
@@ -245,7 +246,8 @@ declare global {
       }
       // feature-017 · 画布 / 裁决门 / 资产 / ComfyUI 设置
       canvas: {
-        get(): Promise<Canvas>
+        get(): Promise<Canvas | null>
+        command(request: CanvasCommandRequest): Promise<CanvasCommandResult>
         subscribe(): Promise<{ ok: true }>
         unsubscribe(): Promise<{ ok: true }>
         onChange(cb: (canvas: Canvas) => void): () => void

@@ -32,7 +32,7 @@ import {
 } from './settings/workspace.js'
 import { canvasStore } from './canvas/store.js'
 import { gateBridge } from './gate/bridge.js'
-import { listAssets } from './asset/index.js'
+import { listAssets, captureAssetSource } from './asset/index.js'
 import { readProjectFile } from './fs/read.js'
 import { getActiveProjectDir } from './project/current.js'
 import { updateBriefFields, type BriefUpdatePatch } from './brief/update.js'
@@ -615,6 +615,9 @@ async function closeRuntimeEventStream() {
 
 /** 按订阅窗口与可选 sessionId 过滤分发；事件保持 SSE 到达顺序（契约 §3.2 规则②） */
 function broadcastRuntimeEvent(event: RuntimeEvent) {
+  void captureAssetSource(event).catch(error => {
+    console.error('[canvas-814] asset source capture failed', error)
+  })
   for (const [id, entry] of Array.from(runtimeSubscribers)) {
     const wc = entry.wc
     if (wc.isDestroyed()) {
@@ -794,21 +797,19 @@ gateBridge.setGateListener((e) => {
   }
 })
 
-// 真机修复：无项目时返回空画布而非抛异常，避免启动白屏
+// 无激活项目返回空态；已存在坏档必须上抛，禁止覆盖为空画布。
 ipcMain.handle('canvas:get', async () => {
   try {
     return await canvasStore.get()
-  } catch {
-    return {
-      schemaVersion: 2,
-      projectId: '',
-      title: '',
-      nodes: [],
-      edges: [],
-      gates: [],
-      updatedAt: new Date().toISOString(),
-    }
+  } catch (error) {
+    if ((error as { code?: string }).code === 'NO_ACTIVE_PROJECT') return null
+    throw error
   }
+})
+
+// feature-814 · 系统直改命令（本批仅 assets.bind / assets.unbind）
+ipcMain.handle('canvas:command', async (_e, request: unknown) => {
+  return canvasStore.command(request as import('../shared/types.js').CanvasCommandRequest)
 })
 
 ipcMain.handle('canvas:subscribe', (e) => {

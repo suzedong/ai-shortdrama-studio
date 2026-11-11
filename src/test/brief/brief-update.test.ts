@@ -63,7 +63,9 @@ async function seed(opts: { withBaseline?: boolean; aux?: string } = {}): Promis
     await fsp.writeFile(path.join(projDir, '立项单.v1.json'), JSON.stringify(brief, null, 2), 'utf-8')
   }
   const canvas: Canvas = {
-    schemaVersion: 2,
+    schemaVersion: 3,
+    revision: 0,
+    receipts: [],
     projectId: 'project',
     title: '测试项目',
     nodes: [
@@ -433,6 +435,7 @@ describe('feature-013 · 全字段直改（genre/tone/platforms/premise/diagnosi
 })
 
 const originalWriteFile = fsp.writeFile.bind(fsp)
+const originalOpen = fsp.open.bind(fsp)
 const originalRename = fsp.rename.bind(fsp)
 
 /** 仅对指定目标注入写失败；默认只失败首次，让补偿写可透传。 */
@@ -541,14 +544,22 @@ describe('updateBriefFields 跨文件失败补偿', () => {
     await expect(fsp.readFile(manifestAbs, 'utf-8')).resolves.toBe(manifestBefore)
   })
 
-  it('画布写失败 → 恢复旧磁盘与 cache、零广播、归档无残留，其余新文件清理', async () => {
+  it('画布临时文件创建失败 → 保留旧磁盘与 cache、零广播、无归档，其余新文件清理', async () => {
     const canvasAbs = path.join(projDir, 'canvas.json')
     const canvasBefore = await fsp.readFile(canvasAbs, 'utf-8')
     const manifestBefore = await fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')
     const cachedBefore = await canvasStore.get()
     const broadcasts: Canvas[] = []
     const unsubscribe = canvasStore.subscribe(c => broadcasts.push(c))
-    mockWriteFailure(canvasAbs, 'INJECT_CANVAS')
+    vi.spyOn(fsp, 'open').mockImplementation(((
+      file: unknown, ...rest: unknown[]
+    ) => {
+      const name = String(file)
+      if (name.startsWith(`${canvasAbs}.`) && name.endsWith('.tmp')) {
+        return Promise.reject(new Error('INJECT_CANVAS'))
+      }
+      return (originalOpen as (...args: unknown[]) => Promise<unknown>)(file, ...rest)
+    }) as unknown as typeof fsp.open)
 
     try {
       await expect(updateBriefFields(projDir, patch)).rejects.toThrow('INJECT_CANVAS')
@@ -557,7 +568,7 @@ describe('updateBriefFields 跨文件失败补偿', () => {
       await expectAbsent(reportName)
       await expect(fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')).resolves.toBe(manifestBefore)
       await expect(fsp.readFile(canvasAbs, 'utf-8')).resolves.toBe(canvasBefore)
-      await expect(fsp.readdir(path.join(projDir, '版本'))).resolves.toEqual([])
+      await expect(fsp.access(path.join(projDir, '版本'))).rejects.toMatchObject({ code: 'ENOENT' })
       expect(await canvasStore.get()).toBe(cachedBefore)
       expect(broadcasts).toEqual([])
     } finally {
@@ -591,30 +602,33 @@ describe('updateBriefFields 跨文件失败补偿', () => {
     await expectAbsent(reportName)
   })
 
-  it('画布归档恢复失败 → 外层报补偿未完成并保留 CANVAS_RESTORE_FAILED 原因', async () => {
+  it('画布原子替换失败 → 旧正档与归档均保留、临时文件清理，不触发恢复补偿', async () => {
     const canvasAbs = path.join(projDir, 'canvas.json')
     const canvasBefore = await fsp.readFile(canvasAbs, 'utf-8')
+    const manifestBefore = await fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')
     const cachedBefore = await canvasStore.get()
     const broadcasts: Canvas[] = []
     const unsubscribe = canvasStore.subscribe(c => broadcasts.push(c))
-    mockWriteFailure(canvasAbs, 'INJECT_CANVAS')
     vi.spyOn(fsp, 'rename').mockImplementation(((
       from: unknown, to: unknown
     ) => {
-      if (path.resolve(String(to)) === canvasAbs && String(from).includes(`${path.sep}版本${path.sep}`)) {
-        return Promise.reject(new Error('INJECT_CANVAS_RESTORE'))
+      if (path.resolve(String(to)) === canvasAbs && String(from).endsWith('.tmp')) {
+        return Promise.reject(new Error('INJECT_CANVAS_RENAME'))
       }
       return (originalRename as (...args: unknown[]) => Promise<unknown>)(from, to)
     }) as unknown as typeof fsp.rename)
 
     try {
-      await expect(updateBriefFields(projDir, patch)).rejects.toMatchObject({
-        code: 'BRIEF_UPDATE_ROLLBACK_FAILED',
-        cause: expect.objectContaining({ code: 'CANVAS_RESTORE_FAILED' }),
-      })
+      await expect(updateBriefFields(projDir, patch)).rejects.toThrow('INJECT_CANVAS_RENAME')
+      await expectAbsent(jsonName)
+      await expectAbsent(mdName)
+      await expectAbsent(reportName)
+      await expect(fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')).resolves.toBe(manifestBefore)
+      await expect(fsp.readFile(canvasAbs, 'utf-8')).resolves.toBe(canvasBefore)
       const archives = await fsp.readdir(path.join(projDir, '版本'))
       expect(archives).toHaveLength(1)
       await expect(fsp.readFile(path.join(projDir, '版本', archives[0]!), 'utf-8')).resolves.toBe(canvasBefore)
+      expect((await fsp.readdir(projDir)).filter(name => name.endsWith('.tmp'))).toEqual([])
       expect(await canvasStore.get()).toBe(cachedBefore)
       expect(broadcasts).toEqual([])
     } finally {

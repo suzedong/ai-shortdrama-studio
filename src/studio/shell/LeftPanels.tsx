@@ -2,7 +2,7 @@
 // - Skills / Plugins：本地目录静态数据（后续接 Skill 市场 / 插件注册 IPC 再替换）
 // - Assets：接 window.api.asset.list（kind 维度见 shared/types.ts AssetIndexItem）
 import { useCallback, useEffect, useState } from 'react'
-import type { AssetIndexItem } from '@shared/types'
+import type { AssetIndexItem, CanvasNode } from '@shared/types'
 
 interface PanelProps {
   query?: string
@@ -134,19 +134,30 @@ function basename(p: string): string {
   return seg[seg.length - 1] || p
 }
 
-export function AssetsPanel({ query = '' }: PanelProps) {
+interface AssetsPanelProps extends PanelProps {
+  selectedNode: CanvasNode | null
+  onBind: (assetIds: string[]) => Promise<void>
+  onUnbind: (assetIds: string[]) => Promise<void>
+}
+
+export function AssetsPanel({ query = '', selectedNode, onBind, onUnbind }: AssetsPanelProps) {
   const [kind, setKind] = useState<AssetKindTab>('image')
   const [assets, setAssets] = useState<AssetIndexItem[]>([])
-  const [picked, setPicked] = useState<string | null>(null)
+  const [picked, setPicked] = useState<Set<string>>(() => new Set())
   const [loaded, setLoaded] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [busy, setBusy] = useState<'bind' | 'unbind' | null>(null)
+  const [commandError, setCommandError] = useState<string | null>(null)
 
   const load = useCallback(async (k: AssetKindTab) => {
     setLoaded(false)
+    setLoadError(null)
     try {
       setAssets(await window.api.asset.list(k))
     } catch (e) {
       console.error('asset.list failed', e)
       setAssets([])
+      setLoadError('资产索引读取失败，请稍后重试。')
     } finally {
       setLoaded(true)
     }
@@ -154,17 +165,54 @@ export function AssetsPanel({ query = '' }: PanelProps) {
 
   useEffect(() => { void load(kind) }, [kind, load])
 
+  useEffect(() => window.api.runtime.onEvent(event => {
+    if (event.type === 'tool.call' && event.status === 'completed'
+      && (event.tool === 'shortdrama_asset_register' || event.tool === 'asset.register')) {
+      void load(kind)
+    }
+  }), [kind, load])
+
   const q = query.trim().toLowerCase()
   const visible = q ? assets.filter(a => basename(a.path).toLowerCase().includes(q)) : assets
+  const boundIds = new Set(selectedNode?.assetIds ?? [])
+  const selectedIds = Array.from(picked)
+
+  const toggle = (id: string) => {
+    setPicked(current => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+    setCommandError(null)
+  }
+
+  const runCommand = async (action: 'bind' | 'unbind') => {
+    if (!selectedNode || selectedIds.length === 0 || busy) return
+    setBusy(action)
+    setCommandError(null)
+    try {
+      await (action === 'bind' ? onBind : onUnbind)(selectedIds)
+      setPicked(new Set())
+    } catch (error) {
+      setCommandError(error instanceof Error ? error.message : '资产关联失败，请重试。')
+    } finally {
+      setBusy(null)
+    }
+  }
 
   return (
-    <div>
+    <div aria-busy={busy !== null}>
       <div className="mb-2.5 flex gap-1">
         {ASSET_TABS.map(t => (
           <button
             key={t.key}
             type="button"
-            onClick={() => setKind(t.key)}
+            onClick={() => {
+              setKind(t.key)
+              setPicked(new Set())
+              setCommandError(null)
+            }}
             className={`flex-1 rounded-lg py-1.5 text-[10.5px] font-semibold transition ${
               kind === t.key ? 'bg-violet text-white' : 'bg-[#F2F3F9] text-[#7C8298] hover:text-violet'
             }`}
@@ -174,20 +222,54 @@ export function AssetsPanel({ query = '' }: PanelProps) {
         ))}
       </div>
 
+      <div className="mb-2 rounded-lg border border-line bg-white px-2.5 py-2">
+        <p className="truncate text-[11px] font-semibold text-ink" title={selectedNode?.title}>
+          {selectedNode ? `当前节点：${selectedNode.title}` : '请先在画布中选择节点'}
+        </p>
+        <p className="mt-0.5 text-[10px] text-muted">
+          {selectedNode ? `已关联 ${boundIds.size} 项 · 本类已选 ${selectedIds.length} 项` : '选中后可批量绑定或解绑当前资产'}
+        </p>
+        <div className="mt-2 flex gap-1.5">
+          <button
+            type="button"
+            disabled={!selectedNode || selectedIds.length === 0 || busy !== null}
+            onClick={() => void runCommand('bind')}
+            className="flex-1 rounded-md bg-violet px-2 py-1.5 text-[10.5px] font-semibold text-white transition hover:bg-violet/90 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {busy === 'bind' ? '绑定中…' : '绑定所选'}
+          </button>
+          <button
+            type="button"
+            disabled={!selectedNode || selectedIds.length === 0 || busy !== null}
+            onClick={() => void runCommand('unbind')}
+            className="flex-1 rounded-md border border-line bg-white px-2 py-1.5 text-[10.5px] font-semibold text-[#6A708A] transition hover:border-violet hover:text-violet disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {busy === 'unbind' ? '解绑中…' : '解绑所选'}
+          </button>
+        </div>
+        {commandError && <p role="alert" className="mt-2 text-[10.5px] leading-4 text-[#B23B33]">{commandError}</p>}
+      </div>
+
       {!loaded ? (
         <p className="px-1 pt-2 text-[11px] text-muted">加载中…</p>
+      ) : loadError ? (
+        <div className="px-1 pt-2">
+          <p role="alert" className="text-[11px] text-[#B23B33]">{loadError}</p>
+          <button type="button" onClick={() => void load(kind)} className="mt-1 text-[11px] font-semibold text-violet hover:underline">重新加载</button>
+        </div>
       ) : visible.length === 0 ? (
         <p className="px-1 pt-2 text-[11px] leading-5 text-muted">{KIND_EMPTY[kind]}</p>
       ) : kind === 'image' ? (
         <div className="grid grid-cols-2 gap-1.5">
           {visible.map(a => {
             const name = basename(a.path)
-            const active = picked === a.id
+            const active = picked.has(a.id)
             return (
               <button
                 key={a.id}
                 type="button"
-                onClick={() => setPicked(active ? null : a.id)}
+                aria-pressed={active}
+                onClick={() => toggle(a.id)}
                 className={`relative aspect-square overflow-hidden rounded-lg bg-gradient-to-br from-[#EEF0F6] to-[#DDE0EC] text-left ${
                   active ? 'outline outline-2 outline-violet outline-offset-[-2px]' : ''
                 }`}
@@ -196,6 +278,7 @@ export function AssetsPanel({ query = '' }: PanelProps) {
                 <span className="absolute inset-0 grid place-items-center text-[22px] font-bold text-[#A6ACC4]/60">
                   {name.charAt(0).toUpperCase()}
                 </span>
+                {boundIds.has(a.id) && <span className="absolute left-[5px] top-[5px] rounded bg-white/90 px-1 py-px text-[9px] font-semibold text-violet">已关联</span>}
                 {active && (
                   <span className="absolute right-[5px] top-[5px] grid h-[15px] w-[15px] place-items-center rounded-full bg-violet">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="h-[9px] w-[9px] text-white">
@@ -214,8 +297,18 @@ export function AssetsPanel({ query = '' }: PanelProps) {
         <div className="space-y-1.5">
           {visible.map(a => {
             const name = basename(a.path)
+            const active = picked.has(a.id)
             return (
-              <div key={a.id} className="flex items-center gap-2.5 rounded-lg border border-line bg-white p-2" title={a.path}>
+              <button
+                key={a.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => toggle(a.id)}
+                className={`flex w-full items-center gap-2.5 rounded-lg border bg-white p-2 text-left transition ${
+                  active ? 'border-violet' : 'border-line hover:border-[#C9C1F5]'
+                }`}
+                title={a.path}
+              >
                 <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-violet-soft text-violet">
                   {kind === 'music' ? (
                     <svg viewBox="0 0 24 24" fill="currentColor" className="h-2.5 w-2.5"><path d="M8 5v14l11-7z" /></svg>
@@ -224,7 +317,8 @@ export function AssetsPanel({ query = '' }: PanelProps) {
                   )}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[11.5px] font-bold text-ink">{name}</span>
-              </div>
+                {boundIds.has(a.id) && <span className="shrink-0 text-[9px] font-semibold text-violet">已关联</span>}
+              </button>
             )
           })}
         </div>

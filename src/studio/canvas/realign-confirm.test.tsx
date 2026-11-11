@@ -225,9 +225,9 @@ function installAppApi(initial: Canvas): AppHarness {
 
 function appCanvas(projectId = 'p1'): Canvas {
   return {
-    schemaVersion: 2, projectId, title: '测试项目',
+    schemaVersion: 3, projectId, title: '测试项目',
     nodes: [dirtyOutlineNode(), cleanScenesNode()], edges: [], gates: [],
-    updatedAt: new Date().toISOString(),
+    revision: 0, receipts: [], updatedAt: new Date().toISOString(),
   }
 }
 

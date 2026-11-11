@@ -8,3 +8,4 @@ dist-electron
 tsconfig.tsbuildinfo
 .trae-html-share-packages/
 .screenshot/
+.workbuddy/

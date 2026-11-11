@@ -208,3 +208,50 @@ describe('feature-001 brief MCP 工具（契约 §3）', () => {
     )
   })
 })
+
+describe('feature-814 canvas/asset MCP 兼容契约', () => {
+  it('asset.register 接收 sourceJobId，asset.list 返回任务来源', async () => {
+    const registered = await call<{ assetId: string }>('asset.register', {
+      kind: 'image', path: '资产/mcp-source.png', sourceJobId: 'job-mcp-1',
+    })
+    expect(registered).toMatchObject({ ok: true, assetId: expect.any(String) })
+    const listed = await call<{ assets: { id: string; sourceJobId?: string }[] }>('asset.list')
+    expect(listed.assets.find(item => item.id === registered.assetId)?.sourceJobId).toBe('job-mcp-1')
+  })
+
+  it('canvas.update 返回画布与命令回执，兼容重放并归一化冲突', async () => {
+    const registered = await call<{ assetId: string }>('asset.register', {
+      kind: 'image', path: '资产/mcp-bound.png',
+    })
+    const before = await canvasStore.get()
+    const args = {
+      commandId: 'cmd-mcp-canvas-1', expectedRevision: before.revision,
+      nodes: [{
+        id: 'mcp-command-node', step: '1', kind: 'outline', title: '命令节点',
+        status: 'active', assetIds: [registered.assetId],
+      }],
+    }
+    const result = await call<{
+      canvas: { revision: number; nodes: { id: string; assetIds?: string[] }[] }
+      commandId: string
+      revision: number
+      replayed: boolean
+    }>('canvas.update', args)
+    expect(result).toMatchObject({
+      ok: true, commandId: 'cmd-mcp-canvas-1', revision: before.revision + 1, replayed: false,
+    })
+    expect(result.canvas.nodes.find(node => node.id === 'mcp-command-node')?.assetIds)
+      .toEqual([registered.assetId])
+
+    const replay = await call<{ revision: number; replayed: boolean }>('canvas.update', args)
+    expect(replay).toMatchObject({ ok: true, revision: result.revision, replayed: true })
+    expect((await canvasStore.get()).revision).toBe(result.revision)
+
+    const conflict = await call('canvas.update', {
+      ...args, nodes: [{ ...args.nodes[0], title: '不同请求' }],
+    })
+    expect(conflict).toMatchObject({ ok: false, error: { code: 'CANVAS_COMMAND_CONFLICT' } })
+    const stale = await call('canvas.update', { ...args, commandId: 'cmd-mcp-canvas-2' })
+    expect(stale).toMatchObject({ ok: false, error: { code: 'CANVAS_REVISION_CONFLICT' } })
+  })
+})

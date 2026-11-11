@@ -73,7 +73,9 @@ async function seedProject(style: ProjectBrief['style']): Promise<void> {
   }
   await fsp.writeFile(path.join(projDir, MANIFEST_FILE), JSON.stringify(manifest, null, 2), 'utf-8')
   const canvas: Canvas = {
-    schemaVersion: 2,
+    schemaVersion: 3,
+    revision: 0,
+    receipts: [],
     projectId: 'project',
     title: '测试项目',
     nodes: [

@@ -177,6 +177,7 @@ export function registerPureTools(server: McpServer): void {
           status: z.enum(['pending', 'active', 'done', 'invalidated']),
           ref: z.object({ path: z.string(), format: z.enum(['json', 'md']) }).optional(),
           meta: z.record(z.string(), z.unknown()).optional(),
+          assetIds: z.array(z.string().min(1)).optional(),
           // feature-002 契约 §4.4：定稿血缘可经 update 写入；dirty 无入口（zod 剥离）
           parentReference: z.object({
             briefVersion: z.number().int().positive(),
@@ -192,11 +193,22 @@ export function registerPureTools(server: McpServer): void {
         auto: z.boolean().optional(),
       })).optional(),
       mode: z.literal('merge').optional(),
+      commandId: z.string().min(1).optional(),
+      expectedRevision: z.number().int().nonnegative().optional(),
     },
     async (args) => {
       try {
-        const canvas = await canvasStore.update(args)
-        return respond<{ canvas: Canvas }>({ ok: true, canvas })
+        const result = await canvasStore.updateWithCommand(args, {
+          commandId: args.commandId,
+          expectedRevision: args.expectedRevision,
+        })
+        return respond<{ canvas: Canvas; commandId: string; revision: number; replayed: boolean }>({
+          ok: true,
+          canvas: result.canvas,
+          commandId: result.receipt.commandId,
+          revision: result.receipt.revision,
+          replayed: result.replayed,
+        })
       } catch (e) {
         return respond(normalize(e))
       }
@@ -270,11 +282,17 @@ export function registerPureTools(server: McpServer): void {
     {
       kind: z.enum(['image', 'video', 'music', 'workflow']),
       path: z.string().min(1),
+      sourceJobId: z.string().min(1).optional(),
       meta: z.record(z.string(), z.unknown()).optional(),
     },
     async (args) => {
       try {
-        const { assetId } = await registerAsset({ kind: args.kind, path: args.path, meta: args.meta })
+        const { assetId } = await registerAsset({
+          kind: args.kind,
+          path: args.path,
+          sourceJobId: args.sourceJobId,
+          meta: args.meta,
+        })
         return respond<{ assetId: string }>({ ok: true, assetId })
       } catch (e) {
         return respond(normalize(e))

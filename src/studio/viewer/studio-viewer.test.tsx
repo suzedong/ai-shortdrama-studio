@@ -334,7 +334,9 @@ function installImpactAppApi(fileReadImpl: (path: string) => Promise<unknown>): 
   const promptAsync = vi.fn(async () => ({ accepted: true as const, messageId: 'msg-1' }))
   const fileRead = vi.fn(async ({ path }: { path: string }) => fileReadImpl(path))
   const canvas: Canvas = {
-    schemaVersion: 2,
+    schemaVersion: 3,
+    revision: 0,
+    receipts: [],
     projectId: 'p1',
     title: '测试项目',
     nodes: [dirtyOutlineNode()],

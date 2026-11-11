@@ -11,8 +11,8 @@ import StudioApp from './StudioApp'
 
 function canvasOf(projectId: string, title = ''): Canvas {
   return {
-    schemaVersion: 2, projectId, title, nodes: [], edges: [], gates: [],
-    updatedAt: new Date().toISOString(),
+    schemaVersion: 3, projectId, title, nodes: [], edges: [], gates: [],
+    revision: 0, receipts: [], updatedAt: new Date().toISOString(),
   }
 }
 

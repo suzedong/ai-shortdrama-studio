@@ -75,7 +75,7 @@ async function seed(opts: { withBrief?: boolean; manifest?: Partial<ProjectManif
     await fsp.writeFile(path.join(projDir, '立项单.v1.json'), JSON.stringify(baseBrief, null, 2), 'utf-8')
   }
   const canvas: Canvas = {
-    schemaVersion: 2, projectId: 'project', title: '测试项目',
+    schemaVersion: 3, projectId: 'project', title: '测试项目', revision: 0, receipts: [],
     nodes: [], edges: [], gates: opts.gates ?? [], updatedAt: now,
   }
   await fsp.writeFile(path.join(projDir, 'canvas.json'), JSON.stringify(canvas, null, 2), 'utf-8')

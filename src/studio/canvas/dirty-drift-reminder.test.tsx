@@ -46,7 +46,7 @@ function node(partial: Partial<CanvasNode> & { id: string }): CanvasNode {
 
 function canvasOf(nodes: CanvasNode[]): Canvas {
   return {
-    schemaVersion: 2, projectId: 'p1', title: '测试项目',
+    schemaVersion: 3, projectId: 'p1', title: '测试项目', revision: 0, receipts: [],
     nodes, edges: [], gates: [],
     updatedAt: '2026-10-15T00:00:00.000Z',
   }

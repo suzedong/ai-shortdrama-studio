@@ -16,7 +16,7 @@ export default {
         bad: '#E05A52',
       },
       fontFamily: {
-        sans: ['"MiSans VF"', '"MiSansLatin VF"', '-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Microsoft YaHei"', 'sans-serif'],
+        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', 'sans-serif'],
       },
       boxShadow: {
         card: '0 1px 2px rgba(20,20,40,0.04), 0 4px 12px rgba(20,20,40,0.04)',

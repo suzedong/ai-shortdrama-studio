@@ -124,4 +124,54 @@ describe('浏览器 dev-mock 直接契约', () => {
         message: '浏览器开发环境不支持更换工作目录',
       })
   })
+
+  it('画布命令支持绑定、集合重放、冲突检查与订阅广播', async () => {
+    const listener = vi.fn()
+    const off = window.api.canvas.onChange(listener)
+    const request = {
+      commandId: 'cmd-bind-1',
+      expectedRevision: 0,
+      type: 'assets.bind' as const,
+      nodeId: 'n-char-anni',
+      assetIds: ['a2', 'a1', 'a1'],
+    }
+    const result = await window.api.canvas.command(request)
+    expect(result).toMatchObject({ replayed: false, receipt: { revision: 1 } })
+    expect(result.receipt.requestHash).toMatch(/^[0-9a-f]{64}$/)
+    expect(result.canvas.nodes.find(node => node.id === 'n-char-anni')?.assetIds).toEqual(['a1', 'a2'])
+    expect(listener).toHaveBeenCalledTimes(1)
+
+    const replay = await window.api.canvas.command({
+      ...request,
+      expectedRevision: 99,
+      assetIds: ['a1', 'a2'],
+    })
+    expect(replay.replayed).toBe(true)
+    expect(replay.receipt).toEqual(result.receipt)
+    expect(replay.canvas.revision).toBe(1)
+    expect(listener).toHaveBeenCalledTimes(1)
+
+    await expect(window.api.canvas.command({ ...request, assetIds: ['a3'] }))
+      .rejects.toMatchObject({ code: 'CANVAS_COMMAND_CONFLICT' })
+    await expect(window.api.canvas.command({ ...request, commandId: 'cmd-stale' }))
+      .rejects.toMatchObject({ code: 'CANVAS_REVISION_CONFLICT' })
+    expect(listener).toHaveBeenCalledTimes(1)
+    off()
+  })
+
+  it('画布命令解绑后递增 revision，并保持其他关联', async () => {
+    await window.api.canvas.command({
+      commandId: 'cmd-bind-2', expectedRevision: 0, type: 'assets.bind',
+      nodeId: 'n-shot-v001', assetIds: ['v1', 'm1'],
+    })
+    const result = await window.api.canvas.command({
+      commandId: 'cmd-unbind-1', expectedRevision: 1, type: 'assets.unbind',
+      nodeId: 'n-shot-v001', assetIds: ['v1'],
+    })
+    expect(result.canvas.revision).toBe(2)
+    expect(result.canvas.nodes.find(node => node.id === 'n-shot-v001')?.assetIds).toEqual(['m1'])
+    expect(result.canvas.receipts.map(receipt => receipt.commandId)).toEqual([
+      'cmd-bind-2', 'cmd-unbind-1',
+    ])
+  })
 })

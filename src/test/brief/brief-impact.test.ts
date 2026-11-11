@@ -8,8 +8,8 @@ function change(field: string): BriefChange {
 
 function canvasWith(nodes: CanvasNode[]): Canvas {
   return {
-    schemaVersion: 2, projectId: 'p1', title: '新项目', nodes, edges: [], gates: [],
-    updatedAt: '2026-10-14T00:00:00.000Z',
+    schemaVersion: 3, projectId: 'p1', title: '新项目', nodes, edges: [], gates: [],
+    revision: 0, receipts: [], updatedAt: '2026-10-14T00:00:00.000Z',
   }
 }
 

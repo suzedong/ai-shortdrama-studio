@@ -4,7 +4,7 @@
 // 所有 IPC 与组件接线保持不变；仅把视觉骨架对齐高保真原型。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import type { Canvas, CanvasGate, CanvasNode, StepId } from '@shared/types'
+import type { Canvas, CanvasCommandType, CanvasGate, CanvasNode, StepId } from '@shared/types'
 import {
   reduceRuntimeEvent,
   turnSegments,
@@ -88,12 +88,14 @@ const PAN_TAB_TITLE: Record<PanTab, string> = {
 
 function emptyCanvas(): Canvas {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     projectId: '',
     title: '',
     nodes: [],
     edges: [],
     gates: [],
+    revision: 0,
+    receipts: [],
     updatedAt: new Date().toISOString(),
   }
 }
@@ -134,6 +136,7 @@ export default function StudioApp() {
   const [panTab, setPanTab] = useState<PanTab>('projects')
   const [leftQuery, setLeftQuery] = useState('')
   const [activeStep, setActiveStep] = useState<StepId | null>(null)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [catalogOpen, setCatalogOpen] = useState(false)
   // B-31：rail 底部 AI 圆标 → 系统菜单（收纳使用指南/导出入口）
   const [sysMenuOpen, setSysMenuOpen] = useState(false)
@@ -169,6 +172,55 @@ export default function StudioApp() {
 
   // 入口动作 · 用户原话：会话首条用户消息（Stage0View 入口卡数据源）
   const entryQuote = useMemo(() => items.find(i => i.role === 'user')?.text?.trim() ?? '', [items])
+  const selectedNode = useMemo(
+    () => canvas.nodes.find(node => node.id === selectedNodeId) ?? null,
+    [canvas.nodes, selectedNodeId],
+  )
+
+  const refreshCanvas = useCallback(async () => {
+    const value = await window.api.canvas.get()
+    const next = value ?? emptyCanvas()
+    setCanvas(next)
+    setPendingGate(pendingFromCanvas(next))
+    return next
+  }, [])
+
+  const runAssetCommand = useCallback(async (type: CanvasCommandType, assetIds: string[]) => {
+    if (!selectedNodeId) throw new Error('请先在画布中选择节点。')
+    try {
+      const result = await window.api.canvas.command({
+        commandId: globalThis.crypto.randomUUID(),
+        expectedRevision: canvas.revision,
+        type,
+        nodeId: selectedNodeId,
+        assetIds,
+      })
+      setCanvas(result.canvas)
+      setPendingGate(pendingFromCanvas(result.canvas))
+    } catch (error) {
+      const code = typeof error === 'object' && error !== null && 'code' in error
+        ? String((error as { code: unknown }).code)
+        : ''
+      const message = error instanceof Error ? error.message : String(error)
+      const conflict = code === 'CANVAS_REVISION_CONFLICT' || code === 'CANVAS_COMMAND_CONFLICT'
+        || message.includes('CANVAS_REVISION_CONFLICT') || message.includes('CANVAS_COMMAND_CONFLICT')
+        || message.includes('画布 revision 冲突') || message.includes('commandId 已用于其他请求')
+      if (conflict) {
+        await refreshCanvas()
+        throw new Error('画布已被其他操作更新，已刷新；请确认后重试。')
+      }
+      throw error
+    }
+  }, [canvas.revision, refreshCanvas, selectedNodeId])
+
+  const bindAssets = useCallback(
+    (assetIds: string[]) => runAssetCommand('assets.bind', assetIds),
+    [runAssetCommand],
+  )
+  const unbindAssets = useCallback(
+    (assetIds: string[]) => runAssetCommand('assets.unbind', assetIds),
+    [runAssetCommand],
+  )
 
   // 右栏对话区宽度：左缘拖拽调节（300–640px），localStorage 持久化
   const CHAT_WIDTH_KEY = 'studio.chatWidth'
@@ -397,12 +449,14 @@ export default function StudioApp() {
       if (projectIdRef.current && c.projectId !== projectIdRef.current) {
         setViewerNode(null)
         setConfirmNode(null)
+        setSelectedNodeId(null)
       }
       syncProjectSession(c.projectId)
     })
     window.api.canvas.get()
-      .then(c => {
+      .then(value => {
         if (!alive) return
+        const c = value ?? emptyCanvas()
         setCanvas(c)
         setCanvasLoaded(true)
         setPendingGate(pendingFromCanvas(c))
@@ -883,7 +937,14 @@ export default function StudioApp() {
               <>
                 {panTab === 'projects' && <ProjectNav ref={projectNavRef} activeProjectId={canvas.projectId} query={leftQuery} />}
                 {panTab === 'skills'   && <SkillsPanel   query={leftQuery} />}
-                {panTab === 'assets'   && <AssetsPanel   query={leftQuery} />}
+                {panTab === 'assets' && (
+                  <AssetsPanel
+                    query={leftQuery}
+                    selectedNode={selectedNode}
+                    onBind={bindAssets}
+                    onUnbind={unbindAssets}
+                  />
+                )}
                 {panTab === 'plugins'  && <PluginsPanel  query={leftQuery} />}
               </>
             ) : (
@@ -941,11 +1002,13 @@ export default function StudioApp() {
           ) : (
             <>
               <CanvasBoard
+                key={canvas.projectId || 'no-project'}
                 canvas={canvas}
                 onOpenNode={handleOpenNode}
                 activeStep={activeStep}
                 onNodeAction={handleNodeAction}
                 onDropped={handleDropped}
+                onSelectNode={setSelectedNodeId}
               />
               {viewerNode && (
                 <StudioViewer

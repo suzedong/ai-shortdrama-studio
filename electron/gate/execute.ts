@@ -24,6 +24,7 @@ export const GATE_MANIFEST_EVENTS: Readonly<Record<string, ManifestEvent>> = {
   '1-b': 'profiles-approved',
   '2-a': 'scenes-approved',
   '2-b': 'dialogue-approved',
+  '2-c': 'storyboard-finalized',
 }
 
 export const BRIEF_GATE_ID = '0-final'

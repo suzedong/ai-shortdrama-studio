@@ -125,14 +125,14 @@ ai-shortdrama-studio/
 - [docs/design/短剧Agent平台设计.html](./docs/design/短剧Agent平台设计.html) —— 设计书人读镜像（信息图版）
 - [docs/design/平台全景图.html](./docs/design/平台全景图.html) —— 唯一人读入口（概览）
 - [docs/design/短剧Agent平台-原型.html](./docs/design/短剧Agent平台-原型.html) —— 高保真界面原型
-- [docs/设计现状与偏差清单.md](./docs/设计现状与偏差清单.md) —— 磁盘实况 ↔ 设计的偏差与反向补录路线（开发导航）
+- [docs/设计现状与偏差清单.md](./docs/设计现状与偏差清单.md) —— 当前未闭环的设计 ↔ 实现偏差（开发导航）
 - [docs/governance/SDG-AI-决策台账.md](./docs/governance/SDG-AI-决策台账.md) —— 立项级决策（永久保留）
 
 ## 当前状态与路线
 
-- **已落地（实现证据）**：runtime 对话单轨、29 个纯 MCP 工具（11 族）、STAGE 0 / 1 / 2-a / 2-b 产物链、版本归档、确认门桥、画布基座、manifest 7 态状态机、立项再版与影响评估面板、视觉风格谱系、AI 服务配置及未选项目首启引导。
-- **现行任务包**：`docs/features/` 共 27 包，26 个已落地或已实施；feature-201 部分落地（分场 + 台词已落，2-c 分镜文字稿待实施）。逐包状态以 [docs/features/README.md](./docs/features/README.md) 为准，各包实施边界以包内契约与任务清单为准。
-- **未落地**：STAGE 2-c 与 STAGE 3-7（资产 / 分镜 / 镜头 / 后期 / 发布）完整生产闭环；ComfyUI 媒体引擎完整适配；T2A 人机通道；语音通道。
+- **已落地（实现证据）**：runtime 对话单轨、29 个纯 MCP 工具（11 族）、STAGE 0 / 1 / 2-a / 2-b / 2-c 产物链、版本归档、确认门桥、画布基座、manifest 7 态状态机、立项再版与影响评估面板、视觉风格谱系、AI 服务配置及未选项目首启引导。
+- **现行任务包**：`docs/features/` 共 28 包，均已落地或实施；feature-201 的分场、台词与 2-c 分镜文字稿均已实施（2-c 自动化通过、未真机验收）。逐包状态以 [docs/features/README.md](./docs/features/README.md) 为准，各包实施边界以包内契约与任务清单为准。
+- **未落地**：STAGE 3-7（资产 / 分镜 / 镜头 / 后期 / 发布）完整生产闭环；ComfyUI 媒体引擎完整适配；T2A 人机通道；语音通道。
 
 一期 MVP 目标：单集全闭环（立项 → 故事 → 分场 → 资产 → 分镜 → 镜头 → 后期 → 成片），详见设计书 §11。
 

@@ -318,9 +318,11 @@ interface Props {
   onNodeAction?: (action: NodeAction, node: CanvasNode) => void
   // feature-027：拖拽松手回调。illegal=true 表示曾拖出本列，画布已回弹，上层补警告 toast
   onDropped?: (info: { nodeId: string; illegal: boolean }) => void
+  // feature-814：向资产面板同步当前选中节点
+  onSelectNode?: (nodeId: string | null) => void
 }
 
-export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeAction, onDropped }: Props) {
+export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeAction, onDropped, onSelectNode }: Props) {
   const { nodes, edges } = canvas
   const uid = useId().replace(/[:]/g, '')
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -358,10 +360,17 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes.length])
 
-  // 选中态默认落在首个进行中节点（无则不选），与原型选中态一致
+  // feature-814：刷新/广播时保留仍存在的选择；节点消失才回退到进行中节点
   useEffect(() => {
-    setSelectedId(nodes.find(n => n.status === 'active')?.id ?? null)
+    setSelectedId(current => {
+      if (current && nodes.some(node => node.id === current)) return current
+      return nodes.find(node => node.status === 'active')?.id ?? null
+    })
   }, [nodes])
+
+  useEffect(() => {
+    onSelectNode?.(selectedId)
+  }, [onSelectNode, selectedId])
 
   // zoom/pan 的最新值同步到 ref：供事件回调读取，避免把 zoom 放进 effect 依赖
   // 造成「滚轮缩放时 STAGE 居中 effect 抢占 pan」以及非纯 updater 的 StrictMode 双调用问题
@@ -793,6 +802,15 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
                 <div className="mt-auto flex items-center gap-1.5 pt-1.5 text-[9.5px] text-[#8A90A6]">
                   <span className={`h-[7px] w-[7px] shrink-0 rounded-full ${meta.dot}`} />
                   {meta.label}
+                  {(node.assetIds?.length ?? 0) > 0 && (
+                    <span
+                      data-asset-count={node.assetIds!.length}
+                      aria-label={`关联资产 ${node.assetIds!.length} 项`}
+                      className="rounded bg-violet-soft px-1.5 py-px font-semibold text-violet"
+                    >
+                      资产 {node.assetIds!.length}
+                    </span>
+                  )}
                   {edgeCount(node.id, edges) > 0 && <span className="ml-auto">{edgeCount(node.id, edges)} 条边</span>}
                 </div>
               </div>

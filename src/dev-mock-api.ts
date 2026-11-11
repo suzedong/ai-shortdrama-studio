@@ -1,6 +1,9 @@
 // 浏览器预览用 mock：当 Electron preload 未注入 window.api 时，提供空态实现，
 // 方便脱离 Electron 直接在浏览器迭代 UI。生产 Electron 环境下 preload 会覆盖此 mock。
-import type { Canvas, ProjectBrief, CaptureFile, CapturedFact } from '../shared/types'
+import type {
+  Canvas, CanvasCommandRequest, CanvasCommandResult,
+  ProjectBrief, CaptureFile, CapturedFact,
+} from '../shared/types'
 import type { RuntimeStatus } from './lib/runtime-types'
 // feature-004：复用主进程 diff 纯函数（type-only 依赖、零 node API，契约 §1 复用表），保证 mock 与真实语义一致
 import { diffBrief } from '../electron/brief/diff'
@@ -38,12 +41,14 @@ function demoCanvas(): Canvas {
     { id: 'e10', from: 'n-edit', to: 'n-final', auto: true },
   ]
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     projectId: 'anni',
     title: '安妮的夏天',
     nodes: nodes as Canvas['nodes'],
     edges,
     gates: [],
+    revision: 0,
+    receipts: [],
     updatedAt: now,
   }
 }
@@ -55,6 +60,75 @@ const demoCanvasListeners = new Set<(c: Canvas) => void>()
 function getDemoCanvas(): Canvas {
   if (!demoState) demoState = demoCanvas()
   return structuredClone(demoState)
+}
+
+const DEMO_ASSET_IDS = new Set(['a1', 'a2', 'a3', 'a4', 'v1', 'm1'])
+
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableValue)
+  if (typeof value === 'object' && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, item]) => item !== undefined)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, item]) => [key, stableValue(item)]),
+    )
+  }
+  return value
+}
+
+async function commandHash(type: string, payload: unknown): Promise<string> {
+  const input = new TextEncoder().encode(JSON.stringify(stableValue({ type, payload })))
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', input)
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
+async function executeDemoCanvasCommand(request: CanvasCommandRequest): Promise<CanvasCommandResult> {
+  if (
+    !request.commandId || !Number.isInteger(request.expectedRevision) || request.expectedRevision < 0
+    || !request.nodeId || !Array.isArray(request.assetIds) || request.assetIds.length === 0
+    || request.assetIds.some(id => !id)
+    || (request.type !== 'assets.bind' && request.type !== 'assets.unbind')
+  ) {
+    throw Object.assign(new Error('画布命令参数无效'), { code: 'INVALID_ARGUMENT' })
+  }
+  const current = getDemoCanvas()
+  const assetIds = [...new Set(request.assetIds)].sort()
+  const hash = await commandHash(request.type, { nodeId: request.nodeId, assetIds })
+  const previous = current.receipts.find(receipt => receipt.commandId === request.commandId)
+  if (previous) {
+    if (previous.requestHash !== hash) {
+      throw Object.assign(new Error(`commandId 已用于其他请求：${request.commandId}`), { code: 'CANVAS_COMMAND_CONFLICT' })
+    }
+    return { canvas: current, receipt: previous, replayed: true }
+  }
+  if (request.expectedRevision !== current.revision) {
+    throw Object.assign(new Error('画布 revision 冲突'), { code: 'CANVAS_REVISION_CONFLICT' })
+  }
+  const next = structuredClone(current)
+  const node = next.nodes.find(item => item.id === request.nodeId)
+  if (!node) throw Object.assign(new Error('画布节点不存在'), { code: 'CANVAS_NODE_NOT_FOUND' })
+  if (assetIds.some(id => !DEMO_ASSET_IDS.has(id))) {
+    throw Object.assign(new Error('资产不存在'), { code: 'ASSET_NOT_FOUND' })
+  }
+  const bound = node.assetIds ?? []
+  node.assetIds = request.type === 'assets.bind'
+    ? [...new Set([...bound, ...assetIds])]
+    : bound.filter(id => !assetIds.includes(id))
+  const appliedAt = new Date().toISOString()
+  const receipt = {
+    commandId: request.commandId,
+    type: request.type,
+    requestHash: hash,
+    revision: current.revision + 1,
+    appliedAt,
+  }
+  next.revision = receipt.revision
+  next.receipts = [...current.receipts, receipt].slice(-100)
+  next.updatedAt = appliedAt
+  demoState = next
+  for (const listener of demoCanvasListeners) listener(structuredClone(next))
+  return { canvas: structuredClone(next), receipt, replayed: false }
 }
 
 // ── feature-005：「已捕获口径」演示库（内存单例 + capture:changed 广播，语义对齐主进程 store.ts U1–U5）──
@@ -805,6 +879,7 @@ export function installDevMockApi(): void {
 
     canvas: {
       get: () => resolve(getDemoCanvas()),
+      command: (request: CanvasCommandRequest) => executeDemoCanvasCommand(request),
       subscribe: () => resolve({ ok: true as const }),
       unsubscribe: () => resolve({ ok: true as const }),
       onChange: (cb: (c: Canvas) => void) => {

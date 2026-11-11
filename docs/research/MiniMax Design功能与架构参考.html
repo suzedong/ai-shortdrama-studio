@@ -129,7 +129,7 @@
 
 <header>
   <div class="kicker">AI 短剧制作文档族 · 外部产品参考</div>
-  <h1>MiniMax Design 功能与架构参考<span class="tag">v1.2 · 2026-10-10</span><span class="ver-tag">v1.2 ↑ from v1.1</span></h1>
+  <h1>MiniMax Design 功能与架构参考<span class="tag">v1.3 · 2026-11-10</span><span class="ver-tag">v1.3 ↑ from v1.2</span></h1>
   <div class="sub">功能全景 + 架构实测 + 与我们体系的对照 · 供《短剧Agent平台设计》逐条参照（非规范成员）</div>
   <div class="stats">
     <div class="stat"><div class="sv">7</div><div class="sl">覆盖形态</div><div class="su">脚本/图文/视频/MG/3D/网页/后期</div></div>
@@ -140,7 +140,7 @@
     <div class="stat"><div class="sv">3</div><div class="sl">本地端口</div><div class="su">8001 / 8002 / 10268</div></div>
   </div>
   <div class="fact">可视化呈现 · 事实以 <a href="../docs/research/MiniMax Design功能与架构参考.md">MiniMax Design功能与架构参考.md</a> 为准
-    <span class="src">口径：官方手册 / 官方页面 / 官方 GitHub / 社区实测 / 用户实测</span><span class="src">非规范成员</span>
+    <span class="src">口径：官方资料 / ComfyUI changelog / 社区与用户实测 / v4.0.8 本机解包与运行时实测</span><span class="src">非规范成员</span>
   </div>
 </header>
 
@@ -261,8 +261,8 @@ interface:
 
 <!-- ═══ 2 架构实测 ═══ -->
 <section id="sec-2">
-  <div class="sec-head"><span class="sec-no">02</span><h2>架构实测</h2><span class="hint">§2 · 社区实测 + 官方 GitHub</span></div>
-  <div class="note">本节来自社区实测（Je，2026-08-23，Windows）+ 用户实测截图（2026-10-02）+ 官方 GitHub README（2026-10-09），非官方文档口径，注意时效。</div>
+  <div class="sec-head"><span class="sec-no">02</span><h2>架构实测</h2><span class="hint">§2 · 社区实测 + 本机解包与实测 + 官方 GitHub</span></div>
+  <div class="note">本节包含不同版本与证据等级：§2.1 的 v43.1.0 为社区实测及官方资料反推；§2.2 为 v4.0.8 本机解包与 macOS 运行时实测；§2.3 为用户实测截图；§2.4–§2.5 为官方 GitHub 与 ComfyUI 资料。各版本结论不互相覆盖，静态代码结论不冒充运行时实测，版本更新后需重新验证。</div>
 
   <h3>2.1 应用架构（实测 v43.1.0，内部名 @hilo/hub）</h3>
   <table>
@@ -356,11 +356,119 @@ interface:
   <p>即 Hub 的核心交互模式是 <b>「Agent 通过对话填充工作流输入并启动」</b>，高级操作支持 Agent 通过对话<b>编辑节点 / 调整参数</b>。</p>
   <div class="apply">我们设计 §4.3「专职 Agent 内部循环：接收任务 → 检索上下文与知识 → 规划步骤 → 调用 MCP 工具 → 自校验 → 回报」与此形态一致；建议在 <code>agents/camera.md</code> 等 Agent 配置里<b>显式采纳</b> "对话驱动工作流调用" 模式作为 Agent 提示词的标准段。</div>
 
-  <h3>2.2 ComfyUI 接入实测（重要结论 · 用户截图）</h3>
+  <h3>2.2 画布 V3 实现 <span class="ver-tag">v1.3 新 · v4.0.8 · 2026-11-10</span></h3>
+  <div class="note"><b>证据边界</b>：技术栈、配置、数据结构和关联字段来自客户端解包代码；交互结果来自独立创作页的实际操作；落盘结构来自只读 SQLite 查询与 Markdown 文件读取。未操作项目代码，未触发 AI 内容生成或付费功能。<br><b>核心结论</b>：主画布不是用一个 <code>&lt;canvas&gt;</code> 自绘整个场景，而是 <b>React Flow / XYFlow 负责节点、连线与视口，自研 <code>CanvasV3Editor</code> 负责文档、命令、撤销重做与订阅，自研 HTML <code>&lt;canvas&gt;</code> 主要负责小地图</b>。画布图文档、正文资产和正文版本分开保存。</div>
+
+  <h4>2.2.1 技术栈与渲染分工（静态代码证据）</h4>
+  <table>
+  <tr><th>层</th><th>版本 / 组件</th><th>职责与结论</th></tr>
+  <tr><td>桌面壳</td><td>MiniMax Design <b>4.0.8</b>；Electron <b>39.9.0</b>；electron-vite <b>5.1.0</b>；Vite <b>7.3.1</b></td><td>macOS ARM64 客户端，bundle ID 为 <code>com.minimax.hub</code></td></tr>
+  <tr><td>UI</td><td>React <b>19.2.4</b>；Zustand <b>5.0.12</b></td><td>Zustand 是客户端依赖，但不能据此认定画布文档与命令栈由它管理</td></tr>
+  <tr><td>主画布</td><td><code>@xyflow/react ^12.11.2</code></td><td>真实 <code>ReactFlow</code> 导出链、节点渲染、Handle、连线、选择与视口交互</td></tr>
+  <tr><td>画布编辑器</td><td>自研 <code>CanvasV3Editor</code> + React <code>useSyncExternalStore</code></td><td>保存文档快照、提交命令、维护撤销/重做栈并向 React 发布状态</td></tr>
+  <tr><td>自动整理</td><td>Dagre + 自研后处理</td><td><code>network-simplex</code> 布局，另有连通分量、孤立节点、簇排列和叶节点扇出处理</td></tr>
+  <tr><td>小地图</td><td>自研 <code>CanvasMiniMap</code> / HTML <code>&lt;canvas&gt;</code></td><td>不是直接使用 XYFlow 默认 <code>MiniMap</code></td></tr>
+  <tr><td>本地服务与存储</td><td>NestJS Gateway + better-sqlite3</td><td>提供 V3 画布 API；每个画布独立保存 <code>state.sqlite</code></td></tr>
+  <tr><td>进程桥接</td><td>专用 <code>v3-workbench.cjs</code> preload + <code>MessageChannelMain</code> / <code>MessagePort</code></td><td><code>contextIsolation: true</code>、<code>nodeIntegration: false</code>、<code>sandbox: false</code></td></tr>
+  </table>
+  <p>注册的持久化/渲染节点类型包括：</p>
+  <pre>placeholder
+frame
+subject-frame
+subject-type
+sticker
+composition
+director-stage
+previs-stage
+clip-studio</pre>
+
+  <h4>2.2.2 文档模型、修改协议与编辑状态（静态代码证据）</h4>
+  <p>V3 文档根结构：</p>
+  <pre>schemaVersion: 1
+revision
+nodes: 按 id 索引的对象
+edges: 按 id 索引的对象</pre>
+  <ul>
+    <li>持久化节点公共字段：<code>id</code>、<code>parentId</code>、<code>position</code>、<code>size</code>、<code>zIndex</code>、<code>hidden</code>、<code>kind</code>，不同 <code>kind</code> 再携带业务字段。</li>
+    <li>边字段：<code>id</code>、<code>source</code>、<code>target</code>，可选 <code>sourceResourceId</code>；静态校验禁止自环并要求两端节点存在。</li>
+    <li>展示层另有 <code>selected</code>、<code>label</code>、<code>color</code>、<code>lineStyle</code> 等边表现数据，不应与持久化图文档混为一层。</li>
+  </ul>
+  <p>修改通过命令补丁提交：</p>
+  <pre>type: "canvas.patch"
+commandId
+expectedRevision
+nodes / edges: id、before、after</pre>
+  <p>回执及编辑状态包含：</p>
+  <pre>appliedRevision
+undoStack / redoStack
+selection
+busy / error
+canUndo / canRedo</pre>
+  <p>渲染进程 API 为 <code>GET /api/v3/canvas</code> 与 <code>POST /api/v3/canvas/commands</code>。视图偏好与活动画布映射分别使用：</p>
+  <pre>localStorage: hilo:canvas-v3:view:${workspaceId}
+localStorage: hilo.workspace.activeCanvas.v1</pre>
+
+  <h4>2.2.3 视口、选择、连线、布局与小地图（静态代码证据）</h4>
+  <table>
+  <tr><th>能力</th><th>代码配置 / 实现</th></tr>
+  <tr><td>缩放范围</td><td><code>minZoom: 0.01</code>、<code>maxZoom: 2</code>、<code>zoomStep: 0.4</code>；支持触控板捏合，禁止双击缩放</td></tr>
+  <tr><td>滚轮</td><td><code>zoomOnScroll: false</code>、<code>panOnScroll: true</code>，普通滚轮用于平移</td></tr>
+  <tr><td>选择与拖拽</td><td>支持节点拖拽、框选、Shift 多选</td></tr>
+  <tr><td>连线</td><td><code>connectionRadius: 34</code>；存在 <code>onConnectStart / onConnectEnd</code>、<code>isValidConnection</code></td></tr>
+  <tr><td>删除</td><td>存在 <code>onBeforeDelete</code>，具体确认交互需另行实测</td></tr>
+  <tr><td>视口保存</td><td>通过 <code>onMoveEnd</code> 等机制保存</td></tr>
+  <tr><td>自动整理</td><td>Dagre <code>ranker: "network-simplex"</code>，方向支持 <code>LR / RL / TB / BT</code>，再接自研后处理</td></tr>
+  <tr><td>小地图</td><td>自研 <code>&lt;canvas&gt;</code> 绘制节点与视口，不是简单套用 XYFlow 默认组件</td></tr>
+  </table>
+
+  <h4>2.2.4 本地持久化、正文资产与 Agent 关联</h4>
+  <p><b>静态结构</b>：每个画布有 <code>.hilo/canvas-v3/state.sqlite</code>。<code>document</code> 表用单行完整 JSON 保存图文档，<code>receipts</code> 表用于命令去重与结果恢复：</p>
+  <pre>CREATE TABLE document (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  json TEXT NOT NULL
+);</pre>
+  <p><b>只读实测样本</b>：测试画布实际文档为 <code>schemaVersion: 1</code>、<code>revision: 8</code>，含两个节点和一条边：</p>
+  <table>
+  <tr><th>节点 / 边</th><th>实际数据要点</th><th>结论</th></tr>
+  <tr><td>已写内容的文本节点</td><td><code>kind: "composition"</code>，含 <code>compositionId: "cmp_e570ac46087c"</code>；<code>size: 350 × 500</code></td><td>节点壳通过 <code>compositionId</code> 关联正文资产</td></tr>
+  <tr><td>空白文本节点</td><td><code>kind: "placeholder"</code>，<code>expectedKind: "text"</code></td><td>占位节点与已写内容节点在图文档中形态不同</td></tr>
+  <tr><td>节点间边</td><td><code>source</code> 为 placeholder，<code>target</code> 为 composition</td><td>连线只保存节点引用，不内嵌正文</td></tr>
+  </table>
+  <p>正文另存为 <code>assets/Untitled.md</code>，实测内容为「画布交互调研：第一段测试文本。」；<code>store/</code> 下另有两个 <code>ver_*.md</code> 版本文件。因此可以确认<b>节点壳、正文和正文版本分离</b>，但不能仅凭这一组样本断言所有节点类型都沿同一路径转换。</p>
+  <p>Agent 与画布的静态关联字段包括：</p>
+  <ul>
+    <li>任务：<code>canvasId</code>、<code>compositionId</code>、<code>taskIds</code>、<code>placements</code>、<code>origin</code>、<code>handoff.target = "canvas"</code>。</li>
+    <li>会话：<code>runtimeSessionId → canvasId</code> 映射；任务 <code>origin</code> 保存会话与对话轮次溯源。</li>
+    <li>ComfyUI 工具：通过 <code>source_node_id</code> 关联画布节点。</li>
+    <li>Agent 任务可按 <code>canvasId</code> 过滤，并通过 <code>compositionId</code> 创建或复用 composition 节点。</li>
+  </ul>
+
+  <h4>2.2.5 运行时实测通过项与未验证边界</h4>
+  <table>
+  <tr><th>实测项</th><th>结果</th></tr>
+  <tr><td>添加与编辑节点</td><td>双击画布打开添加菜单；创建两个文本节点；直接编辑正文并同步回节点</td></tr>
+  <tr><td>拖拽与小地图</td><td>拖动选中节点标题区域可改变世界坐标；小地图同步节点变化</td></tr>
+  <tr><td>连线</td><td>从第二节点右侧 <code>+</code> 拖到第一节点，生成曲线连线</td></tr>
+  <tr><td>撤销 / 重做</td><td><code>Cmd+Z</code> 撤销连线，<code>Cmd+Shift+Z</code> 重做连线，均通过</td></tr>
+  <tr><td>缩放</td><td>菜单 50% 与 100% 生效；单节点“适应视图”为 187%，两个重叠节点时为 153%</td></tr>
+  <tr><td>普通滚轮</td><td>实测为平移，节点比例保持 100%，与 <code>panOnScroll: true</code> 一致</td></tr>
+  <tr><td>创作页切换恢复</td><td>切到示例页再返回后，两个节点、正文、位置、连线和 50% 视口均恢复</td></tr>
+  </table>
+  <p><b>未验证或不能外推的事项</b>：</p>
+  <ul>
+    <li>未做“完全退出应用并重启”后的恢复实验；创作页切换恢复不等于重启恢复。</li>
+    <li>自动整理、小地图点击定位、空格拖动画布仅有静态代码证据，未逐项实测。</li>
+    <li>未继续测试删除、框选、多选及更多连线规则。</li>
+    <li>菜单显示 300% / 400% 预设，但 Surface 静态配置为 <code>maxZoom: 2</code>；未点击高档位，不断言实际可超过 200%。</li>
+    <li>单组文本样本不能外推为所有节点类型的正文转换规则。</li>
+  </ul>
+  <div class="apply"><b>→ 对我们的应用</b>：可借鉴“渲染图层 / 图文档与命令层 / 正文资产层”分离，以及 <code>commandId + expectedRevision + receipts</code> 的可追溯修改思路；React Flow、Dagre 是否采用需另立规格评估。<b>对方的 SQLite 方案不直接照搬</b>，本项目“纯 JSON 文件持久化、无数据库”的既定约束不变。</div>
+
+  <h3>2.3 ComfyUI 接入实测（重要结论 · 用户截图）</h3>
   <p>用户实测 <b>设置 → ComfyUI</b> 界面：仅「启动参数」输入框（如 <code>--lowvram</code>、<code>--preview-method auto</code>），界面明文：<b>「端口、数据目录等由 Hub 托管的参数无法覆盖」</b>。</p>
   <div class="note"><b>结论</b>：当前版本 MiniMax Design 的 ComfyUI 后端为 <b>Hub 内置托管</b>，设置只允许追加性能参数，<b>端口/监听地址/服务地址不可配置 → 无法连接局域网内非本机 ComfyUI</b>。此结论以用户实测为准（社区抖音教程曾演示"填服务地址"，疑似旧版本，已不适用）。</div>
 
-  <h3>2.3 提示词工程规范 <span class="ver-tag">v1.1 新</span></h3>
+  <h3>2.4 提示词工程规范 <span class="ver-tag">v1.1 新</span></h3>
   <p>实测 GitHub README + SKILL.md。</p>
   <p><b>5 段式基础模式（官方 FAQ 推荐）</b>：</p>
   <div class="steps steps5">
@@ -392,7 +500,7 @@ interface:
   </ul>
   <div class="apply">编剧 Agent / 镜头 Agent 的提示词模板应采纳 5 段式 + 否定约束；分镜文字稿可参考 Ref2VA 6 段式做长 prompt 的章节化组织。</div>
 
-  <h3>2.4 H3 技术规格与部署 <span class="ver-tag">v1.1 新</span></h3>
+  <h3>2.5 H3 技术规格与部署 <span class="ver-tag">v1.1 新</span></h3>
   <p>实测 GitHub README · 本地部署参考。</p>
   <p><b>输入输出规格</b>：</p>
   <table>
@@ -456,6 +564,8 @@ interface:
   <table>
   <tr><th>维度</th><th>MiniMax Design</th><th>我们的体系</th><th>结论</th></tr>
   <tr><td>画布自动连线</td><td>内容自动按流程连线、步骤节点</td><td>已升级为画布式界面（见《短剧Agent平台设计》）</td><td><span class="con-b">借鉴</span>：画布 + 状态着色 + 预览跳转</td></tr>
+  <tr><td><b>画布渲染与编辑</b> <span class="ver-tag">v1.3 新</span></td><td>React Flow / XYFlow + 自研编辑器；Dagre 整理；自研小地图</td><td>已确定画布式界面，具体组件与布局选型需另立规格</td><td><span class="con-b">形态对齐</span>：借鉴渲染、图文档命令、布局和小地图的职责分层</td></tr>
+  <tr><td><b>画布持久化与资产关系</b> <span class="ver-tag">v1.3 新</span></td><td>SQLite 图文档 + receipts；正文 Markdown 与版本独立；composition / task / session 关联</td><td>纯 JSON 文件持久化、无数据库；八步产物与追溯体系列为既定约束</td><td><span class="con-b">改编</span>：参考 revision、命令去重、资产分离和溯源字段；<b>不直接引入 SQLite</b></td></tr>
   <tr><td>画布节点类型 <span class="ver-tag">新</span></td><td>按产物形态切分（文本/表格/图片/视频/音频/时间线/插件）+ Choice Cards</td><td>shared/types.ts CanvasNode.kind 部分覆盖</td><td><span class="con-b">形态对齐</span>：补<b>音频/时间线/插件</b>枚举；Choice Cards 已是确认门卡片形态</td></tr>
   <tr><td>Agent 任务确认</td><td>生成前确认参数、产出制作简报</td><td>R4 确认门：check 全过 + 人点 advance</td><td><span class="con-b">同源</span>：都是"执行前人工把关"，Design 是软确认、我们是硬门禁</td></tr>
   <tr><td>Skill 沉淀</td><td>对话流程存 Skill、投稿分享</td><td>skill 目录 + doubao-drama-pipeline 路由</td><td><span class="con-b">借鉴</span>：创作过程沉淀为可复用 Skill 的思路</td></tr>
@@ -471,7 +581,7 @@ interface:
   <tr><td>状态机/溯源</td><td>无流程状态机、无镜头 json 溯源</td><td>proj.py 状态机 + 30 种校验 + prompt_id 溯源</td><td><span class="con-x">不可替代</span>：Design 无此层</td></tr>
   <tr><td>部署</td><td>本地部署 Beta（H3 工作流）</td><td>venv 无 docker 一键启动</td><td><span class="con-b">参考</span>：本地优先一致</td></tr>
   <tr><td><b>H3 部署形态</b> <span class="ver-tag">新</span></td><td>SGLang / vLLM-Omni / Diffusers / ComfyUI 四线部署；12GB 显存可出 480p</td><td>ComfyUI 是统一媒体引擎（设计 §0.1 原则五）</td><td><span class="con-b">同源</span>：我们与 Hub 在 ComfyUI 路径一致，硬件门限可对齐</td></tr>
-  <tr><td><b>H3 变体与版本门限</b> <span class="ver-tag">v1.2 新</span></td><td>开源 FL2VA / Ref2VA 两变体 + 云端 H3 Max / Max Turbo；ComfyUI v0.30.0→v0.39.1 两月内 8 次关键节点升级；Fun ControlNet Union 2.0 支持多控制条件合一</td><td>设计未定 ComfyUI 最低版本；工作流模板未按版本门限分发</td><td><span class="con-b">补强</span>：<code>engine.comfyui_min_version</code> 设为 v0.36.0（FastH3）；分镜镜头控制预留 Fun ControlNet Union 接口；8GB 显存机型走 FastH3 Trim 模板</td></tr>
+  <tr><td><b>H3 变体与版本门限</b> <span class="ver-tag">v1.2 新</span></td><td>开源 FL2VA / Ref2VA + 云端 H3 Max / Max Turbo；ComfyUI v0.30.0→v0.39.1 多次关键升级；Fun ControlNet Union 2.0 支持多控制条件合一</td><td>设计未定 ComfyUI 最低版本；工作流模板未按版本门限分发</td><td><span class="con-b">补强</span>：供后续规格评估 ComfyUI 最低版本、镜头控制接口与低显存模板，不在本参考文档直接定规范</td></tr>
   </table>
   <div class="card"><div class="ct">结论</div><div class="cb">MiniMax Design 适合做"创意发散 / 云端多模型内容生产"的参考形态与对照物；我们的工作台定位（画布 + 内嵌 Agent + 规范门禁 + 可配置 ComfyUI）在当前版本 Design 上无法实现，需自研（见《短剧Agent平台设计》）。</div></div>
 </section>
@@ -480,24 +590,31 @@ interface:
 <section id="sec-4">
   <div class="sec-head"><span class="sec-no">04</span><h2>来源与版本</h2><span class="hint">§4</span></div>
   <div class="grid g2">
-    <div class="card"><div class="ct">官方手册</div><div class="cb">《MiniMax Design - 手册与指南》（飞书 wiki，docx RC33dT20ooJnBUxhoJpcU5GDnsc，revision 11360）——功能全景/创作方式/Skill 生态/插件/商用/质量检查（官方口径）</div></div>
+    <div class="card"><div class="ct">官方手册</div><div class="cb">《MiniMax Design - 手册与指南》（飞书 wiki VEoVwpfCKiTHvHkAGQ7cQJxCncf，docx RC33dT20ooJnBUxhoJpcU5GDnsc，revision 11360）——功能全景/创作方式/Skill 生态/插件/商用/质量检查（官方口径）</div></div>
     <div class="card"><div class="ct">官方页面</div><div class="cb">design.minimaxi.com/h3（H3 本地部署/硬件/商用 FAQ，官方口径）；design.minimaxi.com/campaign（开源与部署教程入口）</div></div>
     <div class="card"><div class="ct">官方 GitHub <span class="ver-tag">v1.1 新</span></div><div class="cb">github.com/MiniMax-AI/MiniMax-H3 —— SKILL.md 官方格式 / 9 个官方 Skill / H3 模型技术规格 / 三模块系统 / SGLang vLLM ComfyUI 部署</div></div>
+    <div class="card"><div class="ct">ComfyUI 官方 changelog <span class="ver-tag">v1.2 新</span></div><div class="cb">截至 v0.39.1（2026-10-07）的 H3 节点演进、H3 Max / Max Turbo、Fun ControlNet Union 2.0 与 FastH3 版本依据。</div></div>
     <div class="card"><div class="ct">社区 + 用户实测</div><div class="cb">Je《本机 ComfyUI 与 MiniMax Design 接管指南》（je-qljx.github.io，2026-08-23）——架构/端口/ComfyUI API/云端能力清单（实测，注意时效）；用户实测：设置 → ComfyUI 截图（2026-10-02）——启动参数界面 / Hub 托管结论（以用户实测为准）</div></div>
+    <div class="card"><div class="ct">本机解包与运行时实测 <span class="ver-tag">v1.3 新</span></div><div class="cb">官方 MiniMax Design 4.0.8 macOS ARM64 客户端（2026-11-10）。静态证据来自 <code>/tmp/minimax-design-asar/</code> 的 package.json、renderer 的 CanvasAreaV3 / workspace-canvases / connector-reference、V3 入口的 CanvasPage / project-v3、主进程与 preload，以及客户端 Resources 下的 Gateway、MCP 与 OpenCode 插件代码。</div></div>
+    <div class="card"><div class="ct">运行时落盘样本 <span class="ver-tag">v1.3 新</span></div><div class="cb">独立创作页「画布交互调研」，调研时位于 <code>/Users/szd/Movies/Hub/Projects/.projects/项目新手指引/画布交互调研/</code>；只读查询 <code>.hilo/canvas-v3/state.sqlite</code>，读取 <code>assets/Untitled.md</code> 并枚举 <code>store/ver_*.md</code>。测试创作页保留，未删除。上述临时与用户数据路径只用于本次证据定位，可能随系统清理、版本更新或工作区迁移失效。</div></div>
   </div>
-  <div class="note"><b>时效声明</b>：Design 版本迭代快（手册含 v3.0.16 更新：Wan 3.0、Agent 自定义模型接入、画布对齐吸附），本节内容基于 2026-10-09 时点。</div>
+  <div class="note"><b>时效声明</b>：Design 版本迭代快，各节按产品版本和调研日期独立标注；本文件资料覆盖至 2026-11-10，旧版本结论不自动代表当前版本。</div>
 </section>
 
 <!-- ═══ 5 版本记录 ═══ -->
 <section id="sec-5">
   <div class="sec-head"><span class="sec-no">05</span><h2>版本记录</h2><span class="hint">§5 · 入口</span></div>
-  <div class="card"><div class="ct">v1.0（2026-10-02）→ v1.1（2026-10-09）→ v1.2（2026-10-10）</div><div class="cb"><b>v1.2 增量</b>：2.1.2 ComfyUI 工作流侧栏文字树替换为 SVG 流程图；2.4 节补 H3 Max / H3 Max Turbo 云端高速变体、ComfyUI v0.30.0→v0.39.1 H3 节点演进时间线、FastH3 Trim 8GB 8步蒸馏新硬件门限；§3 对照表新增"H3 变体与版本门限"行。依据 ComfyUI 官方 changelog（截至 v0.39.1 · 2026-10-07）。</div></div>
+  <div class="card"><div class="ct">v1.0（2026-10-02）→ v1.1（2026-10-09）→ v1.2（2026-10-10）→ v1.3（2026-11-10）</div><div class="cb">
+    <p><b>v1.1 增量</b>：SKILL.md 格式、画布节点类型、ComfyUI 工作流侧栏、Agent 驱动工作流、提示词 5 段式、复现性规范、H3 技术规格与部署。</p>
+    <p><b>v1.2 增量</b>：H3 Max / Max Turbo、ComfyUI v0.30.0→v0.39.1 H3 节点演进时间线、FastH3 Trim 8 GB 硬件门限与对照表版本门限行；2.1.2 工作流侧栏文字树替换为 SVG 流程图。</p>
+    <p><b>v1.3 增量</b>：新增 §2.2 V3 画布技术栈、文档与命令协议、视口交互、Dagre、自研小地图、SQLite 落盘样本、正文资产与 Agent 关联、运行时通过项和未验证边界；原 §2.2–§2.4 顺延为 §2.3–§2.5；§3 新增画布渲染/持久化对照；同步回补 v1.2 曾只写入 HTML 的源文档漏项。变更史记入根目录《版本记录.md》（AI 可读）。</p>
+  </div></div>
   <p class="dim">镜像纪律：改本文 md 必须同步 .html（人读镜像），两版标题/正文/数字逐一对齐；html 非独立事实源。</p>
 </section>
 
 <footer>
-  <span>AI 短剧制作文档族 · MiniMax Design 功能与架构参考 v1.1 · 依据官方手册/官方页面/官方 GitHub/社区实测/用户实测 · 非规范成员</span>
-  <span class="src">事实源：MiniMax Design功能与架构参考.md v1.1</span>
+  <span>AI 短剧制作文档族 · MiniMax Design 功能与架构参考 v1.3 · 依据官方手册/官方页面/官方 GitHub/ComfyUI changelog/社区实测/用户实测/v4.0.8 本机解包与运行时实测 · 非规范成员</span>
+  <span class="src">事实源：MiniMax Design功能与架构参考.md v1.3</span>
 </footer>
 
 </main>

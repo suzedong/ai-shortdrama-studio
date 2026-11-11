@@ -15,7 +15,7 @@ function canvasWithNodes(): Canvas {
     updatedAt: new Date().toISOString(),
   })
   return {
-    schemaVersion: 2, projectId: 'p1', title: '缩放测试',
+    schemaVersion: 3, projectId: 'p1', title: '缩放测试', revision: 0, receipts: [],
     nodes: [
       n('step-0-brief', '0', '立项单', 'done'),
       n('step-1-outline', '1', '故事大纲', 'active'),

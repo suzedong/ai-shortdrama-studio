@@ -1,7 +1,7 @@
 // feature-020 C5 · CanvasBoard 多步分组渲染测试（契约 §3，OD §2/§5，需求 AC-7/AC-9）
 // 断言：按 step 动态分组、STAGE 列标题动态、跨组贝塞尔横边、无单步硬编码、空态步骤无关。
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 
 import type { Canvas, CanvasNode } from '@shared/types'
 import CanvasBoard, { snapNode } from './CanvasBoard'
@@ -9,8 +9,8 @@ import StageNavPanel from './StageNavPanel'
 
 function emptyCanvas(): Canvas {
   return {
-    schemaVersion: 2, projectId: 'p1', title: '测试项目', nodes: [], edges: [], gates: [],
-    updatedAt: new Date().toISOString(),
+    schemaVersion: 3, projectId: 'p1', title: '测试项目', nodes: [], edges: [], gates: [],
+    revision: 0, receipts: [], updatedAt: new Date().toISOString(),
   }
 }
 
@@ -319,5 +319,36 @@ describe('feature-002 · StageNavPanel STAGE 0 徽标', () => {
     ])
     expect(badge?.textContent).toBe('v3 ⚠2')
     expect(badge?.className).toContain('bg-[#FFF4DE]')
+  })
+})
+
+describe('feature-814 · 节点选择与资产关联展示', () => {
+  it('广播刷新保留选中节点，并展示关联资产数量', () => {
+    const outline = node({
+      id: 'outline', step: '1', kind: 'outline', title: '故事大纲', status: 'active',
+    })
+    const profiles = node({
+      id: 'profiles', step: '1', kind: 'profiles', title: '人物小传', status: 'done',
+      assetIds: ['asset-1', 'asset-2'],
+    })
+    const initial = { ...emptyCanvas(), nodes: [outline, profiles] }
+    const onSelectNode = vi.fn()
+    const { container, rerender } = render(
+      <CanvasBoard canvas={initial} onSelectNode={onSelectNode} />,
+    )
+
+    fireEvent.click(container.querySelector('[data-node-id="profiles"]')!)
+    expect(onSelectNode).toHaveBeenLastCalledWith('profiles')
+    expect(screen.getByLabelText('关联资产 2 项')).toHaveTextContent('资产 2')
+
+    rerender(
+      <CanvasBoard
+        canvas={{ ...initial, revision: 1, nodes: [{ ...outline }, { ...profiles }] }}
+        onSelectNode={onSelectNode}
+      />,
+    )
+    expect(container.querySelector('[data-node-id="profiles"]')?.className).toContain('border-violet')
+    expect(container.querySelector('[data-node-id="outline"]')?.className).not.toContain('border-violet')
+    expect(onSelectNode).toHaveBeenLastCalledWith('profiles')
   })
 })

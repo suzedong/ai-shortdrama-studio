@@ -32,16 +32,18 @@ function n(id: string, overrides: Partial<CanvasUpsertNode> = {}): CanvasNode {
 }
 
 describe('T3 CanvasStore', () => {
-  it('首次 get 初始化空图并落盘（schemaVersion:2）', async () => {
+  it('首次 get 初始化空图并落盘（schemaVersion:3）', async () => {
     const store = new CanvasStore()
     const c = await store.get()
-    expect(c.schemaVersion).toBe(2)
+    expect(c.schemaVersion).toBe(3)
+    expect(c.revision).toBe(0)
+    expect(c.receipts).toEqual([])
     expect(c.nodes).toEqual([])
     expect(c.edges).toEqual([])
     expect(c.gates).toEqual([])
     expect(c.projectId).toBe(path.basename(projDir))
     const onDisk = JSON.parse(await fsp.readFile(path.join(projDir, 'canvas.json'), 'utf-8'))
-    expect(onDisk.schemaVersion).toBe(2)
+    expect(onDisk.schemaVersion).toBe(3)
   })
 
   it('节点按 id upsert 幂等（替换而非追加）', async () => {

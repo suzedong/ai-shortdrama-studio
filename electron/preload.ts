@@ -102,6 +102,7 @@ contextBridge.exposeInMainWorld('api', {
   // feature-017 · 画布 / 裁决门 / 资产 / ComfyUI 设置
   canvas: {
     get: () => ipcRenderer.invoke('canvas:get'),
+    command: (request: unknown) => ipcRenderer.invoke('canvas:command', request),
     subscribe: () => ipcRenderer.invoke('canvas:subscribe'),
     unsubscribe: () => ipcRenderer.invoke('canvas:unsubscribe'),
     onChange: (cb: (canvas: unknown) => void): (() => void) => {

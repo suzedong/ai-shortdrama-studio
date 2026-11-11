@@ -106,6 +106,7 @@
 | [feature-811-谱系面板全量真实化](./feature-811-谱系面板全量真实化/) | B-41 收尾：VisualCatalog TABS 六家族计数与 18 条目卡片数据驱动（消费 style:catalog entries，STYLES 硬编码表退役）+ 对话内风格选项卡版本号真实化（`STYLE_CATALOG_VERSION` 常量退役）；新建 renderer 单点 store 缓存（懒加载单 flight / 同步查询保纯函数语义 / jsdom 降级不抛）；弹层 anchorWords·textureRecipe 原文上屏 | B-41（本包登记并关闭） | `src/studio/style-catalog-store.ts`（新）+ VisualCatalog/ChatComposer/Stage0View/StudioViewer 四组件切换 + dev-mock 自具演示表；**K1/K8/K9 全零触发**（style:catalog 纯消费 810 既有通道，主进程/preload/shared/global.d.ts/StudioApp 全零 diff） | Design 原有·形态对齐 | ✅ 已落地（2026-10-20，57 文件 648 passed + 真机目验面板双向同步 / 选项卡三点闭环） |
 | [feature-812-未选项目空态与首启引导](./feature-812-未选项目空态与首启引导/) | 无项目态从「残缺的工作台」收敛为明确入口：中栏 `WelcomeView`（新建 + 最近 5 个项目）+ 右栏锁定输入并说明原因（模型选择器仍可用）+ 顶栏标题「未打开项目」与八步全 idle + 底栏不渲染 + `handleSend` 无项目守卫；堵住「无项目仍可发送」导致的孤儿 opencode 会话与空跑 token | 本包建包（无既有 B 编号）；顺带登记 B-67 / B-68 另立包 | `src/studio/shell/WelcomeView.tsx`（新）、`StudioApp.tsx`（`canvasLoaded` + `hasProject` 判定 / 中栏三分支 / 顶栏两处 / 底栏条件 / 发送守卫 / `lockedReason` 传值）、`ChatComposer.tsx`（`lockedReason` 六点）、`ProjectNav.tsx`（`relativeTime` 导出）；**K1/K8/K9 全零触发**（零新 IPC / 类型 / 依赖，electron 零 diff） | 自研新增 | ✅ 已落地（2026-11-02，见包内变更记录） |
 | [feature-813-工作目录更换](./feature-813-工作目录更换/) | 工作区根目录可更换（单一全局根，默认 `~/Documents/ai-shortdrama-studio`）：设置面板「工作目录」入口 → 目录选择器 → 确认；旧根 `project-*` 整体搬移、失败回滚零半搬态；session-state 同步重映射；系统直做（D-016），跨盘（EXDEV）不支持 | 本包建包（用户 2026-11-03 三项范围裁决） | `electron/settings/workspace.ts`（新 store + changeDir 十步流程）、`library.ts` / `main.ts` 两处硬编码接线（resolveWorkspaceRoot）、**K8 已批**：+3 IPC（settings:workspace:get/pick/change）、`WorkspacePanel.tsx`（新）+ StudioApp 菜单项、preload / global.d.ts / dev-mock 三处同步；**K1/K9 零触发**（DTO 镜像 global.d.ts，零新依赖） | 自研新增 | ✅ 已落地（2026-11-03：T1–T7 全绿，全量 82 文件 1029 passed / 1 skipped，详见包内变更记录） |
+| [feature-814-画布命令底座与资产关联](./feature-814-画布命令底座与资产关联/) | Canvas v3 单调 revision + 有界命令回执 + 原子 JSON/坏档保护；节点与四类资产系统直改绑定/解绑，资产完整记录任务及会话来源 | MiniMax 调研最小吸收（本包建包） | **K1 已批**：`shared/types.ts`；**K8 已批**：恰 1 个 `canvas:command` + MCP DTO 扩展 + preload/global.d.ts/dev-mock 三端镜像；CanvasStore 统一命令事务、AssetsPanel 多选交互、冲突刷新；**K9 零触发**（零新依赖，工具总数仍 29） | 自研新增 | ✅ 已落地（2026-11-10：全量 83 文件 1054 passed / 1 skipped；typecheck 仅余包前三条基线；Electron/Vite 构建通过） |
 
 ## 2. 已落地平台基础（暂无任务包 · 反向补录可选）
 
@@ -123,9 +124,9 @@
 2. **B-05 取重建方案**：重建 `electron/style-catalog.ts`（CATALOG_VERSION + 风格 ID 校验，读 `resources/H3-Style/` 谱系源），feature-802 为落地包；平台只消费不私改谱系（D-005-6）。设计书 §7.1/§8.3 "当前实现"的表述在 802 落地时随实现对齐，不改口为"待落地"。
 3. **K1 共享层扩展已知情**：002 与 801 改 `shared/types.ts`（`manifest.briefVersion` / 产物 `parentReference` / `CanvasNode.dirty` / 7 态 status、清退历史 `Stage` 10 态），各包建包时正式走 K1——先出字段方案、用户确认后记包内变更记录，再动代码。
 
-## 4. 一期建设顺序（承接 §11 MVP 与偏差清单 §3）
+## 4. 一期建设顺序（承接根设计 §11 MVP）
 
-- **P1 立项闭环补全**：~~801 状态机推进（B-04）~~ ✅ 已落地（2026-10-13）→ 002 立项后变更（B-03，依赖 K1 字段）；~~802 风格谱系（B-05，裁决②先行）~~ ✅ 已落地（2026-10-13）；~~101 反向补录~~ ✅ 已补录（2026-10-15）；~~201 反向补录~~ 🟡 2-a/2-b 已补录、**2-c 分镜文字稿待实施**（2026-10-15，基线 c1ee4e9；随补录登记 B-12 / B-13）。
+- **P1 立项闭环补全**：~~801 状态机推进（B-04）~~ ✅ 已落地（2026-10-13）→ 002 立项后变更（B-03，依赖 K1 字段）；~~802 风格谱系（B-05，裁决②先行）~~ ✅ 已落地（2026-10-13）；~~101 反向补录~~ ✅ 已补录（2026-10-15）；~~201 反向补录~~ ✅ 2-a/2-b 已补录、**2-c 分镜文字稿已实施**（2026-11-11，自动化通过、未真机验收）。
 - **P2 媒体链前置**：803 ComfyUI 统一媒体引擎 → 806 Harness + 确认门（可分批；原 804 编号 2026-10-13 让位给 Windows 窗口标题栏缺陷修复包，D-014）。~~804 窗口标题栏~~ ✅ 已落地（2026-10-13，真机验收待执行），为独立缺陷修复，不占媒体链顺序。
 - **P3 八步 3→7**：301 角色 → 302 场景道具 → 401 生产分镜 → 501 逐镜视频 → 601 声音 → 602 时间线剪辑 → 701 成片交付。
 
@@ -133,4 +134,4 @@
 
 ## 5. 归档与重建说明
 
-任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段），新包自各段首号起建；现行 28 个包。偏差与路线总览见 [docs/设计现状与偏差清单.md](../设计现状与偏差清单.md)。
+任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段），新包自各段首号起建；现行 28 个包。路线与落地状态以本文件及各任务包为准；未闭环偏差见 [docs/设计现状与偏差清单.md](../设计现状与偏差清单.md)。

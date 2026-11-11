@@ -259,13 +259,14 @@ describe('feature-015 · 0-final 首版与再版发布边界', () => {
 })
 
 describe('feature-015 · 其他门的系统后置映射', () => {
-  it('1-a → 1-b → 2-a → 2-b 按固定顺序只推进 manifest', async () => {
+  it('1-a → 1-b → 2-a → 2-b → 2-c 按固定顺序推进到 STAGE 2 终态', async () => {
     const dir = await freshProject('p-manifest-map', 'story-outline', 1)
     for (const [gateId, status] of [
       ['1-a', 'story-profiles'],
       ['1-b', 'script-scenes'],
       ['2-a', 'script-dialogue'],
       ['2-b', 'script-storyboard'],
+      ['2-c', 'storyboard-done'],
     ] as const) {
       const result = await applyGateDecision({
         gateId, status: 'approved', question: '定稿？', options: ['通过'],
@@ -273,9 +274,9 @@ describe('feature-015 · 其他门的系统后置映射', () => {
       expect(result).toMatchObject({ ok: true, summary: `已推进至 ${status}` })
     }
     const manifest = await readManifestFile(dir)
-    expect(manifest.status).toBe('script-storyboard')
+    expect(manifest.status).toBe('storyboard-done')
     expect(manifest.statusHistory.map(t => t.event)).toEqual([
-      'outline-approved', 'profiles-approved', 'scenes-approved', 'dialogue-approved',
+      'outline-approved', 'profiles-approved', 'scenes-approved', 'dialogue-approved', 'storyboard-finalized',
     ])
     expect((await canvasStore.get()).nodes).toEqual([])
   })
@@ -292,11 +293,11 @@ describe('feature-015 · 其他门的系统后置映射', () => {
     expect((await readManifestFile(dir)).status).toBe('initiating')
   })
 
-  it('2-c 无系统后置动作', async () => {
+  it('未登记的门不触发 manifest 后置动作', async () => {
     const dir = await freshProject('p-no-post-action', 'script-storyboard', 1)
     const before = await readManifestFile(dir)
     const result = await applyGateDecision({
-      gateId: '2-c', status: 'approved', question: '定稿？', options: ['通过'],
+      gateId: '4-a', status: 'approved', question: '定稿？', options: ['通过'],
     })
     expect(result).toEqual({ ok: true, summary: '该门无系统后置动作' })
     expect(await readManifestFile(dir)).toEqual(before)

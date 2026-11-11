@@ -68,8 +68,8 @@ function gate(status: CanvasGate['status'], payload?: unknown): CanvasGate {
 
 function canvas(over: Partial<Canvas> = {}): Canvas {
   return {
-    schemaVersion: 2, projectId: 'p1', title: '测试项目',
-    nodes: [], edges: [], gates: [], updatedAt: '2026-10-28T08:00:00.000Z',
+    schemaVersion: 3, projectId: 'p1', title: '测试项目',
+    nodes: [], edges: [], gates: [], revision: 0, receipts: [], updatedAt: '2026-10-28T08:00:00.000Z',
     ...over,
   }
 }

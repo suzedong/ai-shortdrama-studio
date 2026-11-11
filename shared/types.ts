@@ -383,6 +383,8 @@ export interface CanvasNode {
   status: 'pending' | 'active' | 'done' | 'invalidated'
   ref?: { path: string; format: 'json' | 'md' }  // 产物落盘位置
   meta?: Record<string, unknown>
+  /** 当前节点关联的资产索引 id；canvas.update 省略时保留（feature-814） */
+  assetIds?: string[]
   /** 产物血缘；showrunner 定稿挂 done 时由 canvas.update 写入；无立项前定稿不出现 */
   parentReference?: CanvasParentReference
   /** 脏态；仅 brief.impact.commit 可写、canvas.align 可清；canvas.update 入参不接收（feature-002） */
@@ -407,15 +409,42 @@ export interface CanvasGate {
   payload?: unknown                  // 待裁决的候选产物引用
 }
 
+/** 画布命令回执；与 revision 在同一 canvas.json 事务中落盘（feature-814） */
+export interface CanvasCommandReceipt {
+  commandId: string
+  type: string
+  requestHash: string
+  revision: number
+  appliedAt: string
+}
+
 /** Canvas 单一工作态 */
 export interface Canvas {
-  schemaVersion: 2
+  schemaVersion: 3
   projectId: string
   title: string
   nodes: CanvasNode[]
   edges: CanvasEdge[]
   gates: CanvasGate[]
+  revision: number
+  receipts: CanvasCommandReceipt[]
   updatedAt: string
+}
+
+export type CanvasCommandType = 'assets.bind' | 'assets.unbind'
+
+export interface CanvasCommandRequest {
+  commandId: string
+  expectedRevision: number
+  type: CanvasCommandType
+  nodeId: string
+  assetIds: string[]
+}
+
+export interface CanvasCommandResult {
+  canvas: Canvas
+  receipt: CanvasCommandReceipt
+  replayed: boolean
 }
 
 /** 本地 / 局域网 ComfyUI 实例配置 */
@@ -427,12 +456,20 @@ export interface ComfyInstance {
   addedAt: string
 }
 
+/** 资产来源会话；只能由主进程从真实 tool.call 事件补写（feature-814） */
+export interface AssetSourceSession {
+  sessionId: string
+  messageId: string
+  callId: string
+}
+
 /** 资产索引条目 */
 export interface AssetIndexItem {
   id: string
   kind: 'image' | 'video' | 'music' | 'workflow'
   path: string
   sourceJobId?: string
+  sourceSession?: AssetSourceSession
   meta?: Record<string, unknown>
   createdAt: string
 }

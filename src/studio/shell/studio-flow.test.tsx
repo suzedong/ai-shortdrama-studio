@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { Canvas, CanvasGate } from '@shared/types'
+import type { AssetIndexItem, Canvas, CanvasCommandRequest, CanvasGate } from '@shared/types'
 import type { RuntimeEvent } from '../../lib/runtime-types'
 import StudioApp from './StudioApp'
 
@@ -14,12 +14,14 @@ interface Harness {
   emitGate: (g: CanvasGate) => void
   promptAsync: ReturnType<typeof vi.fn>
   decide: ReturnType<typeof vi.fn>
+  command: ReturnType<typeof vi.fn>
+  assetList: ReturnType<typeof vi.fn>
 }
 
 function emptyCanvas(title = ''): Canvas {
   return {
-    schemaVersion: 2, projectId: 'p1', title, nodes: [], edges: [], gates: [],
-    updatedAt: new Date().toISOString(),
+    schemaVersion: 3, projectId: 'p1', title, nodes: [], edges: [], gates: [],
+    revision: 0, receipts: [], updatedAt: new Date().toISOString(),
   }
 }
 
@@ -30,6 +32,16 @@ function installApi(initial: Canvas): Harness {
 
   const promptAsync = vi.fn(async () => ({ accepted: true as const, messageId: 'msg-1' }))
   const decide = vi.fn(async () => ({ ok: true as const }))
+  const command = vi.fn(async (request: CanvasCommandRequest) => ({
+    commandId: request.commandId,
+    revision: initial.revision,
+    replayed: false,
+    canvas: initial,
+  }))
+  const assetList = vi.fn(async () => [
+    { id: 'asset-1', kind: 'image' as const, path: '资产/女主.png', createdAt: '2026-11-10T00:00:00.000Z' },
+    { id: 'asset-2', kind: 'image' as const, path: '资产/男主.png', createdAt: '2026-11-10T00:00:00.000Z' },
+  ])
 
   window.api = {
     runtime: {
@@ -45,10 +57,12 @@ function installApi(initial: Canvas): Harness {
     },
     canvas: {
       get: vi.fn(async () => initial),
+      command,
       subscribe: vi.fn(async () => ({ ok: true as const })),
       unsubscribe: vi.fn(async () => ({ ok: true as const })),
       onChange: vi.fn(cb => { canvasCbs.add(cb); return () => canvasCbs.delete(cb) }),
     },
+    asset: { list: assetList },
     gate: {
       decide,
       onChanged: vi.fn(cb => { gateCbs.add(cb); return () => gateCbs.delete(cb) }),
@@ -78,7 +92,7 @@ function installApi(initial: Canvas): Harness {
   } as unknown as Window['api']
 
   return {
-    promptAsync, decide,
+    promptAsync, decide, command, assetList,
     emitRuntime: e => act(() => runtimeCbs.forEach(cb => cb(e))),
     emitCanvas: c => act(() => canvasCbs.forEach(cb => cb(c))),
     emitGate: g => act(() => gateCbs.forEach(cb => cb({ gate: g }))),
@@ -405,5 +419,144 @@ describe('feature-812 · 无项目态', () => {
 
     await waitFor(() => expect(window.api.openProject).toHaveBeenCalledWith('/ws/project-p2'))
     expect(window.api.createProject).toHaveBeenCalledTimes(1)
+  })
+})
+
+function canvasWithAssetNode(): Canvas {
+  const c = emptyCanvas('资产关联项目')
+  c.revision = 4
+  c.nodes = [{
+    id: 'step-1-profiles', step: '1', kind: 'profiles', title: '人物小传', status: 'active',
+    updatedAt: '2026-11-10T00:00:00.000Z',
+  }]
+  return c
+}
+
+describe('feature-814 · 资产绑定交互', () => {
+  it('多选绑定与解绑共用命令入口，并以最新 revision 提交下一命令', async () => {
+    const initial = canvasWithAssetNode()
+    const h = installApi(initial)
+    const bound: Canvas = {
+      ...initial,
+      revision: 5,
+      nodes: [{ ...initial.nodes[0]!, assetIds: ['asset-1', 'asset-2'] }],
+    }
+    const unbound: Canvas = {
+      ...bound,
+      revision: 6,
+      nodes: [{ ...bound.nodes[0]!, assetIds: ['asset-2'] }],
+    }
+    h.command
+      .mockResolvedValueOnce({ commandId: 'cmd-bind', revision: 5, replayed: false, canvas: bound })
+      .mockResolvedValueOnce({ commandId: 'cmd-unbind', revision: 6, replayed: false, canvas: unbound })
+    render(<StudioApp />)
+
+    await screen.findAllByText('人物小传')
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+    await screen.findByTitle('资产/女主.png')
+    await screen.findByText('当前节点：人物小传')
+    await user.click(screen.getByTitle('资产/女主.png'))
+    await user.click(screen.getByTitle('资产/男主.png'))
+    await user.click(screen.getByRole('button', { name: '绑定所选' }))
+
+    await waitFor(() => expect(h.command).toHaveBeenCalledTimes(1))
+    expect(h.command.mock.calls[0]?.[0]).toEqual({
+      commandId: expect.any(String),
+      expectedRevision: 4,
+      type: 'assets.bind',
+      nodeId: 'step-1-profiles',
+      assetIds: ['asset-1', 'asset-2'],
+    })
+    expect(await screen.findByLabelText('关联资产 2 项')).toBeInTheDocument()
+    expect(screen.getByText('已关联 2 项 · 本类已选 0 项')).toBeInTheDocument()
+
+    await user.click(screen.getByTitle('资产/女主.png'))
+    await user.click(screen.getByRole('button', { name: '解绑所选' }))
+    await waitFor(() => expect(h.command).toHaveBeenCalledTimes(2))
+    expect(h.command.mock.calls[1]?.[0]).toEqual({
+      commandId: expect.any(String),
+      expectedRevision: 5,
+      type: 'assets.unbind',
+      nodeId: 'step-1-profiles',
+      assetIds: ['asset-1'],
+    })
+    expect(await screen.findByLabelText('关联资产 1 项')).toBeInTheDocument()
+    expect(h.assetList).toHaveBeenCalledWith('image')
+  })
+
+  it.each([
+    ['video', '视频'],
+    ['music', '音乐'],
+    ['workflow', '工作流'],
+  ] as const)('%s 类资产使用同一绑定/解绑命令链', async (kind, label) => {
+    const initial = canvasWithAssetNode()
+    const h = installApi(initial)
+    h.assetList.mockImplementation(async (requested: AssetIndexItem['kind']) => [{
+      id: `${requested}-1`, kind: requested,
+      path: `资产/${requested}-sample`, createdAt: '2026-11-10T00:00:00.000Z',
+    }])
+    h.command
+      .mockImplementationOnce(async (request: CanvasCommandRequest) => ({
+        commandId: request.commandId, revision: 5, replayed: false,
+        canvas: { ...initial, revision: 5, nodes: [{ ...initial.nodes[0]!, assetIds: [`${kind}-1`] }] },
+      }))
+      .mockImplementationOnce(async (request: CanvasCommandRequest) => ({
+        commandId: request.commandId, revision: 6, replayed: false,
+        canvas: { ...initial, revision: 6, nodes: [{ ...initial.nodes[0]!, assetIds: [] }] },
+      }))
+    render(<StudioApp />)
+
+    await screen.findAllByText('人物小传')
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+    await user.click(screen.getByRole('button', { name: label }))
+    const item = await screen.findByTitle(`资产/${kind}-sample`)
+    await screen.findByText('当前节点：人物小传')
+    await user.click(item)
+    await user.click(screen.getByRole('button', { name: '绑定所选' }))
+    await waitFor(() => expect(h.command).toHaveBeenCalledTimes(1))
+    expect(h.command.mock.calls[0]?.[0]).toMatchObject({
+      expectedRevision: 4, type: 'assets.bind', nodeId: 'step-1-profiles', assetIds: [`${kind}-1`],
+    })
+    expect(await screen.findByLabelText('关联资产 1 项')).toBeInTheDocument()
+
+    await user.click(screen.getByTitle(`资产/${kind}-sample`))
+    await user.click(screen.getByRole('button', { name: '解绑所选' }))
+    await waitFor(() => expect(h.command).toHaveBeenCalledTimes(2))
+    expect(h.command.mock.calls[1]?.[0]).toMatchObject({
+      expectedRevision: 5, type: 'assets.unbind', nodeId: 'step-1-profiles', assetIds: [`${kind}-1`],
+    })
+    await waitFor(() => expect(screen.queryByLabelText('关联资产 1 项')).not.toBeInTheDocument())
+    expect(h.assetList).toHaveBeenCalledWith(kind)
+  })
+
+  it('revision 冲突时刷新画布、提示重试并保留已选资产', async () => {
+    const initial = canvasWithAssetNode()
+    const refreshed: Canvas = {
+      ...initial,
+      revision: 5,
+      nodes: [{ ...initial.nodes[0]!, assetIds: ['asset-1'] }],
+    }
+    const h = installApi(initial)
+    h.command.mockRejectedValue(Object.assign(
+      new Error('画布 revision 冲突'),
+      { code: 'CANVAS_REVISION_CONFLICT' },
+    ))
+    ;(window.api.canvas.get as unknown as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(initial)
+      .mockResolvedValueOnce(refreshed)
+    render(<StudioApp />)
+
+    await screen.findAllByText('人物小传')
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+    await screen.findByTitle('资产/女主.png')
+    await screen.findByText('当前节点：人物小传')
+    await user.click(screen.getByTitle('资产/女主.png'))
+    await user.click(screen.getByRole('button', { name: '绑定所选' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('画布已被其他操作更新，已刷新；请确认后重试。')
+    expect(window.api.canvas.get).toHaveBeenCalledTimes(2)
+    expect(await screen.findByLabelText('关联资产 1 项')).toBeInTheDocument()
+    expect(screen.getByTitle('资产/女主.png')).toHaveAttribute('aria-pressed', 'true')
+    expect(h.command).toHaveBeenCalledTimes(1)
   })
 })

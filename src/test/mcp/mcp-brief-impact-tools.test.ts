@@ -507,7 +507,7 @@ describe('feature-002 立项后变更 MCP 工具（契约 §4/§9.2）', () => {
     // session 已在 legacyDir（上一用例切换）；造一个无 markedAt 的存量脏节点
     const legacyNow = new Date().toISOString()
     const legacyCanvas: Canvas = {
-      schemaVersion: 2, projectId: 'project-legacy', title: '旧项目',
+      schemaVersion: 3, projectId: 'project-legacy', title: '旧项目', revision: 0, receipts: [],
       nodes: [{
         id: 'step-1-outline', step: '1', kind: 'outline', title: '大纲', status: 'done',
         parentReference: { briefVersion: 1, fields: ['premise.leads'] },

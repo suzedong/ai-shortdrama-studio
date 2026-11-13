@@ -192,7 +192,7 @@
     <div class="stat"><div class="sv">83</div><div class="sl">测试文件</div><div class="su">1058 通过 · 0 失败 · 1 skipped（typecheck 3 条现存基线）</div></div>
   </div>
   <div class="fact">可视化呈现 · 事实以 <a href="../../短剧Agent平台设计.md">短剧Agent平台设计.md</a> 为准
-    <span class="src">来源：设计 md v1.19</span><span class="src">台账 D-016·D-023·D-024</span><span class="src">2026-11-11</span>
+    <span class="src">来源：设计 md v1.19</span><span class="src">台账 D-016·D-023·D-024</span><span class="src">2026-11-13</span>
   </div>
 </header>
 
@@ -707,7 +707,7 @@
   <p><b>约束</b>：生成动作只读已定稿上游文件，缺上游由 Agent 报告缺料（runtime 错误码，见 §5.1），不静默产出；产物 JSON 源 + MD 镜像双写。立项后变更按 §2.6.6 / §2.6.7 全字段可改 + 影响评估 + 用户决策（<code>manifest.briefVersion</code> + <code>parentReference</code> + <code>影响清单.vN-v(N+1).json</code>，feature-002 包落地）。</p>
   <div class="grid g3">
     <div class="card"><div class="ct">版本归档区（持久化机制）</div><div class="cb"><b>目录约定</b>：任何产物文件被覆盖前，旧文件自动移入同目录 <code>版本/&lt;basename&gt;.&lt;YYYYMMDD-HHmmss&gt;&lt;ext&gt;</code>；同秒冲突追加 <code>.N</code> 序号。<code>manifest.json</code> 永不归档。<b>副本语义</b>：归档失败（rename/mkdir 异常）向上抛错阻断本次写入——宁可写入失败也不做无备份覆盖。<b>触发点</b>：立项单定稿、剧本 / 分镜 .json/.md 双写、背景档案保存。<b>消费方式</b>：消息历史复用 opencode 原生会话存储（平台不另建消息 JSON，<code>chat.messages.json</code> 终态作废，R-001）；<code>.session.json</code> 仅持久化 <code>activeSessionId</code> 绑定，重开项目经 SDK <code>session.messages</code> 回放消息流，其中 unlock 消息对 source 为 idea/background 的 unlock 取 <code>newIdea</code>/档案全文，从 <code>版本/</code> 目录反查对应历史版本文件作为 diff 参照；UI 历史角标点击展示同目录版本快照。</div></div>
-    <div class="card"><div class="ct">视觉风格谱系（外部数据源）</div><div class="cb">系统级外部数据源（注册路径 / 版本跟踪 / 引用风格 ID + 谱系版本），完整约定见 §8.3；当前实现 <code>electron/style/catalog.ts</code> 固化谱系（<code>CATALOG_VERSION</code> + <code>assertInCatalog</code> 校验，失败即拒），与 §8.3 机制并存。辅助风格仅允许 B/D 候选域（§2.6.4）。</div></div>
+    <div class="card"><div class="ct">视觉风格谱系（外部数据源）</div><div class="cb">系统级外部数据源（注册路径 / 版本跟踪 / 引用风格 ID + 谱系版本），完整约定见 §8.3；当前实现 <code>electron/style/</code> 模块以代码内 ID 注册表 + 谱系 md 运行时解析交叉核对（版本号不硬编码，非法 ID 或版本 / 数据漂移即拒），与 §8.3 机制并存。辅助风格仅允许 B/D 候选域（§2.6.4）。</div></div>
     <div class="card"><div class="ct">术语对齐</div><div class="cb">「立项五要素」统一更名为「<b>立项六要素</b>」（题材/平台/集数/单集时长/风格基调/画幅），画幅由 <code>deriveFiveElements</code> 按平台规则派生；<code>FiveElements.aspectRatio</code> 为必填字段，旧数据回退竖屏。</div></div>
   </div>
 </section>
@@ -736,7 +736,7 @@
   <tr><td>项目引用</td><td>每个项目记录「<b>风格 ID + 谱系版本</b>」（如 <code>A7 @ v1.46</code>）；主风格 1 个、辅助 0–1 个（候选域见 §2.6.4）</td></tr>
   <tr><td>使用边界</td><td>谱系只管画风；风格影响提示词生成，改风格 → 全链路提示词重出。年代 / 地域等事实进入提示词内容，不决定画风 ID</td></tr>
   </table>
-  <div class="note">当前实现：<code>electron/style/catalog.ts</code> 固化谱系（<code>CATALOG_VERSION</code> + <code>assertInCatalog</code> 校验，失败即拒），与本节机制并存（见 §7.1「视觉风格谱系」）。</div>
+  <div class="note">当前实现：<code>electron/style/</code> 模块以代码内 ID 注册表 + 谱系 md 运行时解析交叉核对（版本号不硬编码，非法 ID 或版本 / 数据漂移即拒），与本节机制并存（见 §7.1「视觉风格谱系」）。</div>
 </section>
 
 <!-- ═══ 9 Harness 质量层 ═══ -->

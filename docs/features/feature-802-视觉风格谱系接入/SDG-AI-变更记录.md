@@ -75,6 +75,7 @@
 - 设计书 §7.1（约 L596）/ §8.3（约 L627）称「当前实现 `electron/style-catalog.ts`（CATALOG_VERSION + assertionCatalog 校验）」；本包落地形态为 `electron/style/` 五文件（types/catalog/parse-md/loader/validate），且版本号从 md 运行时解析、不设代码内 CATALOG_VERSION 常量。
 - 裁决：职责口径（版本跟踪 + ID 校验）一致，文件拆分与版本读法为 D-002 选型的实现细化；**不回改设计书**（契约 §12 / AC10），差异在偏差清单 B-05 与本留痕双处记名。
 - feature-001 契约「style 仅非空校验（B-05）」表述被本包注入式行为增补（evaluateDraft 可选 catalog 参 + styleIssues 返回键，纯函数默认行为与 BriefPlan 形状不变），交叉指针已加：[feature-001 变更记录 R-002](../feature-001-立项模型重建/SDG-AI-变更记录.md)。
+- **2026-11-13 终局回流**：经用户确认，根设计 §7.1/§8.3、D-013 与 features/README 已按本包 D-001/D-002 同步；原「不回改设计书」为当时保留差异的处理决定，现由本次一致性清理闭环，B-05 不再作为开放偏差常驻。
 
 ### R-002 · B-57 F4：showrunner 收回 style.get 授权，选型固定 catalog 快照（2026-11-01）
 

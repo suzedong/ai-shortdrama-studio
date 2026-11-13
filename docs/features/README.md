@@ -1,6 +1,6 @@
 # docs/features — 现行任务包目录
 
-> 每个任务包一个子目录：`feature-{三位数字}-{业务名}/`，内含 5 文件（需求规格 / 契约 / 任务清单 / 设计说明 / 变更记录），规范见 [AI-SDG-AI工具执行指令.md](../governance/AI-SDG-AI工具执行指令.md) §2。
+> 每个任务包一个子目录：`feature-{三位数字}-{业务名}/`。标准档内含 5 文件（需求规格 / 契约 / 任务清单 / 设计说明 / 变更记录）；同时满足四项条件的小改动采用 3 文件精简档（需求规格含简化契约段 / 任务清单 / 变更记录），不得自创其他文件档。规范见 [AI-SDG-AI工具执行指令.md](../governance/AI-SDG-AI工具执行指令.md) §2。
 
 ## 0. 划分规则（2026-10-13 起 · 按项目模块重新划分）
 
@@ -94,7 +94,7 @@
 | 包 | 业务 | 解决偏差 | 技术落点 | 溯源 | 状态 |
 |---|---|---|---|---|---|
 | [feature-801-manifest状态机推进](./feature-801-manifest状态机推进/) | 7 态 `initiating→story-outline→story-profiles→script-scenes→script-dialogue→script-storyboard→storyboard-done`，每次定稿读-改-写推进一格；先覆盖 STAGE 0-2，3-7 随各段包扩展；清退历史 10 态 `Stage` 骨架 | B-04 | `electron/project/manifest.ts`（读-改-写 + 纯函数跃迁）、manifest.get/advance 两工具（**共 16 工具**）、`electron/project/library.ts`、showrunner.md 定稿动作（**K1**：`shared/types.ts`）、删 `StageCanvas.tsx` | 自研新增 | ✅ 已落地（2026-10-13） |
-| [feature-802-视觉风格谱系接入](./feature-802-视觉风格谱系接入/) | 系统级外部数据源接入：路径注册 / 版本跟踪 / 风格 ID+谱系版本引用 / 主辅选型；平台只消费不私改（§8.3，§3 裁决②重建） | B-05 | ✅ 已落地（2026-10-13）：`electron/style/` 五文件（types/catalog/parse-md/loader/validate）+ `style.catalog/get/validate` 三工具（共 19 工具）；代码内 18 ID 注册表与谱系 md v1.46 运行时交叉核对，版本号不硬编码；设计书 `style-catalog.ts` 单文件表述与五文件形态差异见 B-05 | 自研新增 | ✅ 已落地（2026-10-13） |
+| [feature-802-视觉风格谱系接入](./feature-802-视觉风格谱系接入/) | 系统级外部数据源接入：路径注册 / 版本跟踪 / 风格 ID+谱系版本引用 / 主辅选型；平台只消费不私改（§8.3，§3 裁决②重建） | B-05 | ✅ 已落地（2026-10-13）：`electron/style/` 五文件（types/catalog/parse-md/loader/validate）+ `style.catalog/get/validate` 三工具（共 19 工具）；代码内 18 ID 注册表与谱系 md v1.46 运行时交叉核对，版本号不硬编码；根设计 §7.1/§8.3 已同步终局口径，B-05 已闭环 | 自研新增 | ✅ 已落地（2026-10-13） |
 | feature-803-ComfyUI统一媒体引擎 | B0/B5/B8/B9 工作流模板装载 / 队列 / WebSocket 进度 / 收片；地址可配置 + 局域网多实例池；媒体零公网；renderer 不直连 | B-06 前置（§11 一期·5） | `electron/comfy/*`、engine.* 工具、comfyui-operator.md | 改编 | ⬜ 未建包（P2，媒体链前置） |
 | [feature-804-Windows窗口标题栏](./feature-804-Windows窗口标题栏/) | 修复 `hiddenInset` 在 Windows 无窗口控制缺陷：外壳平台分支（darwin hiddenInset / win32·linux frame:false）+ 顶栏右侧自绘最小化/最大化·还原/关闭三按钮（46×32、关闭红 #C42B1C）+ 4 IPC 1 推送；macOS 零变化 | B-10 | `electron/window/chrome.ts`（纯函数）、`electron/main.ts`（window:* IPC）、preload/global.d.ts/dev-mock 三处同步、`src/studio/WindowControls.tsx`、StudioApp 顶栏集成（**K8**：新增 IPC 登记；无 K1） | 改编 | ✅ 已落地（2026-10-29 Windows 真机人工验收通过；macOS 零变化回归本机无 macOS 维持挂起） |
 | feature-805-Skill体系 | Skill 检索 / 执行 / 沉淀 / 投稿；模板中心（二期） | §6 / §11 二期 | skill.* 工具 | Design 原有 | ⬜ 二期（暂不建包） |
@@ -121,17 +121,17 @@
 ## 3. 建包前裁决（已于 2026-10-13 拍板，见决策台账 D-013）
 
 1. **STAGE 2 分镜文字稿 ↔ STAGE 4 生产分镜表 = 同一文件两阶段演进**：201 产出 `分镜/shotlist.json` 文字稿（一期空镜 `dialogue=null`、`refs=[]`，不排镜）；401 在同一文件上启用 `refs[]` / 景别 / 运镜 / 时长，升级为生产分镜。不设两个产物文件。
-2. **B-05 取重建方案**：重建 `electron/style-catalog.ts`（CATALOG_VERSION + 风格 ID 校验，读 `resources/H3-Style/` 谱系源），feature-802 为落地包；平台只消费不私改谱系（D-005-6）。设计书 §7.1/§8.3 "当前实现"的表述在 802 落地时随实现对齐，不改口为"待落地"。
+2. **B-05 取重建方案（终局口径）**：feature-802 已落地 `electron/style/` 五文件模块；代码内 ID 注册表与 `resources/H3-Style/` 谱系 md 运行时交叉核对，版本号从 md 解析、不硬编码，平台只消费不私改谱系（D-005 第 6 条；包级 D-001/D-002 已批准）。[根设计](../../短剧Agent平台设计.md) §7.1/§8.3 已同步该终局口径。
 3. **K1 共享层扩展已知情**：002 与 801 改 `shared/types.ts`（`manifest.briefVersion` / 产物 `parentReference` / `CanvasNode.dirty` / 7 态 status、清退历史 `Stage` 10 态），各包建包时正式走 K1——先出字段方案、用户确认后记包内变更记录，再动代码。
 
 ## 4. 一期建设顺序（承接根设计 §11 MVP）
 
 - **P1 立项闭环补全**：~~801 状态机推进（B-04）~~ ✅ 已落地（2026-10-13）→ 002 立项后变更（B-03，依赖 K1 字段）；~~802 风格谱系（B-05，裁决②先行）~~ ✅ 已落地（2026-10-13）；~~101 反向补录~~ ✅ 已补录（2026-10-15）；~~201 反向补录~~ ✅ 2-a/2-b 已补录、**2-c 分镜文字稿已实施**（2026-11-11，自动化通过、未真机验收）。
-- **P2 媒体链前置**：803 ComfyUI 统一媒体引擎 → 806 Harness + 确认门（可分批；原 804 编号 2026-10-13 让位给 Windows 窗口标题栏缺陷修复包，D-014）。~~804 窗口标题栏~~ ✅ 已落地（2026-10-13，真机验收待执行），为独立缺陷修复，不占媒体链顺序。
+- **P2 媒体链前置**：806 Harness 基础校验 + 确认门全链路 → 803 ComfyUI 统一媒体引擎（建包顺序按 D-019；原 804 编号由 D-014 让位给 Windows 窗口标题栏）。~~804 窗口标题栏~~ ✅ 已落地，Windows 真机于 2026-10-29 验收通过；macOS 零变化回归仍挂起，为独立缺陷修复，不占媒体链顺序。
 - **P3 八步 3→7**：301 角色 → 302 场景道具 → 401 生产分镜 → 501 逐镜视频 → 601 声音 → 602 时间线剪辑 → 701 成片交付。
 
 > 依赖原则：生成动作只读已定稿上游（§5.1 / §7.1）；分镜未定不排镜；301/501/601 的媒体调用统一收敛于 803 引擎，renderer 不直连 ComfyUI。
 
 ## 5. 归档与重建说明
 
-任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段），新包自各段首号起建；现行 28 个包。路线与落地状态以本文件及各任务包为准；未闭环偏差见 [docs/设计现状与偏差清单.md](../设计现状与偏差清单.md)。
+任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段），新包取所属段内当前最大已用编号 + 1，编号不回收、不复用；现行 28 个包。路线与落地状态以本文件及各任务包为准；未闭环偏差见 [docs/设计现状与偏差清单.md](../设计现状与偏差清单.md)。

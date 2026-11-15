@@ -25,7 +25,7 @@ import { gateBridge } from '../gate/bridge.js'
 import { assertBriefPublishable, findBriefGate, BRIEF_FINAL_GATE_ID } from '../gate/guard.js'
 import { registerAsset, listAssets } from '../asset/index.js'
 import { getComfyClient } from '../comfy/client.js'
-import { listInstances, requireInstance } from '../comfy/settings.js'
+import { listInstances } from '../comfy/settings.js'
 import { diffBrief } from '../brief/diff.js'
 import { evaluateDraft, latestReadableEntry, listBriefVersions, readLatestBrief } from '../brief/plan.js'
 import { runHarnessValidation } from '../harness/validate.js'
@@ -332,19 +332,19 @@ export function registerPureTools(server: McpServer): void {
   // 10. comfyui.queue
   server.tool(
     'comfyui.queue',
-    '向指定 ComfyUI 实例提交工作流任务（引擎接入前为占位）。',
+    '向应用级 ComfyUI 实例提交受控 MiniMax H3 Image 工作流；requestId 保证同参数幂等。',
     {
       instanceId: z.string().min(1),
-      workflow: z.record(z.string(), z.unknown()),
+      workflowId: z.string().min(1),
       inputs: z.record(z.string(), z.unknown()).optional(),
+      requestId: z.string().min(1).max(128),
     },
     async (args) => {
       try {
-        await requireInstance(args.instanceId)
         const client = getComfyClient()
-        if (!client) return respond(fail('INTERNAL', 'ComfyUI 引擎尚未接入（023）'))
-        const { jobId } = await client.queue(args)
-        return respond<{ jobId: string }>({ ok: true, jobId })
+        if (!client) return respond(fail('INTERNAL', 'ComfyUI 引擎尚未初始化'))
+        const { jobId, promptId } = await client.queue(args)
+        return respond<{ jobId: string; promptId: string }>({ ok: true, jobId, promptId })
       } catch (e) {
         return respond(normalize(e))
       }
@@ -354,13 +354,12 @@ export function registerPureTools(server: McpServer): void {
   // 11. comfyui.status
   server.tool(
     'comfyui.status',
-    '查询指定 ComfyUI 任务状态与产物（引擎接入前为占位）。',
+    '查询平台持久 jobId 并续收图片；禁用实例不影响既有作业。',
     { instanceId: z.string().min(1), jobId: z.string().min(1) },
     async (args) => {
       try {
-        await requireInstance(args.instanceId)
         const client = getComfyClient()
-        if (!client) return respond(fail('INTERNAL', 'ComfyUI 引擎尚未接入（023）'))
+        if (!client) return respond(fail('INTERNAL', 'ComfyUI 引擎尚未初始化'))
         const status = await client.status(args)
         return respond({ ok: true, ...status })
       } catch (e) {

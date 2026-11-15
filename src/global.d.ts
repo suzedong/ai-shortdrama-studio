@@ -21,6 +21,11 @@ declare global {
   // feature-014 · AI 服务设置 DTO（镜像 electron/settings/ai-service.ts，不进 shared；K1 零触发）
   type AiFieldSource = 'store' | 'env' | 'default'
   type AiProviderId = 'ark' | 'lmstudio'
+  // feature-803 · 应用级 ComfyUI 设置 DTO；基础类型只读复用 shared，GPU 元数据不进共享层
+  type ComfyInstanceConfig = ComfyInstance & {
+    gpus?: string[]
+    vramGB?: number
+  }
   type AiServiceUpdatePatch = {
     activeProvider?: AiProviderId
     ark?: {
@@ -94,6 +99,24 @@ declare global {
     visualTraits: string
     anchorWords: string
     textureRecipe: string
+  }
+  // feature-815 · 当前媒体内嵌 ComfyUI 元数据；不扩展上方十键目录 DTO
+  type StylePreviewMetadataRequest =
+    | { styleId: string; mediaKind: 'image' }
+    | { styleId: string; mediaKind: 'video'; tier: 'std' | 'turbo' | 'fast' }
+  type StylePreviewMetadataStatus = 'ok' | 'missing' | 'no-metadata' | 'unsupported' | 'invalid'
+  type StylePreviewPromptDto = {
+    key: 'positive' | 'negative' | 'motion'
+    label: string
+    text: string
+  }
+  type StylePreviewParameterDto = { key: string; label: string; value: string | number }
+  type StylePreviewMetadataDto = {
+    request: StylePreviewMetadataRequest
+    status: StylePreviewMetadataStatus
+    prompts: StylePreviewPromptDto[]
+    params: StylePreviewParameterDto[]
+    message?: string
   }
   // feature-806 · 0-final 门 payload 校验摘要镜像（主进程 electron/harness/types.ts 同形，不进 shared；K1 零触发）
   type HarnessFindingDto = {
@@ -222,6 +245,7 @@ declare global {
       // feature-810：谱系升级差异工作流（K8 已批，2 桥；零推送，面板打开时主动拉取）
       styleCatalog(): Promise<{ version: string; count: number; entries: StyleCatalogEntryDto[] }>
       styleUpgradeDiff(): Promise<StyleUpgradeDiff>
+      stylePreviewMetadata(request: StylePreviewMetadataRequest): Promise<StylePreviewMetadataDto>
       // feature-808：项目绑定会话读（无参）/写（string 绑定 / null 清空）双态
       activeSession(sessionId?: string | null): Promise<{ sessionId: string | null }>
       configStatus: () => Promise<{ arkConfigured: boolean }>
@@ -275,9 +299,14 @@ declare global {
       >
       settings: {
         comfy: {
-          list(): Promise<ComfyInstance[]>
-          upsert(instance: Partial<ComfyInstance>): Promise<ComfyInstance>
+          list(): Promise<ComfyInstanceConfig[]>
+          upsert(instance: Partial<ComfyInstanceConfig>): Promise<ComfyInstanceConfig>
           remove(id: string): Promise<{ ok: true }>
+          test(arg: { baseUrl: string }): Promise<{
+            ok: true
+            comfyuiVersion: string | null
+            deviceCount: number
+          }>
         }
         // feature-014 · AI 服务设置（脱敏视图，明文 Key 不经 IPC）
         ai: {

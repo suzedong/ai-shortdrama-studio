@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 660" role="img" aria-labelledby="title desc">
+<title id="title">双轨版本门控与局部影响传播</title>
+<desc id="desc">草稿轨提高探索速度，正式轨保证媒体可靠性；上游再版只沿精确版本依赖边挂脏。</desc>
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#737373"/></marker><marker id="arrow-primary" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#654ACB"/></marker></defs>
+<rect width="1560" height="660" fill="#F7F6F5"/>
+<text x="36" y="53.8" fill="#0A0A0A" font-family="Helvetica,'Microsoft YaHei',sans-serif" font-size="28" font-weight="700" text-anchor="start"><tspan x="36" dy="0">双轨版本门控与局部影响传播</tspan></text>
+<text x="36" y="90.6" fill="#404040" font-family="Helvetica,'Microsoft YaHei',sans-serif" font-size="16" font-weight="500" text-anchor="start"><tspan x="36" dy="0">草稿轨提高探索速度，正式轨保证媒体可靠性；上游再版只沿精确版本依赖边挂脏。</tspan></text>
+<rect id="upstream" x="36" y="142" width="220" height="88" rx="12" fill="#FFFFFF" stroke="#7373735C" stroke-width="1"/>
+<text x="52" y="169.6" fill="#0A0A0A" font-family="Helvetica,'Microsoft YaHei',sans-serif" font-size="16" font-weight="500" text-anchor="start"><tspan x="52" dy="0">上游版本</tspan><tspan x="52" dy="22">草稿 / 已确认</tspan><tspan x="52" dy="22">记录实际版本列表</tspan></text>
+<rect id="draft" x="340" y="112" width="220" height="84" rx="12" fill="#FFFFFF" stroke="#7373735C" stroke-width="1"/>
+<text x="356" y="137.6" fill="#0A0A0A" font-family="Helvetica,'Microsoft YaHei',sans-serif" font-size="16" font-weight="500" text-anchor="start"><tspan x="356" dy="0">草稿 / 打样轨</tspan><tspan x="356" dy="22">允许小样探索</tspan><tspan x="356" dy="22">产物必须标“试产”</tspan></text>
+<rect id="formal" x="340" y="260" width="220" height="84" rx="12" fill="#EEEFFF" stroke="#654ACB" stroke-width="1"/>
+<text x="356" y="285.6" fill="#0A0A0A" font-family="Helvetica,'Microsoft YaHei',sans-serif" font-size="16" font-weight="500" text-anchor="start"><tspan x="356" dy="0">正式生产轨</tspan><tspan x="356" dy="22">只读已确认上游</tspan><tspan x="356" dy="22">批量生产前校验</tspan></text>
+<rect id="locked" x="644" y="260" width="190" height="84" rx="12" fill="#654ACB" stroke="#654ACB" stroke-width="1"/>
+<text x="660" y="285.6" fill="#FFFFFF" font-family="Helvetica,'Microsoft YaHei',sans-serif" font-size="16" font-weight="500" text-anchor="start"><tspan x="660" dy="0">正式锁定</tspan><tspan x="660" dy="22">Harness + QC</tspan><tspan x="660" dy="22">+ 用户确认门</tspan></text>
+<rect id="replay" x="340" y="420" width="494" height="84" rx="12" fill="#FFFFFF" stroke="#7373735C" stroke-width="1"/>
+<text x="356" y="445.6" fill="#0A0A0A" font-family="Helvetica,'Microsoft YaHei',sans-serif" font-size="16" font-weight="500" text-anchor="start"><tspan x="356" dy="0">试产转正式</tspan><tspan x="356" dy="22">基于已确认上游重新生成 / 重放校验</tspan><tspan x="356" dy="22">形成新版本并重新走确认门</tspan></text>
+<text x="36" y="553.6" fill="#404040" font-family="Helvetica,'Microsoft YaHei',sans-serif" font-size="16" font-weight="500" text-anchor="start"><tspan x="36" dy="0">依赖身份：artifactId + version + requiredStatus；</tspan><tspan x="36" dy="24">同时记录生产轨道、本产物版本与实际上游版本列表。</tspan></text>
+<rect id="revision" x="934" y="132" width="190" height="84" rx="12" fill="#EEEFFF" stroke="#654ACB" stroke-width="1"/>
+<text x="950" y="168.6" fill="#0A0A0A" font-family="Helvetica,'Microsoft YaHei',sans-serif" font-size="16" font-weight="500" text-anchor="start"><tspan x="950" dy="0">角色 A · v3 再版</tspan><tspan x="950" dy="22">旧确认版 = v2</tspan></text>
+<rect id="affected" x="1210" y="92" width="300" height="84" rx="12" fill="#FFFFFF" stroke="#7373735C" stroke-width="1"/>
+<text x="1226" y="128.6" fill="#0A0A0A" font-family="Helvetica,'Microsoft YaHei',sans-serif" font-size="16" font-weight="500" text-anchor="start"><tspan x="1226" dy="0">引用 A@v2 的镜头</tspan><tspan x="1226" dy="22">直接下游标“受影响”</tspan></text>
+<rect id="transitive" x="1210" y="230" width="300" height="84" rx="12" fill="#FFFFFF" stroke="#7373735C" stroke-width="1"/>
+<text x="1226" y="266.6" fill="#0A0A0A" font-family="Helvetica,'Microsoft YaHei',sans-serif" font-size="16" font-weight="500" text-anchor="start"><tspan x="1226" dy="0">对应后期 / 发布</tspan><tspan x="1226" dy="22">仅传递依赖分支挂脏</tspan></text>
+<rect id="unaffected" x="934" y="330" width="576" height="84" rx="12" fill="#FFFFFF" stroke="#7373735C" stroke-width="1"/>
+<text x="950" y="366.6" fill="#0A0A0A" font-family="Helvetica,'Microsoft YaHei',sans-serif" font-size="16" font-weight="500" text-anchor="start"><tspan x="950" dy="0">未引用 A@v2 的镜头、其他场与其他集</tspan><tspan x="950" dy="22">无版本依赖边 → 不重建、不暂停</tspan></text>
+<text x="934" y="480.6" fill="#404040" font-family="Helvetica,'Microsoft YaHei',sans-serif" font-size="16" font-weight="500" text-anchor="start"><tspan x="934" dy="0">确认门只阻塞对应正式依赖分支；用户决定重生成或仅标记脏，</tspan><tspan x="934" dy="24">系统不做全项目一律返工。</tspan></text>
+<text x="934" y="545.6" fill="#404040" font-family="Helvetica,'Microsoft YaHei',sans-serif" font-size="16" font-weight="500" text-anchor="start"><tspan x="934" dy="0">DAG 决定“可以做什么”；ComfyUI 多实例、GPU / 显存、</tspan><tspan x="934" dy="24">worker 与队列决定“实际同时执行多少”。</tspan><tspan x="934" dy="24">依赖就绪 ≠ 无限并发。</tspan></text>
+<path d="M 256 174.42105263157896 L 340 165.57894736842104" fill="none" stroke="#737373" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+<path d="M 146 230 L 146 302 L 340 302" fill="none" stroke="#654ACB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-primary)"/>
+<path d="M 450.000012138 302 L 738.999987862 302" fill="none" stroke="#654ACB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-primary)"/>
+<path d="M 450 196 L 450 462 L 834 462" fill="none" stroke="#737373" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+<path d="M 834 462 L 450 462 L 450 344" fill="none" stroke="#737373" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M 1029 216 L 1029 134 L 1210 134" fill="none" stroke="#737373" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M 1360 134.0000207 L 1360 271.9999793" fill="none" stroke="#737373" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+</svg>

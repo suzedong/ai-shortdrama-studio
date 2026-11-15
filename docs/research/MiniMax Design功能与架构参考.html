@@ -120,7 +120,7 @@
   <a href="#sec-0">00 定位</a>
   <a href="#sec-1">01 功能全景</a>
   <a href="#sec-2">02 架构实测</a>
-  <a href="#sec-3">03 体系对照</a>
+  <a href="#sec-3">03 全面复刻</a>
   <a href="#sec-4">04 来源与版本</a>
   <a href="#sec-5">05 版本记录</a>
 </nav>
@@ -129,8 +129,8 @@
 
 <header>
   <div class="kicker">AI 短剧制作文档族 · 外部产品参考</div>
-  <h1>MiniMax Design 功能与架构参考<span class="tag">v1.3 · 2026-11-10</span><span class="ver-tag">v1.3 ↑ from v1.2</span></h1>
-  <div class="sub">功能全景 + 架构实测 + 与我们体系的对照 · 供《短剧Agent平台设计》逐条参照（非规范成员）</div>
+  <h1>MiniMax Design 功能与架构参考<span class="tag">v1.4 · 2026-11-15</span><span class="ver-tag">v1.4 ↑ from v1.3</span></h1>
+  <div class="sub">功能全景 + Windows 4.0.10.158 实测 + 全面复刻矩阵 · 图片 / 视频改走局域网 ComfyUI（非规范成员）</div>
   <div class="stats">
     <div class="stat"><div class="sv">7</div><div class="sl">覆盖形态</div><div class="su">脚本/图文/视频/MG/3D/网页/后期</div></div>
     <div class="stat"><div class="sv">9</div><div class="sl">官方 Skill</div><div class="su">1 portable + 8 Hub</div></div>
@@ -139,8 +139,8 @@
     <div class="stat"><div class="sv">2</div><div class="sl">H3 变体</div><div class="su">FL2VA / Ref2VA</div></div>
     <div class="stat"><div class="sv">3</div><div class="sl">本地端口</div><div class="su">8001 / 8002 / 10268</div></div>
   </div>
-  <div class="fact">可视化呈现 · 事实以 <a href="../docs/research/MiniMax Design功能与架构参考.md">MiniMax Design功能与架构参考.md</a> 为准
-    <span class="src">口径：官方资料 / ComfyUI changelog / 社区与用户实测 / v4.0.8 本机解包与运行时实测</span><span class="src">非规范成员</span>
+  <div class="fact">可视化呈现 · 事实以 <a href="./MiniMax Design功能与架构参考.md">MiniMax Design功能与架构参考.md</a> 为准
+    <span class="src">口径：官方资料 / 社区与用户实测 / macOS v4.0.8 / Windows v4.0.10.158 选择性解包与界面观察</span><span class="src">非规范成员</span>
   </div>
 </header>
 
@@ -153,6 +153,14 @@
     <div class="card"><div class="ct">覆盖形态与优势场景</div>
       <div class="cb">文本脚本、图文、视频、Motion Graphic、3D 建模、网页 UI/UX、专业设计与影视后期。优势场景：广告投放、电商素材、品牌宣传、KOC 内容、短视频、Motion Graphic、3D 资产、网页 UI/UX、影视后期。</div></div>
   </div>
+  <h3>0.1 需求基线变更：从“补缺口”转为“全面复刻”（2026-11-15） <span class="ver-tag">v1.4 新</span></h3>
+  <div class="note">用户本轮明确：目标由“只补 MiniMax Design 的局域网 ComfyUI 与生产闭环缺口”调整为<b>全面复刻 MiniMax Design</b>，其中图片和视频生成改走局域网 ComfyUI。本报告因此从“差异参考”升级为“复刻能力基线”，但它仍是研究文档，不自动替代《短剧Agent平台设计》、项目特化规则或决策台账。</div>
+  <ol>
+    <li><b>复刻能力与体验，不复制专有实现</b>：覆盖用户可见功能、交互、工作流、数据语义与可追溯机制，采用自研或开源等价实现；不复制闭源代码、商标、私有素材、账号权限或云端服务。</li>
+    <li><b>图片 / 视频明确改编</b>：统一调用可配置的本地 / 局域网 ComfyUI，Renderer 不直连，媒体执行收敛到主进程 / MCP 引擎工具；原产品界面出现的云端模型条目不等于本项目可用通道。</li>
+    <li><b>未被明确变更的约束不擅自扩大解释</b>：音乐、文本 Provider、纯 JSON 持久化、账号 / 社区 / 团队 / 积分等仍按现行规格执行或另立决策；“全面复刻”不授权 Agent 自行改模型、引入数据库或接入云端媒体 Key。</li>
+    <li><b>保留本项目八步闭环</b>：MiniMax 短剧七阶段作为工作流机制参考，映射到现有 0 立项 → 1 故事 → 2 剧本分场 → 3 资产 → 4 分镜 → 5 镜头 → 6 后期 → 7 发布，不合并或裁剪立项与发布。</li>
+  </ol>
 </section>
 
 <!-- ═══ 1 功能全景 ═══ -->
@@ -466,7 +474,7 @@ localStorage: hilo.workspace.activeCanvas.v1</pre>
 
   <h3>2.3 ComfyUI 接入实测（重要结论 · 用户截图）</h3>
   <p>用户实测 <b>设置 → ComfyUI</b> 界面：仅「启动参数」输入框（如 <code>--lowvram</code>、<code>--preview-method auto</code>），界面明文：<b>「端口、数据目录等由 Hub 托管的参数无法覆盖」</b>。</p>
-  <div class="note"><b>结论</b>：当前版本 MiniMax Design 的 ComfyUI 后端为 <b>Hub 内置托管</b>，设置只允许追加性能参数，<b>端口/监听地址/服务地址不可配置 → 无法连接局域网内非本机 ComfyUI</b>。此结论以用户实测为准（社区抖音教程曾演示"填服务地址"，疑似旧版本，已不适用）。</div>
+  <div class="note"><b>结论（仅适用于该次实测版本）</b>：当时 MiniMax Design 的 ComfyUI 后端为 <b>Hub 内置托管</b>，设置只允许追加性能参数，<b>端口/监听地址/服务地址不可配置 → 无法连接局域网内非本机 ComfyUI</b>。此结论以用户实测为准；社区教程曾演示“填服务地址”（疑似旧版本 / 不同版本界面）。Windows 4.0.10.158 的新证据与未验证边界见 §2.6.7，不用本条旧结论覆盖新版本。</div>
 
   <h3>2.4 提示词工程规范 <span class="ver-tag">v1.1 新</span></h3>
   <p>实测 GitHub README + SKILL.md。</p>
@@ -555,12 +563,169 @@ localStorage: hilo.workspace.activeCanvas.v1</pre>
     <div class="card" style="border-color:rgba(70,201,140,.4);"><div class="ct">8 GB 显存 <span class="ver-tag">v1.2 新</span></div><div class="cb"><b>FastH3 Trim</b> 8 步蒸馏（FastVideo，v0.36.0）出带原生音频的视频；Veda Sparse Attention 再提速 3×</div></div>
     <div class="card"><div class="ct">其他</div><div class="cb">系统内存 32–64 GB；无 GPU 可用 Colab / Comfy Cloud API 节点</div></div>
   </div>
-  <div class="apply">H3 在我们媒体通道中（B5 参考生视频 / B8 文生视频）的工作流模板参数（分辨率、时长、画幅、显存门限）可参考本节对齐；3 模块拆分（Context-IR 云端 + Base 本地 + Regenerate-2K 云端）的"云端做精修、本地做主力"思路也适用于我们的 qwen-image + Music3 调度。</div>
+  <div class="apply">H3 在我们媒体通道中（B5 参考生视频 / B8 文生视频）的工作流模板参数（分辨率、时长、画幅、显存门限）可参考本节对齐；Context-IR 与 Regenerate-2K 若依赖公网云端，不进入“媒体生成零公网”的执行链路。图像仅 H3 Image、视频仅 H3、音乐仅 Music3，均按现行规则经 ComfyUI 执行。</div>
+
+  <h3>2.6 Windows 4.0.10.158 全面复刻调研（2026-11-15） <span class="ver-tag">v1.4 新</span></h3>
+  <div class="note"><b>调研方式</b>：只读分析 <code>C:\Users\SZD\AppData\Local\Programs\MiniMax Design\current</code>，选择性解析 ASAR，检查 Agent 配置、Gateway、MCP、内置插件，并观察正在运行的 Windows 界面。未完整解包到项目，未复制专有代码，未修改账号、模型选择或用户项目，未触发付费生成，未做真实剪映导入。<br><b>证据标记</b>：「静态」= 安装包文件或代码可见；「界面」= 当前运行 UI 可见；「推断」= 由多组证据归纳；「未验证」= 不能据此声称真实运行通过。UI 中出现模型或功能入口，不等于当前账号已开通，也不等于本项目允许使用。</div>
+
+  <h4>2.6.1 版本、安装与进程结构</h4>
+  <table>
+    <tr><th>项目</th><th>证据与结论</th></tr>
+    <tr><td>产品版本</td><td>对外可执行文件版本 <b>4.0.10.158</b>；ASAR <code>package.json</code> 为 <b>4.0.10</b>；安装目录 <code>version</code> 文件为 <b>45.2.1</b>。三个字段用途不同，不混写为同一版本号</td></tr>
+    <tr><td>桌面壳与更新</td><td>「静态」Electron 主进程、Preload、Renderer；Velopack 更新与 Windows managed junction 启动机制；主入口负责更新引导后动态加载主进程 chunk</td></tr>
+    <tr><td>双 Renderer</td><td>「静态」旧版 <code>out/renderer/index.html</code> 与 V3 <code>out/renderer/v3/index.html</code> 并存，V3 标题为 <code>MiniMax Design V3</code>，有独立 preload 与画布、项目、文档、结果导航模块</td></tr>
+    <tr><td>双项目架构</td><td>「静态」新建项目逻辑同时识别 <code>legacy</code> 与 <code>resource_v3</code>。这是兼容性事实，不表示复刻时必须保留两套历史实现</td></tr>
+    <tr><td>本地运行时</td><td>「静态」NestJS Gateway、<code>better-sqlite3</code>、gRPC 健康检查、OpenCode、MCP stdio 与 Streamable HTTP 共同构成桌面端运行底座</td></tr>
+  </table>
+
+  <h4>2.6.2 一级导航、工作区与全局路由</h4>
+  <p>「界面」当前一级导航为 <b>开始创作 / 项目库 / 技能·插件 / 本地模型</b>。工作区由左侧项目与创作页树、中央无限画布、对话面板组成，支持画布 / 浏览器切换、对话与画布左右互换、独立聚焦。</p>
+  <p>「静态」布局模式明确包含：</p>
+  <pre>workspace.displayMode.chatLeftCanvasRight
+workspace.displayMode.canvasLeftChatRight
+workspace.displayMode.canvasFocus
+workspace.displayMode.chatFocus</pre>
+  <p>「静态」已识别的主要路由如下；它们证明页面组织方式，不证明每个子流程均已运行时验收：</p>
+  <pre>/workspace
+/projects
+/skills
+/skill-community/
+/asset-center
+/changelog
+/workflows/
+/guided-practice/
+/creations/
+/debug/remote-tool
+/debug/chat-case</pre>
+  <p>「界面」画布工具覆盖添加节点、移动 / 小手、标签、贴纸、资产目录、帮助、缩放、自动整理、画布设置、节点连线、吸附对齐与小地图。对话输入区覆盖 <code>@</code> 选择素材或插件、<code>/</code> 使用 Skill、添加文件、模型选择、Skill 入口与自动模式。</p>
+
+  <h4>2.6.3 项目、画布、对话、资产与任务闭环</h4>
+  <table>
+    <tr><th>功能域</th><th>Windows 证据</th><th>复刻时应保留的行为</th></tr>
+    <tr><td>新建工作区 / 项目</td><td>「静态」可选择已有项目或自动创建，支持自定义目录、初始画布、用户记忆开关；存储不可用时存在临时默认目录与迁移 / 重启状态</td><td>项目选择、自动创建、目录状态与失败恢复必须可见，不能只做一个静默“新建”按钮</td></tr>
+    <tr><td>项目库</td><td>「静态」<code>/projects</code>、项目历史、编辑、导出与项目选择逻辑</td><td>项目作为创作页、画布、会话和资产的容器，支持历史与导出</td></tr>
+    <tr><td>多画布工作区</td><td>「静态」多画布标签、结构列表 / 视图、活动画布恢复、独立工作台、旧版与 V3 资源关联</td><td>页面切换后恢复创作页、活动画布、节点与视口；复刻用户结果，不必照搬双栈</td></tr>
+    <tr><td>画布修改与审查</td><td>「静态」Diff Review、命令协议、revision、撤销重做；macOS 实测见 §2.2</td><td>所有系统直改与 Agent 修改进入同一图文档、同一撤销与追溯机制</td></tr>
+    <tr><td>对话驱动</td><td>「界面 + 静态」<code>@</code>、<code>/</code>、附件、模型与 Skill 选择；任务通知含 <code>needs-answer</code>、<code>needs-confirmation</code> 和完成状态</td><td>对话不仅发消息，还要能引用资产 / 插件、触发技能、回答澄清、确认执行并定位结果</td></tr>
+    <tr><td>资产中心</td><td>「静态」<code>/asset-center</code> 与旧 API <code>/api/v1/asset-center</code>；「界面」画布可打开资产目录</td><td>上传、复用、引用到对话 / 画布 / 工作流，保留资产来源与产物关联</td></tr>
+    <tr><td>浏览器与结果导航</td><td>「静态」画布 / 浏览器切换、浏览器图片编辑上下文、V3 <code>result-navigation</code> 与任务结果位置</td><td>任务完成后能回到对应画布节点或资产，不停留在泛化通知</td></tr>
+  </table>
+
+  <h4>2.6.4 Skill、插件、本地模型、3D 与后期导出</h4>
+  <ul>
+    <li><b>Skill</b>：「界面」官方 / 我的 Skill，支持导入、创建、投稿；可见分类包括短剧漫剧、专业影视、动画、商业广告、电商、教育、创意实验、音频音乐、平台工具。分类与条目是当前可见样本，不声称完整总数。</li>
+    <li><b>专业插件</b>：「界面」官方 / 我的插件 / 自定义插件；可见 Blender、Unreal Engine、Unity、Houdini、TouchDesigner、Spine、Photoshop、Figma、Canva、Illustrator、稿定、创客贴、MeituHub、美图设计室等。复刻重点是插件清单、权限、配置、调用与结果回写，不是伪造未接通的外部应用。</li>
+    <li><b>本地模型 / Workflow</b>：「界面」“本地模型”实际进入 <code>app://./workflows</code>，分精选与我的本地模型。「静态」支持官方 / 我的模型、导入、下载、继续、取消、Workflow 与模型目录、本地资源扫描、许可证确认，以及 GPU / 内存 / 操作系统 / 存储兼容性检查；删除前检查共享模型引用。</li>
+    <li><b>3D 导演台</b>：「静态」插件 manifest 覆盖场景读写、快照、诊断、模型生成 / 截图 / 比较、运动与机位路径。它是独立专业能力，不应退化为普通图片节点。</li>
+    <li><b>剪辑与交付</b>：「静态」<code>export-to-jianying.py</code> 支持剪映 / CapCut 草稿路径重写、草稿信息写入与注册；未安装客户端时可降级 ZIP。真实客户端导入与媒体完整性仍「未验证」。</li>
+    <li><b>项目模板</b>：「静态」示例项目包同时包含 <code>canvas.json</code>、<code>storage.json</code>、<code>index.sqlite</code>、htable、manifest 与示例媒体，说明项目交付不只是单个画布文件。</li>
+  </ul>
+
+  <h4>2.6.5 Gateway、MCP、OpenCode 与数据一致性</h4>
+  <table>
+    <tr><th>层</th><th>静态证据</th><th>复刻学习点</th></tr>
+    <tr><td>Gateway</td><td>NestJS；生产端口 8001；gRPC 健康检查；SQLite 保存 assets、canvas_nodes、canvas_edges、坐标、revision、content_hash</td><td>主进程统一承载本地服务、健康检查、资产与图文档事务；Renderer 不绕过服务直写底层资源</td></tr>
+    <tr><td>文本与版本</td><td>文本版本使用独立 CAS；任务支持幂等、恢复与 outbox 终态通知</td><td>正文、版本、图节点壳分离；任务恢复与通知可追溯，避免重复执行</td></tr>
+    <tr><td>旧 MCP API</td><td><code>/api/v1/canvas/commands</code>、<code>/api/v1/asset-center</code></td><td>画布修改走命令，不直接拼 UI 状态；资产操作走统一工具边界</td></tr>
+    <tr><td>V3 MCP</td><td>stdio；<code>external-main.js</code> 另提供 Streamable HTTP <code>/mcp</code> 与 <code>/health</code>；增加 capability、resource、composition、execute、deliver 及代码 / 外部项目工具</td><td>工具按能力、资源、产物、执行、交付分层，支持本地 Agent 与受控外部接入</td></tr>
+    <tr><td>OpenCode 插件</td><td>config、chat.params、chat.message、system.transform、tool.execute.before / after 钩子；媒体工具权限随模型选择动态裁剪</td><td>在工具执行前后做权限、审计与上下文控制；模型选择不能让 Agent 越权切换媒体通道</td></tr>
+    <tr><td>Trace</td><td>默认关闭；原始请求 / 响应可能包含认证头</td><td>复刻诊断能力时默认关闭敏感采集，脱敏后再落盘，不能复制明文认证信息</td></tr>
+  </table>
+  <div class="note"><b>持久化差异</b>：MiniMax 的 SQLite / CAS 是实现事实；本项目现行架构为纯 JSON、无数据库。全面复刻应先对齐 revision、幂等、事务性、版本与恢复语义，是否改用 SQLite 属后续架构决策，不由本报告擅自变更。</div>
+
+  <h4>2.6.6 Agent 角色与短剧七阶段工作流</h4>
+  <p>「静态」<code>agent-profiles/v2/config</code> 中存在五类角色：<code>media-agent</code>、<code>router</code>、<code>planner</code>、<code>executor</code>、<code>comfyui-agent</code>。配置显示 Skill 优先于 Workflow，Contract 在启动时注入；子 Agent 无状态，通过显式 payload 传递上下文。<code>canvas-discipline</code> 与 Stage Execution Plan 共同约束计划、画布登记、结果确认和质量检查。</p>
+  <p>短剧 Workflow 的七阶段及本项目映射如下。<b>映射不是替换本项目八步状态机</b>：</p>
+  <table>
+    <tr><th>MiniMax 阶段</th><th>核心产物 / 行为</th><th>本项目对应位置</th></tr>
+    <tr><td>1. Script</td><td>故事与剧本内容</td><td>1 故事 + 2 剧本分场</td></tr>
+    <tr><td>2. Production Plan</td><td>制作拆解、执行计划与依赖</td><td>0 立项及跨阶段制作计划，不删除现有各步产物</td></tr>
+    <tr><td>3. Asset Anchors</td><td>角色、场景等一致性锚点</td><td>3 资产</td></tr>
+    <tr><td>4. Storyboard</td><td>分镜结构、镜头 refs 与画面规划</td><td>4 分镜</td></tr>
+    <tr><td>5. Scene Keyframes</td><td>场景 / 镜头关键帧</td><td>5 镜头中的关键帧准备，关联 3 资产与 4 分镜</td></tr>
+    <tr><td>6. Visual Gen</td><td>按执行计划生成视觉产物</td><td>5 镜头，经局域网 ComfyUI 执行</td></tr>
+    <tr><td>7. Post</td><td>后期组合与交付前处理</td><td>6 后期；7 发布仍由本项目独立保留</td></tr>
+  </table>
+  <p>每个阶段都有<b>计划确认 + 结果确认</b>双门。可见状态包括：</p>
+  <pre>doing
+waiting_user(plan_review)
+waiting_user(result_review)
+blocked
+done</pre>
+  <p>Stage Execution Plan 的关键不是一段自然语言，而是可执行结构：稳定 <code>work_items[].id</code>、有序 refs、最终 Prompt、依赖、锁项和 review 字段。由此纠正旧对照中“无流程状态机”的过度概括：<b>原产品短剧 Workflow 有显式阶段状态与双确认门；是否具有覆盖所有内容形态的通用硬门禁仍未证实。</b></p>
+  <p>失败纪律也可直接转化为复刻验收规则：</p>
+  <ol>
+    <li>禁止以相同实质参数循环调用。</li>
+    <li>最多三次具有实质差异的尝试。</li>
+    <li>按稳定 work item ID 局部重试，不整阶段重跑。</li>
+    <li>依赖拓扑变化触发 Replan，并重新进入计划确认。</li>
+    <li>不因失败擅自切换模型或放宽锁项。</li>
+  </ol>
+  <div class="note"><b>边界</b>：<code>comfyui-agent</code> 配置覆盖工作流 / Draft 定位、真实图检查、参数确认卡、显式执行与保存；但静态文件<b>不能证明短剧 Executor 已完整串起 ComfyUI 图像与视频生成</b>。本项目应把这条链路作为自研改编与运行时验收项，而不是声称原产品已经验证。</div>
+
+  <h4>2.6.7 模型条目、本地模型与 ComfyUI 边界</h4>
+  <p>「界面」当前模型选择器仅作能力盘点，未点击生成或改选：</p>
+  <table>
+    <tr><th>类别</th><th>当前可见条目</th></tr>
+    <tr><td>Agent</td><td>Gamma、Gamma-Op 5.5、Gamma-Astra、ark-code-latest</td></tr>
+    <tr><td>图片</td><td>MiniMax H3 Image、MiniMax H3 Image Highspeed、Design Image 2.5 Pro / Fast、Design Image 2</td></tr>
+    <tr><td>视频</td><td>MiniMax H3、MiniMax H3 Max、Wan 3.0、Wan 3.0 Prime、Kling 3.0 Omni</td></tr>
+    <tr><td>音频</td><td>Speech-2.8-HD、Seed Audio 1.0、Music-3.0</td></tr>
+  </table>
+  <p>「界面」本地模型页视频首屏可见 H3 轻量版 / 满血版、文生视频、首尾帧、多参考及官方超清 / 扩写组合；图片首屏可见 Qwen Image 2.1 文生图 / 图片编辑、Turbo、BF16 满血版。这里只记录首屏，不反推完整目录，也不把 Qwen Image 等条目纳入本项目通道白名单。</p>
+  <p>「静态」<code>conf/external_api_conf.yaml</code> 还包含更多云端模型适配；它只能证明内置适配代码存在，不能证明账号可用或本项目应接入。</p>
+  <p>「静态」<code>bundled-plugins/comfyui/hub-bootstrap.js</code> 使用动态本机端口 <code>127.0.0.1:PORT</code>，探测 <code>/system_stats</code>，并涉及安装目录、URL 覆盖、模型下载与文件选择。这证明本机 ComfyUI 集成与一定配置能力，<b>仍不能证明局域网多实例、实例调度、故障切换或短剧全链路已接通</b>。因此旧版“端口不可覆盖”结论不能无条件外推到 4.0.10.158，新版本也不能仅凭 <code>URL override</code> 字段就宣称支持完整局域网能力。</p>
+  <div class="apply">本项目明确改编为：ComfyUI 地址可配置、多实例；图像 / 视频生成全部经本地 / 局域网 ComfyUI；Renderer 不直连；引擎工具记录实例、工作流、模型 / 节点版本、参数、输入引用、任务与日志；禁止云端媒体 Key 和按次云调用。</div>
+
+  <h4>2.6.8 本轮未验证清单</h4>
+  <ul>
+    <li>未执行任何真实图片、视频、语音或音乐生成，未验证账号权限、额度、计费、并发、速度、质量与模型实际路由。</li>
+    <li>未验证局域网 ComfyUI 多实例、远程执行、队列恢复、断线重连与故障切换。</li>
+    <li>未修改项目、存储目录、模型选择或许可证状态，未验证存储迁移和数据库重建的实际结果。</li>
+    <li>未逐项操作 Windows 画布全部交互；Windows 静态结论与 §2.2 macOS 运行时实测不能互相冒充。</li>
+    <li>未做剪映 / CapCut 真实导入、3D 外部应用联动、插件安装、Skill 投稿或本地模型下载。</li>
+    <li>未验证旧版与 V3 的全部数据迁移边界，也未验证团队协作、社区审核、会员积分等服务端流程。</li>
+  </ul>
 </section>
 
-<!-- ═══ 3 与我们体系的对照 ═══ -->
+<!-- ═══ 3 全面复刻范围与体系对照 ═══ -->
 <section id="sec-3">
-  <div class="sec-head"><span class="sec-no">03</span><h2>与我们体系的对照</h2><span class="hint">§3 · 可借鉴 / 不可替代 / 不可连</span></div>
+  <div class="sec-head"><span class="sec-no">03</span><h2>全面复刻范围与体系对照</h2><span class="hint">§3 · 完整能力基线 + 明确改编</span></div>
+  <h3>3.1 全面复刻能力矩阵（本轮新基线） <span class="ver-tag">v1.4 新</span></h3>
+  <p>下表描述<b>要复刻什么、如何改编</b>，不是排期或实施授权。所有条目进入开发前仍需拆入任务包与验收规格。</p>
+  <table>
+    <tr><th>功能域</th><th>复刻范围</th><th>本项目改编 / 边界</th></tr>
+    <tr><td>桌面应用与导航</td><td>Electron 桌面壳、开始创作、项目库、技能·插件、本地模型、更新、异常恢复</td><td>自研等价实现；不要求复制 Velopack 或 managed junction 的具体机制</td></tr>
+    <tr><td>项目与创作页</td><td>新建 / 自动创建、目录选择、历史、编辑、导出、多创作页、多画布、恢复</td><td>保留八步项目数据与状态机；<code>legacy / resource_v3</code> 双栈不是复刻目标</td></tr>
+    <tr><td>无限画布</td><td>节点、连线、框选、拖拽、缩放、小地图、整理、吸附、标签、贴纸、设置、Diff Review</td><td>对齐交互与命令 / revision / 撤销语义；技术组件另立规格</td></tr>
+    <tr><td>对话与任务</td><td><code>@</code>、<code>/</code>、附件、Skill、模型入口、自动模式、澄清、确认、通知、结果定位</td><td>系统确定性操作默认直做；AI 负责文本生成与开放语义，双通道落同一数据与追溯</td></tr>
+    <tr><td>Agent 编排</td><td>router / planner / executor / media-agent / comfyui-agent、Contract、显式 payload、工具权限</td><td>可复刻职责划分；不得让模型或 Agent 绕过媒体通道和阶段门禁</td></tr>
+    <tr><td>短剧 Workflow</td><td>七阶段、双确认、稳定 work item、依赖、锁项、局部重试、Replan</td><td>映射到八步闭环，保留 0 立项与 7 发布；每阶段产物与验收不可裁剪</td></tr>
+    <tr><td>Skill 生态</td><td>官方 / 我的、导入、创建、保存修改、分类、社区入口、SKILL.md 与 references</td><td>本地创建 / 导入 / 使用优先；投稿、审核、积分等服务端能力另行定义，不伪造在线成功</td></tr>
+    <tr><td>插件生态</td><td>插件列表、配置、权限、调用、结果回写、自定义插件、专业工具入口</td><td>外部应用逐项做适配与运行验收；未接通时明确不可用，不能只复制图标</td></tr>
+    <tr><td>资产中心</td><td>上传、分类、复用、对话 / 画布 / Workflow 引用、产物回流、来源追踪</td><td>与角色、场景、道具、风格及镜头资产统一关联，避免另一套孤立资产库</td></tr>
+    <tr><td>图像 / 视频生成</td><td>参数确认、参考素材、任务队列、进度、失败重试、结果入画布与资产中心</td><td><b>唯一明确生成链路例外：全部改走可配置局域网 ComfyUI，多实例；不照搬云端模型矩阵</b></td></tr>
+    <tr><td>本地模型与 Workflow</td><td>精选 / 我的、导入、下载 / 续传 / 取消、兼容性检查、许可证、共享引用、版本记录</td><td>仅上架项目允许的模型与工作流；复现记录包含实例、模型 / 节点版本、seed、输入和日志</td></tr>
+    <tr><td>音频与音乐</td><td>原产品具有语音、音乐及音画组合入口</td><td>当前 Music3 / ComfyUI 与语音待定约束未被本轮明确修改；不得据“全面复刻”自行开放其他云端通道</td></tr>
+    <tr><td>3D 与预演</td><td>场景、角色素体、机位、姿态、运动路径、快照、截图、比较、诊断</td><td>作为独立插件 / 节点能力复刻，与分镜和镜头双向关联</td></tr>
+    <tr><td>剪辑与发布</td><td>字幕、转场、滤镜、贴纸、裁剪、拼接、比例、时间线、导出、剪映 / CapCut、ZIP 降级</td><td>对齐 6 后期与 7 发布；真实导出和第三方导入必须逐项验收</td></tr>
+    <tr><td>设置与存储</td><td>项目规则、网络代理、存储目录 / 迁移 / 恢复、Provider、媒体 Adapter、并发 / 轮询 / 超时</td><td>媒体 Adapter 只开放合规 ComfyUI；文本 Provider 与持久化变化须另行决策</td></tr>
+    <tr><td>可靠性与安全</td><td>健康检查、幂等、任务恢复、outbox、权限钩子、诊断、审计</td><td>保留纯 JSON 时须用等价机制满足一致性；Trace 默认关闭并脱敏</td></tr>
+    <tr><td>团队、社区与商业化</td><td>团队、共享、投稿、审核、会员、积分等可见产品面</td><td>客户端复刻不等于服务端已具备；账号、支付、共享与在线运营需独立规格和合规决策</td></tr>
+  </table>
+
+  <h3>3.2 需求变更后的待决策项</h3>
+  <ol>
+    <li><b>规范基线</b>：将《短剧Agent平台设计》与项目特化规则中的“只补两类缺口 / 形态对齐”正式调整为“全面复刻 + 明确改编”，并记录决策；本报告先记录新方向，不代替该动作。</li>
+    <li><b>持久化</b>：继续纯 JSON 并用文件锁、原子写、revision、CAS、操作日志等机制，还是为画布与任务引入 SQLite；不得以“复刻”为由直接换库。</li>
+    <li><b>非图像 / 视频通道</b>：音乐是否仍全部经 ComfyUI、语音采用何通道、文本是否仍仅火山方舟；本轮只明确图片和视频例外。</li>
+    <li><b>在线服务边界</b>：账号、团队、社区投稿、会员积分、云同步和支付是复刻界面、实现自有服务，还是明确不在桌面本地版范围。</li>
+    <li><b>模型与插件清单</b>：从“原产品可见全集”筛选本项目允许交付的模型、Workflow 和插件；可见条目不能直接变成可用承诺。</li>
+    <li><b>运行时验收</b>：需补真实局域网 ComfyUI、多实例故障、七 / 八阶段映射、完整导出、第三方插件与剪映导入测试，才能把静态复刻项标为完成。</li>
+  </ol>
+
+  <h3>3.3 历史技术对照（保留旧结论，按新证据修正）</h3>
+  <div class="note">下表保留 v1.0–v1.3 的技术对照，供追溯。“借鉴 / 补缺口”不再限制总体复刻范围；与新 Windows 证据冲突处已在 §2.6 修正。</div>
   <table>
   <tr><th>维度</th><th>MiniMax Design</th><th>我们的体系</th><th>结论</th></tr>
   <tr><td>画布自动连线</td><td>内容自动按流程连线、步骤节点</td><td>已升级为画布式界面（见《短剧Agent平台设计》）</td><td><span class="con-b">借鉴</span>：画布 + 状态着色 + 预览跳转</td></tr>
@@ -576,14 +741,14 @@ localStorage: hilo.workspace.activeCanvas.v1</pre>
   <tr><td>质量检查</td><td>8 条商业内容检查</td><td>验收规则.json 30 种检查类型</td><td><span class="con-n">互补</span>：Design 偏审美/商业口径，我们偏文件/内容级机器校验</td></tr>
   <tr><td><b>提示词 5 段式</b> <span class="ver-tag">新</span></td><td>Subject/Action/Setting/Camera/Lighting&Sound + 否定约束</td><td>设计未规定提示词模板</td><td><span class="con-b">借鉴</span>：补编剧/镜头 Agent 提示词模板</td></tr>
   <tr><td><b>复现性规范</b> <span class="ver-tag">新</span></td><td>workflow_id + model/node version + seed + sample inputs + generation logs</td><td>manifest 只有 model/seed/prompt/参考，缺 workflow_id/version/log</td><td><span class="con-b">借鉴</span>：补产物 JSON 字段（与设计 §0.1 原则五对齐）</td></tr>
-  <tr><td>生成通道</td><td>云端多模型矩阵（海螺/可灵/Veo3/Wan…）</td><td>R8 红线：固定 2512 + H3 + 豆包 T2A</td><td><span class="con-x">不可替代</span>：红线通道我们不改</td></tr>
-  <tr><td>ComfyUI 接入</td><td>Hub 托管，端口不可覆盖（实测）</td><td>执行适配层可配置地址 + ComfyUI <code>--listen 0.0.0.0</code></td><td><span class="con-x">不可连</span>：Design 连不了局域网实例，我们自研工作台可以</td></tr>
-  <tr><td>状态机/溯源</td><td>无流程状态机、无镜头 json 溯源</td><td>proj.py 状态机 + 30 种校验 + prompt_id 溯源</td><td><span class="con-x">不可替代</span>：Design 无此层</td></tr>
+  <tr><td>生成通道</td><td>云端多模型矩阵（海螺/可灵/Veo3/Wan…）与本地 Workflow 并存</td><td>现行红线：图像 H3 Image、视频 H3、音乐 Music3，全部经 ComfyUI；语音待定</td><td><span class="con-b">改编</span>：复刻交互与任务能力，不复制云端媒体通道</td></tr>
+  <tr><td>ComfyUI 接入</td><td>旧实测为 Hub 托管且端口不可覆盖；4.0.10.158 可见本机动态端口与 URL 覆盖逻辑，局域网能力未验证</td><td>执行适配层可配置地址、多实例 + ComfyUI <code>--listen 0.0.0.0</code></td><td><span class="con-b">扩展</span>：按本项目要求自研局域网多实例并做运行时验收</td></tr>
+  <tr><td>状态机/溯源</td><td>短剧 Workflow 有七阶段状态、双确认门、稳定 work item 与局部重试；通用硬门禁未证实</td><td>八步状态机 + 校验 + prompt_id / 工作流日志溯源</td><td><span class="con-b">对齐并保留差异</span>：吸收短剧执行计划，不裁剪八步闭环</td></tr>
   <tr><td>部署</td><td>本地部署 Beta（H3 工作流）</td><td>venv 无 docker 一键启动</td><td><span class="con-b">参考</span>：本地优先一致</td></tr>
   <tr><td><b>H3 部署形态</b> <span class="ver-tag">新</span></td><td>SGLang / vLLM-Omni / Diffusers / ComfyUI 四线部署；12GB 显存可出 480p</td><td>ComfyUI 是统一媒体引擎（设计 §0.1 原则五）</td><td><span class="con-b">同源</span>：我们与 Hub 在 ComfyUI 路径一致，硬件门限可对齐</td></tr>
   <tr><td><b>H3 变体与版本门限</b> <span class="ver-tag">v1.2 新</span></td><td>开源 FL2VA / Ref2VA + 云端 H3 Max / Max Turbo；ComfyUI v0.30.0→v0.39.1 多次关键升级；Fun ControlNet Union 2.0 支持多控制条件合一</td><td>设计未定 ComfyUI 最低版本；工作流模板未按版本门限分发</td><td><span class="con-b">补强</span>：供后续规格评估 ComfyUI 最低版本、镜头控制接口与低显存模板，不在本参考文档直接定规范</td></tr>
   </table>
-  <div class="card"><div class="ct">结论</div><div class="cb">MiniMax Design 适合做"创意发散 / 云端多模型内容生产"的参考形态与对照物；我们的工作台定位（画布 + 内嵌 Agent + 规范门禁 + 可配置 ComfyUI）在当前版本 Design 上无法实现，需自研（见《短剧Agent平台设计》）。</div></div>
+  <div class="apply"><b>更新结论</b>：MiniMax Design 不再只是“补缺口”的对照物，而是本项目的<b>完整能力与体验复刻基线</b>。复刻范围覆盖项目、画布、对话、Agent、Skill、插件、资产、本地模型、3D、剪辑与交付；图片 / 视频执行链路明确改为局域网 ComfyUI，本项目八步闭环、系统优先、媒体红线和安全追溯继续保留。存储、在线服务及非图像 / 视频模型通道按 §3.2 另行决策。</div>
 </section>
 
 <!-- ═══ 4 来源与版本 ═══ -->
@@ -598,23 +763,25 @@ localStorage: hilo.workspace.activeCanvas.v1</pre>
     <div class="card"><div class="ct">本机解包与运行时实测 <span class="ver-tag">v1.3 新</span></div><div class="cb">官方 MiniMax Design 4.0.8 macOS ARM64 客户端（2026-11-10）。静态证据来自 <code>/tmp/minimax-design-asar/</code> 的 package.json、renderer 的 CanvasAreaV3 / workspace-canvases / connector-reference、V3 入口的 CanvasPage / project-v3、主进程与 preload，以及客户端 Resources 下的 Gateway、MCP 与 OpenCode 插件代码。</div></div>
     <div class="card"><div class="ct">运行时落盘样本 <span class="ver-tag">v1.3 新</span></div><div class="cb">独立创作页「画布交互调研」，调研时位于 <code>/Users/szd/Movies/Hub/Projects/.projects/项目新手指引/画布交互调研/</code>；只读查询 <code>.hilo/canvas-v3/state.sqlite</code>，读取 <code>assets/Untitled.md</code> 并枚举 <code>store/ver_*.md</code>。测试创作页保留，未删除。上述临时与用户数据路径只用于本次证据定位，可能随系统清理、版本更新或工作区迁移失效。</div></div>
   </div>
-  <div class="note"><b>时效声明</b>：Design 版本迭代快，各节按产品版本和调研日期独立标注；本文件资料覆盖至 2026-11-10，旧版本结论不自动代表当前版本。</div>
+  <div class="card"><div class="ct">Windows 安装包与界面只读调研 <span class="ver-tag">v1.4 新</span></div><div class="cb">官方 MiniMax Design <b>4.0.10.158</b>（2026-11-15），安装目录 <code>C:\Users\SZD\AppData\Local\Programs\MiniMax Design\current</code>。选择性解析 <code>resources/app.asar</code> 的主进程、preload、旧版 / V3 Renderer 与工作区、项目、Skill、Workflow、设置、模型选择、资产中心模块；读取 <code>resources/agent-profiles/v2/config</code> 的 agents、contracts、drama-series Workflow 与 Stage Execution Plan；检查 <code>gateway</code>、<code>mcp-tools</code>、<code>mcp-tools-v3</code>、OpenCode 插件、ComfyUI、3D 导演台、剪辑导出及示例项目。运行界面只读观察一级导航、工作区、模型选择器、Skill / 插件和本地模型页。临时选择性提取目录为 <code>C:\Users\SZD\AppData\Local\Temp\minimax-design-4.0.10-research</code>，不是项目交付物，可能随系统清理失效。</div></div>
+  <div class="note"><b>时效声明</b>：Design 版本迭代快，各节按产品版本和调研日期独立标注；本文件资料覆盖至 <b>2026-11-15</b>，旧版本结论不自动代表当前版本，静态证据不自动代表运行时通过。</div>
 </section>
 
 <!-- ═══ 5 版本记录 ═══ -->
 <section id="sec-5">
   <div class="sec-head"><span class="sec-no">05</span><h2>版本记录</h2><span class="hint">§5 · 入口</span></div>
-  <div class="card"><div class="ct">v1.0（2026-10-02）→ v1.1（2026-10-09）→ v1.2（2026-10-10）→ v1.3（2026-11-10）</div><div class="cb">
+  <div class="card"><div class="ct">v1.0（2026-10-02）→ v1.1（2026-10-09）→ v1.2（2026-10-10）→ v1.3（2026-11-10）→ v1.4（2026-11-15）</div><div class="cb">
     <p><b>v1.1 增量</b>：SKILL.md 格式、画布节点类型、ComfyUI 工作流侧栏、Agent 驱动工作流、提示词 5 段式、复现性规范、H3 技术规格与部署。</p>
-    <p><b>v1.2 增量</b>：H3 Max / Max Turbo、ComfyUI v0.30.0→v0.39.1 H3 节点演进时间线、FastH3 Trim 8 GB 硬件门限与对照表版本门限行；2.1.2 工作流侧栏文字树替换为 SVG 流程图。</p>
+    <p><b>v1.2 增量</b>：H3 Max / Max Turbo、ComfyUI v0.30.0→v0.39.1 H3 节点演进时间线、FastH3 Trim 8 GB 硬件门限与对照表版本门限行。</p>
     <p><b>v1.3 增量</b>：新增 §2.2 V3 画布技术栈、文档与命令协议、视口交互、Dagre、自研小地图、SQLite 落盘样本、正文资产与 Agent 关联、运行时通过项和未验证边界；原 §2.2–§2.4 顺延为 §2.3–§2.5；§3 新增画布渲染/持久化对照；同步回补 v1.2 曾只写入 HTML 的源文档漏项。变更史记入根目录《版本记录.md》（AI 可读）。</p>
+    <p><b>v1.4 增量</b>：记录“全面复刻 MiniMax Design，图片 / 视频改走局域网 ComfyUI”的需求基线；新增 §2.6 Windows 4.0.10.158 安装包与界面证据、完整功能域、Gateway / MCP / OpenCode、Agent 五角色、短剧七阶段与双确认门、模型条目和未验证清单；新增 §3.1 全面复刻矩阵与 §3.2 待决策项；旧对照移入 §3.3，并修正“无流程状态机”“当前版本 ComfyUI 端口不可覆盖”及旧媒体通道等过度或过时表述。本轮只改研究文档，未改产品代码、架构真相源、共享类型或决策台账。</p>
   </div></div>
   <p class="dim">镜像纪律：改本文 md 必须同步 .html（人读镜像），两版标题/正文/数字逐一对齐；html 非独立事实源。</p>
 </section>
 
 <footer>
-  <span>AI 短剧制作文档族 · MiniMax Design 功能与架构参考 v1.3 · 依据官方手册/官方页面/官方 GitHub/ComfyUI changelog/社区实测/用户实测/v4.0.8 本机解包与运行时实测 · 非规范成员</span>
-  <span class="src">事实源：MiniMax Design功能与架构参考.md v1.3</span>
+  <span>AI 短剧制作文档族 · MiniMax Design 功能与架构参考 v1.4 · 全面复刻基线 / Windows 4.0.10.158 选择性解包与界面只读观察 · 非规范成员</span>
+  <span class="src">事实源：MiniMax Design功能与架构参考.md v1.4</span>
 </footer>
 
 </main>

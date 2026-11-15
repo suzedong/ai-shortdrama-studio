@@ -8,6 +8,7 @@ import type {
   RuntimeSessionMessageRecord,
   RuntimeStatus,
 } from '../src/lib/runtime-types'
+import type { StylePreviewMetadataDto, StylePreviewMetadataRequest } from './style/types.js'
 
 contextBridge.exposeInMainWorld('api', {
   // feature-011 F13：项目库真实化
@@ -55,6 +56,9 @@ contextBridge.exposeInMainWorld('api', {
   // feature-810：谱系升级差异工作流（K8 已批，2 桥；零推送，面板打开时主动拉取）
   styleCatalog: () => ipcRenderer.invoke('style:catalog'),
   styleUpgradeDiff: () => ipcRenderer.invoke('style:upgrade-diff'),
+  // feature-815：当前 PNG / MP4 内嵌元数据（K8 已批，恰 1 桥）
+  stylePreviewMetadata: (request: StylePreviewMetadataRequest): Promise<StylePreviewMetadataDto> =>
+    ipcRenderer.invoke('style:preview-metadata', request),
   // feature-808：项目绑定会话读（无参）/写（{ sessionId } 或 { sessionId: null }）双态（D-005 顶层暴露）
   activeSession: (sessionId?: string | null): Promise<{ sessionId: string | null }> =>
     ipcRenderer.invoke(
@@ -130,6 +134,8 @@ contextBridge.exposeInMainWorld('api', {
       list: () => ipcRenderer.invoke('settings:comfy:list'),
       upsert: (instance: unknown) => ipcRenderer.invoke('settings:comfy:upsert', instance),
       remove: (id: string) => ipcRenderer.invoke('settings:comfy:remove', { id }),
+      // feature-803 · 测试编辑器内地址；不要求先保存或打开项目
+      test: (arg: { baseUrl: string }) => ipcRenderer.invoke('settings:comfy:test', arg),
     },
     // feature-014 · AI 服务设置（脱敏视图，明文 Key 不经 IPC）
     ai: {

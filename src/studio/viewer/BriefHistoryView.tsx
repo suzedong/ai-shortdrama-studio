@@ -22,7 +22,7 @@ const APPROVE_BY_LABEL: Record<HistoryItem['approveBy'], string> = {
 
 function Section({ title, extra, children }: { title: string; extra?: ReactNode; children: ReactNode }) {
   return (
-    <section className="rounded-xl border border-line bg-white p-3.5">
+    <section className="rounded-xl border border-line bg-surface p-3.5">
       <div className="mb-2.5 flex items-center justify-between">
         <h4 className="text-[12px] font-extrabold text-ink">{title}</h4>
         {extra}
@@ -37,7 +37,7 @@ function Row({ k, v, hit }: { k: string; v: ReactNode; hit?: boolean }) {
   return (
     <div
       data-testid={hit ? 'brief-history-diff-field' : undefined}
-      className={`flex gap-3 border-b border-line/60 px-3 py-[7px] text-[11.5px] last:border-b-0 ${hit ? 'bg-[#FFF3D6]' : 'odd:bg-canvas/60'}`}
+      className={`flex gap-3 border-b border-line/60 px-3 py-[7px] text-[11.5px] last:border-b-0 ${hit ? 'bg-warn/10' : 'odd:bg-canvas/60'}`}
     >
       <span className="w-[64px] shrink-0 text-muted">{k}</span>
       <span className="min-w-0 flex-1 whitespace-pre-wrap break-words leading-5 text-ink">{v}</span>
@@ -193,7 +193,7 @@ export default function BriefHistoryView({ onClose }: { onClose: () => void }) {
   const rollbackable = selected !== null && latestVersion !== null && selected !== latestVersion
 
   return (
-    <div data-testid="brief-history-view" className="absolute inset-0 z-20 flex flex-col rounded-2xl border border-line bg-white shadow-card">
+    <div data-testid="brief-history-view" className="absolute inset-0 z-20 flex flex-col rounded-2xl border border-line bg-surface shadow-card">
       <div className="flex items-center justify-between border-b border-line px-5 py-3">
         <div className="flex min-w-0 items-baseline gap-2">
           <span className="shrink-0 text-xs font-medium text-violet">立项单</span>
@@ -208,14 +208,14 @@ export default function BriefHistoryView({ onClose }: { onClose: () => void }) {
             data-testid="brief-history-rollback"
             disabled={!rollbackable || rolling}
             onClick={() => { setActionError(null); setConfirmOpen(true) }}
-            className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-line bg-surface px-3 py-1 text-xs text-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
           >
             {selected !== null ? `回滚到 v${selected}` : '回滚'}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink"
+            className="rounded-lg border border-line bg-surface px-3 py-1 text-xs text-muted hover:text-ink"
           >
             关闭
           </button>
@@ -223,7 +223,7 @@ export default function BriefHistoryView({ onClose }: { onClose: () => void }) {
       </div>
 
       {history && history.warnings.length > 0 && (
-        <div className="border-b border-line bg-[#FDF3E0] px-5 py-2 text-[11px] leading-5 text-[#8A6D3B]">
+        <div className="border-b border-line bg-warn/10 px-5 py-2 text-[11px] leading-5 text-warn">
           {history.warnings.map((w, i) => <div key={i}>⚠ {w}</div>)}
         </div>
       )}
@@ -268,7 +268,7 @@ export default function BriefHistoryView({ onClose }: { onClose: () => void }) {
               data-testid="brief-history-item"
               data-version={v.version}
               onClick={() => { setSelected(v.version); setNotice(null) }}
-              className={`mb-1.5 flex w-full flex-col gap-0.5 rounded-lg border px-2.5 py-2 text-left ${selected === v.version ? 'border-violet bg-violet-soft/60' : 'border-line bg-white hover:border-violet/50'}`}
+              className={`mb-1.5 flex w-full flex-col gap-0.5 rounded-lg border px-2.5 py-2 text-left ${selected === v.version ? 'border-violet bg-violet-soft/60' : 'border-line bg-surface hover:border-violet/50'}`}
             >
               <div className="flex items-center gap-1.5">
                 <span className="text-[12px] font-extrabold text-ink">v{v.version}</span>
@@ -278,7 +278,7 @@ export default function BriefHistoryView({ onClose }: { onClose: () => void }) {
               </div>
               <span className="text-[10px] text-muted">{formatAt(v.publishedAt)}</span>
               <span className="text-[10px] text-muted">{APPROVE_BY_LABEL[v.approveBy]} · 变更 {v.changeCount} 项</span>
-              {v.note && <span className="break-words text-[10px] leading-4 text-[#8A6D3B]">{v.note}</span>}
+              {v.note && <span className="break-words text-[10px] leading-4 text-warn">{v.note}</span>}
             </button>
           ))}
         </div>
@@ -305,9 +305,9 @@ export default function BriefHistoryView({ onClose }: { onClose: () => void }) {
       {/* V4/V6：回滚二次确认框；取消零 IPC 调用 */}
       {confirmOpen && selected !== null && latestVersion !== null && (
         <div className="absolute inset-0 z-30 grid place-items-center rounded-2xl bg-ink/30 p-6">
-          <div data-testid="brief-history-rollback-confirm" className="w-[420px] rounded-xl border border-line bg-white p-5 shadow-card">
+          <div data-testid="brief-history-rollback-confirm" className="w-[420px] rounded-xl border border-line bg-surface p-5 shadow-card">
             <h3 className="text-[13px] font-extrabold text-ink">确认回滚到 v{selected}？</h3>
-            <p className="mt-2 text-[11.5px] leading-[1.7] text-[#4A4F68]">
+            <p className="mt-2 text-[11.5px] leading-[1.7] text-ink">
               将以 v{selected} 的内容发布新立项单 v{latestVersion + 1}，当前最新 v{latestVersion} 不会丢失。基于旧版的下游产物将按既有机制提示脏读。
             </p>
             <div className="mt-4 flex justify-end gap-2">
@@ -315,7 +315,7 @@ export default function BriefHistoryView({ onClose }: { onClose: () => void }) {
                 type="button"
                 onClick={() => setConfirmOpen(false)}
                 disabled={rolling}
-                className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink disabled:opacity-40"
+                className="rounded-lg border border-line bg-surface px-3 py-1 text-xs text-muted hover:text-ink disabled:opacity-40"
               >
                 取消
               </button>

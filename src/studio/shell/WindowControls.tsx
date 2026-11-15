@@ -37,7 +37,7 @@ function RestoreIcon() {
   return (
     <svg width={10} height={10} viewBox="0 0 10 10" fill="none" aria-hidden focusable={false}>
       <rect x="2.2" y="0.8" width="7" height="7" fill="none" stroke="currentColor" strokeWidth="1.2" />
-      <rect x="0.8" y="2.2" width="7" height="7" fill="#FFFFFF" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="0.8" y="2.2" width="7" height="7" className="fill-surface" stroke="currentColor" strokeWidth="1.2" />
     </svg>
   )
 }
@@ -74,7 +74,7 @@ export default function WindowControls() {
   const handleClose = () => { void win?.close().catch(() => undefined) }
 
   const baseBtn =
-    'grid h-8 w-[46px] place-items-center text-[#3A3D4A] transition-colors rounded-md'
+    'grid h-8 w-[46px] place-items-center text-ink transition-colors rounded-md'
 
   return (
     <div
@@ -86,7 +86,7 @@ export default function WindowControls() {
     >
       <button
         type="button"
-        className={`${baseBtn} hover:bg-[#E6E6E9]`}
+        className={`${baseBtn} hover:bg-line`}
         aria-label="最小化"
         title="最小化"
         data-win="minimize"
@@ -96,7 +96,7 @@ export default function WindowControls() {
       </button>
       <button
         type="button"
-        className={`${baseBtn} hover:bg-[#E6E6E9]`}
+        className={`${baseBtn} hover:bg-line`}
         aria-label={maximized ? '还原' : '最大化'}
         title={maximized ? '还原' : '最大化'}
         data-win="maximize"

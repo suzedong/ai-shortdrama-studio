@@ -185,6 +185,8 @@ function GateHint(): JSX.Element {
 
 **零 diff 枚举**：文件头注释、ChatItem 接口、parseChatLabel、OPT_LINE、pickNumOf、OptionCard 全部逻辑与样式、GateCardView 相关既有行、组件 Props 签名（ChatComposer 默认导出签名不动——qh 触发依赖既有 pendingGate prop，零新增 props）。
 
+> **C1（2026-11-15，feature-817）**：上述 OptionCard 零 diff 约束废止，发送入口改为下一步；追问 chips 分支及其单击直发契约不变，详见 feature-817 契约。
+
 ### 4.2 `resources/opencode/agents/showrunner.md`（指令层 diff）
 
 纪律 10（L93-97）增补第三种子块约定（新增段落，既有字句零改）：

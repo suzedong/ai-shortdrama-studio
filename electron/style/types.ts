@@ -1,5 +1,5 @@
-// feature-802 视觉风格谱系接入 · electron 侧类型（契约 §1）
-// 本文件所有类型不进 shared、不 re-export；renderer / preload 不可见。
+// 视觉风格谱系 · electron 侧纯类型（不进 shared）
+// feature-802 / 810 类型仅主进程使用；feature-815 DTO 可供 preload type-only 引用。
 
 /** 家族代码（J.1 五家族） */
 export type StyleFamilyCode = 'A' | 'B' | 'C' | 'D' | 'E'
@@ -122,4 +122,41 @@ export interface StyleUpgradeDiff {
   changelogUnavailable: boolean
   /** 未立项 / 无 style 字段空态 → true（面板禁用采纳并提示「立项后可采纳」） */
   noBrief?: boolean
+}
+
+// ---- feature-815 风格预览媒体元数据（契约 §2）----
+// 纯类型模块不引用 Node / Electron 运行时，避免 preload 传递纳入主进程加载器。
+
+export type StylePreviewMediaKind = 'image' | 'video'
+export type StylePreviewVideoTier = 'std' | 'turbo' | 'fast'
+
+export type StylePreviewMetadataRequest =
+  | { styleId: string; mediaKind: 'image' }
+  | { styleId: string; mediaKind: 'video'; tier: StylePreviewVideoTier }
+
+export type StylePreviewMetadataStatus =
+  | 'ok'
+  | 'missing'
+  | 'no-metadata'
+  | 'unsupported'
+  | 'invalid'
+
+export interface StylePreviewPrompt {
+  key: 'positive' | 'negative' | 'motion'
+  label: string
+  text: string
+}
+
+export interface StylePreviewParameter {
+  key: string
+  label: string
+  value: string | number
+}
+
+export interface StylePreviewMetadataDto {
+  request: StylePreviewMetadataRequest
+  status: StylePreviewMetadataStatus
+  prompts: StylePreviewPrompt[]
+  params: StylePreviewParameter[]
+  message?: string
 }

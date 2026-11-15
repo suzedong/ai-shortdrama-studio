@@ -578,7 +578,7 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
   if (nodes.length === 0) {
     return (
       <div className="flex h-full items-center justify-center p-8 text-center">
-        <div className="rounded-2xl border border-dashed border-line bg-white/70 px-10 py-8">
+        <div className="rounded-2xl border border-dashed border-line bg-surface/70 px-10 py-8">
           <p className="text-sm leading-6 text-muted">
             还没有任何产物。
             <br />
@@ -630,7 +630,7 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
       {dirtyNodes.length > 0 && (
         <div
           data-dirty-banner
-          className="pointer-events-none absolute left-3 top-3 z-20 max-w-[46%] rounded-lg bg-[#FFF4DE] px-3 py-1.5 text-[11px] font-semibold leading-snug text-[#C0841D] shadow-[0_4px_12px_rgba(192,132,29,0.18)]"
+          className="pointer-events-none absolute left-3 top-3 z-20 max-w-[46%] rounded-lg bg-warn/10 px-3 py-1.5 text-[11px] font-semibold leading-snug text-warn shadow-[0_4px_12px_rgba(192,132,29,0.18)]"
         >
           {`有 ${dirtyNodes.length} 个产物基于旧版立项（最新 v${dirtyLatest}），内容可能与最新立项不一致。`}
           {dirtyDriftLabel && <div className="mt-0.5">{dirtyDriftLabel}</div>}
@@ -721,7 +721,7 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
             <div
               key={`col-${col.step}`}
               className={`pointer-events-none absolute select-none text-center text-[11px] transition ${
-                isHit ? 'font-extrabold text-violet' : 'font-medium text-[#A6ABC0]'
+                isHit ? 'font-extrabold text-violet' : 'font-medium text-muted'
               }`}
               style={{ left: col.x - COL_GAP / 2, top: 4, width: NODE_W + COL_GAP }}
             >
@@ -742,10 +742,10 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
               data-node-id={node.id}
               role={openable ? 'button' : undefined}
               tabIndex={openable ? 0 : undefined}
-              className={`group node-in absolute flex ${node.status === 'active' ? 'cursor-default' : 'cursor-grab'} flex-col overflow-hidden rounded-[11px] border bg-white transition-shadow hover:shadow-[0_10px_24px_rgba(45,48,90,0.12)] ${
+              className={`group node-in absolute flex ${node.status === 'active' ? 'cursor-default' : 'cursor-grab'} flex-col overflow-hidden rounded-[11px] border bg-surface transition-shadow hover:shadow-[0_10px_24px_rgba(45,48,90,0.12)] ${
                 selected || dragId === node.id
                   ? 'z-[2] border-2 border-violet shadow-[0_12px_28px_rgba(108,92,231,0.22)]'
-                  : 'border-line hover:border-[#CBCEE0]'
+                  : 'border-line hover:border-line'
               } ${dragId === node.id ? 'cursor-grabbing opacity-50 shadow-[0_18px_36px_rgba(108,92,231,0.28)]' : ''} ${
                 node.status === 'invalidated' ? 'opacity-60' : ''
               }`}
@@ -772,7 +772,7 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
                 <span className="dag-selected-ring pointer-events-none absolute rounded-[14px]" style={{ inset: -7 }} />
               )}
               {/* 节点头 */}
-              <div className="flex items-center gap-1.5 border-b border-[#F0F1F7] px-2 py-[7px] text-[10.5px] font-bold text-[#4A4F68]">
+              <div className="flex items-center gap-1.5 border-b border-line px-2 py-[7px] text-[10.5px] font-bold text-ink">
                 <span className="grid h-[15px] w-[15px] place-items-center rounded bg-violet-soft text-[9px] text-violet">
                   <svg viewBox="0 0 24 24" className="h-[9px] w-[9px]" fill="none" stroke="currentColor" strokeWidth="2.4">
                     <path d="M4 6h16M4 12h16M4 18h10" />
@@ -784,22 +784,22 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
                   <span
                     data-dirty-badge={node.id}
                     title={dirtyTitle(node.dirty)}
-                    className="ml-auto grid h-[15px] w-[15px] place-items-center rounded bg-[#FFF4DE] text-[9px] leading-none text-[#C0841D]"
+                    className="ml-auto grid h-[15px] w-[15px] place-items-center rounded bg-warn/10 text-[9px] leading-none text-warn"
                   >
                     ⚠
                   </span>
                 )}
-                <span className={`font-semibold text-[#A6ABC0] ${node.dirty ? '' : 'ml-auto'}`}>{typeof node.meta?.version === 'string' ? node.meta.version : '—'}</span>
+                <span className={`font-semibold text-muted ${node.dirty ? '' : 'ml-auto'}`}>{typeof node.meta?.version === 'string' ? node.meta.version : '—'}</span>
               </div>
               {/* 节点体 */}
               <div className="flex flex-1 flex-col px-2.5 py-2">
                 <div className="line-clamp-2 text-[11.5px] font-semibold leading-[1.5] text-ink">{node.title}</div>
                 {node.ref?.path && (
-                  <div className="mt-1 truncate font-mono text-[9px] text-[#A6ABC0]" title={node.ref.path}>
+                  <div className="mt-1 truncate font-mono text-[9px] text-muted" title={node.ref.path}>
                     {node.ref.path.split(/[/\\]/).pop()}
                   </div>
                 )}
-                <div className="mt-auto flex items-center gap-1.5 pt-1.5 text-[9.5px] text-[#8A90A6]">
+                <div className="mt-auto flex items-center gap-1.5 pt-1.5 text-[9.5px] text-muted">
                   <span className={`h-[7px] w-[7px] shrink-0 rounded-full ${meta.dot}`} />
                   {meta.label}
                   {(node.assetIds?.length ?? 0) > 0 && (
@@ -832,21 +832,21 @@ export default function CanvasBoard({ canvas, onOpenNode, activeStep, onNodeActi
       </div>
 
       {/* 缩放控件 */}
-      <div className="absolute bottom-3.5 left-3.5 z-10 flex items-center rounded-[10px] border border-line bg-white shadow-[0_4px_12px_rgba(40,42,80,0.08)]">
-        <button className="h-7 w-7 text-sm text-[#6A708A] hover:text-violet" onClick={e => { e.stopPropagation(); zoomAt(zoom - 0.1, vp.w / 2, vp.h / 2) }}>−</button>
+      <div className="absolute bottom-3.5 left-3.5 z-10 flex items-center rounded-[10px] border border-line bg-surface shadow-[0_4px_12px_rgba(40,42,80,0.08)]">
+        <button className="h-7 w-7 text-sm text-muted hover:text-violet" onClick={e => { e.stopPropagation(); zoomAt(zoom - 0.1, vp.w / 2, vp.h / 2) }}>−</button>
         <button
-          className="h-7 w-10 border-x border-line text-[10.5px] leading-7 text-[#8A90A6] hover:text-violet"
+          className="h-7 w-10 border-x border-line text-[10.5px] leading-7 text-muted hover:text-violet"
           title="适应画布"
           onClick={e => { e.stopPropagation(); fitView() }}
         >
           {Math.round(zoom * 100)}%
         </button>
-        <button className="h-7 w-7 text-sm text-[#6A708A] hover:text-violet" onClick={e => { e.stopPropagation(); zoomAt(zoom + 0.1, vp.w / 2, vp.h / 2) }}>＋</button>
+        <button className="h-7 w-7 text-sm text-muted hover:text-violet" onClick={e => { e.stopPropagation(); zoomAt(zoom + 0.1, vp.w / 2, vp.h / 2) }}>＋</button>
       </div>
 
       {/* 小地图 */}
-      <div className="absolute bottom-3.5 right-3.5 z-10 h-20 w-32 rounded-[10px] border border-line bg-white p-2 shadow-[0_4px_12px_rgba(40,42,80,0.08)]">
-        <div className="relative h-full w-full overflow-hidden rounded-[5px] bg-[#F3F4F9]">
+      <div className="absolute bottom-3.5 right-3.5 z-10 h-20 w-32 rounded-[10px] border border-line bg-surface p-2 shadow-[0_4px_12px_rgba(40,42,80,0.08)]">
+        <div className="relative h-full w-full overflow-hidden rounded-[5px] bg-canvas">
           {laid.items.map(({ node, x, y }) => (
             <i
               key={`mm-${node.id}`}
@@ -929,7 +929,7 @@ function ContextMenu({
         type="button"
         data-ctx-item={act}
         onClick={() => onAction(act, node)}
-        className="block w-full rounded-md px-2.5 py-1.5 text-left text-[12px] font-medium text-[#4A4F68] hover:bg-violet-soft hover:text-violet"
+        className="block w-full rounded-md px-2.5 py-1.5 text-left text-[12px] font-medium text-ink hover:bg-violet-soft hover:text-violet"
       >
         {label}
       </button>
@@ -940,7 +940,7 @@ function ContextMenu({
       {/* 全屏透明拦截层：点击外部 / 右键其他处关闭 */}
       <div className="fixed inset-0 z-30" data-ctx-backdrop onContextMenu={e => { e.preventDefault(); onClose() }} onClick={onClose} />
       <div
-        className="fixed z-40 w-40 rounded-[10px] border border-line bg-white p-1 shadow-[0_12px_32px_rgba(40,42,80,0.18)]"
+        className="fixed z-40 w-40 rounded-[10px] border border-line bg-surface p-1 shadow-[0_12px_32px_rgba(40,42,80,0.18)]"
         style={{ left, top }}
         data-ctx-menu={node ? 'node' : 'canvas'}
         data-node-id={node?.id ?? undefined}
@@ -981,7 +981,7 @@ function NodeActions({
   const showBar = selected
   return (
     <div
-      className={`absolute inset-x-0 bottom-0 z-[3] flex items-center justify-around border-t border-line bg-white/95 px-1 py-[3px] backdrop-blur-sm transition ${
+      className={`absolute inset-x-0 bottom-0 z-[3] flex items-center justify-around border-t border-line bg-surface/95 px-1 py-[3px] backdrop-blur-sm transition ${
         showBar ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
       }`}
       // 父级没有 group 工具类，简化：仅选中态常显；hover 走父 .node-in:hover 通过 :has 或 sibling 不便，用 selected 保证可达
@@ -1053,8 +1053,8 @@ function ActionBtn({
       onClick={e => { e.stopPropagation(); onClick(e) }}
       className={`grid h-[18px] w-[18px] place-items-center rounded transition ${
         tone === 'bad'
-          ? 'text-[#A6ABC0] hover:bg-bad/10 hover:text-bad'
-          : 'text-[#7A8098] hover:bg-violet-soft hover:text-violet'
+          ? 'text-muted hover:bg-bad/10 hover:text-bad'
+          : 'text-muted hover:bg-violet-soft hover:text-violet'
       }`}
       data-action={dataAttr}
     >

@@ -91,10 +91,10 @@ export function parseChatLabel(text: string): { label?: ChatLabel; rest: string;
 function LabelTag({ label, side }: { label: ChatLabel; side: 'left' | 'right' }) {
   const toneCls =
     label.tone === 'infer'
-      ? 'border-[#F6E6C4] bg-[#FFF4DE] text-[#C0841D]'
+      ? 'border-warn/30 bg-warn/10 text-[#C0841D]'
       : label.tone === 'user'
-        ? 'border-violet bg-white text-[#5A4BC4]'
-        : 'border-[#D9D3FB] bg-violet-soft text-[#5A4BC4]'
+        ? 'border-violet bg-surface text-violet'
+        : 'border-violet/30 bg-violet-soft text-violet'
   return (
     <span
       data-chat-label={label.tone}
@@ -137,10 +137,13 @@ function BubbleModelLine({ model }: { model: ChatModelOption | null | undefined 
 // 渲染层剥离为可点按钮；点击 = 代发该选项编号（与手打「1」同一路径，quote 组装分流照旧）。
 // `【追问选项】…【/追问选项】`（纯文本候选答复行、无编号，feature-010）渲染为横向胶囊 chips，点击代发该行原文。
 export interface ChatOption {
-  num: string // 编号（"1"…"99" / "A"…"Z"），点击时代发
+  num: string // 编号（"1"…"99" / "A"…"Z"），下一步时代发
   text: string // 纯文本选项文字；风格选项为原始行内容
   styleId?: string // 【风格选项】块中命中谱系的 ID（未知 ID 降级纯文本选项）
+  recommended?: boolean // feature-817：仅纯文本选项尾部的显式【推荐】标记
 }
+
+export interface ChatOptionStep { current: number; total: number }
 
 const OPT_LINE = /^\s*(\d{1,2}|[A-Za-z])[.、．]\s*(\S.*)$/
 
@@ -151,6 +154,7 @@ export function parseChatOptions(text: string): {
   options?: ChatOption[]
   style?: boolean
   chips?: string[] // 【追问选项】块：逐非空行 trim 后的候选答复原文（≥2 条）
+  step?: ChatOptionStep // feature-817：仅纯文本选项块的可选步骤元数据
   pending?: boolean
 } {
   const trimmed = text.replace(/\s+$/, '')
@@ -174,12 +178,31 @@ export function parseChatOptions(text: string): {
       if (chips.length < 2) return { rest: text }
       return { rest: [before, after].filter(Boolean).join('\n'), chips }
     }
+    const lines = body.split('\n')
+    let step: ChatOptionStep | undefined
+    if (kind === '选项') {
+      const firstContent = lines.findIndex(line => line.trim().length > 0)
+      const stepMatch = firstContent >= 0 ? /^步骤：(\d+)\/(\d+)$/.exec(lines[firstContent].trim()) : null
+      if (stepMatch) {
+        const current = Number(stepMatch[1])
+        const total = Number(stepMatch[2])
+        if (!Number.isSafeInteger(current) || !Number.isSafeInteger(total) || current < 1 || total < 1 || current > total) {
+          return { rest: text }
+        }
+        step = { current, total }
+        lines.splice(firstContent, 1)
+      }
+    }
+
     const options: ChatOption[] = []
-    for (const line of body.split('\n')) {
+    for (const line of lines) {
       if (!line.trim()) continue
       const m = OPT_LINE.exec(line)
       if (!m) return { rest: text } // 任一行失配：整块不识别、原样显示（暴露格式错误）
-      options.push({ num: m[1], text: m[2].trim() })
+      const recommended = kind === '选项' && m[2].trimEnd().endsWith('【推荐】')
+      const optionText = (recommended ? m[2].trimEnd().slice(0, -'【推荐】'.length) : m[2]).trim()
+      if (!optionText) return { rest: text }
+      options.push({ num: m[1], text: optionText, ...(recommended ? { recommended: true } : {}) })
     }
     if (options.length < 2) return { rest: text }
     const style = kind === '风格选项'
@@ -189,7 +212,7 @@ export function parseChatOptions(text: string): {
         if (idM && getStyleEntry(idM[1])) o.styleId = idM[1]
       }
     }
-    return { rest: [before, after].filter(Boolean).join('\n'), options, style }
+    return { rest: [before, after].filter(Boolean).join('\n'), options, style, ...(step ? { step } : {}) }
   }
   // ② 流式未闭合：最后一个行首开标签之后没有对应闭标签 → pending（块内容暂不显示，等闭合）
   const openRe = /(^|\n)(【(风格选项|选项|追问选项)】)/g
@@ -224,77 +247,185 @@ function OptionCard({
   disabled,
   pickedNum,
   onPick,
+  step,
 }: {
   options: ChatOption[]
   disabled: boolean
   pickedNum?: string
-  onPick: (num: string) => void
+  onPick: (answer: string) => void
+  step?: ChatOptionStep
 }) {
   // feature-811：风格选项卡数据 = style:catalog 快照（订阅到位后重渲染；版本号显快照 version）
   const catalog = useStyleCatalog()
+  const [selectedNum, setSelectedNum] = useState<string>()
+  const [custom, setCustom] = useState('')
+  const [collapsed, setCollapsed] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  // 父级 busy 结束后若本卡仍活跃（例如发送失败），释放本地锁允许重试。
+  useEffect(() => {
+    if (!disabled) setSubmitting(false)
+  }, [disabled])
+
+  const answer = selectedNum ?? custom.trim()
+  const submit = () => {
+    if (!answer || disabled || submitting) return
+    setSubmitting(true)
+    onPick(answer)
+  }
+
   return (
-    <div data-chat-options className="mt-[7px] flex flex-col gap-[5px]">
-      {options.map(opt => {
-        const picked = pickedNum === opt.num
-        const entry = opt.styleId ? getStyleEntry(opt.styleId) : undefined
-        return (
-          <button
-            key={opt.num}
-            type="button"
-            data-chat-option={opt.num}
-            data-picked={picked || undefined}
-            disabled={disabled}
-            onClick={() => onPick(opt.num)}
-            className={`flex items-center gap-[7px] rounded-[9px] border-[1.5px] px-[9px] py-[7px] text-left text-[10.5px] font-bold transition ${
-              picked
-                ? 'border-violet bg-violet text-white'
-                : `border-line bg-white text-[#4A4F68] ${disabled ? 'opacity-40' : 'hover:translate-x-[2px] hover:border-violet hover:bg-violet-soft'}`
-            }`}
-          >
-            {entry ? (
-              <>
-                {PREVIEW_URL[entry.id] ? (
-                  <img
-                    src={PREVIEW_URL[entry.id]}
-                    alt={entry.id}
-                    className="h-10 w-10 shrink-0 rounded-[7px] border border-line object-cover"
-                  />
-                ) : (
-                  <i
-                    className="block h-10 w-10 shrink-0 rounded-[7px] border border-line"
-                    style={{ background: FAMILY_GRAD[entry.familyCode] }}
-                  />
-                )}
-                <span className={picked ? 'text-white' : 'text-ink'}>
-                  {entry.name} · {entry.id} @ {catalog.version ?? '…'}
-                </span>
-                <span
-                  className={`shrink-0 rounded px-[5px] py-px text-[8.5px] font-extrabold ${
+    <div data-chat-options className="mt-3 overflow-hidden rounded-[14px] border border-line bg-surface shadow-[0_8px_24px_rgba(20,22,40,0.04)]">
+      <div className="flex min-h-11 items-center gap-2 border-b border-line px-3 py-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2 text-[11px] font-bold text-ink">
+          {step && (
+            <span data-chat-option-step className="shrink-0 rounded-full bg-violet-soft px-2 py-1 text-[9px] font-extrabold text-violet">
+              第 {step.current}/{step.total} 步
+            </span>
+          )}
+          <span className="truncate">请选择一个方向，或输入你的回答</span>
+        </div>
+        {!disabled && (
+          <>
+            <span className="flex shrink-0 items-center gap-1.5 text-[9.5px] font-semibold text-muted">
+              <i className="h-1.5 w-1.5 rounded-full bg-violet" />等待回答
+            </span>
+            <button
+              type="button"
+              aria-label="关闭选项"
+              onClick={() => setCollapsed(true)}
+              className="shrink-0 rounded-md px-1.5 py-1 text-[10px] font-semibold text-muted transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet"
+            >
+              关闭
+            </button>
+          </>
+        )}
+      </div>
+
+      {collapsed && !disabled ? (
+        <button
+          type="button"
+          data-chat-options-reopen
+          onClick={() => setCollapsed(false)}
+          className="flex w-full items-center justify-between px-3 py-3 text-left text-[10.5px] font-semibold text-muted transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet"
+        >
+          <span>{answer ? `已暂存：${options.find(o => o.num === answer)?.text ?? answer}` : '选项已收起'}</span>
+          <span className="text-violet">重新展开</span>
+        </button>
+      ) : (
+        <>
+          <div className="flex flex-col gap-1.5 p-2">
+            {options.map(opt => {
+              const picked = pickedNum === opt.num
+              const selected = selectedNum === opt.num
+              const entry = opt.styleId ? getStyleEntry(opt.styleId) : undefined
+              return (
+                <button
+                  key={opt.num}
+                  type="button"
+                  data-chat-option={opt.num}
+                  data-picked={picked || undefined}
+                  aria-pressed={picked || selected}
+                  disabled={disabled || submitting}
+                  onClick={() => {
+                    setSelectedNum(opt.num)
+                    setCustom('')
+                  }}
+                  className={`flex min-h-11 items-center gap-2.5 rounded-[10px] border px-3 py-2 text-left text-[11px] font-semibold transition ${
                     picked
-                      ? 'bg-white/20 text-white'
-                      : entry.role === 'main'
-                        ? 'bg-[#E7F8F0] text-[#1E9E66]'
-                        : 'bg-[#FFF4DE] text-[#C0841D]'
+                      ? 'border-violet bg-violet text-white'
+                      : selected
+                        ? 'border-violet bg-violet-soft text-ink shadow-[0_0_0_1px_rgba(123,92,240,0.08)]'
+                        : `border-line bg-surface text-ink ${disabled ? 'opacity-40' : 'hover:border-violet hover:bg-violet-soft'}`
                   }`}
                 >
-                  {entry.role === 'main' ? '主·已验证' : '备·风险自担'}
-                </span>
-              </>
-            ) : (
-              <>
-                <span
-                  className={`grid h-5 w-5 shrink-0 place-items-center rounded-md text-[10px] font-extrabold ${
-                    picked ? 'bg-white/20 text-white' : 'bg-violet-soft text-violet'
-                  }`}
-                >
-                  {opt.num}
-                </span>
-                <span>{opt.text}</span>
-              </>
-            )}
-          </button>
-        )
-      })}
+                  {entry ? (
+                    <>
+                      {PREVIEW_URL[entry.id] ? (
+                        <img
+                          src={PREVIEW_URL[entry.id]}
+                          alt={entry.id}
+                          className="h-10 w-10 shrink-0 rounded-[7px] border border-line object-cover"
+                        />
+                      ) : (
+                        <i
+                          className="block h-10 w-10 shrink-0 rounded-[7px] border border-line"
+                          style={{ background: FAMILY_GRAD[entry.familyCode] }}
+                        />
+                      )}
+                      <span className={`min-w-0 flex-1 ${picked ? 'text-white' : 'text-ink'}`}>
+                        {entry.name} · {entry.id} @ {catalog.version ?? '…'}
+                      </span>
+                      <span
+                        className={`shrink-0 rounded px-[5px] py-px text-[8.5px] font-extrabold ${
+                          picked
+                            ? 'bg-white/20 text-white'
+                            : entry.role === 'main'
+                              ? 'bg-ok/10 text-[#1E9E66]'
+                              : 'bg-warn/10 text-[#C0841D]'
+                        }`}
+                      >
+                        {entry.role === 'main' ? '主·已验证' : '备·风险自担'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span
+                        className={`grid h-6 w-6 shrink-0 place-items-center rounded-md text-[10px] font-extrabold ${
+                          picked ? 'bg-white/20 text-white' : selected ? 'bg-violet text-white' : 'bg-violet-soft text-violet'
+                        }`}
+                      >
+                        {selected && !picked ? '✓' : opt.num}
+                      </span>
+                      <span className={`min-w-0 flex-1 leading-5 ${picked ? 'text-white' : 'text-ink'}`}>{opt.text}</span>
+                      {opt.recommended && (
+                        <span
+                          data-chat-option-recommended
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[8.5px] font-extrabold ${
+                            picked ? 'bg-white/20 text-white' : 'bg-violet-soft text-violet'
+                          }`}
+                        >
+                          推荐
+                        </span>
+                      )}
+                    </>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+          {!disabled && (
+            <div className="flex items-center gap-2 border-t border-line bg-canvas/60 px-2.5 py-2.5">
+              <input
+                aria-label="自定义回答"
+                value={custom}
+                disabled={submitting}
+                onChange={event => {
+                  setCustom(event.target.value)
+                  setSelectedNum(undefined)
+                }}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                    event.preventDefault()
+                    submit()
+                  }
+                }}
+                placeholder="输入你的回答"
+                className="h-9 min-w-0 flex-1 rounded-[9px] border border-line bg-surface px-3 text-[11px] text-ink outline-none transition placeholder:text-muted focus:border-violet focus:ring-2 focus:ring-violet/10"
+              />
+              <button
+                type="button"
+                data-chat-option-next
+                disabled={!answer || disabled || submitting}
+                onClick={submit}
+                className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-violet px-4 text-[10.5px] font-bold text-white transition hover:bg-violet-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                下一步<span aria-hidden="true">→</span>
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
@@ -327,7 +458,7 @@ function ChipRow({
             className={
               picked
                 ? 'rounded-full border border-violet bg-violet px-2 py-[3px] text-[10px] font-bold text-white transition-colors'
-                : 'rounded-full border border-[#DED9FB] bg-violet-soft px-2 py-[3px] text-[10px] font-bold text-[#5A4BC4] transition-colors hover:bg-violet hover:text-white disabled:cursor-default disabled:opacity-40 disabled:hover:bg-violet-soft disabled:hover:text-[#5A4BC4]'
+                : 'rounded-full border border-violet/30 bg-violet-soft px-2 py-[3px] text-[10px] font-bold text-violet transition-colors hover:bg-violet hover:text-white disabled:cursor-default disabled:opacity-40 disabled:hover:bg-violet-soft disabled:hover:text-violet'
             }
           >
             {chip}
@@ -344,7 +475,7 @@ function GateHint() {
   return (
     <div
       data-chat-gate-hint
-      className="mt-[6px] rounded-[8px] border border-[#F6E6C4] bg-[#FFF9EC] px-2 py-1.5 text-[10px] leading-[1.6] text-[#9A7420]"
+      className="mt-[6px] rounded-[8px] border border-warn/30 bg-warn/10 px-2 py-1.5 text-[10px] leading-[1.6] text-[#9A7420]"
     >
       <div className="mb-[1px] flex items-center gap-1 text-[9.5px] font-extrabold">💡 拍板提示</div>
       直接说「行，就按这版发布」= 按钮拍板（系统记录原话与定案卡版本）
@@ -495,7 +626,7 @@ function BriefCard({ rows }: { rows: BriefRow[] }) {
     <div className="mt-2 overflow-hidden rounded-[9px] border border-line">
       {rows.map((row, i) => (
         <div key={`${row.k}-${i}`} className="flex text-[10.5px] odd:bg-canvas">
-          <span className="w-[52px] shrink-0 px-[9px] py-[5px] text-[#9AA0B5]">{row.k}</span>
+          <span className="w-[52px] shrink-0 px-[9px] py-[5px] text-muted">{row.k}</span>
           <span className="px-[9px] py-[5px] font-semibold text-ink">{row.v}</span>
         </div>
       ))}
@@ -510,7 +641,7 @@ function TraceCard({ trace }: { trace: TraceData }) {
       <div className="flex items-center gap-[7px] bg-canvas px-2.5 py-[7px]">
         <span
           className={`rounded-full px-1.5 py-px text-[8.5px] font-bold ${
-            engine ? 'bg-[#EAF1FE] text-[#3E6FD0]' : 'bg-violet-soft text-[#5A4BC4]'
+            engine ? 'bg-[#5B8DEF]/15 text-[#3E6FD0]' : 'bg-violet-soft text-violet'
           }`}
         >
           {trace.tag}
@@ -519,12 +650,12 @@ function TraceCard({ trace }: { trace: TraceData }) {
         <span className="ml-auto flex items-center gap-[3px] text-[9.5px] text-ok">{trace.status}</span>
       </div>
       {trace.body && (
-        <div className="whitespace-pre-line border-t border-[#F2F3F8] px-2.5 py-[7px] font-mono text-[10px] leading-[1.6] text-[#7A8098]">
+        <div className="whitespace-pre-line border-t border-line px-2.5 py-[7px] font-mono text-[10px] leading-[1.6] text-muted">
           {trace.body}
         </div>
       )}
       {typeof trace.progress === 'number' && (
-        <div className="mx-2.5 my-[7px] mb-[9px] h-1 overflow-hidden rounded-full bg-[#EEF0F6]">
+        <div className="mx-2.5 my-[7px] mb-[9px] h-1 overflow-hidden rounded-full bg-canvas">
           <i
             className="block h-full rounded-full bg-gradient-to-r from-[#8FA8F5] to-violet transition-all duration-1000"
             style={{ width: `${trace.progress}%` }}
@@ -634,25 +765,29 @@ function ToolTrace({
 }) {
   if (tools.length === 0) return null
   const summary = summarizeToolActions(tools.map(t => t.tool))
-  const rows = (
-    <div className="mt-1 space-y-1">
-      {tools.map(tool => (
-        <ToolRow key={tool.callId} tool={tool} />
-      ))}
-    </div>
-  )
-  if (tools.length === 1) return <div className="mt-2">{rows}</div>
+  const active = tools.some(tool => tool.status === 'running' || tool.status === 'pending')
+  const hasError = tools.some(tool => tool.status === 'error')
+  const status = active ? '进行中' : hasError ? '执行失败' : '已完成'
   return (
     <details
       data-testid="chat-tool-trace"
+      data-status={active ? 'running' : hasError ? 'error' : 'completed'}
       open={defaultOpen}
-      className="mt-2 rounded-lg bg-canvas px-3 py-2 text-xs leading-5 text-muted"
+      className="group mt-2 rounded-[10px] border border-line/70 bg-canvas px-3 py-2 text-xs leading-5 text-muted"
     >
-      <summary className="cursor-pointer select-none">
-        <span className="font-medium text-ink">工具轨迹 · {tools.length} 项</span>
-        {summary && <span className="text-muted"> · {summary}</span>}
+      <summary className="flex cursor-pointer select-none items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
+          {active && <span data-chat-task-spinner className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-line border-t-violet" />}
+          任务详情 · {tools.length} 项
+        </span>
+        <span className={hasError && !active ? 'font-semibold text-bad' : 'text-muted'}>{status}</span>
+        {summary && <span className="min-w-0 flex-1 truncate text-right text-muted/80"> · {summary}</span>}
       </summary>
-      {rows}
+      <div className="mt-2 space-y-1.5 border-t border-line/60 pt-2">
+        {tools.map(tool => (
+          <ToolRow key={tool.callId} tool={tool} />
+        ))}
+      </div>
     </details>
   )
 }
@@ -842,7 +977,7 @@ export default function ChatComposer({
   }
 
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-surface">
       {/* ── chat-head：主控 Agent + 五 Agent 叠圈 ── */}
       <div className="border-b border-line px-4 py-3">
         <div className="flex items-center gap-[9px]">
@@ -965,7 +1100,7 @@ export default function ChatComposer({
                   const trailing = (
                     <>
                       {opt.options && (
-                        <OptionCard options={opt.options} disabled={consumed} pickedNum={pickedNum} onPick={pickOption} />
+                        <OptionCard options={opt.options} step={opt.step} disabled={consumed} pickedNum={pickedNum} onPick={pickOption} />
                       )}
                       {opt.chips && (
                         <ChipRow chips={opt.chips} disabled={consumed} pickedChip={pickedChip} onPick={pickOption} />
@@ -974,7 +1109,7 @@ export default function ChatComposer({
                   )
 
                   return (
-                    <div className="relative max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
+                    <div className="relative max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-canvas px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
                       <LabelTag label={label ?? defaultAgentLabel(item.agent)} side="left" />
                       <InterleavedContent
                         segments={ordered}
@@ -993,14 +1128,14 @@ export default function ChatComposer({
                   : parseChatLabel(item.text ?? '')
                 const opt = parseChatOptions(parsed.rest)
                 return (
-                  <div className="relative max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
+                  <div className="relative max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-canvas px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
                     <LabelTag label={parsed.label ?? defaultAgentLabel(item.agent)} side="left" />
                     {item.reasoningBlocks
                       ? <ReasoningBlocks blocks={item.reasoningBlocks} />
                       : item.reasoning && <ReasoningBlocks blocks={[item.reasoning]} />}
                     {opt.rest && <MarkdownText text={opt.rest} />}
                     {opt.options && (
-                      <OptionCard options={opt.options} disabled={consumed} pickedNum={pickedNum} onPick={pickOption} />
+                      <OptionCard options={opt.options} step={opt.step} disabled={consumed} pickedNum={pickedNum} onPick={pickOption} />
                     )}
                     {opt.chips && (
                       <ChipRow chips={opt.chips} disabled={consumed} pickedChip={pickedChip} onPick={pickOption} />
@@ -1021,7 +1156,7 @@ export default function ChatComposer({
         {stream && (
           <div className="flex gap-[9px]">
             <Avatar agent="showrunner" />
-            <div className="relative max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
+            <div className="relative max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-canvas px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
               {(() => {
                 // B-56：从全文解析标签 / 选项（气泡级标签与末尾选项卡）；
                 // 段内文本同步剥离协议块，保持「推理→工具→推理→工具」的交错顺序
@@ -1053,7 +1188,7 @@ export default function ChatComposer({
                 // 流式进行中选项只展不点（busy 天然为真），回合落定入 items 后才可点
                 const trailing = (
                   <>
-                    {opt.options && <OptionCard options={opt.options} disabled onPick={pickOption} />}
+                    {opt.options && <OptionCard options={opt.options} step={opt.step} disabled onPick={pickOption} />}
                     {opt.chips && <ChipRow chips={opt.chips} disabled onPick={pickOption} />}
                   </>
                 )
@@ -1082,7 +1217,7 @@ export default function ChatComposer({
         {!stream && generating && (
           <div data-testid="chat-turn-placeholder" className="flex gap-[9px]">
             <Avatar agent="showrunner" />
-            <div className="relative max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-[#F4F5FA] px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
+            <div className="relative max-w-[85%] rounded-tr-[12px] rounded-bl-[4px] rounded-br-[12px] rounded-tl-[12px] bg-canvas px-3 py-[9px] text-[12px] leading-[1.6] text-ink">
               <LabelTag label={{ text: '主控 Agent', tone: 'ai' }} side="left" />
               <TypingDots />
               <BubbleModelLine model={selectedModel} />
@@ -1110,7 +1245,7 @@ export default function ChatComposer({
 
       {/* ── chat-input ── */}
       <div className="border-t border-line px-3.5 pb-3.5 pt-2.5">
-        <div className="rounded-xl bg-[#F4F5FA] px-[11px] py-[9px]">
+        <div className="rounded-xl border border-line bg-canvas px-[11px] py-[9px] transition focus-within:border-violet focus-within:ring-2 focus-within:ring-violet/15">
           <textarea
             value={draft}
             onChange={e => setDraft(e.target.value)}
@@ -1129,7 +1264,7 @@ export default function ChatComposer({
             <button
               type="button"
               title="Skill"
-              className="grid h-6 w-6 place-items-center rounded-[7px] text-muted transition hover:bg-[#E8EAF3] hover:text-violet"
+              className="grid h-6 w-6 place-items-center rounded-[7px] text-muted transition hover:bg-line hover:text-violet"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-3.5 w-3.5">
                 <path d="m12 3 2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5z" />
@@ -1138,7 +1273,7 @@ export default function ChatComposer({
             <button
               type="button"
               title="资产"
-              className="grid h-6 w-6 place-items-center rounded-[7px] text-muted transition hover:bg-[#E8EAF3] hover:text-violet"
+              className="grid h-6 w-6 place-items-center rounded-[7px] text-muted transition hover:bg-line hover:text-violet"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-3.5 w-3.5">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
@@ -1153,7 +1288,7 @@ export default function ChatComposer({
                 const next = modelOptions.find(option => chatModelKey(option) === e.target.value)
                 if (next) onModelChange(next)
               }}
-              className="h-6 min-w-0 max-w-[160px] flex-1 truncate rounded-[7px] border border-line bg-white px-1.5 text-[10px] font-semibold text-muted outline-none transition focus:border-violet disabled:cursor-not-allowed disabled:opacity-70"
+              className="h-6 min-w-0 max-w-[160px] flex-1 truncate rounded-[7px] border border-line bg-surface px-1.5 text-[10px] font-semibold text-muted outline-none transition focus:border-violet disabled:cursor-not-allowed disabled:opacity-70"
             >
               {modelOptions.length === 0 ? (
                 <option value="">请先在 AI 服务设置中配置模型</option>
@@ -1165,7 +1300,7 @@ export default function ChatComposer({
                 ))
               )}
             </select>
-            <span className="flex shrink-0 items-center gap-1 rounded-full bg-violet-soft px-2 py-[3px] text-[9.5px] font-semibold text-[#5A4BC4]">
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-violet-soft px-2 py-[3px] text-[9.5px] font-semibold text-violet">
               <span className="h-[5px] w-[5px] rounded-full bg-violet" />
               H3 自动选配
             </span>

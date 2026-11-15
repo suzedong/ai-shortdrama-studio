@@ -180,7 +180,7 @@ describe('feature-808 · 会话续聊（契约 §6.3）', () => {
     expect(screen.getByText('A 历史推理').closest('details')).toHaveTextContent('推理过程')
     // D-011：工具行显示中文动作短语（物理 ID 保留在 title）；3 项走折叠块
     const trace = screen.getByTestId('chat-tool-trace')
-    expect(trace).toHaveTextContent('工具轨迹 · 3 项')
+    expect(trace).toHaveTextContent('任务详情 · 3 项')
     expect(trace).toHaveTextContent('读取画布 · 写入文件 · 读取阶段状态')
     const historyTools = screen.getAllByTestId('chat-tool-row')
     expect(historyTools).toHaveLength(3)
@@ -342,8 +342,8 @@ describe('feature-808 · 会话续聊（契约 §6.3）', () => {
     // idle 定稿落 agent 气泡，推理与工具状态行仍保留在正式气泡中
     expect(screen.getByText('A 正在生成的回复')).toBeInTheDocument()
     expect(screen.getByText('本轮推理内容').closest('details')).toHaveTextContent('推理过程')
-    // D-011：单项工具不加折叠层，直接列中文动作短语行
-    expect(screen.queryByTestId('chat-tool-trace')).not.toBeInTheDocument()
+    // feature-817：单项工具同样归入可折叠任务详情，中文动作行保留
+    expect(screen.getByTestId('chat-tool-trace')).toHaveTextContent('任务详情 · 1 项')
     expect(screen.getAllByTestId('chat-tool-row')).toHaveLength(1)
     expect(screen.getByTestId('chat-tool-row')).toHaveTextContent('✓读取画布0.2s')
   })

@@ -35,34 +35,34 @@ const PILL = 'rounded-full border px-2 py-px text-[10px] font-bold'
 const CHIP = 'flex items-center gap-1.5 text-[11.5px] font-bold text-ink'
 
 function stepBadge(node: ChainStepNode): { text: string; cls: string } {
-  if (node.status === 'final') return { text: '已定稿', cls: `${PILL} border-[#B9E8D2] bg-[#E7F8F0] text-[#1E9E66]` }
-  if (node.status === 'collecting') return { text: `收敛中 ${node.covered}/${node.total}`, cls: `${PILL} border-[#DED9FB] bg-violet-soft text-[#5A4FD8]` }
-  return { text: '未开始', cls: `${PILL} border-line bg-white text-[#9AA0B5]` }
+  if (node.status === 'final') return { text: '已定稿', cls: `${PILL} border-ok/30 bg-ok/10 text-ok` }
+  if (node.status === 'collecting') return { text: `收敛中 ${node.covered}/${node.total}`, cls: `${PILL} border-violet/30 bg-violet-soft text-[#5A4FD8]` }
+  return { text: '未开始', cls: `${PILL} border-line bg-surface text-muted` }
 }
 
 function gateBadge(node: ChainGateNode): { text: string; cls: string } {
   if (node.status === 'published') {
-    return { text: node.version !== null ? `已发布 v${node.version}` : '已发布', cls: `${PILL} border-[#B9E8D2] bg-[#E7F8F0] text-[#1E9E66]` }
+    return { text: node.version !== null ? `已发布 v${node.version}` : '已发布', cls: `${PILL} border-ok/30 bg-ok/10 text-ok` }
   }
   if (node.status === 'pending') {
-    return { text: node.version !== null ? `待拍板 v${node.version}` : '待拍板', cls: `${PILL} border-[#DED9FB] bg-violet-soft text-[#5A4FD8]` }
+    return { text: node.version !== null ? `待拍板 v${node.version}` : '待拍板', cls: `${PILL} border-violet/30 bg-violet-soft text-[#5A4FD8]` }
   }
-  if (node.status === 'rejected') return { text: '被驳回', cls: `${PILL} border-[#F0CFCF] bg-white text-[#C0453B]` }
-  return { text: '未就绪', cls: `${PILL} border-line bg-white text-[#9AA0B5]` }
+  if (node.status === 'rejected') return { text: '被驳回', cls: `${PILL} border-bad/30 bg-bad/10 text-bad` }
+  return { text: '未就绪', cls: `${PILL} border-line bg-surface text-muted` }
 }
 
 function StepChip({ icon, label, node, cred }: { icon: string; label: string; node: ChainStepNode; cred: string }) {
   const badge = stepBadge(node)
   return (
     <span className={CHIP} data-stage0-chain={cred}>
-      <span className="text-[12px] text-[#9AA0B5]">{icon}</span>
+      <span className="text-[12px] text-muted">{icon}</span>
       <span>{label}</span>
       <span className={badge.cls}>{badge.text}</span>
     </span>
   )
 }
 
-const ARROW = <span className="text-[11px] text-[#C3C7D8]">→</span>
+const ARROW = <span className="text-[11px] text-muted">→</span>
 
 export default function Stage0Chain({ state, projectId = '' }: Stage0ChainProps) {
   const { facts, loadError } = useCaptureFacts(projectId)
@@ -74,10 +74,10 @@ export default function Stage0Chain({ state, projectId = '' }: Stage0ChainProps)
 
   return (
     <div
-      className="absolute inset-x-0 top-[38px] z-10 flex h-[46px] items-center gap-2 border-b border-line bg-white/85 px-[18px] backdrop-blur"
+      className="absolute inset-x-0 top-[38px] z-10 flex h-[46px] items-center gap-2 border-b border-line bg-surface/85 px-[18px] backdrop-blur"
       data-stage0-chain
     >
-      <span className="text-[10.5px] font-extrabold tracking-[0.4px] text-[#9AA0B5]">立项过程</span>
+      <span className="text-[10.5px] font-extrabold tracking-[0.4px] text-muted">立项过程</span>
       <StepChip icon="①" label="选题诊断" node={nodes.diag} cred="diag" />
       {ARROW}
       <StepChip icon="②" label="故事前提" node={nodes.premise} cred="premise" />
@@ -85,29 +85,29 @@ export default function Stage0Chain({ state, projectId = '' }: Stage0ChainProps)
       {nodes.gate.status === 'pending' ? (
         <button
           type="button"
-          className={`${CHIP} cursor-pointer rounded-md px-1 py-0.5 hover:bg-[#F1F2F8]`}
+          className={`${CHIP} cursor-pointer rounded-md px-1 py-0.5 hover:bg-canvas`}
           onClick={() => setSummaryOpen(o => !o)}
           data-stage0-chain-gate
         >
-          <span className="text-[12px] text-[#9AA0B5]">🚪</span>
+          <span className="text-[12px] text-muted">🚪</span>
           <span>定案卡</span>
           <span className={gate.cls}>{gate.text}</span>
-          <span className="text-[9px] text-[#9AA0B5]">{gateOpen ? '▴' : '▾'}</span>
+          <span className="text-[9px] text-muted">{gateOpen ? '▴' : '▾'}</span>
         </button>
       ) : (
         <span className={CHIP} data-stage0-chain-gate>
-          <span className="text-[12px] text-[#9AA0B5]">🚪</span>
+          <span className="text-[12px] text-muted">🚪</span>
           <span>定案卡</span>
           <span className={gate.cls}>{gate.text}</span>
         </span>
       )}
       <div className="flex-1" />
       {loadError !== null && (
-        <span className="text-[10px] text-[#C0453B]" data-stage0-chain-error>口径读取失败</span>
+        <span className="text-[10px] text-bad" data-stage0-chain-error>口径读取失败</span>
       )}
       {gateOpen && (
         <div
-          className="absolute right-[18px] top-[44px] z-20 w-[480px] max-w-[90vw] rounded-[12px] border border-line bg-white p-4 shadow-[0_12px_32px_rgba(40,42,80,0.14)]"
+          className="absolute right-[18px] top-[44px] z-20 w-[480px] max-w-[90vw] rounded-[12px] border border-line bg-surface p-4 shadow-[0_12px_32px_rgba(40,42,80,0.14)]"
           data-stage0-chain-gate-summary
         >
           <div className="text-[12px] font-extrabold text-ink">

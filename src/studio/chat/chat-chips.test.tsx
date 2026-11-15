@@ -228,6 +228,8 @@ describe('ChipRow 交互与 GateHint（组②）', () => {
     expect(opts.map(el => el.getAttribute('data-chat-option'))).toEqual(['1', '2'])
     expect(container.querySelector('[data-chat-chips]')).toBeNull()
     fireEvent.click(opts[0])
+    expect(onSend).not.toHaveBeenCalled()
+    fireEvent.click(container.querySelector('[data-chat-option-next]')!)
     expect(onSend).toHaveBeenCalledWith('1')
   })
 })

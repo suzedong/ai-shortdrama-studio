@@ -64,6 +64,8 @@
 7. **测试**：新建 `src/studio/chat-chips.test.tsx`（测试文件净增恰 1，60 → 61）；既有测试全零 diff。
 8. **治理收尾**：偏差清单 B-45 落表翻 ✅；docs/features/README.md 0xx 段增行；变更记录 T 序列回填。
 
+> **C1（2026-11-15，feature-817 用户拍板）**：本包关于 OptionCard 零 diff 的历史约束自 feature-817 起废止；编号选项改为“选择暂存 → 下一步发送”，支持自定义回答与可选步骤/推荐元数据。**ChipRow 单击直发、quote/capture 分流与 GateCard 语义继续不变**。
+
 ### 3.2 不做（显式排除）
 
 - 卡①折叠 / 六要素内嵌直改（候选 C 内容，仅备案，待用户另行指示）；

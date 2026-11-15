@@ -232,35 +232,35 @@ describe('Stage0View 前提卡分色集成（AC2-AC4）', () => {
     for (const key of PREMISE_KEYS) {
       expect(rowConf(key)).toBe('none')
       const cls = row(key)?.getAttribute('class') ?? ''
-      expect(cls).not.toContain('bg-[#F2FBF6]')
-      expect(cls).not.toContain('bg-[#FDF8EE]')
+      expect(cls).not.toContain('bg-ok/10')
+      expect(cls).not.toContain('bg-warn/10')
     }
     expect(document.querySelector('[data-stage0-premise-seal]')).toBeNull()
   })
 
-  it('user/confirmed facts → human 行：「不可篡改」seal + bg-[#F2FBF6] + confirmation="human"', async () => {
+  it('user/confirmed facts → human 行：「不可篡改」seal + bg-ok/10 + confirmation="human"', async () => {
     installViewApi(briefOnlyRouter, [fact('f1', 'leads', { source: 'user', status: 'confirmed' })])
     renderView(canvas({ nodes: [doneBriefNode()] }))
     await findStage0('brief')
     await waitFor(() => expect(rowConf('leads')).toBe('human'))
     const el = row('leads')!
-    expect(el.getAttribute('class')).toContain('bg-[#F2FBF6]')
+    expect(el.getAttribute('class')).toContain('bg-ok/10')
     const seal = el.querySelector('[data-stage0-premise-seal]')
     expect(seal?.textContent).toBe('不可篡改')
-    expect(seal?.getAttribute('class')).toContain('text-[#1E9E66]')
+    expect(seal?.getAttribute('class')).toContain('text-ok')
     expect(rowConf('time')).toBe('none')
   })
 
-  it('infer+pending → ai 行：「AI 拟稿」seal + bg-[#FDF8EE] + confirmation="ai"', async () => {
+  it('infer+pending → ai 行：「AI 拟稿」seal + bg-warn/10 + confirmation="ai"', async () => {
     installViewApi(briefOnlyRouter, [fact('f1', 'coreEvent')])
     renderView(canvas({ nodes: [doneBriefNode()] }))
     await findStage0('brief')
     await waitFor(() => expect(rowConf('coreEvent')).toBe('ai'))
     const el = row('coreEvent')!
-    expect(el.getAttribute('class')).toContain('bg-[#FDF8EE]')
+    expect(el.getAttribute('class')).toContain('bg-warn/10')
     const seal = el.querySelector('[data-stage0-premise-seal]')
     expect(seal?.textContent).toBe('AI 拟稿')
-    expect(seal?.getAttribute('class')).toContain('text-[#B07E2A]')
+    expect(seal?.getAttribute('class')).toContain('text-warn')
   })
 
   it('混合共存：human / ai / none 三态行同卡并存各归其色', async () => {

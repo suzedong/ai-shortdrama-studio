@@ -1,7 +1,7 @@
 # feature-814 画布命令底座与资产关联 · 需求规格
 
 > 状态：✅ 已实施（2026-11-10；全量 83 文件 1054 passed / 1 skipped；renderer typecheck 仅余包前三条基线错误）
-> 批准依据：[feature-814 实施计划](../../../.trae/documents/feature-814-画布命令底座与资产关联.md)
+> 批准记录：[D-001 · K1 + K8](./SDG-AI-变更记录.md)
 > 参考事实源：[MiniMax Design功能与架构参考](../../research/MiniMax%20Design功能与架构参考.md) §2.2、§2.5；[短剧Agent平台设计](../../../短剧Agent平台设计.md) §0.1。
 > 本文及同包契约是当前实现范围的硬约束；MiniMax 的 SQLite/React Flow/Dagre 方案不在本批采用。
 

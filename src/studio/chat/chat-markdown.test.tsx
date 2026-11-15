@@ -203,6 +203,8 @@ describe('对话内选项卡（B-35 选项块约定）', () => {
     expect(bubble).not.toContain('【')
     expect(bubble).not.toContain('红果')
     fireEvent.click(opts[0])
+    expect(onSend).not.toHaveBeenCalled()
+    fireEvent.click(container.querySelector('[data-chat-option-next]')!)
     expect(onSend).toHaveBeenCalledWith('1')
   })
 
@@ -214,7 +216,7 @@ describe('对话内选项卡（B-35 选项块约定）', () => {
     expect(parseChatOptions('问题如下\n【风格选')).toEqual({ rest: '问题如下', pending: true })
   })
 
-  it('末条 Agent 消息的选项可点，点击代发编号', () => {
+  it('末条 Agent 消息的选项可暂存，下一步代发编号', () => {
     const onSend = vi.fn()
     const { container } = renderComposer(
       [{ id: 'a1', role: 'agent', text: '请确认：\n【选项】\n1. 确认发布 v4\n2. 取消（流程终止）\n【/选项】' }],
@@ -223,6 +225,8 @@ describe('对话内选项卡（B-35 选项块约定）', () => {
     const opts = container.querySelectorAll('[data-chat-option]')
     expect(Array.from(opts).map(el => el.getAttribute('data-chat-option'))).toEqual(['1', '2'])
     fireEvent.click(opts[1])
+    expect(onSend).not.toHaveBeenCalled()
+    fireEvent.click(container.querySelector('[data-chat-option-next]')!)
     expect(onSend).toHaveBeenCalledWith('2')
   })
 

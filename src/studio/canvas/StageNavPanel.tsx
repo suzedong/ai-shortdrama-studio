@@ -110,7 +110,7 @@ export default function StageNavPanel({ nodes, activeStep, onSelect }: Props) {
             type="button"
             onClick={() => onSelect(isCurrent ? null : s.step)}
             className={`group flex items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left transition ${
-              isCurrent ? 'bg-violet-soft' : 'hover:bg-[#F5F6FB]'
+              isCurrent ? 'bg-violet-soft' : 'hover:bg-canvas'
             }`}
             data-stage={s.step}
             title={s.title}
@@ -121,7 +121,7 @@ export default function StageNavPanel({ nodes, activeStep, onSelect }: Props) {
                   ? 'bg-ok text-white'
                   : isActive
                     ? 'bg-violet text-white shadow-[0_4px_10px_rgba(108,92,231,0.32)]'
-                    : 'bg-[#F1F2F8] text-[#AEB4C8]'
+                    : 'bg-canvas text-muted'
               }`}
             >
               {allDone ? (
@@ -133,10 +133,10 @@ export default function StageNavPanel({ nodes, activeStep, onSelect }: Props) {
               )}
             </span>
             <div className="min-w-0 flex-1">
-              <div className={`truncate text-[11.5px] font-bold leading-tight ${isCurrent || allDone || isActive ? 'text-ink' : 'text-[#A6ABC0]'}`}>
+              <div className={`truncate text-[11.5px] font-bold leading-tight ${isCurrent || allDone || isActive ? 'text-ink' : 'text-muted'}`}>
                 {s.title} · STAGE {s.step}
               </div>
-              <div className="mt-0.5 truncate text-[9.5px] text-[#B7BCD0]">
+              <div className="mt-0.5 truncate text-[9.5px] text-muted">
                 {matched.length > 0 ? `${matched.length} 节点 · ${doneCount} 已完成` : s.desc}
               </div>
             </div>
@@ -144,16 +144,16 @@ export default function StageNavPanel({ nodes, activeStep, onSelect }: Props) {
               data-stage-badge={s.step}
               className={`relative ml-auto shrink-0 self-center rounded px-1.5 py-px text-[8.5px] font-extrabold ${
                 stage0Dirty
-                  ? 'bg-[#FFF4DE] text-[#C0841D]'
+                  ? 'bg-warn/10 text-warn'
                   : isIdle
-                    ? 'bg-[#F2F3F9] text-[#9AA0B5]'
+                    ? 'bg-canvas text-muted'
                     : allDone
-                      ? 'bg-[#E7F8F0] text-[#1E9E66]'
+                      ? 'bg-ok/10 text-ok'
                       : isActive
                         ? 'bg-violet text-white'
                         : pendingCount > 0
-                          ? 'bg-[#FFF4DE] text-[#C0841D]'
-                          : 'bg-[#F2F3F9] text-[#9AA0B5]'
+                          ? 'bg-warn/10 text-warn'
+                          : 'bg-canvas text-muted'
               }`}
               title={stage0Dirty
                 ? `${dirtyNodes} 个产物基于旧版立项，与最新 v${briefVersion} 不一致`
@@ -175,16 +175,16 @@ export default function StageNavPanel({ nodes, activeStep, onSelect }: Props) {
               {/* feature-013：hover 版本历史卡（未发布不渲染；失败降级不渲染） */}
               {stage0Brief && hoverHistory && history && history.length > 0 && (
                 <span
-                  className="absolute left-0 top-[26px] z-50 w-[240px] rounded-[10px] border border-line bg-white p-2.5 text-left shadow-[0_10px_30px_rgba(40,42,80,0.16)]"
+                  className="absolute left-0 top-[26px] z-50 w-[240px] rounded-[10px] border border-line bg-surface p-2.5 text-left shadow-[0_10px_30px_rgba(40,42,80,0.16)]"
                   data-stage0-history-card
                 >
-                  <span className="mb-1.5 block text-[10px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">立项版本历史</span>
+                  <span className="mb-1.5 block text-[10px] font-extrabold tracking-[0.3px] text-muted">立项版本历史</span>
                   {history.map(h => (
-                    <span key={h.version} className="flex items-center gap-2 py-[3px] text-[10.5px] text-[#4A4F68]">
+                    <span key={h.version} className="flex items-center gap-2 py-[3px] text-[10.5px] text-ink">
                       <span className="font-extrabold text-ink">v{h.version}</span>
-                      <span className="text-[#A6ABC0]">{shortTime(h.publishedAt)}</span>
-                      <span className="text-[#A6ABC0]">+{h.changeCount} 改动</span>
-                      <span className="ml-auto text-[#A6ABC0]">{APPROVE_BY_LABEL[h.approveBy]}</span>
+                      <span className="text-muted">{shortTime(h.publishedAt)}</span>
+                      <span className="text-muted">+{h.changeCount} 改动</span>
+                      <span className="ml-auto text-muted">{APPROVE_BY_LABEL[h.approveBy]}</span>
                     </span>
                   ))}
                 </span>

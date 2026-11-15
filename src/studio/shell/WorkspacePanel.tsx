@@ -83,7 +83,7 @@ export default function WorkspacePanel({ onClose }: WorkspacePanelProps) {
       <div
         role="dialog"
         aria-label="工作目录"
-        className="w-[520px] rounded-xl border border-line bg-white p-5 shadow-card"
+        className="w-[520px] rounded-xl border border-line bg-surface p-5 shadow-card"
       >
         <h3 className="text-[13px] font-extrabold text-ink">工作目录</h3>
 
@@ -91,16 +91,16 @@ export default function WorkspacePanel({ onClose }: WorkspacePanelProps) {
           <div
             role="alert"
             data-workspace-error
-            className="mt-3 rounded-lg border border-bad/40 bg-bad/10 px-3 py-2 text-[11.5px] leading-5 text-bad"
+            className="mt-3 rounded-lg border border-bad/30 bg-bad/10 px-3 py-2 text-[11.5px] leading-5 text-bad"
           >
             {error}
           </div>
         )}
 
         {success && (
-          <div className="mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2 text-[11.5px] leading-5">
+          <div className="mt-3 rounded-lg border border-ok/30 bg-ok/10 px-3 py-2 text-[11.5px] leading-5">
             <p className="font-bold text-ok">已更换到 {success.root}（移动 {success.movedCount} 个项目）</p>
-            <p className="mt-1 text-[#C0841D]">运行时已驻留时，需手动重连运行时后新根目录生效</p>
+            <p className="mt-1 text-warn">运行时已驻留时，需手动重连运行时后新根目录生效</p>
           </div>
         )}
 
@@ -136,7 +136,7 @@ export default function WorkspacePanel({ onClose }: WorkspacePanelProps) {
               <div className="rounded-lg border border-line bg-canvas px-3 py-2.5">
                 <p className="text-[11px] text-muted">目标目录</p>
                 <p className="mt-0.5 break-all font-mono text-[11.5px] text-ink">{selected}</p>
-                <p className="mt-1.5 text-[11px] font-semibold text-[#C0841D]">
+                <p className="mt-1.5 text-[11px] font-semibold text-warn">
                   将整体移动 {projectCount} 个项目目录
                 </p>
                 <div className="mt-2 flex gap-2">
@@ -153,7 +153,7 @@ export default function WorkspacePanel({ onClose }: WorkspacePanelProps) {
                     type="button"
                     onClick={() => setSelected(null)}
                     disabled={busy}
-                    className="rounded-lg border border-line bg-white px-3.5 py-1 text-xs text-muted hover:text-ink disabled:opacity-40"
+                    className="rounded-lg border border-line bg-surface px-3.5 py-1 text-xs text-muted hover:text-ink disabled:opacity-40"
                   >
                     取消
                   </button>
@@ -167,7 +167,7 @@ export default function WorkspacePanel({ onClose }: WorkspacePanelProps) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-line bg-white px-4 py-1.5 text-xs text-muted hover:text-ink"
+            className="rounded-lg border border-line bg-surface px-4 py-1.5 text-xs text-muted hover:text-ink"
           >
             关闭
           </button>

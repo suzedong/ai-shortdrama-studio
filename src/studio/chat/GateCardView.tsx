@@ -100,9 +100,9 @@ function ImpactSummaryBlock({ summary }: { summary: ImpactSummaryDto }) {
   return (
     <div
       data-gate-impact-summary
-      className="mx-[11px] mb-[9px] overflow-hidden rounded-[7px] border border-[#DED9FB] bg-white"
+      className="mx-[11px] mb-[9px] overflow-hidden rounded-[7px] border border-violet/30 bg-surface"
     >
-      <div className="flex items-center gap-1.5 border-b border-[#EFEBFD] bg-[#F7F6FF] px-[9px] py-1.5 text-[10px] font-extrabold text-[#5A4FD8]">
+      <div className="flex items-center gap-1.5 border-b border-violet/30 bg-violet-soft px-[9px] py-1.5 text-[10px] font-extrabold text-[#5A4FD8]">
         影响产物清单 · {summary.items.length} 项
         <span className="ml-auto font-bold text-[#9A90E8]" data-gate-impact-counts>
           高 {summary.counts.high} · 中 {summary.counts.medium}
@@ -116,12 +116,12 @@ function ImpactSummaryBlock({ summary }: { summary: ImpactSummaryDto }) {
             data-node-id={item.nodeId}
             data-severity={item.severity}
             data-default-action={item.defaultAction}
-            className="rounded-[6px] border border-[#EFEBFD] bg-white px-2 py-1"
+            className="rounded-[6px] border border-violet/30 bg-surface px-2 py-1"
           >
             <div className="flex items-center gap-1.5 text-[10.5px] font-bold text-ink">
               <span
                 className={`shrink-0 rounded px-1.5 py-px text-[9px] font-bold ${
-                  item.severity === 'high' ? 'bg-[#FBE9E6] text-bad' : 'bg-[#FBF3E2] text-[#B07E2A]'
+                  item.severity === 'high' ? 'bg-bad/10 text-bad' : 'bg-warn/10 text-warn'
                 }`}
               >{IMPACT_SEVERITY_LABELS[item.severity]}</span>
               <span className="truncate">{item.nodeId}</span>
@@ -132,7 +132,7 @@ function ImpactSummaryBlock({ summary }: { summary: ImpactSummaryDto }) {
           </div>
         ))}
       </div>
-      <div className="px-[9px] pb-1.5 text-[9px] text-[#A6ABC0]" data-gate-impact-source>
+      <div className="px-[9px] pb-1.5 text-[9px] text-muted" data-gate-impact-source>
         摘要快照 {summary.assessedAt} · 来源 brief.impact.assess（commit 时复算）
       </div>
     </div>
@@ -175,8 +175,8 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
       <>
         <div
           data-gate-execution={execution ? (execution.ok ? 'success' : 'failure') : 'idle'}
-          className={`mt-2 overflow-hidden rounded-[11px] border-[1.5px] bg-gradient-to-b to-white ${
-            failed ? 'border-bad/50 from-[#FDF6F5]' : 'border-[#BFE6D2] from-[#F4FCF8]'
+          className={`mt-2 overflow-hidden rounded-[11px] border-[1.5px] bg-gradient-to-b to-surface ${
+            failed ? 'border-bad/30 from-bad/10' : 'border-ok/30 from-ok/10'
           }`}
         >
           <div className="px-[11px] pb-3.5 pt-3.5 text-center">
@@ -197,15 +197,15 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
         {blockers.length > 0 && (
           <div
             data-gate-harness-findings
-            className="mt-2 overflow-hidden rounded-[11px] border-[1.5px] border-bad/50 bg-gradient-to-b from-[#FDF6F5] to-white"
+            className="mt-2 overflow-hidden rounded-[11px] border-[1.5px] border-bad/30 bg-gradient-to-b from-bad/10 to-surface"
           >
-            <div className="border-b border-bad/20 px-[11px] py-[9px] text-[11.5px] font-extrabold text-bad">
+            <div className="border-b border-bad/30 px-[11px] py-[9px] text-[11.5px] font-extrabold text-bad">
               发布被基础校验拦截 · 待修复 {blockers.length} 项
             </div>
             <div className="flex flex-col gap-1.5 px-[11px] py-[9px]">
               {blockers.map((f, i) => (
-                <div key={`${gate.gateId}-harness-${i}`} className="rounded-[7px] border border-bad/50 bg-white px-[9px] py-1.5">
-                  <span className="mb-1 inline-block rounded bg-[#F7E8E4] px-1.5 py-0.5 text-[9px] font-bold text-bad">
+                <div key={`${gate.gateId}-harness-${i}`} className="rounded-[7px] border border-bad/30 bg-surface px-[9px] py-1.5">
+                  <span className="mb-1 inline-block rounded bg-bad/10 px-1.5 py-0.5 text-[9px] font-bold text-bad">
                     {HARNESS_CATEGORY_LABELS[f.category] ?? f.category}
                   </span>
                   <div className="text-[10.5px] leading-4 text-ink">{f.message}</div>
@@ -224,11 +224,11 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
 
   return (
     <div
-      className={`mt-2 overflow-hidden rounded-[11px] border-[1.5px] bg-gradient-to-b from-[#FBFAFF] to-white ${
-        rejected ? 'border-bad/50' : 'border-[#D9D3FB]'
+      className={`mt-2 overflow-hidden rounded-[11px] border-[1.5px] bg-gradient-to-b from-violet-soft to-surface ${
+        rejected ? 'border-bad/30' : 'border-violet/30'
       }`}
     >
-      <div className="flex items-center gap-[7px] border-b border-[#EFEBFD] px-[11px] py-[9px]">
+      <div className="flex items-center gap-[7px] border-b border-violet/30 px-[11px] py-[9px]">
         <span className="grid h-5 w-5 place-items-center rounded-md bg-violet">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" className="h-[11px] w-[11px] text-white">
             <path d="m9 11 3 3L22 4" />
@@ -242,7 +242,7 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
       {question.body && (
         <div
           data-gate-question-body
-          className="max-h-[260px] overflow-y-auto border-b border-[#EFEBFD] bg-white px-[11px] py-2 text-[11px] leading-[1.65] text-ink"
+          className="max-h-[260px] overflow-y-auto border-b border-violet/30 bg-surface px-[11px] py-2 text-[11px] leading-[1.65] text-ink"
         >
           <MarkdownText text={question.body} />
         </div>
@@ -253,7 +253,7 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
           <div key={`${gate.gateId}-check-${i}`} className="flex items-center gap-[7px] text-[10.5px]">
             <span
               className={`grid h-[15px] w-[15px] shrink-0 place-items-center rounded-full ${
-                c.level === 'pass' ? 'bg-ok' : 'bg-[#E8A93C]'
+                c.level === 'pass' ? 'bg-ok' : 'bg-warn'
               }`}
             >
               {c.level === 'pass' ? <PassIcon /> : <WarnIcon />}
@@ -269,14 +269,14 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
       {!rejected && execution && !execution.ok && (
         <div
           data-gate-execution="failure"
-          className="mx-[11px] mb-[9px] rounded-[7px] border border-bad/30 bg-[#FDF6F5] px-[9px] py-1.5 text-[9.5px] leading-4 text-bad"
+          className="mx-[11px] mb-[9px] rounded-[7px] border border-bad/30 bg-bad/10 px-[9px] py-1.5 text-[9.5px] leading-4 text-bad"
         >
           后置动作未完成：{execution.message}
         </div>
       )}
 
       {rejected && (
-        <div className="mx-[11px] mb-[9px] rounded-[7px] bg-[#F7F8FC] px-[9px] py-1.5 text-[9.5px] leading-4 text-bad">
+        <div className="mx-[11px] mb-[9px] rounded-[7px] bg-canvas px-[9px] py-1.5 text-[9.5px] leading-4 text-bad">
           已否决 · 反馈已回流给对应 Agent，等待重做
         </div>
       )}
@@ -284,7 +284,7 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
       {!rejected && (
         <>
           {showReject && (
-            <div className="mx-[11px] mb-[9px] rounded-[7px] bg-[#F7F8FC] px-[9px] py-1.5 text-[9.5px] leading-4 text-muted">
+            <div className="mx-[11px] mb-[9px] rounded-[7px] bg-canvas px-[9px] py-1.5 text-[9.5px] leading-4 text-muted">
               请描述：保留什么 · 修改什么 · 为什么 · 期望结果。反馈将回流给对应 Agent。
             </div>
           )}
@@ -294,7 +294,7 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
                 type="button"
                 disabled={deciding}
                 onClick={() => setShowReject(true)}
-                className="flex-1 rounded-lg bg-[#F1F2F8] py-2 text-[11px] font-bold text-[#6A708A] transition hover:bg-[#E6E8F2] disabled:opacity-50"
+                className="flex-1 rounded-lg bg-canvas py-2 text-[11px] font-bold text-muted transition hover:bg-win disabled:opacity-50"
               >
                 否决 / 重做
               </button>
@@ -314,7 +314,7 @@ export default function GateCardView({ gate, deciding, onDecide }: Props) {
                 onChange={e => setNote(e.target.value)}
                 placeholder="填写修改意见（将作为重做依据）"
                 rows={2}
-                className="w-full resize-none rounded-lg border border-line bg-white p-2 text-[11px] leading-4 text-ink outline-none focus:border-violet"
+                className="w-full resize-none rounded-lg border border-line bg-surface p-2 text-[11px] leading-4 text-ink outline-none focus:border-violet"
               />
               <div className="mt-2 flex items-center gap-2">
                 <button

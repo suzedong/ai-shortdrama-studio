@@ -2,16 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+  --color-win: 247 248 250;
+  --color-canvas: 250 250 251;
+  --color-surface: 255 255 255;
+  --color-ink: 26 26 46;
+  --color-muted: 142 142 160;
+  --color-line: 232 232 236;
+  --color-violet-soft: 242 239 252;
+  --color-dot: 217 220 234;
+}
+
+html.dark {
+  color-scheme: dark;
+  --color-win: 24 26 32;
+  --color-canvas: 20 22 28;
+  --color-surface: 32 35 43;
+  --color-ink: 237 239 245;
+  --color-muted: 152 158 172;
+  --color-line: 55 59 70;
+  --color-violet-soft: 51 43 76;
+  --color-dot: 55 59 70;
+}
+
 html, body, #root {
   height: 100%;
   margin: 0;
 }
 
 body {
-  background: #FAFAFE;
-  background-image: radial-gradient(#D9DCEA 1px, transparent 1px);
+  background: rgb(var(--color-canvas));
+  background-image: radial-gradient(rgb(var(--color-dot)) 1px, transparent 1px);
   background-size: 22px 22px;
-  color: #1A1A2E;
+  color: rgb(var(--color-ink));
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -20,6 +44,8 @@ body {
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: #D9DCEA; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #B9BED6; }
+html.dark ::-webkit-scrollbar-thumb { background: #373B46; }
+html.dark ::-webkit-scrollbar-thumb:hover { background: #4B5160; }
 
 /* 节点动画 */
 @keyframes nodeIn {
@@ -58,7 +84,7 @@ body {
 .md-bubble p { white-space: pre-wrap; }
 .md-bubble strong { font-weight: 700; }
 .md-bubble em { font-style: italic; }
-.md-bubble del { color: #7A8098; }
+.md-bubble del { color: rgb(var(--color-muted)); }
 .md-bubble code {
   font-family: ui-monospace, SFMono-Regular, Menlo, 'Cascadia Code', 'Cascadia Mono', Consolas, monospace;
   font-size: 11px;
@@ -67,6 +93,7 @@ body {
   border-radius: 4px;
   padding: 1px 4px;
 }
+html.dark .md-bubble code { color: #C9C1FF; }
 .md-bubble pre {
   margin: 6px 0;
   padding: 8px 10px;

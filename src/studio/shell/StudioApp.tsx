@@ -86,6 +86,17 @@ const PAN_TAB_TITLE: Record<PanTab, string> = {
   plugins:  '专业插件',
 }
 
+type StudioTheme = 'light' | 'dark'
+const STUDIO_THEME_KEY = 'studio.theme'
+
+function initialStudioTheme(): StudioTheme {
+  try {
+    return window.localStorage.getItem(STUDIO_THEME_KEY) === 'dark' ? 'dark' : 'light'
+  } catch {
+    return 'light'
+  }
+}
+
 function emptyCanvas(): Canvas {
   return {
     schemaVersion: 3,
@@ -113,6 +124,7 @@ function devMockActive(): boolean {
 export default function StudioApp() {
   // feature-804：平台形态（契约 §7）；防御式访问，部分桩/缺段按 win32 渲染
   const platform = window.api.window?.platform ?? 'win32'
+  const [theme, setTheme] = useState<StudioTheme>(initialStudioTheme)
   const [canvas, setCanvas] = useState<Canvas>(emptyCanvas)
   // feature-812：区分「首拉未回」与「确实无项目」——否则首帧会闪一下欢迎页，并让既有断言误判
   const [canvasLoaded, setCanvasLoaded] = useState(false)
@@ -244,6 +256,15 @@ export default function StudioApp() {
     chatDragRef.current = null
     localStorage.setItem(CHAT_WIDTH_KEY, String(chatWidth))
   }
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+    try {
+      window.localStorage.setItem(STUDIO_THEME_KEY, theme)
+    } catch {
+      // 隐私模式等存储不可用时仍保留当前会话主题。
+    }
+  }, [theme])
 
   // 系统菜单：点击菜单外任意处关闭
   useEffect(() => {
@@ -749,7 +770,7 @@ export default function StudioApp() {
       {/* ═══ 顶栏 ═══ */}
       <header
         // feature-804：darwin 保留红绿灯留白 pl-20/pr-4；win32/linux 左 pl-3、右 pr-0 让关闭钮贴边
-        className={`flex h-11 shrink-0 items-center gap-3 border-b border-line bg-white ${
+        className={`flex h-11 shrink-0 items-center gap-3 border-b border-line bg-surface ${
           platform === 'darwin' ? 'pl-20 pr-4' : 'pl-3 pr-0'
         }`}
         style={{ WebkitAppRegion: 'drag' }}
@@ -760,7 +781,7 @@ export default function StudioApp() {
           <span className="text-[13px] font-semibold text-ink">短剧 Agent · {projectTitle}</span>
         </div>
         {/* 顶栏 stage-track（原型 L77-84 .stage-track · L994-1010 八步进度） */}
-        <div className="ml-1 flex items-center gap-0.5 rounded-full border border-line bg-white px-1.5 py-[3px]" title="八步闭环进度" style={{ WebkitAppRegion: 'no-drag' }}>
+        <div className="ml-1 flex items-center gap-0.5 rounded-full border border-line bg-surface px-1.5 py-[3px]" title="八步闭环进度" style={{ WebkitAppRegion: 'no-drag' }}>
           {stageTrack.map((s, i) => (
             <span key={s.step} className="flex items-center">
               <button
@@ -781,7 +802,7 @@ export default function StudioApp() {
                   s.state === 'done' ? 'text-[#1E9E66] hover:bg-violet-soft'
                     : s.state === 'cur' ? 'bg-violet text-white shadow-[0_4px_10px_rgba(108,92,231,0.35)]'
                     : s.state === 'active' ? 'text-violet hover:bg-violet-soft'
-                    : 'text-[#9AA0B5] hover:bg-violet-soft'
+                    : 'text-muted hover:bg-violet-soft'
                 }`}
                 title={s.step === '0'
                   ? (stage0TooltipText ?? `STAGE ${s.step} · ${STEP_LABELS[s.step]}`)
@@ -792,28 +813,48 @@ export default function StudioApp() {
                   s.state === 'done' ? 'bg-ok'
                     : s.state === 'cur' ? 'bg-white animate-[pulse_1.4s_ease-in-out_infinite]'
                     : s.state === 'active' ? 'bg-violet'
-                    : 'bg-[#C9CCDA]'
+                    : 'bg-line'
                 }`} />
                 {s.step}
               </button>
-              {i < stageTrack.length - 1 && <span className="px-px text-[8px] text-[#D9DCEA]">·</span>}
+              {i < stageTrack.length - 1 && <span className="px-px text-[8px] text-line">·</span>}
             </span>
           ))}
         </div>
         <div className="flex-1" />
         {/* 右侧交互控件组（不参与窗口拖拽） */}
         <div className="flex items-center gap-3" style={{ WebkitAppRegion: 'no-drag' }}>
+        <button
+          type="button"
+          data-theme-toggle={theme}
+          aria-label={theme === 'dark' ? '切换到浅色主题' : '切换到深色主题'}
+          aria-pressed={theme === 'dark'}
+          title={theme === 'dark' ? '切换到浅色主题' : '切换到深色主题'}
+          onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}
+          className="grid h-8 w-8 place-items-center rounded-full border border-line bg-surface text-muted outline-none transition hover:bg-canvas hover:text-ink focus-visible:ring-2 focus-visible:ring-violet/50"
+        >
+          {theme === 'dark' ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-4 w-4" aria-hidden="true">
+              <circle cx="12" cy="12" r="3.5" />
+              <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
+              <path d="M20 15.2A8.5 8.5 0 0 1 8.8 4 8.5 8.5 0 1 0 20 15.2Z" />
+            </svg>
+          )}
+        </button>
         {/* 视觉风格谱系入口（原型 L1012 .cat-entry） */}
         <button
           type="button"
           onClick={() => setCatalogOpen(true)}
-          className="flex items-center gap-1.5 rounded-full border border-[#DED9FB] bg-violet-soft px-2.5 py-1.5 text-[12px] font-bold text-[#5A4FD8] transition hover:bg-violet hover:text-white hover:border-violet"
+          className="flex items-center gap-1.5 rounded-full border border-violet/30 bg-violet-soft px-2.5 py-1.5 text-[12px] font-bold text-violet transition hover:bg-violet hover:text-white hover:border-violet"
           data-cat-entry
           title="打开视觉风格谱系目录（4 形态 × 18 画风）"
         >
           <span aria-hidden>🎨</span>
           视觉风格谱系
-          <span className="rounded-full bg-white px-1.5 py-px font-mono text-[10px] font-extrabold text-violet">v1.46</span>
+          <span className="rounded-full bg-surface px-1.5 py-px font-mono text-[10px] font-extrabold text-violet">v1.46</span>
         </button>
         </div>
         {/* feature-804：自绘窗口控制（仅 win32/linux；末位贴右边） */}
@@ -823,7 +864,7 @@ export default function StudioApp() {
       {/* ═══ 主体：四栏（图标轨 ｜ 左栏双视图 ｜ 中栏 ｜ 右栏）═══ */}
       <div className="flex min-h-0 flex-1">
         {/* ── 图标轨（60px，原型 L1022-1033 .rail）── */}
-        <nav className="flex w-[60px] shrink-0 flex-col items-center border-r border-line bg-white py-3" aria-label="资源库分类">
+        <nav className="flex w-[60px] shrink-0 flex-col items-center border-r border-line bg-surface py-3" aria-label="资源库分类">
           {(Object.keys(PAN_TAB_META) as PanTab[]).map(tab => {
             const meta = PAN_TAB_META[tab]
             const active = leftView === 'resource' && panTab === tab
@@ -837,7 +878,7 @@ export default function StudioApp() {
                   active
                     ? 'bg-violet text-white shadow-[0_6px_14px_rgba(108,92,231,0.35)]'
                     : 'text-muted hover:bg-violet-soft hover:text-violet'
-                } ${enabled ? '' : 'text-[#A0A6BC]'}`}
+                } ${enabled ? '' : 'text-muted'}`}
                 data-rail={tab}
                 aria-pressed={active}
                 title={meta.title}
@@ -862,7 +903,7 @@ export default function StudioApp() {
               AI
             </button>
             {sysMenuOpen && (
-              <div role="menu" data-sys-menu className="absolute bottom-0 left-[calc(100%+15px)] z-50 w-32 overflow-hidden rounded-xl border border-line bg-white py-1 shadow-[0_8px_24px_rgba(40,42,80,0.14)]">
+              <div role="menu" data-sys-menu className="absolute bottom-0 left-[calc(100%+15px)] z-50 w-32 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-[0_8px_24px_rgba(40,42,80,0.14)]">
                 <button type="button" role="menuitem" data-sys-menu-item="guide" onClick={() => setSysMenuOpen(false)} className="block w-full px-3 py-2 text-left text-[12.5px] text-ink hover:bg-canvas">使用指南</button>
                 <button type="button" role="menuitem" data-sys-menu-item="export" onClick={() => setSysMenuOpen(false)} className="block w-full px-3 py-2 text-left text-[12.5px] text-ink hover:bg-canvas">导出</button>
                 {/* feature-014：AI 服务设置入口（点击关菜单、开模态面板） */}
@@ -875,18 +916,18 @@ export default function StudioApp() {
         </nav>
 
         {/* ── 左栏（260px，原型 L1035-1208）── */}
-        <aside className="flex w-[260px] shrink-0 flex-col border-r border-line bg-[#FCFCFE]">
+        <aside className="flex w-[260px] shrink-0 flex-col border-r border-line bg-win">
           <div className="px-3.5 pb-2 pt-3.5">
             <h3 className="text-[14px] font-extrabold text-ink" id="lpTitle">{lpTitle}</h3>
             {/* lp-seg 一级 toggle（原型 L1039-1049） */}
-            <div className="mt-2 flex gap-0.5 rounded-[9px] bg-[#F1F2F8] p-0.5" role="tablist" aria-label="左栏视图">
+            <div className="mt-2 flex gap-0.5 rounded-[9px] bg-canvas p-0.5" role="tablist" aria-label="左栏视图">
               <button
                 type="button"
                 role="tab"
                 aria-selected={leftView === 'resource'}
                 onClick={() => setLeftView('resource')}
                 className={`flex flex-1 items-center justify-center gap-1 rounded-[7px] py-1.5 text-[11px] font-bold transition ${
-                  leftView === 'resource' ? 'bg-white text-violet shadow-[0_2px_6px_rgba(40,42,80,0.08)]' : 'text-[#7A8098] hover:text-violet'
+                  leftView === 'resource' ? 'bg-surface text-violet shadow-[0_2px_6px_rgba(40,42,80,0.08)]' : 'text-muted hover:text-violet'
                 }`}
                 data-seg="resource"
               >
@@ -901,7 +942,7 @@ export default function StudioApp() {
                 aria-selected={leftView === 'nav'}
                 onClick={() => setLeftView('nav')}
                 className={`flex flex-1 items-center justify-center gap-1 rounded-[7px] py-1.5 text-[11px] font-bold transition ${
-                  leftView === 'nav' ? 'bg-white text-violet shadow-[0_2px_6px_rgba(40,42,80,0.08)]' : 'text-[#7A8098] hover:text-violet'
+                  leftView === 'nav' ? 'bg-surface text-violet shadow-[0_2px_6px_rgba(40,42,80,0.08)]' : 'text-muted hover:text-violet'
                 }`}
                 data-seg="nav"
               >
@@ -918,15 +959,15 @@ export default function StudioApp() {
             </div>
             {/* 搜索框：仅资源库视图下显示（原型 L1050-1053） */}
             {leftView === 'resource' && (
-              <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-[#F3F4F9] px-2.5 py-1.5">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-3 w-3 shrink-0 text-[#A0A6BC]">
+              <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-canvas px-2.5 py-1.5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-3 w-3 shrink-0 text-muted">
                   <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
                 </svg>
                 <input
                   value={leftQuery}
                   onChange={e => setLeftQuery(e.target.value)}
                   placeholder="搜索项目 / Skill / 资产"
-                  className="w-full bg-transparent text-[12px] text-ink outline-none placeholder:text-[#A0A6BC]"
+                  className="w-full bg-transparent text-[12px] text-ink outline-none placeholder:text-muted"
                 />
               </div>
             )}
@@ -1082,7 +1123,7 @@ export default function StudioApp() {
         )}
 
         {/* ── 右栏对话（左缘拖拽调宽 300–640px）── */}
-        <aside className="relative flex shrink-0 flex-col border-l border-line bg-white" style={{ width: chatWidth }}>
+        <aside className="relative flex shrink-0 flex-col border-l border-line bg-surface" style={{ width: chatWidth }}>
           <div
             className="absolute inset-y-0 -left-[3px] z-30 w-[6px] cursor-col-resize transition-colors hover:bg-violet/40"
             onPointerDown={onChatResizerDown}
@@ -1124,7 +1165,7 @@ export default function StudioApp() {
 
       {/* ═══ 底栏状态条（feature-812：无项目时整块不渲染，避免假状态）═══ */}
       {hasProject && (
-      <footer className="flex h-9 shrink-0 items-center gap-3.5 border-t border-line bg-white px-4 text-[10.5px] text-muted">
+      <footer className="flex h-9 shrink-0 items-center gap-3.5 border-t border-line bg-surface px-4 text-[10.5px] text-muted">
         <div className="flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-ok" />
           火山方舟（文本）

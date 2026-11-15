@@ -30,8 +30,8 @@ export interface ImpactPanelProps {
 }
 
 const LEVEL_TEXT: Record<ChangeLevel, string> = {
-  high: 'text-[#C0392B]',
-  medium: 'text-[#C0841D]',
+  high: 'text-bad',
+  medium: 'text-warn',
   neutral: 'text-muted',
 }
 
@@ -44,7 +44,7 @@ const LEVEL_TAG: Record<ChangeLevel, string> = {
 function ChangesSummary({ view }: { view: ImpactView }) {
   return (
     <section className="rounded-lg border border-line" data-impact-panel-changes>
-      <div className="border-b border-line px-3 py-1.5 text-[10px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">
+      <div className="border-b border-line px-3 py-1.5 text-[10px] font-extrabold tracking-[0.3px] text-muted">
         本次改动（{view.changes.length}）
       </div>
       <div className="max-h-[150px] overflow-auto px-3 py-1.5">
@@ -54,8 +54,8 @@ function ChangesSummary({ view }: { view: ImpactView }) {
             <div key={c.field} className="flex items-baseline gap-2 py-0.5" data-impact-panel-change data-field={c.field} data-level={level}>
               <span className={`shrink-0 text-[10px] font-extrabold ${LEVEL_TEXT[level]}`}>{LEVEL_TAG[level]}</span>
               <span className="shrink-0 text-[10.5px] font-bold text-ink">{dirtyFieldLabel(c.field)}</span>
-              <span className="shrink-0 font-mono text-[9.5px] text-[#A6ABC0]">{c.field}</span>
-              <span className="min-w-0 break-words text-[10.5px] text-[#6A708A]" data-impact-panel-change-value>
+              <span className="shrink-0 font-mono text-[9.5px] text-muted">{c.field}</span>
+              <span className="min-w-0 break-words text-[10.5px] text-muted" data-impact-panel-change-value>
                 {c.from || '（空）'} → {c.to || '（空）'}
               </span>
             </div>
@@ -76,7 +76,7 @@ function ItemRow({ item, fromVersion, toVersion, checked, onToggle }: {
   const level: ChangeLevel = item.severity
   return (
     <label
-      className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 hover:bg-[#F7F8FC]"
+      className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 hover:bg-canvas"
       data-impact-panel-item
       data-node-id={item.nodeId}
       data-severity={item.severity}
@@ -94,12 +94,12 @@ function ItemRow({ item, fromVersion, toVersion, checked, onToggle }: {
           <span className="text-[10px] text-muted">第 {item.step} 步</span>
           <span className={`text-[10px] font-bold ${LEVEL_TEXT[level]}`}>{LEVEL_TAG[level]}</span>
           {item.decision && (
-            <span className="rounded bg-[#F1F2F8] px-1.5 py-px text-[9.5px] text-[#7A8098]" data-impact-panel-decision>
+            <span className="rounded bg-canvas px-1.5 py-px text-[9.5px] text-muted" data-impact-panel-decision>
               留痕：{item.decision === 'regenerate' ? '已重生成' : '仅标记脏'}
             </span>
           )}
         </span>
-        <span className="mt-0.5 block text-[10.5px] leading-[1.6] text-[#6A708A]">
+        <span className="mt-0.5 block text-[10.5px] leading-[1.6] text-muted">
           命中：{item.fields.map(dirtyFieldLabel).join('、')} · 基于 v{fromVersion} → 最新 v{toVersion}
         </span>
       </span>
@@ -121,16 +121,16 @@ export default function ImpactPanel({ data, degrade, onBatchRealign, onMarkOnly,
   if (!data) {
     return (
       <div className="fixed inset-0 z-[70] grid place-items-center bg-ink/30 p-6" data-impact-panel-backdrop>
-        <div role="dialog" aria-label="影响评估" data-impact-panel className="w-[520px] rounded-xl border border-line bg-white p-5 shadow-card">
+        <div role="dialog" aria-label="影响评估" data-impact-panel className="w-[520px] rounded-xl border border-line bg-surface p-5 shadow-card">
           <h3 className="text-[13px] font-extrabold text-ink">影响评估</h3>
-          <p className="mt-2.5 text-[11.5px] leading-[1.7] text-[#4A4F68]" data-impact-panel-degrade>
+          <p className="mt-2.5 text-[11.5px] leading-[1.7] text-ink" data-impact-panel-degrade>
             {degrade ?? '影响清单不可用，无法呈现本次改动的影响范围。'}
           </p>
           <div className="mt-4 flex justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink"
+              className="rounded-lg border border-line bg-surface px-3 py-1 text-xs text-muted hover:text-ink"
               data-impact-panel-close
             >
               关闭
@@ -150,7 +150,7 @@ export default function ImpactPanel({ data, degrade, onBatchRealign, onMarkOnly,
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center bg-ink/30 p-6" data-impact-panel-backdrop>
-      <div role="dialog" aria-label="影响评估" data-impact-panel className="w-[560px] rounded-xl border border-line bg-white p-5 shadow-card">
+      <div role="dialog" aria-label="影响评估" data-impact-panel className="w-[560px] rounded-xl border border-line bg-surface p-5 shadow-card">
         <div className="flex items-center gap-2">
           <h3 className="text-[13px] font-extrabold text-ink">影响评估</h3>
           <span className="text-[10.5px] text-muted" data-impact-panel-version>
@@ -160,7 +160,7 @@ export default function ImpactPanel({ data, degrade, onBatchRealign, onMarkOnly,
             type="button"
             aria-label="关闭影响评估"
             onClick={onClose}
-            className="ml-auto rounded px-1.5 py-0.5 text-sm leading-none text-muted hover:bg-[#F7F8FC] hover:text-ink"
+            className="ml-auto rounded px-1.5 py-0.5 text-sm leading-none text-muted hover:bg-canvas hover:text-ink"
             data-impact-panel-close
           >
             ×
@@ -200,7 +200,7 @@ export default function ImpactPanel({ data, degrade, onBatchRealign, onMarkOnly,
           )}
         </div>
 
-        <p className="mt-3 text-[10px] leading-[1.6] text-[#A6ABC0]">
+        <p className="mt-3 text-[10px] leading-[1.6] text-muted">
           再版与脏标记已在保存时落盘；仅标记脏、Esc 或关闭控件均不撤销，黄条与漂移提醒继续提示。
         </p>
 
@@ -208,7 +208,7 @@ export default function ImpactPanel({ data, degrade, onBatchRealign, onMarkOnly,
           <button
             type="button"
             onClick={onMarkOnly}
-            className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink"
+            className="rounded-lg border border-line bg-surface px-3 py-1 text-xs text-muted hover:text-ink"
             data-impact-panel-mark
           >
             仅标记脏
@@ -220,7 +220,7 @@ export default function ImpactPanel({ data, degrade, onBatchRealign, onMarkOnly,
               const message = buildBatchRealignPrompt(data, pickedIds)
               if (message) onBatchRealign(message)
             }}
-            className="rounded-lg border border-violet bg-violet px-3 py-1 text-xs font-bold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:border-line disabled:bg-[#E9EAF1] disabled:text-[#9AA0B5]"
+            className="rounded-lg border border-violet bg-violet px-3 py-1 text-xs font-bold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:border-line disabled:bg-canvas disabled:text-muted"
             data-impact-panel-batch
           >
             一键重生成选中 ({count})

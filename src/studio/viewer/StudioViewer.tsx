@@ -46,7 +46,7 @@ interface Props {
 
 function Section({ title, extra, children }: { title?: string; extra?: ReactNode; children: ReactNode }) {
   return (
-    <section className="rounded-xl border border-line bg-white p-3.5">
+    <section className="rounded-xl border border-line bg-surface p-3.5">
       {title && (
         <div className="mb-2.5 flex items-center justify-between">
           <h4 className="text-[12px] font-extrabold text-ink">{title}</h4>
@@ -71,16 +71,16 @@ function Tag({ children, tone = 'violet' }: { children: ReactNode; tone?: 'viole
   const cls = {
     violet: 'bg-violet-soft text-violet',
     green: 'bg-ok/10 text-ok',
-    blue: 'bg-[#EAF1FE] text-[#3E6FD0]',
-    gray: 'bg-[#F1F2F8] text-[#6A708A]',
-    amber: 'bg-[#FDF3E0] text-[#B26A00]',
+    blue: 'bg-[#3E6FD0]/10 text-[#3E6FD0]',
+    gray: 'bg-canvas text-muted',
+    amber: 'bg-warn/10 text-warn',
   }[tone]
   return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${cls}`}>{children}</span>
 }
 
 function RecipeBox({ label, children }: { label?: string; children: ReactNode }) {
   return (
-    <div className="mt-2 rounded-lg border border-line bg-[#F8F9FC] px-2.5 py-2 text-[10.5px] leading-[1.6] text-[#4A4F68]">
+    <div className="mt-2 rounded-lg border border-line bg-canvas px-2.5 py-2 text-[10.5px] leading-[1.6] text-ink">
       {label && <div className="mb-0.5 font-bold text-muted">{label}</div>}
       {children}
     </div>
@@ -156,15 +156,15 @@ function BriefView({ data, entryQuote = '' }: { data: ProjectBrief; entryQuote?:
               <button
                 type="button"
                 onClick={() => setBgOpen(v => !v)}
-                className="flex w-full items-center gap-1.5 px-2.5 py-2 text-[10.5px] font-extrabold text-[#5A607A] hover:bg-[#F8F9FD]"
+                className="flex w-full items-center gap-1.5 px-2.5 py-2 text-[10.5px] font-extrabold text-ink hover:bg-win"
                 aria-expanded={bgOpen}
               >
-                <span className="text-[#A6ABC0]">{bgOpen ? '▾' : '▸'}</span>{BACKGROUND_PATH}
+                <span className="text-muted">{bgOpen ? '▾' : '▸'}</span>{BACKGROUND_PATH}
               </button>
               {bgOpen && (
                 bg.phase === 'ok'
                   ? <BackgroundMd content={bg.content} />
-                  : <div className="border-t border-[#F2F3F8] px-2.5 py-2 text-[10px] text-[#B8BDCE]">背景档案读取失败，已跳过。</div>
+                  : <div className="border-t border-line px-2.5 py-2 text-[10px] text-muted">背景档案读取失败，已跳过。</div>
               )}
             </div>
           )}
@@ -179,13 +179,13 @@ function BriefView({ data, entryQuote = '' }: { data: ProjectBrief; entryQuote?:
       <Section title="选题诊断">
         <div className="flex flex-col gap-2">
           <div>
-            <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">选题诊断结论</div>
-            <p className="text-[11.5px] leading-[1.7] text-[#4A4F68]">{data.diagnosisSummary || '（无）'}</p>
+            <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-muted">选题诊断结论</div>
+            <p className="text-[11.5px] leading-[1.7] text-ink">{data.diagnosisSummary || '（无）'}</p>
           </div>
           {data.diagnosisDetail && (
             <div>
-              <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">选题诊断明细</div>
-              <div className="text-[11.5px] leading-[1.7] text-[#4A4F68]">
+              <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-muted">选题诊断明细</div>
+              <div className="text-[11.5px] leading-[1.7] text-ink">
                 <DiagnosisSections detail={data.diagnosisDetail} />
               </div>
             </div>
@@ -194,7 +194,7 @@ function BriefView({ data, entryQuote = '' }: { data: ProjectBrief; entryQuote?:
       </Section>
       <Section title={`相对上一版改动 · ${changes.length} 项`}>
         {data.version === 1 || changes.length === 0 ? (
-          <p className="text-[11.5px] leading-[1.7] text-[#4A4F68]">首版立项。</p>
+          <p className="text-[11.5px] leading-[1.7] text-ink">首版立项。</p>
         ) : (
           <div className="rounded-lg border border-line">
             {changes.map((c, i) => (
@@ -222,7 +222,7 @@ function OutlineView({ data }: { data: StoryOutline }) {
         <p className="text-[12px] font-semibold leading-[1.7] text-ink">{data.logline}</p>
       </Section>
       <Section title="本季主线">
-        <p className="text-[11.5px] leading-[1.7] text-[#4A4F68]">{data.seasonArc}</p>
+        <p className="text-[11.5px] leading-[1.7] text-ink">{data.seasonArc}</p>
       </Section>
       <div className="grid grid-cols-2 gap-3">
         <Section title="主题 / 情绪">
@@ -231,7 +231,7 @@ function OutlineView({ data }: { data: StoryOutline }) {
         <Section title="核心冲突 / 钩子">
           <ul className="flex flex-col gap-1">
             {data.conflicts.map((c, i) => (
-              <li key={i} className="flex gap-1.5 text-[11px] leading-5 text-[#4A4F68]">
+              <li key={i} className="flex gap-1.5 text-[11px] leading-5 text-ink">
                 <span className="text-violet">●</span>{c}
               </li>
             ))}
@@ -246,10 +246,10 @@ function OutlineView({ data }: { data: StoryOutline }) {
                 <Tag tone="blue">E{String(ep.ep).padStart(2, '0')}</Tag>
                 <span className="text-[12px] font-bold text-ink">{ep.title}</span>
               </div>
-              <p className="mt-1.5 text-[11px] leading-[1.65] text-[#4A4F68]">{ep.synopsis}</p>
+              <p className="mt-1.5 text-[11px] leading-[1.65] text-ink">{ep.synopsis}</p>
               <div className="mt-1.5 flex gap-1.5 text-[10.5px]">
-                <span className="shrink-0 font-bold text-[#B26A00]">集尾钩子</span>
-                <span className="leading-[1.6] text-[#8A6D3B]">{ep.hook}</span>
+                <span className="shrink-0 font-bold text-warn">集尾钩子</span>
+                <span className="leading-[1.6] text-warn">{ep.hook}</span>
               </div>
             </div>
           ))}
@@ -288,7 +288,7 @@ function ScenesView({ data }: { data: Scene[] }) {
             <div className="mb-1 text-[10px] font-bold text-muted">节拍</div>
             <ol className="flex flex-col gap-1">
               {sc.beats.map((b, i) => (
-                <li key={i} className="flex gap-2 text-[11px] leading-[1.6] text-[#4A4F68]">
+                <li key={i} className="flex gap-2 text-[11px] leading-[1.6] text-ink">
                   <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-violet-soft text-[9px] font-bold text-violet">{i + 1}</span>
                   {b}
                 </li>
@@ -353,7 +353,7 @@ function StoryboardView({ data }: { data: Shot[] }) {
                 {sh.characterIds.length > 0 && <span>· 角色：{sh.characterIds.join('、')}</span>}
               </div>
               {sh.dialogue && (
-                <div className="mt-1 rounded bg-[#F8F9FC] px-2 py-1 text-[10.5px] leading-[1.6] text-[#4A4F68]">
+                <div className="mt-1 rounded bg-canvas px-2 py-1 text-[10.5px] leading-[1.6] text-ink">
                   <b>{sh.dialogue.speakerName || sh.dialogue.speakerId}：</b>{sh.dialogue.text}
                   {sh.dialogue.emotion && <span className="text-muted">（{sh.dialogue.emotion}）</span>}
                 </div>
@@ -475,7 +475,7 @@ function ShotMediaView({ data, node }: { data: ShotMediaRecord; node: CanvasNode
 
 function JsonObjectView({ data }: { data: unknown }) {
   if (!data || typeof data !== 'object') {
-    return <p className="text-[11.5px] leading-[1.7] text-[#4A4F68]">{String(data)}</p>
+    return <p className="text-[11.5px] leading-[1.7] text-ink">{String(data)}</p>
   }
   if (Array.isArray(data)) {
     return (
@@ -582,7 +582,7 @@ export default function StudioViewer({ node, kindLabel, onClose, entryQuote = ''
   const dirtyDriftLabel = node.dirty ? driftReminderLabel(driftDays(node.dirty.markedAt)) : null
 
   return (
-    <div className="absolute inset-0 z-10 flex flex-col rounded-2xl border border-line bg-white shadow-card">
+    <div className="absolute inset-0 z-10 flex flex-col rounded-2xl border border-line bg-surface shadow-card">
       <div className="flex items-center justify-between border-b border-line px-5 py-3">
         <div className="flex min-w-0 items-baseline gap-2">
           <span className="shrink-0 text-xs font-medium text-violet">{kindLabel}</span>
@@ -595,7 +595,7 @@ export default function StudioViewer({ node, kindLabel, onClose, entryQuote = ''
               type="button"
               data-testid="brief-history-entry"
               onClick={() => setHistoryOpen(true)}
-              className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink"
+              className="rounded-lg border border-line bg-surface px-3 py-1 text-xs text-muted hover:text-ink"
             >
               查看历史
             </button>
@@ -603,7 +603,7 @@ export default function StudioViewer({ node, kindLabel, onClose, entryQuote = ''
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink"
+            className="rounded-lg border border-line bg-surface px-3 py-1 text-xs text-muted hover:text-ink"
           >
             关闭
           </button>
@@ -621,8 +621,8 @@ export default function StudioViewer({ node, kindLabel, onClose, entryQuote = ''
       )}
       {/* feature-011：脏读黄条（§2.6.7 L359 全形态；一键对齐 = feature-007 单产物动作，查看影响评估 = feature-011 批量面板入口） */}
       {node.dirty && (
-        <div className="flex items-center gap-2 border-b border-line bg-[#FFF4DE] px-5 py-2">
-          <span className="min-w-0 flex-1 break-words text-[11px] font-semibold leading-5 text-[#C0841D]">
+        <div className="flex items-center gap-2 border-b border-line bg-warn/10 px-5 py-2">
+          <span className="min-w-0 flex-1 break-words text-[11px] font-semibold leading-5 text-warn">
             当前基于 v{node.dirty.sinceBriefVersion} 立项，与最新 v{node.dirty.latestBriefVersion} 不一致：
             {node.dirty.fields.map(dirtyFieldLabel).join('、')}
             {dirtyDriftLabel && <span className="block">{dirtyDriftLabel}</span>}
@@ -631,7 +631,7 @@ export default function StudioViewer({ node, kindLabel, onClose, entryQuote = ''
             <button
               type="button"
               onClick={onRequestImpact}
-              className="shrink-0 rounded-lg border border-[#C0841D]/40 bg-white/70 px-2.5 py-0.5 text-[11px] font-bold text-[#C0841D] hover:bg-white"
+              className="shrink-0 rounded-lg border border-warn/30 bg-surface/70 px-2.5 py-0.5 text-[11px] font-bold text-warn hover:bg-surface"
               data-viewer-impact-entry
             >
               查看影响评估
@@ -641,7 +641,7 @@ export default function StudioViewer({ node, kindLabel, onClose, entryQuote = ''
             <button
               type="button"
               onClick={onRequestAlign}
-              className="shrink-0 rounded-lg border border-[#C0841D]/40 bg-white/70 px-2.5 py-0.5 text-[11px] font-bold text-[#C0841D] hover:bg-white"
+              className="shrink-0 rounded-lg border border-warn/30 bg-surface/70 px-2.5 py-0.5 text-[11px] font-bold text-warn hover:bg-surface"
             >
               一键对齐
             </button>
@@ -660,7 +660,7 @@ export default function StudioViewer({ node, kindLabel, onClose, entryQuote = ''
         )}
         {state.phase === 'ok' && parseOk && <StructuredBody kind={node.kind} data={parsed} node={node} entryQuote={entryQuote} />}
         {state.phase === 'ok' && !parseOk && (
-          <pre className="whitespace-pre-wrap break-all rounded-xl border border-line bg-white p-4 font-mono text-xs leading-5 text-ink">
+          <pre className="whitespace-pre-wrap break-all rounded-xl border border-line bg-surface p-4 font-mono text-xs leading-5 text-ink">
             {state.content}
           </pre>
         )}

@@ -150,7 +150,7 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
   return (
     <div className="flex h-full flex-col">
       {error && (
-        <div className="mb-2 rounded-lg border border-bad/40 bg-bad/10 px-2 py-1.5 text-[11px] leading-4 text-bad">
+        <div className="mb-2 rounded-lg border border-bad/30 bg-bad/10 px-2 py-1.5 text-[11px] leading-4 text-bad">
           {error}
         </div>
       )}
@@ -171,14 +171,14 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
             // B-19：改名态——整行替换为行内输入（Enter 确认 / Esc 取消）
             if (renaming?.dir === p.dir) {
               return (
-                <div key={p.dir} className="mb-[3px] flex items-center gap-2 rounded-[10px] border border-violet/60 bg-white p-2">
+                <div key={p.dir} className="mb-[3px] flex items-center gap-2 rounded-[10px] border border-violet/60 bg-surface p-2">
                   <input
                     autoFocus
                     value={renaming.value}
                     onChange={e => setRenaming({ dir: p.dir, value: e.target.value })}
                     onKeyDown={e => { if (e.key === 'Enter') void doRename(); if (e.key === 'Escape') setRenaming(null) }}
                     placeholder="项目名（Enter 确认）"
-                    className="min-w-0 flex-1 rounded-lg border border-line bg-white px-2 py-1 text-xs text-ink outline-none focus:border-violet"
+                    className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2 py-1 text-xs text-ink outline-none focus:border-violet"
                   />
                   <button
                     type="button"
@@ -192,7 +192,7 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
                     type="button"
                     onClick={() => setRenaming(null)}
                     disabled={busy}
-                    className="shrink-0 rounded-lg border border-line bg-white px-2 py-1 text-[11px] text-muted hover:text-ink"
+                    className="shrink-0 rounded-lg border border-line bg-surface px-2 py-1 text-[11px] text-muted hover:text-ink"
                   >
                     取消
                   </button>
@@ -202,7 +202,7 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
             // B-19：删除确认态——整行替换为确认条
             if (confirmDelete === p.dir) {
               return (
-                <div key={p.dir} className="mb-[3px] rounded-[10px] border border-bad/40 bg-bad/10 p-2">
+                <div key={p.dir} className="mb-[3px] rounded-[10px] border border-bad/30 bg-bad/10 p-2">
                   <p className="text-[11px] leading-4 text-ink">
                     删除「{p.name || '未命名项目'}」？将移入回收站。
                   </p>
@@ -219,7 +219,7 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
                       type="button"
                       onClick={() => setConfirmDelete(null)}
                       disabled={busy}
-                      className="rounded-lg border border-line bg-white px-2 py-1 text-[11px] text-muted hover:text-ink"
+                      className="rounded-lg border border-line bg-surface px-2 py-1 text-[11px] text-muted hover:text-ink"
                     >
                       取消
                     </button>
@@ -237,8 +237,8 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
                   title={p.dir}
                   className={`mb-[3px] flex w-full items-center gap-2.5 rounded-[10px] border p-2 text-left transition disabled:opacity-100 ${
                     active
-                      ? 'border-[#DED9FB] bg-violet-soft'
-                      : 'border-transparent hover:bg-[#F5F6FB]'
+                      ? 'border-violet/30 bg-violet-soft'
+                      : 'border-transparent hover:bg-canvas'
                   }`}
                 >
                   <span
@@ -251,19 +251,19 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
                     <span className={`block truncate text-[12.5px] font-bold leading-tight ${active ? 'text-violet' : 'text-ink'}`}>
                       {p.name || '未命名项目'}
                     </span>
-                    <span className="mt-0.5 block text-[10.5px] text-[#9AA0B5]">
+                    <span className="mt-0.5 block text-[10.5px] text-muted">
                       {relativeTime(p.updatedAt)}
                       {active ? ' · 编辑中' : ''}
                     </span>
                   </span>
-                  <span className={`ml-auto h-[7px] w-[7px] shrink-0 rounded-full transition ${menuFor === p.dir ? 'opacity-0' : 'group-hover:opacity-0'} ${active ? 'bg-ok' : 'bg-[#C9CCDA]'}`} />
+                  <span className={`ml-auto h-[7px] w-[7px] shrink-0 rounded-full transition ${menuFor === p.dir ? 'opacity-0' : 'group-hover:opacity-0'} ${active ? 'bg-ok' : 'bg-line'}`} />
                 </button>
                 <button
                   type="button"
                   aria-label="更多操作"
                   disabled={busy}
                   onClick={() => setMenuFor(menuFor === p.dir ? null : p.dir)}
-                  className={`absolute right-2 top-1/2 z-[1] -translate-y-1/2 rounded-md px-1.5 py-0.5 text-[13px] font-bold leading-none tracking-wider text-[#9AA0B5] hover:bg-white hover:text-ink disabled:opacity-50 ${
+                  className={`absolute right-2 top-1/2 z-[1] -translate-y-1/2 rounded-md px-1.5 py-0.5 text-[13px] font-bold leading-none tracking-wider text-muted hover:bg-surface hover:text-ink disabled:opacity-50 ${
                     menuFor === p.dir ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                   }`}
                 >
@@ -272,13 +272,13 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
                 {menuFor === p.dir && (
                   <div
                     role="menu"
-                    className="absolute right-0 top-full z-20 mt-0.5 w-28 overflow-hidden rounded-lg border border-line bg-white py-1 shadow-lg"
+                    className="absolute right-0 top-full z-20 mt-0.5 w-28 overflow-hidden rounded-lg border border-line bg-surface py-1 shadow-lg"
                   >
                     <button
                       type="button"
                       role="menuitem"
                       onClick={() => { setMenuFor(null); setConfirmDelete(null); setRenaming({ dir: p.dir, value: p.name }) }}
-                      className="block w-full px-3 py-1.5 text-left text-[12px] text-ink hover:bg-[#F5F6FB]"
+                      className="block w-full px-3 py-1.5 text-left text-[12px] text-ink hover:bg-canvas"
                     >
                       改名
                     </button>
@@ -301,14 +301,14 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
       </div>
 
       {creating && (
-        <div className="mt-2 space-y-2 rounded-xl border border-line bg-white p-2.5">
+        <div className="mt-2 space-y-2 rounded-xl border border-line bg-surface p-2.5">
           <input
             autoFocus
             value={name}
             onChange={e => setName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') void create(); if (e.key === 'Escape') setCreating(false) }}
             placeholder="项目名（可空，Enter 确认）"
-            className="w-full rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs text-ink outline-none focus:border-violet"
+            className="w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs text-ink outline-none focus:border-violet"
           />
           <div className="flex gap-2">
             <button
@@ -323,7 +323,7 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
               type="button"
               onClick={() => { setCreating(false); setName('') }}
               disabled={busy}
-              className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs text-muted hover:text-ink"
+              className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs text-muted hover:text-ink"
             >
               取消
             </button>

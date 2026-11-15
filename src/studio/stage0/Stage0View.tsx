@@ -58,8 +58,8 @@ function text(v: unknown): string {
 /** 叶子值展示：'待定' 显中性徽标；空串/非字符串显「—」 */
 function LeafValue({ value }: { value: unknown }) {
   const s = text(value)
-  if (s === '待定') return <span className="rounded bg-[#F1F2F8] px-1.5 py-px text-[10px] font-bold text-[#7A8098]">待定</span>
-  if (!s) return <span className="text-[#B8BDCE]">—</span>
+  if (s === '待定') return <span className="rounded bg-canvas px-1.5 py-px text-[10px] font-bold text-muted">待定</span>
+  if (!s) return <span className="text-muted">—</span>
   return <span className="font-bold text-ink">{s}</span>
 }
 
@@ -77,7 +77,7 @@ export function EntryQuoteCard({ quote }: { quote: string }) {
   if (!quote.trim()) return null
   return (
     <div
-      className="flex items-center gap-3 rounded-[13px] border border-[#DED9FB] bg-gradient-to-br from-[#F8F6FF] to-[#F0EEFF] px-[17px] py-[14px] shadow-[0_8px_22px_rgba(108,92,231,0.08)]"
+      className="flex items-center gap-3 rounded-[13px] border border-violet/30 bg-violet-soft px-[17px] py-[14px] shadow-[0_8px_22px_rgba(108,92,231,0.08)]"
       data-stage0-entry-quote
     >
       <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] bg-gradient-to-br from-[#B8AFFF] to-[#6C5CE7] text-white shadow-[0_5px_12px_rgba(108,92,231,0.3)]">
@@ -124,11 +124,11 @@ export function DiagnosisSections({ detail }: { detail: string }) {
               <button
                 type="button"
                 onClick={() => setToggled(prev => ({ ...prev, [i]: !isOpen(i, s.title) }))}
-                className="mb-0.5 flex w-full items-center gap-1.5 text-left text-[10px] font-extrabold text-[#4A4F68] transition-colors hover:text-violet"
+                className="mb-0.5 flex w-full items-center gap-1.5 text-left text-[10px] font-extrabold text-ink transition-colors hover:text-violet"
                 data-diagnosis-section-toggle={s.title}
                 aria-expanded={open}
               >
-                <span className="w-2.5 shrink-0 text-center text-[8px] text-[#9AA0B5]">{open ? '▾' : '▸'}</span>
+                <span className="w-2.5 shrink-0 text-center text-[8px] text-muted">{open ? '▾' : '▸'}</span>
                 <span className="h-2.5 w-[3px] rounded-full bg-violet/70" />
                 {s.title}
               </button>
@@ -146,7 +146,7 @@ export function DiagnosisSections({ detail }: { detail: string }) {
 export function BackgroundMd({ content }: { content: string }) {
   return (
     <div
-      className="md-bubble max-h-[260px] overflow-y-auto border-t border-[#F2F3F8] px-2.5 py-2 text-[10.5px] leading-[1.7] text-[#4A4F68]"
+      className="md-bubble max-h-[260px] overflow-y-auto border-t border-line px-2.5 py-2 text-[10.5px] leading-[1.7] text-ink"
       data-stage0-background-md
     >
       <ReactMarkdown
@@ -161,9 +161,9 @@ export function BackgroundMd({ content }: { content: string }) {
           p: ({ children }) => <p className="my-0.5 first:mt-0 last:mb-0">{children}</p>,
           ul: ({ children }) => <ul className="my-0.5 ml-[16px] list-disc space-y-0.5">{children}</ul>,
           ol: ({ children }) => <ol className="my-0.5 ml-[16px] list-decimal space-y-0.5">{children}</ol>,
-          li: ({ children }) => <li className="pl-0.5 marker:text-[#9AA0B5]">{children}</li>,
+          li: ({ children }) => <li className="pl-0.5 marker:text-muted">{children}</li>,
           blockquote: ({ children }) => (
-            <blockquote className="my-1 border-l-2 border-[#DED9FB] pl-2 text-[#7A8098]">{children}</blockquote>
+            <blockquote className="my-1 border-l-2 border-violet/30 pl-2 text-muted">{children}</blockquote>
           ),
           hr: () => <hr className="my-2 border-line" />,
           table: ({ children }) => (
@@ -193,12 +193,12 @@ function CaptureFactRows({ items }: { items: CaptureGroupItem[] }) {
       {items.map(item => (
         <div
           key={item.key}
-          className="flex items-start gap-2 border-b border-[#F6F7FB] px-3.5 py-2 last:border-b-0"
+          className="flex items-start gap-2 border-b border-line px-3.5 py-2 last:border-b-0"
           data-stage0-capture-row={item.key}
         >
-          <span className="w-[62px] shrink-0 pt-px text-[10.5px] font-bold text-[#7A8098]">{item.label}</span>
+          <span className="w-[62px] shrink-0 pt-px text-[10.5px] font-bold text-muted">{item.label}</span>
           <span className="min-w-0 flex-1 break-all text-[11.5px] font-bold leading-snug text-ink">{item.fact.value}</span>
-          <span className="shrink-0 rounded-[5px] border border-line bg-[#F6F7FB] px-1.5 py-px text-[9px] font-bold text-[#7A8098]">
+          <span className="shrink-0 rounded-[5px] border border-line bg-canvas px-1.5 py-px text-[9px] font-bold text-muted">
             {factSourceText(item.fact)}
           </span>
         </div>
@@ -213,8 +213,8 @@ function CapturedFactsCards({ facts }: { facts: CapturedFact[] }) {
   return (
     <>
       {groups.six.length > 0 && (
-        <section className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_10px_30px_rgba(40,42,80,0.06)]" data-stage0-capture-group="six">
-          <div className="flex items-center gap-2 border-b border-[#F2F3F8] px-3.5 py-2">
+        <section className="overflow-hidden rounded-[14px] border border-line bg-surface shadow-[0_10px_30px_rgba(40,42,80,0.06)]" data-stage0-capture-group="six">
+          <div className="flex items-center gap-2 border-b border-line px-3.5 py-2">
             <span className="h-3 w-[3px] rounded-full bg-violet/70" />
             <span className="text-[11px] font-extrabold text-ink">选题诊断口径</span>
             <span className="text-[10px] text-muted">· {groups.six.length}/6 已收集</span>
@@ -223,8 +223,8 @@ function CapturedFactsCards({ facts }: { facts: CapturedFact[] }) {
         </section>
       )}
       {groups.premise.length > 0 && (
-        <section className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_10px_30px_rgba(40,42,80,0.06)]" data-stage0-capture-group="premise">
-          <div className="flex items-center gap-2 border-b border-[#F2F3F8] px-3.5 py-2">
+        <section className="overflow-hidden rounded-[14px] border border-line bg-surface shadow-[0_10px_30px_rgba(40,42,80,0.06)]" data-stage0-capture-group="premise">
+          <div className="flex items-center gap-2 border-b border-line px-3.5 py-2">
             <span className="h-3 w-[3px] rounded-full bg-violet/70" />
             <span className="text-[11px] font-extrabold text-ink">故事前提口径</span>
             <span className="text-[10px] text-muted">· {groups.premise.length}/5 已收集</span>
@@ -233,24 +233,24 @@ function CapturedFactsCards({ facts }: { facts: CapturedFact[] }) {
         </section>
       )}
       {groups.unmatched.length > 0 && (
-        <section className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_10px_30px_rgba(40,42,80,0.06)]" data-stage0-capture-group="unmatched">
-          <div className="flex items-center gap-2 border-b border-[#F2F3F8] px-3.5 py-2">
-            <span className="h-3 w-[3px] rounded-full bg-[#E8A33D]/70" />
+        <section className="overflow-hidden rounded-[14px] border border-line bg-surface shadow-[0_10px_30px_rgba(40,42,80,0.06)]" data-stage0-capture-group="unmatched">
+          <div className="flex items-center gap-2 border-b border-line px-3.5 py-2">
+            <span className="h-3 w-[3px] rounded-full bg-warn/70" />
             <span className="text-[11px] font-extrabold text-ink">其他口径</span>
             <span className="text-[10px] text-muted">· {groups.unmatched.length} 条（未归入六要素 / 前提）</span>
           </div>
           {groups.unmatched.map(f => (
             <div
               key={f.id}
-              className="flex items-start gap-2 border-b border-[#F6F7FB] px-3.5 py-2 last:border-b-0"
+              className="flex items-start gap-2 border-b border-line px-3.5 py-2 last:border-b-0"
               data-stage0-capture-row={f.topic}
             >
               <span
                 title={captureTopicLabel(f.topic) !== f.topic ? `字段：${f.topic}` : undefined}
-                className="max-w-[130px] shrink-0 break-all pt-px text-[10.5px] font-bold text-[#7A8098]"
+                className="max-w-[130px] shrink-0 break-all pt-px text-[10.5px] font-bold text-muted"
               >{captureTopicLabel(f.topic)}</span>
               <span className="min-w-0 flex-1 break-all text-[11.5px] font-bold leading-snug text-ink">{f.value}</span>
-              <span className="shrink-0 rounded-[5px] border border-line bg-[#F6F7FB] px-1.5 py-px text-[9px] font-bold text-[#7A8098]">
+              <span className="shrink-0 rounded-[5px] border border-line bg-canvas px-1.5 py-px text-[9px] font-bold text-muted">
                 {factSourceText(f)}
               </span>
             </div>
@@ -271,7 +271,7 @@ function EmptyStage0({ state, projectTitle, projectId, onBackToDag, entryQuote =
 }) {
   const { facts } = useCaptureFacts(projectId)
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#FAFBFE]" data-view="stage0">
+    <div className="relative h-full w-full overflow-hidden bg-canvas" data-view="stage0">
       <Header projectTitle={projectTitle} onBackToDag={onBackToDag} />
       <Stage0Chain state={state} projectId={projectId} />
       <div className="absolute inset-0 top-[84px] overflow-y-auto px-[26px] py-[26px]">
@@ -279,7 +279,7 @@ function EmptyStage0({ state, projectTitle, projectId, onBackToDag, entryQuote =
           <EntryQuoteCard quote={entryQuote} />
           {state.gate0 && <GateRetentionCard gate0={state.gate0} />}
           <CapturedFactsCards facts={facts ?? []} />
-          <div className="rounded-[14px] border border-line bg-white p-7 text-center shadow-[0_10px_30px_rgba(40,42,80,0.06)]" data-stage0-empty>
+          <div className="rounded-[14px] border border-line bg-surface p-7 text-center shadow-[0_10px_30px_rgba(40,42,80,0.06)]" data-stage0-empty>
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-violet-soft text-xl text-violet">0</span>
             <div className="mt-3 text-[15px] font-extrabold text-ink">
               {state.gatePending ? '立项单已定稿待你批准' : '立项尚未定案'}
@@ -292,7 +292,7 @@ function EmptyStage0({ state, projectTitle, projectId, onBackToDag, entryQuote =
             <button
               type="button"
               onClick={onBackToDag}
-              className="mt-5 rounded-lg border border-line bg-white px-3.5 py-1.5 text-[11px] font-bold text-[#7A8098] hover:bg-[#F1F2F8]"
+              className="mt-5 rounded-lg border border-line bg-surface px-3.5 py-1.5 text-[11px] font-bold text-muted hover:bg-canvas"
               data-stage0-back
             >← 返回画布</button>
           </div>
@@ -306,7 +306,7 @@ function EmptyStage0({ state, projectTitle, projectId, onBackToDag, entryQuote =
 function GatePendingStrip({ gate0 }: { gate0: NonNullable<ReturnType<typeof selectStage0State>['gate0']> }) {
   return (
     <div
-      className="flex items-center gap-2 rounded-[10px] border border-[#DED9FB] bg-violet-soft px-3.5 py-2.5 text-[11.5px] leading-relaxed text-[#5A4FD8]"
+      className="flex items-center gap-2 rounded-[10px] border border-violet/30 bg-violet-soft px-3.5 py-2.5 text-[11.5px] leading-relaxed text-[#5A4FD8]"
       data-stage0-gate-pending
     >
       <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-violet text-[10px] text-white">!</span>
@@ -334,12 +334,12 @@ function DirtyBar({ state, driftLabel }: { state: ReturnType<typeof selectStage0
   if (state.dirtyCount === 0) return null
   return (
     <div
-      className="rounded-[10px] border border-[#F6E6C4] bg-[#FFF4DE] px-3.5 py-2.5 text-[11px] leading-relaxed text-[#7A5C1D]"
+      className="rounded-[10px] border border-warn/30 bg-warn/10 px-3.5 py-2.5 text-[11px] leading-relaxed text-warn"
       data-stage0-dirty-bar
     >
-      <b className="text-[#C0841D]">有 {state.dirtyCount} 个产物基于旧版立项</b>
+      <b className="text-warn">有 {state.dirtyCount} 个产物基于旧版立项</b>
       <span className="ml-1.5">命中字段：{state.dirtyFields.map(dirtyFieldLabel).join('、')}</span>
-      {driftLabel && <div className="mt-0.5 font-semibold text-[#C0841D]">{driftLabel}</div>}
+      {driftLabel && <div className="mt-0.5 font-semibold text-warn">{driftLabel}</div>}
     </div>
   )
 }
@@ -347,14 +347,14 @@ function DirtyBar({ state, driftLabel }: { state: ReturnType<typeof selectStage0
 /* ── 头部（版本徽标在主体内以文件内 brief.version 显示，D-004）── */
 function Header({ projectTitle, onBackToDag }: { projectTitle: string; onBackToDag: () => void }) {
   return (
-    <div className="absolute inset-x-0 top-0 z-10 flex h-[38px] items-center gap-2.5 border-b border-line bg-white/85 px-[18px] backdrop-blur">
-      <span className="text-[10.5px] font-extrabold tracking-[0.4px] text-[#9AA0B5]">立项视图</span>
+    <div className="absolute inset-x-0 top-0 z-10 flex h-[38px] items-center gap-2.5 border-b border-line bg-surface/85 px-[18px] backdrop-blur">
+      <span className="text-[10.5px] font-extrabold tracking-[0.4px] text-muted">立项视图</span>
       <span className="text-[12px] font-extrabold text-ink">{projectTitle}</span>
       <div className="flex-1" />
       <button
         type="button"
         onClick={onBackToDag}
-        className="rounded-md border border-line bg-white px-2.5 py-1 text-[10.5px] text-[#7A8098] hover:bg-[#F1F2F8]"
+        className="rounded-md border border-line bg-surface px-2.5 py-1 text-[10.5px] text-muted hover:bg-canvas"
         data-stage0-back
       >← 返回画布</button>
     </div>
@@ -367,8 +367,8 @@ const ASPECT_OPTIONS = ['竖屏 9:16', '横屏 16:9']
 /** 只读字段行（卡①行内编辑态中与可改行混排，样式与只读卡一致） */
 function FieldRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-center gap-2 border-b border-[#F6F7FB] px-2.5 py-1.5 text-[11px] last:border-b-0">
-      <span className="w-[58px] shrink-0 text-[10px] font-semibold text-[#9AA0B5]">{label}</span>
+    <div className="flex items-center gap-2 border-b border-line px-2.5 py-1.5 text-[11px] last:border-b-0">
+      <span className="w-[58px] shrink-0 text-[10px] font-semibold text-muted">{label}</span>
       {children}
     </div>
   )
@@ -377,20 +377,20 @@ function FieldRow({ label, children }: { label: string; children: ReactNode }) {
 function EditRow({ label, field, bare, children }: { label: string; field: string; bare?: boolean; children: ReactNode }) {
   return (
     <label
-      className={`flex items-center gap-2 text-[11px] ${bare ? 'px-0 py-0.5' : 'border-b border-[#F6F7FB] px-2.5 py-1.5 last:border-b-0'}`}
+      className={`flex items-center gap-2 text-[11px] ${bare ? 'px-0 py-0.5' : 'border-b border-line px-2.5 py-1.5 last:border-b-0'}`}
       data-stage0-edit-field={field}
     >
-      <span className="w-[58px] shrink-0 text-[10px] font-semibold text-[#9AA0B5]">{label}</span>
+      <span className="w-[58px] shrink-0 text-[10px] font-semibold text-muted">{label}</span>
       {children}
     </label>
   )
 }
 
 const inputCls =
-  'w-full rounded-md border border-line bg-white px-2 py-1 text-[11px] font-bold text-ink outline-none focus:border-violet'
+  'w-full rounded-md border border-line bg-surface px-2 py-1 text-[11px] font-bold text-ink outline-none focus:border-violet'
 
 const textareaCls =
-  'w-full resize-y rounded-md border border-line bg-white px-2 py-1 text-[11px] font-bold leading-[1.6] text-ink outline-none focus:border-violet'
+  'w-full resize-y rounded-md border border-line bg-surface px-2 py-1 text-[11px] font-bold leading-[1.6] text-ink outline-none focus:border-violet'
 
 /** 多值 chip 编辑器（feature-013：目标平台 / 项目标签）；回车或失焦追加，点击 × 删除 */
 function ChipEditor({ value, onChange, placeholder }: {
@@ -422,7 +422,7 @@ function ChipEditor({ value, onChange, placeholder }: {
         </span>
       ))}
       <input
-        className="min-w-[90px] flex-1 rounded-md border border-line bg-white px-2 py-1 text-[11px] font-bold text-ink outline-none focus:border-violet"
+        className="min-w-[90px] flex-1 rounded-md border border-line bg-surface px-2 py-1 text-[11px] font-bold text-ink outline-none focus:border-violet"
         value={draft}
         placeholder={placeholder}
         onChange={e => setDraft(e.target.value)}
@@ -570,22 +570,22 @@ function BriefEditPanel({ brief, onClose, premiseDraft, onBriefUpdated }: {
 
   // 卡①行内编辑态：全字段原位替换只读行（feature-013：L0 标签/备注 + 六要素 + 风格 + 诊断结论）
   return (
-    <section className="flex flex-col overflow-hidden rounded-[12px] border border-violet bg-white" data-stage0-edit-panel>
-      <div className="flex items-center gap-2 border-b border-[#F2F3F8] px-3.5 py-2.5">
+    <section className="flex flex-col overflow-hidden rounded-[12px] border border-violet bg-surface" data-stage0-edit-panel>
+      <div className="flex items-center gap-2 border-b border-line px-3.5 py-2.5">
         <span className="grid h-6 w-6 place-items-center rounded-md bg-violet-soft text-[11px] font-extrabold text-violet">1</span>
         <span className="text-[12px] font-extrabold text-ink">选题诊断</span>
         <span className="rounded-full bg-violet-soft px-2 py-px text-[9px] font-bold text-[#5A4FD8]">修改中</span>
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto rounded-md border border-line bg-white px-2.5 py-1 text-[10.5px] text-[#7A8098] hover:bg-[#F1F2F8]"
+          className="ml-auto rounded-md border border-line bg-surface px-2.5 py-1 text-[10.5px] text-muted hover:bg-canvas"
           data-stage0-edit-cancel
         >取消</button>
       </div>
       <div className="flex flex-col gap-3 px-3.5 py-3">
         {/* feature-013：L0 区（项目标签 / 项目备注）——仅元数据，入模随再版留痕 */}
         <div className="flex flex-col gap-1 rounded-md border border-line px-2.5 py-2">
-          <div className="text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">项目标签与备注（L0）</div>
+          <div className="text-[9.5px] font-extrabold tracking-[0.3px] text-muted">项目标签与备注（L0）</div>
           <EditRow label="项目标签" field="l0.tags" bare>
             <ChipEditor value={l0Tags} onChange={setL0Tags} placeholder="输入标签后回车" />
           </EditRow>
@@ -642,7 +642,7 @@ function BriefEditPanel({ brief, onClose, premiseDraft, onBriefUpdated }: {
         </div>
         {/* feature-013：诊断结论直改（诊断明细恒只读，D-018 语义不变） */}
         <div className="rounded-md border border-line px-2.5 py-2">
-          <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">选题诊断结论</div>
+          <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-muted">选题诊断结论</div>
           <textarea
             className={textareaCls}
             rows={3}
@@ -653,8 +653,8 @@ function BriefEditPanel({ brief, onClose, premiseDraft, onBriefUpdated }: {
         </div>
         {/* 诊断明细（D-018）：分节排版 + 长文限高滚动，恒只读 */}
         {text(brief.diagnosisDetail) && (
-          <div className="rounded-md bg-[#F7F8FC] px-2.5 py-2 text-[10.5px] leading-[1.7] text-[#6A708A]" data-stage0-diagnosis-detail>
-            <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">选题诊断明细</div>
+          <div className="rounded-md bg-canvas px-2.5 py-2 text-[10.5px] leading-[1.7] text-muted" data-stage0-diagnosis-detail>
+            <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-muted">选题诊断明细</div>
             <DiagnosisSections detail={text(brief.diagnosisDetail)} />
           </div>
         )}
@@ -667,15 +667,15 @@ function BriefEditPanel({ brief, onClose, premiseDraft, onBriefUpdated }: {
               className="rounded-lg bg-violet px-3.5 py-1.5 text-[11px] font-bold text-white hover:bg-[#4A3FD0] disabled:cursor-not-allowed disabled:opacity-40"
               data-stage0-edit-submit
             >{submitting ? '再版中…' : '确认再版'}</button>
-            <span className="text-[10px] text-[#A6ABC0]">
+            <span className="text-[10px] text-muted">
               {diffs.length === 0 ? '尚未修改任何字段' : `共 ${diffs.length} 处变更`}
             </span>
           </div>
-          <p className="mt-1.5 text-[10px] leading-[1.6] text-[#A6ABC0]">
+          <p className="mt-1.5 text-[10px] leading-[1.6] text-muted">
             提交后系统直接再版为 v{brief.version + 1} 并完成影响追溯（不经 AI 对话）；右侧对话保留为开放式修改的补充入口
           </p>
           {error && (
-            <p className="mt-2 rounded-md border border-[#F0C5CB] bg-[#FDF3F4] px-2.5 py-1.5 text-[10.5px] leading-[1.6] text-[#C23D4D]" data-stage0-edit-error>
+            <p className="mt-2 rounded-md border border-bad/30 bg-bad/10 px-2.5 py-1.5 text-[10.5px] leading-[1.6] text-bad" data-stage0-edit-error>
               再版失败：{error}
             </p>
           )}
@@ -731,11 +731,11 @@ function PublishedBody({ brief, state, bg, projectId, entryQuote = '', driftLabe
             onBriefUpdated={onBriefUpdated}
           />
         ) : (
-        <section className="flex flex-col overflow-hidden rounded-[12px] border border-line bg-white" data-stage0-card-diagnosis>
-          <div className="flex items-center gap-2 border-b border-[#F2F3F8] px-3.5 py-2.5">
+        <section className="flex flex-col overflow-hidden rounded-[12px] border border-line bg-surface" data-stage0-card-diagnosis>
+          <div className="flex items-center gap-2 border-b border-line px-3.5 py-2.5">
             <span className="grid h-6 w-6 place-items-center rounded-md bg-violet-soft text-[11px] font-extrabold text-violet">1</span>
             <span className="text-[12px] font-extrabold text-ink">选题诊断</span>
-            <span className="ml-auto rounded-full bg-[#F2F3F9] px-2 py-px text-[9px] font-bold text-[#7A8098]">{kindLabel}</span>
+            <span className="ml-auto rounded-full bg-canvas px-2 py-px text-[9px] font-bold text-muted">{kindLabel}</span>
           </div>
           <div className="flex flex-col gap-3 px-3.5 py-3">
             <div className="rounded-md border border-line">
@@ -754,13 +754,13 @@ function PublishedBody({ brief, state, bg, projectId, entryQuote = '', driftLabe
                 主风格 {styleRefLabel(text(brief.style.mainStyleId)) || '—'} · 谱系 {text(brief.style.catalogVersion) || '—'}
               </span>
               {text(brief.style.auxiliaryStyleId) && (
-                <span className="rounded bg-white/70 px-1.5 py-px text-[10px] font-bold text-[#5A4FD8]">辅助 {styleRefLabel(text(brief.style.auxiliaryStyleId))}</span>
+                <span className="rounded bg-surface/70 px-1.5 py-px text-[10px] font-bold text-[#5A4FD8]">辅助 {styleRefLabel(text(brief.style.auxiliaryStyleId))}</span>
               )}
             </div>
             {/* feature-013：L0 标签与备注（仅元数据，低级不入影响清单） */}
             {(l0Tags.length > 0 || l0Notes !== '') && (
-              <div className="rounded-md border border-line px-2.5 py-2 text-[10.5px] leading-[1.7] text-[#6A708A]" data-stage0-l0>
-                <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">项目标签与备注</div>
+              <div className="rounded-md border border-line px-2.5 py-2 text-[10.5px] leading-[1.7] text-muted" data-stage0-l0>
+                <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-muted">项目标签与备注</div>
                 {l0Tags.length > 0 && (
                   <div className="flex flex-wrap items-center gap-1" data-stage0-l0-tags>
                     {l0Tags.map(t => (
@@ -772,15 +772,15 @@ function PublishedBody({ brief, state, bg, projectId, entryQuote = '', driftLabe
               </div>
             )}
             {text(brief.diagnosisSummary) && (
-              <div className="rounded-md bg-[#F7F8FC] px-2.5 py-2 text-[10.5px] leading-[1.7] text-[#6A708A]">
-                <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">选题诊断结论</div>
+              <div className="rounded-md bg-canvas px-2.5 py-2 text-[10.5px] leading-[1.7] text-muted">
+                <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-muted">选题诊断结论</div>
                 {brief.diagnosisSummary}
               </div>
             )}
             {/* 诊断明细（D-018）：分节排版 + 长文限高滚动，恒只读 */}
             {text(brief.diagnosisDetail) && (
-              <div className="rounded-md bg-[#F7F8FC] px-2.5 py-2 text-[10.5px] leading-[1.7] text-[#6A708A]" data-stage0-diagnosis-detail>
-                <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">选题诊断明细</div>
+              <div className="rounded-md bg-canvas px-2.5 py-2 text-[10.5px] leading-[1.7] text-muted" data-stage0-diagnosis-detail>
+                <div className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-muted">选题诊断明细</div>
                 <DiagnosisSections detail={text(brief.diagnosisDetail)} />
               </div>
             )}
@@ -789,8 +789,8 @@ function PublishedBody({ brief, state, bg, projectId, entryQuote = '', driftLabe
         )}
 
         {/* 卡② 故事前提 + 背景档案折叠 */}
-        <section className="flex flex-col overflow-hidden rounded-[12px] border border-line bg-white" data-stage0-card-premise>
-          <div className="flex items-center gap-2 border-b border-[#F2F3F8] px-3.5 py-2.5">
+        <section className="flex flex-col overflow-hidden rounded-[12px] border border-line bg-surface" data-stage0-card-premise>
+          <div className="flex items-center gap-2 border-b border-line px-3.5 py-2.5">
             <span className="grid h-6 w-6 place-items-center rounded-md bg-violet-soft text-[11px] font-extrabold text-violet">2</span>
             <span className="text-[12px] font-extrabold text-ink">故事前提</span>
           </div>
@@ -802,14 +802,14 @@ function PublishedBody({ brief, state, bg, projectId, entryQuote = '', driftLabe
                 return (
                 <div
                   key={key}
-                  className={`flex items-start gap-2 border-b border-[#F6F7FB] px-2.5 py-1.5 text-[11px] last:border-b-0${conf === 'human' ? ' bg-[#F2FBF6]' : conf === 'ai' ? ' bg-[#FDF8EE]' : ''}`}
+                  className={`flex items-start gap-2 border-b border-line px-2.5 py-1.5 text-[11px] last:border-b-0${conf === 'human' ? ' bg-ok/10' : conf === 'ai' ? ' bg-warn/10' : ''}`}
                   data-stage0-premise-row={key}
                   data-stage0-premise-confirmation={conf}
                 >
-                  <span className="mt-px w-[58px] shrink-0 text-[10px] font-semibold text-[#9AA0B5]">{label}</span>
+                  <span className="mt-px w-[58px] shrink-0 text-[10px] font-semibold text-muted">{label}</span>
                   {editing ? (
                     <input
-                      className="min-w-0 flex-1 rounded-md border border-line bg-white px-2 py-1 text-[11px] font-bold text-ink outline-none focus:border-violet"
+                      className="min-w-0 flex-1 rounded-md border border-line bg-surface px-2 py-1 text-[11px] font-bold text-ink outline-none focus:border-violet"
                       value={premiseDraft[key]}
                       data-stage0-premise-edit={key}
                       onChange={e => {
@@ -824,8 +824,8 @@ function PublishedBody({ brief, state, bg, projectId, entryQuote = '', driftLabe
                   {conf !== 'none' && (
                     <span
                       className={conf === 'human'
-                        ? 'ml-auto shrink-0 rounded-full border border-[#B9E8D2] bg-[#E7F8F0] px-1.5 py-px text-[9.5px] font-bold text-[#1E9E66]'
-                        : 'ml-auto shrink-0 rounded-full border border-[#F0E2C0] bg-[#FBF3E2] px-1.5 py-px text-[9.5px] font-bold text-[#B07E2A]'}
+                        ? 'ml-auto shrink-0 rounded-full border border-ok/30 bg-ok/10 px-1.5 py-px text-[9.5px] font-bold text-ok'
+                        : 'ml-auto shrink-0 rounded-full border border-warn/30 bg-warn/10 px-1.5 py-px text-[9.5px] font-bold text-warn'}
                       data-stage0-premise-seal
                     >{conf === 'human' ? '不可篡改' : 'AI 拟稿'}</span>
                   )}
@@ -838,42 +838,42 @@ function PublishedBody({ brief, state, bg, projectId, entryQuote = '', driftLabe
                 <button
                   type="button"
                   onClick={() => setBgOpen(v => !v)}
-                  className="flex w-full items-center gap-1.5 px-2.5 py-2 text-[10.5px] font-extrabold text-[#5A607A] hover:bg-[#F8F9FD]"
+                  className="flex w-full items-center gap-1.5 px-2.5 py-2 text-[10.5px] font-extrabold text-ink hover:bg-canvas"
                   aria-expanded={bgOpen}
                 >
-                  <span className="text-[#A6ABC0]">{bgOpen ? '▾' : '▸'}</span>故事背景档案.md
+                  <span className="text-muted">{bgOpen ? '▾' : '▸'}</span>故事背景档案.md
                   <span
-                    className="ml-auto shrink-0 rounded-full border border-[#B9E8D2] bg-[#E7F8F0] px-1.5 py-px text-[9.5px] font-bold text-[#1E9E66]"
+                    className="ml-auto shrink-0 rounded-full border border-ok/30 bg-ok/10 px-1.5 py-px text-[9.5px] font-bold text-ok"
                     data-stage0-background-seal
                   >不可篡改</span>
                 </button>
                 {bgOpen && (
                   bg.phase === 'ok'
                     ? <BackgroundMd content={bg.content} />
-                    : <div className="border-t border-[#F2F3F8] px-2.5 py-2 text-[10px] text-[#B8BDCE]">背景档案读取失败，已跳过。</div>
+                    : <div className="border-t border-line px-2.5 py-2 text-[10px] text-muted">背景档案读取失败，已跳过。</div>
                 )}
               </div>
             )}
-            <p className="mt-auto text-[10px] leading-[1.6] text-[#A6ABC0]">故事前提可直接在卡②行内改；也可点下方「修改立项…」一次改完再版（不经 AI 对话）。</p>
+            <p className="mt-auto text-[10px] leading-[1.6] text-muted">故事前提可直接在卡②行内改；也可点下方「修改立项…」一次改完再版（不经 AI 对话）。</p>
           </div>
         </section>
       </div>
 
       {/* 定案区 + 版本区 */}
-      <section className="rounded-[12px] border border-line bg-white px-4 py-3">
+      <section className="rounded-[12px] border border-line bg-surface px-4 py-3">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px]">
           <div>
-            <span className="text-[10px] font-semibold text-[#9AA0B5]">定案方式　</span>
+            <span className="text-[10px] font-semibold text-muted">定案方式　</span>
             {brief.approve.by === 'gate'
-              ? <span className="font-extrabold text-[#1E9E66]">门批准入</span>
+              ? <span className="font-extrabold text-ok">门批准入</span>
               : <span className="font-extrabold text-ink">口头拍板</span>}
           </div>
           <div>
-            <span className="text-[10px] font-semibold text-[#9AA0B5]">定案时间　</span>
+            <span className="text-[10px] font-semibold text-muted">定案时间　</span>
             <span className="font-bold text-ink">{formatAt(brief.approve.at)}</span>
           </div>
           <div>
-            <span className="text-[10px] font-semibold text-[#9AA0B5]">版本　</span>
+            <span className="text-[10px] font-semibold text-muted">版本　</span>
             <span className="font-extrabold text-ink">
               {isV1 ? '首版立项' : `相对 v${brief.version - 1} 共 ${brief.changesFromPrevious.length} 处变更`}
             </span>
@@ -893,22 +893,22 @@ function PublishedBody({ brief, state, bg, projectId, entryQuote = '', driftLabe
                 setEditedPremise([])
                 setEditing(true)
               }}
-              className="ml-auto rounded-lg border border-violet bg-violet-soft px-3 py-1.5 text-[11px] font-bold text-[#5A4FD8] hover:bg-[#DED9FB]"
+              className="ml-auto rounded-lg border border-violet bg-violet-soft px-3 py-1.5 text-[11px] font-bold text-[#5A4FD8] hover:bg-violet-soft"
               data-stage0-edit-toggle
             >修改立项…</button>
           )}
         </div>
         {/* 入口动作（D-018 恒显）：verbal=用户原话；gate=门批准入一键拍板；ui=修改立项系统直改 */}
         <div className="mt-2.5" data-stage0-entry-action>
-          <p className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-[#9AA0B5]">
+          <p className="mb-1 text-[9.5px] font-extrabold tracking-[0.3px] text-muted">
             入口动作 · {brief.approve.by === 'verbal' ? '用户原话' : brief.approve.by === 'gate' ? '门批准入' : '系统直改'}
           </p>
           {brief.approve.by === 'verbal' && text(brief.approve.verbal?.quote) ? (
-            <blockquote className="rounded-md rounded-l-none border-l-[3px] border-violet bg-[#F7F8FC] px-3 py-2 text-[11px] leading-[1.7] text-[#4A4F68]" data-stage0-verbal-quote>
+            <blockquote className="rounded-md rounded-l-none border-l-[3px] border-violet bg-canvas px-3 py-2 text-[11px] leading-[1.7] text-ink" data-stage0-verbal-quote>
               「{brief.approve.verbal?.quote}」
             </blockquote>
           ) : (
-            <p className="rounded-md bg-[#F7F8FC] px-3 py-2 text-[11px] leading-[1.7] text-[#4A4F68]">
+            <p className="rounded-md bg-canvas px-3 py-2 text-[11px] leading-[1.7] text-ink">
               {brief.approve.by === 'gate'
                 ? '门批准入 · 一键拍板'
                 : brief.approve.by === 'ui'
@@ -979,13 +979,13 @@ function BriefError({ projectTitle, projectId, onBackToDag, doc, state }: {
     : doc.reason === 'UNSUPPORTED_SHAPE' ? `立项单格式不受支持（schema 版本或形状不被识别）：${doc.path}`
     : `立项单读取失败：${doc.path}`
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#FAFBFE]" data-view="stage0">
+    <div className="relative h-full w-full overflow-hidden bg-canvas" data-view="stage0">
       <Header projectTitle={projectTitle} onBackToDag={onBackToDag} />
       <Stage0Chain state={state} projectId={projectId} />
       <div className="absolute inset-0 top-[84px] overflow-y-auto px-[26px] py-[26px]">
         <div className="mx-auto max-w-[680px] pt-[9vh]">
-          <div className="rounded-[14px] border border-[#F0CFCF] bg-white p-7 text-center" data-stage0-brief-error>
-            <div className="text-[14px] font-extrabold text-[#C0453B]">立项单无法展示</div>
+          <div className="rounded-[14px] border border-bad/30 bg-surface p-7 text-center" data-stage0-brief-error>
+            <div className="text-[14px] font-extrabold text-bad">立项单无法展示</div>
             <p className="mt-2 text-[11.5px] leading-relaxed text-muted">{message}</p>
           </div>
         </div>
@@ -1008,7 +1008,7 @@ export default function Stage0View({ canvas, projectTitle, onBackToDag, entryQuo
   const refPath = state.briefNode.ref?.format === 'json' ? state.briefNode.ref.path : ''
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#FAFBFE]" data-view="stage0">
+    <div className="relative h-full w-full overflow-hidden bg-canvas" data-view="stage0">
       <Header projectTitle={projectTitle} onBackToDag={onBackToDag} />
       <Stage0Chain state={state} projectId={canvas.projectId} />
       <div className="absolute inset-0 top-[84px] overflow-y-auto px-[26px] py-[22px]">
@@ -1038,8 +1038,8 @@ function PublishedLoaded({ state, refPath, projectTitle, projectId, onBackToDag,
   }
   if (brief.phase === 'loading') {
     return (
-      <div className="flex items-center gap-2.5 rounded-[12px] border border-line bg-white px-4 py-6 text-[11.5px] text-muted" data-stage0-loading>
-        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#DED9FB] border-t-violet" />
+      <div className="flex items-center gap-2.5 rounded-[12px] border border-line bg-surface px-4 py-6 text-[11.5px] text-muted" data-stage0-loading>
+        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-violet/30 border-t-violet" />
         正在读取立项单…
       </div>
     )
@@ -1052,8 +1052,8 @@ function PublishedLoaded({ state, refPath, projectTitle, projectId, onBackToDag,
   return (
     <>
       <div className="-mb-1 flex items-center gap-2">
-        <span className="rounded-full bg-[#E7F8F0] px-2 py-px text-[10px] font-bold text-[#1E9E66]" data-stage0-version={brief.brief.version}>立项单 v{brief.brief.version}</span>
-        <span className="text-[10px] text-[#A6ABC0]">来源：{brief.path}</span>
+        <span className="rounded-full bg-ok/10 px-2 py-px text-[10px] font-bold text-ok" data-stage0-version={brief.brief.version}>立项单 v{brief.brief.version}</span>
+        <span className="text-[10px] text-muted">来源：{brief.path}</span>
       </div>
       <PublishedBody brief={brief.brief} state={state} bg={bg} projectId={projectId} entryQuote={entryQuote} driftLabel={driftLabel} onBriefUpdated={onBriefUpdated} />
     </>

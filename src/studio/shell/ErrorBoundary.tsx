@@ -34,7 +34,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
     if (!this.state.hasError) return this.props.children
     return (
       <div className="flex h-full items-center justify-center p-6">
-        <div className="w-full max-w-sm rounded-2xl border border-line bg-white p-6 text-center shadow-card">
+        <div className="w-full max-w-sm rounded-2xl border border-line bg-surface p-6 text-center shadow-card">
           <div className="text-base font-medium text-ink">工作台出现异常</div>
           <p className="mt-2 text-sm leading-6 text-muted">
             页面渲染被中断，你的项目数据未受影响。请点击重试。

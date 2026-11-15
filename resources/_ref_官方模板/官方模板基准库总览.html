@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>官方模板基准库总览 · MiniMax H3</title>
+<style>
+:root{--bg:#0e1114;--panel:#151a1f;--panel2:#1b2229;--line:#2a343d;--text:#dbe1e6;--muted:#96a3ad;--faint:#65747f;--amber:#e9a23b;--teal:#55b7a8;--red:#df6b5f;--blue:#86add7;--sans:"Segoe UI","Microsoft YaHei","PingFang SC",system-ui,sans-serif;--mono:"Cascadia Mono",Consolas,monospace}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.72 var(--sans);background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:48px 48px}a{color:inherit}code,pre,.mono{font-family:var(--mono)}code{font-size:.92em;color:#e8edf0}.wrap{max-width:1360px;margin:auto;padding:28px 22px 80px;display:grid;grid-template-columns:230px minmax(0,1fr);gap:42px}.rail{position:sticky;top:24px;align-self:start;max-height:calc(100vh - 48px);overflow:auto}.path{font:11px/1.6 var(--mono);color:var(--faint);word-break:break-all;border-bottom:1px solid var(--line);padding-bottom:14px}.rail ul{list-style:none;padding:0;margin:14px 0}.rail a{display:grid;grid-template-columns:26px 1fr;gap:6px;padding:7px 6px;text-decoration:none;color:var(--muted);font-size:13px;border-radius:3px}.rail a:hover{background:var(--panel2);color:var(--text)}.rail .n{font:11px var(--mono);color:var(--amber)}.stats{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:7px}.stats div{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}.stats b{font:600 12px var(--mono);color:var(--text)}.hero{border-bottom:1px solid var(--line);padding:4px 0 32px}.kicker{font:11px var(--mono);color:var(--amber)}h1{font-size:clamp(30px,4.4vw,50px);line-height:1.14;letter-spacing:-.02em;margin:10px 0 14px}h1 em{font-style:normal;color:var(--amber)}.lede{max-width:58em;color:#bac4cb}.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-top:24px}.tile{background:var(--panel);padding:14px}.tile b{display:block;font:26px var(--mono);color:var(--amber)}.tile span{font-size:12px;color:var(--muted)}section{padding-top:48px;scroll-margin-top:20px}.sh{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:9px;margin-bottom:20px}.sh .num{font:12px var(--mono);color:var(--amber)}h2{font-size:22px;margin:0}.sh small{margin-left:auto;color:var(--faint);font-family:var(--mono)}h3{font-size:16px;margin:28px 0 10px}p{margin:0 0 12px}.note{border-left:2px solid var(--amber);background:var(--panel);padding:12px 15px;color:#c2ccd3;margin:16px 0}.note.red{border-left-color:var(--red)}.note.teal{border-left-color:var(--teal)}.table{overflow-x:auto;border:1px solid var(--line);margin:14px 0}table{border-collapse:collapse;width:100%;min-width:760px;font-size:12.5px}th{background:var(--panel2);color:var(--muted);text-align:left;font-weight:600;padding:9px 10px;border-bottom:1px solid var(--line)}td{padding:9px 10px;border-bottom:1px solid rgba(42,52,61,.7);vertical-align:top;word-break:break-word}tr:last-child td{border-bottom:0}tbody tr:hover{background:#192027}.files{font:11.5px/1.65 var(--mono)}.badge{display:inline-block;white-space:nowrap;border:1px solid var(--line);padding:1px 7px;border-radius:3px;font-size:11px}.prod{color:var(--teal);border-color:#35766d;background:rgba(85,183,168,.07)}.ref{color:var(--blue);border-color:#405e7b}.archive{color:var(--red);border-color:#79463f;background:rgba(223,107,95,.06)}pre{white-space:pre-wrap;word-break:break-word;background:var(--panel);border:1px solid var(--line);border-left:2px solid var(--teal);padding:15px 17px;font-size:12px;line-height:1.75;color:#c8d3da;overflow:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);margin:14px 0}.grid>div{background:var(--panel);padding:12px 14px}.grid b{display:block;color:var(--amber);font:11px var(--mono);margin-bottom:4px}.grid span{font-size:12.5px;color:#c6d0d7}ol{padding-left:22px}li{margin:7px 0}.count{font:12px var(--mono);color:var(--muted)}footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);font:11px/1.7 var(--mono);color:var(--faint)}
+@media(max-width:980px){.wrap{grid-template-columns:1fr;padding:18px 14px 60px;gap:18px}.rail{position:static;max-height:none}.rail ul{display:flex;overflow:auto;gap:5px}.rail a{display:block;white-space:nowrap;border:1px solid var(--line)}.rail .n{display:none}.stats{grid-template-columns:repeat(4,1fr)}.tiles{grid-template-columns:1fr 1fr}.sh small{display:none}}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.tiles{grid-template-columns:1fr}.tile{padding:10px 12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<aside class="rail">
+  <div class="path">resources/_ref_官方模板<br>A 类事实源的 B 类静态镜像<br>2026-11-15 · D-033</div>
+  <ul>
+    <li><a href="#s1"><span class="n">01</span>现行结论与边界</a></li>
+    <li><a href="#s2"><span class="n">02</span>八阶段选型</a></li>
+    <li><a href="#s3"><span class="n">03</span>10 份分类 UI 模板</a></li>
+    <li><a href="#s4"><span class="n">04</span>10 份分类 API 参考件</a></li>
+    <li><a href="#s5"><span class="n">05</span>H3 Image 生产图</a></li>
+    <li><a href="#s6"><span class="n">06</span>视频与 Music3</a></li>
+    <li><a href="#s7"><span class="n">07</span>删除禁用处理口径</a></li>
+    <li><a href="#s8"><span class="n">08</span>执行验收纪律</a></li>
+    <li><a href="#s9"><span class="n">09</span>迁移验证记录</a></li>
+  </ul>
+  <div class="stats"><div><span>分类 UI 模板</span><b>10</b></div><div><span>API 参考件</span><b>10</b></div><div><span>用途域</span><b>7</b></div><div><span>生产图像通道</span><b>H3 Image</b></div></div>
+</aside>
+<main>
+<header class="hero">
+  <div class="kicker">官方模板 · 基准库 · D-033</div>
+  <h1>统一 <em>MiniMax H3</em><br>图像、视频工作流方案</h1>
+  <p class="lede">图像仅 MiniMax H3 Image，视频仅 MiniMax H3，配乐仅独立 MiniMax Music3。Qwen-Image 及其专用编辑、ControlNet、分层、多角度、透明底能力全部停用，27 份专用参考 JSON 已从本参考库删除；P-H3、FastH3/FastVideo、Pika H3 的 8 份参考 JSON 亦已删除。上述文件均不作主用、备选、成本档、组合链或故障回退。</p>
+  <div class="tiles"><div class="tile"><b>10</b><span>分类 UI Format 保留模板</span></div><div class="tile"><b>10</b><span>分类 API Format 参考件</span></div><div class="tile"><b>1</b><span>生产迁移：H3 Image 文生图</span></div><div class="tile"><b>0</b><span>Qwen 现行路由与回退</span></div></div>
+  <div class="note">A 类事实源：<a class="mono" href="./官方模板基准库总览.md">官方模板基准库总览.md</a>。当前 20 份文件保持登记时文件名与 JSON 字节不变；27 份 Qwen 专用参考 JSON 已于 2026-11-14 删除，8 份 P-H3、FastH3/FastVideo、Pika H3 参考 JSON 已于 2026-11-15 删除，用户新增的 1 份 H3 API 文生图参考件已于同日原样登记。C3 已按用户明确选择删除唯一 Qwen 生产 graph 及空 _archive，本参考库不变。参考文件存在不等于生产可运行，生产状态以 feature-816 封闭记录及第九节为准。</div>
+</header>
+
+<section id="s1">
+  <div class="sh"><span class="num">01</span><h2>现行结论与边界</h2><small>三种状态 / 三类目录</small></div>
+  <p>音乐不是“H3 音乐”；Music3 是独立模型与独立音频工作流。H3 编辑、视频和 Music3 的参考模板也不因此被写成已经接入平台生产的能力。</p>
+  <div class="table"><table><thead><tr><th>状态</th><th>含义</th><th>当前范围</th></tr></thead><tbody>
+    <tr><td><span class="badge prod">生产已启用</span></td><td>由生产 manifest 显式注册，经受控 loader 与主进程引擎执行</td><td>仅 MiniMax H3 Image 文生图兼容图</td></tr>
+    <tr><td><span class="badge ref">参考保留 / 生产未接入</span></td><td>用于接法、权重与参数参考；生产前须另有 Feature、实例核验和真机验收</td><td>H3 Image 编辑、H3 T2V/I2V/R2V、多帧参考、视频控制、Music3</td></tr>
+    <tr><td><span class="badge archive">删除禁用</span></td><td>已删除参考文件不得进入任何现行方案与生产回退；Qwen 生产 graph 已由 C3 删除，历史资产和生成元数据仍只读保留</td><td>全部 Qwen-Image 及其专用能力链；P-H3、FastH3/FastVideo、Pika H3 参考件</td></tr>
+  </tbody></table></div>
+  <h3>1.3 三类目录与格式</h3>
+  <div class="table"><table><thead><tr><th>位置</th><th>格式与用途</th><th>能否直接生产执行</th></tr></thead><tbody>
+    <tr><td class="mono">resources/_ref_官方模板/H3/UI/<br>resources/_ref_官方模板/Music3/UI/</td><td>10 份 UI Format，顶层含 <code>nodes / links / definitions.subgraphs</code>；H3 按 6 个用途域细分，Music3 单独归档</td><td>不能直接提交 <code>/prompt</code></td></tr>
+    <tr><td class="mono">resources/_ref_官方模板/H3/API/<br>resources/_ref_官方模板/Music3/API/</td><td>10 份 API Format 参考件，用于核对节点字典与连接</td><td>不自动执行；仍须实例兼容核验与生产注册</td></tr>
+    <tr><td class="mono">resources/comfyui/workflows/</td><td>生产 API graph 与 <code>manifest.json</code></td><td>仅 manifest 显式注册项可执行</td></tr>
+  </tbody></table></div>
+  <div class="note red">生产 loader 只读 manifest，不扫描本参考库或工作流目录；唯一 Qwen 生产归档及空 <code>_archive/</code> 已由 C3 删除。UI JSON 不得改名冒充 API graph；API 参考件也不得绕过 manifest 手工提交来冒充平台验收。</div>
+</section>
+
+<section id="s2">
+  <div class="sh"><span class="num">02</span><h2>八阶段选型</h2><small>阶段产物 × 可复用媒体能力</small></div>
+  <p>八阶段是业务产物与验收边界，7 类工作流用途域是可复用媒体能力，二者是多对多关系。阶段定义以《短剧Agent平台设计》为准，不合并、不裁剪。</p>
+  <div class="table"><table><thead><tr><th>阶段</th><th>现行主用</th><th>按需参考</th><th>状态与边界</th></tr></thead><tbody>
+    <tr><td>0 立项</td><td>H3 Image 文生图</td><td>—</td><td>风格样片可辅助拍板；生产只走已注册 H3 Image。</td></tr>
+    <tr><td>1 故事</td><td>—</td><td>—</td><td>大纲、人物小传由文本链完成。</td></tr>
+    <tr><td>2 剧本分场</td><td>—</td><td>—</td><td>分场与资产需求由文本链和系统完成。</td></tr>
+    <tr><td>3 资产</td><td>H3 Image 文生图</td><td>H3 Image 编辑</td><td>文生图已接入；编辑仅参考。多角度、拆层、透明底不再路由到 Qwen。</td></tr>
+    <tr><td>4 分镜</td><td>H3 Image 文生图</td><td>H3 Image 编辑</td><td>参考图修改可评估 H3 编辑，未接入前不得提交生产。</td></tr>
+    <tr><td>5 镜头</td><td>—</td><td>H3 I2V / T2V / R2V / 多帧参考 / 视频控制</td><td>全部为参考保留、生产未接入。</td></tr>
+    <tr><td>6 后期</td><td>—</td><td>Music3；H3 Image 编辑</td><td>配乐与图像编辑均未接入；剪辑、字幕、合流、混音由后期系统负责。</td></tr>
+    <tr><td>7 发布</td><td>H3 Image 文生图</td><td>H3 Image 编辑</td><td>系统负责成片与渠道交付；封面仅复用现行图像通道。</td></tr>
+  </tbody></table></div>
+  <h3>2.1 决策树</h3>
+<pre>① 需要的是图像、视频还是配乐？
+│
+├─ 图像 ──→ 有已批准参考图、必须照图修改吗？
+│          ├─ 是 ─→ H3 Image 编辑（参考保留 / 生产未接入）
+│          └─ 否 ─→ H3 Image 文生图（生产已启用）
+│
+├─ 视频 ──→ 有批准首帧 / 末帧吗？
+│          ├─ 有 ─→ H3 I2V；需要接下一段时用 I2V continuation
+│          └─ 无 ─→ 有独立人物 / 物体 / 音频参考吗？
+│                     ├─ 有 ─→ H3 R2V；按秒锚定多参考时用多帧参考
+│                     └─ 无 ─→ 必须由真人动作驱动吗？
+│                                ├─ 是 ─→ H3 + Fun-ControlNet-Union
+│                                └─ 否 ─→ H3 T2V
+│          以上视频路由全部为参考保留 / 生产未接入。
+│
+└─ 配乐 ─→ MiniMax Music3（参考保留 / 生产未接入）</pre>
+  <div class="note red"><strong>不再进入决策树：</strong>Qwen ControlNet、Layered、多角度、生成式抠图、Relight、光迁移、转写实和各代专用编辑。命中这些需求时记录“当前 H3 方案未覆盖”，由人工/系统处理或另行立项，不自动回退旧模型。</div>
+  <h3>2.2 推荐基准流程 v1.0</h3>
+  <p>本版是 H3 统一通道后的起始方案，不是“全部已生产验证”。只有 A/B 的 H3 Image 文生图进入本次生产迁移，其余步骤是后续制作参考路由。</p>
+<pre>0–2 文本创作、资产清单、分场与镜头需求
+  ↓
+A 风格锚点：H3 Image 文生图，锁定画幅、材质、光线与色彩锚词
+  ↓
+B 资产母版：角色 / 场景 / 关键道具统一走 H3 Image 文生图
+  ↓
+C 首帧：无参考修改走 H3 Image 文生图；确有参考修改需求才评估 H3 Image 编辑
+  ↓
+D 首帧批准（身份 / 构图 / 场景 / 光线）
+  ↓
+E 镜头参考路由：优先 H3 I2V；无首帧用 T2V；独立多主体参考用 R2V
+  ↓                         ├─ 超过单段时长 → I2V continuation
+                            ├─ 按秒锚定多参考 → 多帧参考
+                            └─ 真人动作控制 → H3 视频控制
+F 系统粗剪确认时长与情绪 → Music3 配乐 → 配音 / 字幕 / 混音 / 合流
+  ↓
+G 系统导出与发布；封面复用 H3 Image</pre>
+  <div class="table"><table><thead><tr><th>顺序</th><th>默认动作</th><th>工作流</th><th>当前生产状态</th></tr></thead><tbody>
+    <tr><td>A</td><td>同一中文风格 prompt 出样片，保留 prompt、seed、画幅与 MP</td><td class="files">H3/UI/01_文生图/image_minimax_h3_image_t2i.json</td><td><span class="badge prod">生产已启用</span>，使用生产兼容图</td></tr>
+    <tr><td>B</td><td>主角先出正式母版，再扩其他角色；场景与关键道具同链</td><td>同上</td><td><span class="badge prod">生产已启用</span></td></tr>
+    <tr><td>C</td><td>无参考修改继续文生图；必须照批准图修改才评估编辑</td><td class="files">H3/UI/02_图像编辑/image_minimax_h3_image_edit.json</td><td><span class="badge ref">参考保留 / 生产未接入</span></td></tr>
+    <tr><td>D</td><td>人工验收首帧；失败先修 prompt / 参考，不换 Qwen</td><td>对应 H3 Image 路由</td><td>按实际路由</td></tr>
+    <tr><td>E</td><td>有首帧优先 I2V；其他情况按决策树选择</td><td class="files">H3/UI/03_文生视频 / 04_图生视频 / 05_参考生视频 / 06_视频控制</td><td><span class="badge ref">参考保留 / 生产未接入</span></td></tr>
+    <tr><td>F</td><td>粗剪后按实际时长与情绪生成配乐</td><td class="files">Music3/UI/audio_minimax_music_3.json</td><td><span class="badge ref">参考保留 / 生产未接入</span></td></tr>
+    <tr><td>G</td><td>封面复用 H3 Image；精准排版、裁切与封装由系统完成</td><td>H3 Image 文生图 / 编辑</td><td>仅文生图已接入</td></tr>
+  </tbody></table></div>
+  <h3>2.3 质量与返修原则</h3>
+  <ol>
+    <li>图像草案与正式件都使用 H3 Image；通过 prompt、seed、画幅和 MP 管理迭代，不再设置 Qwen Wuli、Lightning 或 Turbo 成本档。</li>
+    <li>H3 Image 生产采样固定官方参考的 6 步 / CFG 1；本次不新增采样参数面板。</li>
+    <li>视频预览与定稿应在同一路由内比较，具体档位待对应视频 Feature 冻结。</li>
+    <li>人设漂移先回批准 prompt / 参考与首帧；构图失败先修首帧；接片跳变回最近合格末帧。任何失败都不得触发 Qwen 回退。</li>
+    <li>透明底、分层、多角度或严格控制网需求，标记为未覆盖并走人工/系统处理或新 Feature。</li>
+  </ol>
+</section>
+
+<section id="s3">
+  <div class="sh"><span class="num">03</span><h2>10 份分类 UI 模板总索引</h2><small>2 + 1 + 1 + 2 + 2 + 1 + 1 = 10</small></div>
+  <p>保留文件名与 JSON 字节均未改变。27 份 Qwen 专用参考 JSON 与本轮 8 份 P-H3、FastH3/FastVideo、Pika H3 参考 JSON 均已删除，不再列入现行索引。</p>
+  <div class="table"><table><thead><tr><th>目录</th><th>文件</th><th>状态</th><th>现行定位</th></tr></thead><tbody>
+    <tr><td>H3/UI/01_文生图</td><td class="files">image_minimax_h3_image_t2i.json</td><td><span class="badge prod">生产已启用</span></td><td>H3 Image 文生图官方 UI 基准；生产使用受控兼容 API graph</td></tr>
+    <tr><td>H3/UI/01_文生图</td><td class="files">image_minimax_h3_t2i.json</td><td><span class="badge ref">参考保留 / 生产未接入</span></td><td>H3 视频系 T2I 参考；不得与 H3 Image 专用权重混用</td></tr>
+    <tr><td>H3/UI/02_图像编辑</td><td class="files">image_minimax_h3_image_edit.json</td><td><span class="badge ref">参考保留 / 生产未接入</span></td><td>H3 Image 专用编辑基准</td></tr>
+    <tr><td>H3/UI/03_文生视频</td><td class="files">video_minimax_h3_t2v.json</td><td><span class="badge ref">参考保留 / 生产未接入</span></td><td>标准 H3 T2V</td></tr>
+    <tr><td>H3/UI/04_图生视频</td><td class="files">video_minimax_h3_i2v.json<br>video_minimax_h3_i2v_continuation.json</td><td><span class="badge ref">参考保留 / 生产未接入</span></td><td>标准 I2V 与接片</td></tr>
+    <tr><td>H3/UI/05_参考生视频</td><td class="files">video_minimax_h3_r2v.json<br>video_minimax_h3_multiframe_reference.json</td><td><span class="badge ref">参考保留 / 生产未接入</span></td><td>标准 R2V 与按秒多帧参考</td></tr>
+    <tr><td>H3/UI/06_视频控制</td><td class="files">video_minimax_h3_fun_controlnet_union.json</td><td><span class="badge ref">参考保留 / 生产未接入</span></td><td>H3 自身视频姿态控制；与已删除的 Qwen 图像控制网参考件无关</td></tr>
+    <tr><td>Music3/UI</td><td class="files">audio_minimax_music_3.json</td><td><span class="badge ref">参考保留 / 生产未接入</span></td><td>独立 MiniMax Music3 配乐，不属于 H3 Image / Video</td></tr>
+  </tbody></table></div>
+  <p class="count">数量复核：10。生产已启用 1 份对应的 H3 Image 文生图能力；其余 H3 / Music3 文件均为参考状态。</p>
+</section>
+
+<section id="s4">
+  <div class="sh"><span class="num">04</span><h2>10 份分类 API 参考件</h2><small>不计入 10 份 UI 模板</small></div>
+  <p>这些文件不因采用 API Format 而自动获得生产资格。</p>
+  <div class="table"><table><thead><tr><th>目录</th><th>文件</th><th>对应能力</th><th>当前状态</th></tr></thead><tbody>
+    <tr><td>H3/API</td><td class="files">api_image_minimax_h3_image_t2i.json</td><td>H3 Image 文生图</td><td>生产兼容图的拓扑与参数依据</td></tr>
+    <tr><td>H3/API</td><td class="files">api_image_minimax_h3_t2i.json</td><td>H3 API 文生图参考件；配套 UI 为 <span class="files">image_minimax_h3_t2i.json</span></td><td><span class="badge ref">API Format / 参考保留</span><br>生产未接入</td></tr>
+    <tr><td>H3/API</td><td class="files">api_image_minimax_h3_image_edit.json</td><td>H3 Image 编辑</td><td><span class="badge ref">参考保留 / 生产未接入</span></td></tr>
+    <tr><td>H3/API</td><td class="files">api_video_minimax_h3_t2v.json</td><td>H3 T2V</td><td><span class="badge ref">参考保留 / 生产未接入</span></td></tr>
+    <tr><td>H3/API</td><td class="files">api_video_minimax_h3_i2v.json</td><td>H3 I2V</td><td><span class="badge ref">参考保留 / 生产未接入</span></td></tr>
+    <tr><td>H3/API</td><td class="files">api_video_minimax_h3_i2v_continuation.json</td><td>H3 接片</td><td><span class="badge ref">参考保留 / 生产未接入</span></td></tr>
+    <tr><td>H3/API</td><td class="files">api_video_minimax_h3_r2v.json</td><td>H3 R2V</td><td><span class="badge ref">参考保留 / 生产未接入</span></td></tr>
+    <tr><td>H3/API</td><td class="files">api_video_minimax_h3_multiframe_reference.json</td><td>H3 多帧参考</td><td><span class="badge ref">参考保留 / 生产未接入</span></td></tr>
+    <tr><td>H3/API</td><td class="files">api_video_minimax_h3_fun_controlnet_union.json</td><td>H3 视频控制</td><td><span class="badge ref">参考保留 / 生产未接入</span></td></tr>
+    <tr><td>Music3/API</td><td class="files">api_audio_minimax_music_3.json</td><td>Music3 配乐</td><td><span class="badge ref">参考保留 / 生产未接入</span></td></tr>
+  </tbody></table></div>
+  <p class="count">数量复核：9 H3 API + 1 Music3 API = 10。新增 api_image_minimax_h3_t2i.json 仅为参考登记，其 FL2VA UNet、视频 VAE 与 Turbo LoRA 不进入生产 H3 Image 兼容图。</p>
+</section>
+
+<section id="s5">
+  <div class="sh"><span class="num">05</span><h2>H3 Image 生产兼容图</h2><small>受控输入 / 固定采样 / 纯局域网</small></div>
+  <h3>5.1 注册与输入</h3>
+  <div class="table"><table><thead><tr><th>项</th><th>生产契约</th></tr></thead><tbody>
+    <tr><td>workflowId</td><td><code>minimax-h3-image-t2i</code></td></tr>
+    <tr><td>kind / model</td><td><code>image / MiniMax-H3</code></td></tr>
+    <tr><td>执行文件</td><td><code>resources/comfyui/workflows/minimax-h3-image-t2i.json</code></td></tr>
+    <tr><td>必填输入</td><td><code>prompt</code></td></tr>
+    <tr><td>可选输入</td><td><code>seed</code>、<code>aspectRatio</code>、<code>megapixels</code></td></tr>
+    <tr><td>默认</td><td>seed 0、16:9、4 MP</td></tr>
+    <tr><td>固定采样</td><td>KSampler、6 steps、CFG 1、euler、simple、denoise 1</td></tr>
+    <tr><td>画幅</td><td>1:1、2:3、3:2、3:4、4:3、9:16、16:9、21:9</td></tr>
+    <tr><td>MP 范围</td><td>0.1–16，multiple=32</td></tr>
+  </tbody></table></div>
+  <div class="note red">旧 <code>qwen-image-2512-text</code> 与旧字段 <code>width / height / negativePrompt / lightning4Steps</code> 不再接受；不设置旧 ID 到 H3 的别名，不自动换算旧尺寸，不把负提示词错接到 ConditioningZeroOut。</div>
+  <h3>5.2 固定权重与核心链</h3>
+<pre>UNETLoader  minimax_h3_image_pruned_int8_convrot.safetensors
+CLIPLoader  qwen3vl_32b_minimax_h3_int8_convrot.safetensors / type=minimax
+VAELoader   minimax_h3_image_vae_fp16.safetensors
+                    ↓
+ResolutionSelector → MiniMaxH3ImageConditioning → KSampler → VAEDecode → SaveImage
+                                      └→ ConditioningZeroOut → KSampler.negative</pre>
+  <p><code>qwen3vl_32b_minimax_h3_int8_convrot.safetensors</code> 是 H3 官方工作流指定的文本编码器，不是 Qwen-Image 生成权重，不构成旧通道回退。</p>
+  <h3>5.3 与官方 API 参考件的差异</h3>
+  <ol>
+    <li>保留 H3 Image 核心加载、条件、采样、解码和保存链，以及官方 6 步 / CFG 1。</li>
+    <li>用户 prompt 直接进入 MiniMaxH3ImageConditioning，移除自动提示词扩写支路，避免依赖当前实例未注册的 LLM/JSON 节点和额外文本服务。</li>
+    <li>生产只接受 manifest 声明的四项输入；其余参数固定在 graph 内。</li>
+    <li>不使用带 Comfy Cloud 认证 / API Key 输入的 MinimaxH3ImageNode，不使用 H3 视频 UNet/VAE，不混入 Qwen-Image 权重或 LoRA。</li>
+  </ol>
+</section>
+
+<section id="s6">
+  <div class="sh"><span class="num">06</span><h2>H3 视频与 Music3 参考路由</h2><small>均未由 feature-816 接入生产</small></div>
+  <div class="table"><table><thead><tr><th>需求</th><th>首选参考</th><th>补充参考</th><th>使用边界</th></tr></thead><tbody>
+    <tr><td>无首帧、无独立参考</td><td class="files">H3/UI/03_文生视频/video_minimax_h3_t2v.json</td><td>—</td><td>正式人物镜头不默认绕过首帧验收</td></tr>
+    <tr><td>有批准首帧</td><td class="files">H3/UI/04_图生视频/video_minimax_h3_i2v.json</td><td>—</td><td>首帧问题回图像步骤，不用视频 prompt 掩盖</td></tr>
+    <tr><td>单镜需要接下一段</td><td class="files">H3/UI/04_图生视频/video_minimax_h3_i2v_continuation.json</td><td>—</td><td>每段独立验收，使用合格末帧</td></tr>
+    <tr><td>多个独立主体 / 音频参考</td><td class="files">H3/UI/05_参考生视频/video_minimax_h3_r2v.json</td><td>—</td><td>prompt 中按模板规则引用对应参考序号</td></tr>
+    <tr><td>指定秒点锚定关键帧 / 参考</td><td class="files">H3/UI/05_参考生视频/video_minimax_h3_multiframe_reference.json</td><td>—</td><td>只用于确有多个时间点约束的镜头</td></tr>
+    <tr><td>真人动作 / 姿态驱动</td><td class="files">H3/UI/06_视频控制/video_minimax_h3_fun_controlnet_union.json</td><td>—</td><td>需先准备控制视频与 SDPose 链；不是 Qwen 图像控制网</td></tr>
+    <tr><td>配乐 / 歌曲</td><td class="files">Music3/UI/audio_minimax_music_3.json</td><td class="files">Music3/API/api_audio_minimax_music_3.json</td><td>Music3 独立通道；配音、音效、字幕、剪辑不强行套此模板</td></tr>
+  </tbody></table></div>
+  <div class="note">实际权重、采样、帧数、时长与输出结构须在各自 Feature 中依据目标实例重新冻结；本文不沿用旧方案里未经验证的“最优档位”。</div>
+</section>
+
+<section id="s7">
+  <div class="sh"><span class="num">07</span><h2>删除禁用能力的处理口径</h2><small>删除参考件不等于删除历史资产</small></div>
+  <div class="table"><table><thead><tr><th>原需求</th><th>原 Qwen 专用能力</th><th>现行处理</th></tr></thead><tbody>
+    <tr><td>线稿 / 深度 / 姿态严格锁图</td><td>图像 ControlNet / Inpainting / Union</td><td>参考件已删除、能力禁用；先用 H3 prompt / 参考迭代，仍不满足则记录未覆盖，不回退</td></tr>
+    <tr><td>独立编辑前景、背景、道具</td><td>图像分层与点名抽层</td><td>参考件已删除、能力禁用；由人工/系统图层工具处理或另立新 Feature</td></tr>
+    <tr><td>角色 / 场景多角度批量</td><td>角色与场景多角度专用链</td><td>参考件已删除、能力禁用；可用 H3 分别生成并人工选版，但不冒称身份等价或批量角度已验证</td></tr>
+    <tr><td>alpha PNG / 透明底</td><td>生成式背景移除</td><td>参考件已删除、能力禁用；由确定性的系统/人工抠图工具处理，不调用 Qwen</td></tr>
+    <tr><td>Relight / 光迁移 / 转写实</td><td>Qwen 专用编辑</td><td>参考件已删除、能力禁用；可评估 H3 Image 编辑是否满足，但未接入、未验收前不得生产提交</td></tr>
+    <tr><td>Qwen 2 步 / 4 步 / Turbo 成本档</td><td>各代文生图与编辑加速件</td><td>全部退出；H3 不继承这些档位名称或参数</td></tr>
+  </tbody></table></div>
+  <div class="note teal">本参考库中的 27 份 Qwen 专用 JSON 已删除。原阶段按 K3 只读保留的生产 <code>resources/comfyui/workflows/_archive/qwen-image-2512-text.json</code>，已由 C3 经用户明确选择从项目目录删除，空 <code>_archive</code> 一并移除；生产 loader 仍只读 manifest，旧 Qwen ID 不设别名或回退。历史 Qwen 资产、风格预览与内嵌元数据继续只读展示，文件来源不篡改为 H3；feature-815 的媒体解析职责不因本次迁移重开。</div>
+  <div class="note red">2026-11-15 按用户“p_h3 fast pika_h3都不要”及“三类全部删除”的明确授权，另删除 2 份 P-H3、3 份 FastH3/FastVideo、3 份 Pika H3 UI 参考 JSON。三类对照线不再作为补充参考或回退；删除仅限本参考目录，不扩展到模型权重、LoRA、历史资产、生成元数据或生产归档。</div>
+</section>
+
+<section id="s8">
+  <div class="sh"><span class="num">08</span><h2>执行与验收纪律</h2><small>生产注册优先于模板存在</small></div>
+  <ol>
+    <li>生产调用只提供 <code>instanceId / workflowId / requestId / inputs</code>，由主进程加载 manifest；renderer 不直连 ComfyUI。</li>
+    <li>任一执行节点或权重缺失时停止，不提交 <code>/prompt</code>；不使用云节点、视频权重或 Qwen 回退。</li>
+    <li>每次生成记录资产/镜头 ID、workflowId/version、requestId/jobId/promptId、输入、实际映射、输出与验收结论。</li>
+    <li>参考模板升级为生产前必须具备：Feature 契约、API Format 执行件、实例 object_info 核验、受控输入、自动化回归、真实收片与资产登记。</li>
+    <li>单次失败先修当前步骤；没有同条件对照与真实证据，不新增主备模型、成本档或组合链。</li>
+    <li>当前 10 份 UI 模板与 10 份 API 参考件不改文件名、不改 JSON 字节；Qwen 与本轮三类参考件删除仅限本目录，新增 API 文件仅原样登记。Qwen 生产 graph 只能按 C3 的单独明确授权删除；模型权重、LoRA 与历史资产不得随之删除或改写。</li>
+  </ol>
+</section>
+
+<section id="s9">
+  <div class="sh"><span class="num">09</span><h2>迁移验证记录</h2><small>H3 Image 文生图已完成真实闭环</small></div>
+  <div class="table"><table><thead><tr><th>验证项</th><th>当前记录</th></tr></thead><tbody>
+    <tr><td>C3 Qwen 生产归档删除（2026-11-15）</td><td>用户要求整理目录并删除 Qwen 相关文件，范围确认选择“删除生产归档”；精确删除唯一 Qwen 生产 graph，空 <code>_archive</code> 移除。20 份参考件、生产 manifest/H3 graph、历史项目资产和 51 份风格媒体不变，无第二人复核</td></tr>
+    <tr><td>C2 新增 API 参考件登记（2026-11-15）</td><td>用户新增 <code>H3/API/api_image_minimax_h3_t2i.json</code>，原样登记为既有 <code>image_minimax_h3_t2i.json</code> 的 API Format 配套参考；当前为 <strong>20 份 JSON、10 UI + 10 API、7 用途域</strong>，不注册生产 manifest</td></tr>
+    <tr><td>C2 文件与模型组件校验</td><td>新增文件 4769 字节，SHA256 <code>4272506B3E2A51C640E4FC2EB121F014285D34B0B997AD2EDE0CA3DED349BDB6</code>；17 节点、输入引用完整，UNet / CLIP / VAE / Turbo LoRA 与配套 UI 一致，无 <code>MinimaxH3ImageNode</code></td></tr>
+    <tr><td>C2 双索引与静态验收</td><td>20/20 JSON 可解析；Markdown / HTML 各 20 个文件项且第四节各 10 API；本地链接、9 个页内锚点、HTML ID 唯一性与标签配对通过。生产 manifest / graph 保持原契约，生产归档与 H3 验收 PNG 哈希不变；编年保持 92 项及 19 份历史快照</td></tr>
+    <tr><td>三类参考件后续清理（2026-11-15）</td><td>按用户新增授权删除 2 份 P-H3、3 份 FastH3/FastVideo、3 份 Pika H3 UI JSON，共 8 份；当前仅保留 MiniMax H3 主链与独立 Music3，共 19 份 JSON、10 UI + 9 API、7 个用途域；19/19 保留件 SHA256 与删除前一致且 JSON 可解析</td></tr>
+    <tr><td>后续清理静态校验（2026-11-15）</td><td>Markdown 与 HTML 索引各 19 项，均与磁盘一一对应且无重复；本地链接、9 个页内锚点、HTML ID 唯一性与标签配对全部通过；8 个删除文件名无双总览残留，三类名称仅出现在删除禁用说明和历史记录中</td></tr>
+    <tr><td>方案迁移</td><td>2026-11-14 按 D-033 完成：Qwen 已退出现行路由，生产已启用 / 参考保留 / 删除禁用三态已核对</td></tr>
+    <tr><td>参考库 C1 清理（2026-11-14）</td><td>27 份 Qwen 专用 JSON 已按明确路径删除；27 份 H3/Music3 保留件已重排为 18 UI + 9 API、7 个用途域，27/27 SHA256 与移动前一致、27/27 JSON 可解析；11 个旧空目录已移除</td></tr>
+    <tr><td>C1 静态校验</td><td>Markdown 与 HTML 索引各 27 项，均与磁盘文件一一对应且无重复；本地链接、9 个页内锚点及 HTML 标签配对全部通过。Qwen 残留仅为删除禁用说明、旧 ID 拒绝与历史兼容记录、合法 <code>qwen3vl</code> 编码器及生产归档边界说明，无已删除文件索引或回退路由</td></tr>
+    <tr><td>生产注册</td><td>已完成：manifest 仅注册 <code>minimax-h3-image-t2i / h3-image-local-compat-v1.0</code>；原阶段 Qwen graph 归档已由 C3 删除，旧 ID 继续不设别名或回退。C1 当时及 C3 删除前归档 SHA256 均为 <code>2A7985CA6A3489F2E864A095B14795DC09413EDD0CE71F624017B99584DC3145</code></td></tr>
+    <tr><td>H3 Image 真机</td><td>2026-11-14 在 <code>lan-4090 / http://10.203.3.52:8000</code> 完成：<code>job-192c3766-ba8a-4b31-b523-05d2e5b59870</code> / <code>ae93ee5a-cb09-41e7-b003-187e58f6a565</code>，状态 <code>completed</code>；输出 1536×2720、4,245,149 字节 PNG，SHA256 <code>e0ca1d1dd9b053c419df5a4fe900675682e6a1de0a9109ec5fd111eaf6462a98</code>，资产 <code>a-image-5ab56db7</code> 已登记且内容可辨识</td></tr>
+    <tr><td>幂等与历史兼容</td><td>同参数 replay 返回同一 jobId / promptId；旧 Qwen ID 新提交返回 <code>WORKFLOW_NOT_AVAILABLE</code>；历史 pending 仅续查由引擎回归覆盖，历史资产 <code>a-image-6751e2c9</code> 实际可读，feature-815 的 55 项媒体与元数据回归通过</td></tr>
+    <tr><td>自动化与构建</td><td>此前生产迁移验收中，Comfy / MCP / style 6 个测试文件 110 项全部通过，Electron 与 Vite 构建通过；typecheck 仅余 3 项既有错误，全量测试仅余 10 项既有 agent-profile 失败，均未冒充全绿。C1 仅做静态参考库清理，未重跑上述生产专项、构建或 LAN 生成</td></tr>
+    <tr><td>H3 编辑 / 视频 / Music3</td><td>本次未接入、未做生产真机验收</td></tr>
+  </tbody></table></div>
+  <div class="note">生产闭环结论仅限 H3 Image 文生图迁移；C1 只改变参考文件布局与索引，C2 只原样登记新增 API 参考件，C3 只删除唯一 Qwen 生产归档及空目录，均不扩展到 H3 编辑、视频或 Music3 生产能力。历史项目资产、生成元数据和风格媒体继续受保护。完整证据见 feature-816 契约第七至十一节与变更记录。</div>
+</section>
+
+<footer>官方模板基准库总览 · B 类静态镜像<br>事实源：resources/_ref_官方模板/官方模板基准库总览.md · 修订：2026-11-15 · D-033 / feature-816 C1 + C2 · 10 UI + 10 API / 7 用途域 · Qwen 与三类对照参考件已删除且无现行路由或回退；新增 API 件仅作参考</footer>
+</main>
+</div>
+</body>
+</html>

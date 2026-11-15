@@ -37,13 +37,18 @@ import { readProjectFile } from './fs/read.js'
 import { getActiveProjectDir } from './project/current.js'
 import { updateBriefFields, type BriefUpdatePatch } from './brief/update.js'
 import { loadStyleCatalog } from './style/loader.js'
+import { readStylePreviewMetadata } from './style/preview-metadata.js'
 import { computeStyleUpgradeDiff } from './style/upgrade.js'
 import { readBriefHistory, readBriefVersion } from './brief/history.js'
 import { rollbackBriefToVersion } from './brief/rollback.js'
 import { captureStore, type CaptureUpsertInput } from './capture/store.js'
-import { listInstances, upsertInstance, removeInstance } from './comfy/settings.js'
+import {
+  listInstances, upsertInstance, removeInstance, type ComfyInstanceConfig,
+} from './comfy/settings.js'
+import { ComfyEngine } from './comfy/engine.js'
+import { setComfyClient } from './comfy/client.js'
 import type {
-  Canvas, ComfyInstance, AssetIndexItem, CaptureFile,
+  Canvas, AssetIndexItem, CaptureFile,
 } from '../shared/types.js'
 import { runtimeManager } from './runtime/manager.js'
 import { resolveRuntimeProxyEnv } from './network.js'
@@ -59,6 +64,10 @@ const windowPlatform: WindowPlatform =
       : 'linux'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+// 主进程唯一媒体引擎；renderer 不持有 ComfyUI 网络客户端。
+const comfyEngine = new ComfyEngine()
+setComfyClient(comfyEngine)
 
 let mainWindow: BrowserWindow | null = null
 
@@ -415,6 +424,8 @@ ipcMain.handle('style:catalog', async () => {
   const catalog = await loadStyleCatalog()
   return { version: catalog.version, count: catalog.entries.length, entries: catalog.entries }
 })
+// feature-815 · 当前风格 PNG / MP4 内嵌 ComfyUI 元数据（封闭只读桥）
+ipcMain.handle('style:preview-metadata', (_event, request: unknown) => readStylePreviewMetadata(request))
 ipcMain.handle('style:upgrade-diff', async () => {
   let dir: string | null = null
   try {
@@ -870,7 +881,7 @@ ipcMain.handle('file:read', async (_e, arg: unknown) => {
 ipcMain.handle('settings:comfy:list', () => listInstances())
 
 ipcMain.handle('settings:comfy:upsert', (_e, instance: unknown) =>
-  upsertInstance(instance as Partial<ComfyInstance>))
+  upsertInstance(instance as Partial<ComfyInstanceConfig>))
 
 ipcMain.handle('settings:comfy:remove', (_e, arg: unknown) => {
   const id = (arg as { id?: unknown } | undefined)?.id
@@ -880,6 +891,15 @@ ipcMain.handle('settings:comfy:remove', (_e, arg: unknown) => {
     throw err
   }
   return removeInstance(id)
+})
+
+ipcMain.handle('settings:comfy:test', (_e, arg: unknown) => {
+  if (!isRecord(arg) || typeof arg.baseUrl !== 'string') {
+    const err = new Error('参数必须为 { baseUrl }')
+    err.name = 'INVALID_ARGUMENT'
+    throw err
+  }
+  return comfyEngine.testConnection({ baseUrl: arg.baseUrl })
 })
 
 // feature-014 · AI 服务设置（恰 2 个 IPC；脱敏视图，明文 Key 不出主进程）

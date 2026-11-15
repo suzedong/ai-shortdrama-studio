@@ -1,16 +1,18 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         violet: '#6C5CE7',
-        'violet-soft': '#EEECFB',
-        ink: '#1A1A2E',
-        muted: '#646A80',
-        line: '#E8E9F0',
-        canvas: '#FAFAFE',
-        win: '#FBFBFE',
+        'violet-soft': 'rgb(var(--color-violet-soft) / <alpha-value>)',
+        surface: 'rgb(var(--color-surface) / <alpha-value>)',
+        ink: 'rgb(var(--color-ink) / <alpha-value>)',
+        muted: 'rgb(var(--color-muted) / <alpha-value>)',
+        line: 'rgb(var(--color-line) / <alpha-value>)',
+        canvas: 'rgb(var(--color-canvas) / <alpha-value>)',
+        win: 'rgb(var(--color-win) / <alpha-value>)',
         ok: '#2BB673',
         warn: '#E8A93C',
         bad: '#E05A52',

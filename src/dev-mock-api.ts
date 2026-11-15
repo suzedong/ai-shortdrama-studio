@@ -659,6 +659,28 @@ export function installDevMockApi(): void {
 
   const noop = () => undefined
   const resolve = <T,>(v: T) => Promise.resolve(v)
+  let demoComfyInstances: ComfyInstanceConfig[] = []
+  let demoComfySequence = 0
+  const mockComfyError = (code: string, message: string) => Object.assign(new Error(message), { code })
+  const normalizeMockComfyUrl = (input: string): string => {
+    let url: URL
+    try {
+      url = new URL(input)
+    } catch {
+      throw mockComfyError('INVALID_ARGUMENT', 'ComfyUI 地址格式无效')
+    }
+    const host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase()
+    const ipv4 = host.split('.').map(Number)
+    const privateIpv4 = ipv4.length === 4 && ipv4.every(part => Number.isInteger(part) && part >= 0 && part <= 255)
+      && (ipv4[0] === 127 || ipv4[0] === 10 || (ipv4[0] === 172 && ipv4[1] >= 16 && ipv4[1] <= 31)
+        || (ipv4[0] === 192 && ipv4[1] === 168) || (ipv4[0] === 169 && ipv4[1] === 254))
+    const localHost = host === 'localhost' || host === '::1' || host.endsWith('.local') || host.endsWith('.localhost')
+      || (!host.includes('.') && /^[a-z0-9-]+$/.test(host))
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash || (!privateIpv4 && !localHost && !/^f[cd]|^fe[89ab]/.test(host))) {
+      throw mockComfyError('INVALID_ARGUMENT', '仅允许无凭据的本机/局域网 HTTP(S) 地址')
+    }
+    return `${url.origin}${url.pathname.replace(/\/+$/, '')}`
+  }
   let aiServiceView: AiServiceSettingsView = {
     activeProvider: 'ark',
     ark: {
@@ -858,6 +880,30 @@ export function installDevMockApi(): void {
       entries: DEMO_STYLE_CATALOG_ENTRIES.map(e => ({ ...e })),
     }),
     styleUpgradeDiff: () => resolve(demoStyleUpgradeDiff()),
+    // feature-815：固定 DTO 仅用于浏览器 UI；不假装在浏览器读取真实 PNG / MP4。
+    stylePreviewMetadata: (request: StylePreviewMetadataRequest): Promise<StylePreviewMetadataDto> => resolve({
+      request,
+      status: 'ok',
+      prompts: request.mediaKind === 'image'
+        ? [
+            { key: 'positive', label: '正向提示词', text: '浏览器演示图片正向提示词，电影感构图，浅景深' },
+            { key: 'negative', label: '负向提示词', text: '低质量，模糊，水印，文字' },
+          ]
+        : [{ key: 'motion', label: '运动提示词', text: '浏览器演示视频运动提示词，镜头缓慢推近' }],
+      params: request.mediaKind === 'image'
+        ? [
+            { key: 'seed', label: 'Seed', value: 20261114 },
+            { key: 'steps', label: 'Steps', value: 20 },
+            { key: 'width', label: '宽度', value: 768 },
+            { key: 'height', label: '高度', value: 1344 },
+          ]
+        : [
+            { key: 'seed', label: 'Seed', value: 20261115 },
+            { key: 'steps', label: 'Steps', value: request.tier === 'std' ? 20 : 8 },
+            { key: 'frames', label: '帧数', value: 124 },
+            { key: 'fps', label: 'FPS', value: 24 },
+          ],
+    }),
 
     runtime: {
       start: () => resolve(stoppedStatus()),
@@ -925,15 +971,41 @@ export function installDevMockApi(): void {
 
     settings: {
       comfy: {
-        list: () => resolve([]),
-        upsert: () => resolve({
-          id: 'mock',
-          name: 'mock',
-          baseUrl: 'http://localhost:8188',
-          enabled: true,
-          addedAt: new Date().toISOString(),
+        list: () => resolve(structuredClone(demoComfyInstances)),
+        upsert: (patch: Partial<ComfyInstanceConfig>) => Promise.resolve().then(() => {
+          const id = patch.id ?? `c-mock-${++demoComfySequence}`
+          const existing = demoComfyInstances.find(item => item.id === id)
+          const name = patch.name ?? existing?.name ?? '未命名实例'
+          if (!name.trim()) throw mockComfyError('INVALID_ARGUMENT', '实例名称不能为空')
+          const gpus = Object.prototype.hasOwnProperty.call(patch, 'gpus') ? patch.gpus : existing?.gpus
+          const vramGB = Object.prototype.hasOwnProperty.call(patch, 'vramGB') ? patch.vramGB : existing?.vramGB
+          if (vramGB !== undefined && (!Number.isFinite(vramGB) || vramGB <= 0)) {
+            throw mockComfyError('INVALID_ARGUMENT', 'vramGB 必须为大于 0 的有限数')
+          }
+          const next: ComfyInstanceConfig = {
+            id,
+            name: name.trim(),
+            baseUrl: normalizeMockComfyUrl(patch.baseUrl ?? existing?.baseUrl ?? 'http://127.0.0.1:8188'),
+            enabled: patch.enabled ?? existing?.enabled ?? true,
+            addedAt: existing?.addedAt ?? patch.addedAt ?? new Date().toISOString(),
+            ...(gpus?.length ? { gpus: [...gpus] } : {}),
+            ...(vramGB !== undefined ? { vramGB } : {}),
+          }
+          if (existing) demoComfyInstances = demoComfyInstances.map(item => item.id === id ? next : item)
+          else demoComfyInstances.push(next)
+          return structuredClone(next)
         }),
-        remove: () => resolve({ ok: true as const }),
+        remove: (id: string) => Promise.resolve().then(() => {
+          const next = demoComfyInstances.filter(item => item.id !== id)
+          if (next.length === demoComfyInstances.length) throw mockComfyError('INVALID_ARGUMENT', `实例 ${id} 不存在`)
+          demoComfyInstances = next
+          return { ok: true as const }
+        }),
+        test: (arg: { baseUrl: string }) => Promise.resolve().then(() => {
+          const baseUrl = normalizeMockComfyUrl(arg.baseUrl)
+          if (new URL(baseUrl).port === '65535') throw mockComfyError('COMFY_UNREACHABLE', '模拟连接失败')
+          return { ok: true as const, comfyuiVersion: '0.0.0-mock', deviceCount: 1 }
+        }),
       },
       // feature-014 · 固定双服务商演示桩：保留双方配置，与真实 patch 语义一致
       ai: {

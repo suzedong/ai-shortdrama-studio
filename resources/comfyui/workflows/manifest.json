@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "workflows": [
+    {
+      "id": "minimax-h3-image-t2i",
+      "version": "h3-image-local-compat-v1.0",
+      "kind": "image",
+      "model": "MiniMax-H3",
+      "file": "minimax-h3-image-t2i.json",
+      "inputs": {
+        "prompt": { "node": "23:5", "field": "prompt", "type": "string", "required": true, "minLength": 1, "maxLength": 8000 },
+        "seed": { "node": "23:7", "field": "seed", "type": "integer", "required": false, "min": 0, "max": 9007199254740991 },
+        "aspectRatio": {
+          "node": "14",
+          "field": "aspect_ratio",
+          "type": "string",
+          "required": false,
+          "values": {
+            "1:1": "1:1 (Square)",
+            "2:3": "2:3 (Portrait Photo)",
+            "3:2": "3:2 (Photo)",
+            "3:4": "3:4 (Portrait Standard)",
+            "4:3": "4:3 (Standard)",
+            "9:16": "9:16 (Portrait Widescreen)",
+            "16:9": "16:9 (Widescreen)",
+            "21:9": "21:9 (Ultrawide)"
+          }
+        },
+        "megapixels": { "node": "14", "field": "megapixels", "type": "number", "required": false, "min": 0.1, "max": 16 }
+      }
+    }
+  ]
+}

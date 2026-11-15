@@ -11,18 +11,18 @@ import { resolveInside } from '../fs/sandbox.js'
 
 export type AssetKind = AssetIndexItem['kind']
 
-function indexFile(): string {
-  return path.join(getActiveProjectDir(), '资产', 'asset-index.json')
+function indexFile(projectDir = getActiveProjectDir()): string {
+  return path.join(projectDir, '资产', 'asset-index.json')
 }
 
 function errorWithCode(code: string, message: string, cause?: unknown): Error {
   return Object.assign(new Error(message), { code, cause })
 }
 
-async function readIndex(): Promise<AssetIndexItem[]> {
+async function readIndex(projectDir = getActiveProjectDir()): Promise<AssetIndexItem[]> {
   let raw: string
   try {
-    raw = await fsp.readFile(indexFile(), 'utf-8')
+    raw = await fsp.readFile(indexFile(projectDir), 'utf-8')
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
     throw error
@@ -36,8 +36,8 @@ async function readIndex(): Promise<AssetIndexItem[]> {
   }
 }
 
-async function writeIndex(items: AssetIndexItem[]): Promise<void> {
-  const file = indexFile()
+async function writeIndex(items: AssetIndexItem[], projectDir = getActiveProjectDir()): Promise<void> {
+  const file = indexFile(projectDir)
   await archiveExisting(file, new Date())
   await fsp.mkdir(path.dirname(file), { recursive: true })
   await fsp.writeFile(file, JSON.stringify(items, null, 2), 'utf-8')
@@ -54,10 +54,10 @@ export async function registerAsset(input: {
   path: string
   sourceJobId?: string
   meta?: Record<string, unknown>
-}): Promise<{ assetId: string }> {
+}, projectDir = getActiveProjectDir()): Promise<{ assetId: string }> {
   return enqueue(async () => {
-    resolveInside(getActiveProjectDir(), input.path)
-    const items = await readIndex()
+    resolveInside(projectDir, input.path)
+    const items = await readIndex(projectDir)
     const id = `a-${input.kind}-${crypto.createHash('sha1').update(input.path).digest('hex').slice(0, 8)}`
     const existing = items.find(item => item.id === id)
     const item: AssetIndexItem = existing
@@ -71,7 +71,7 @@ export async function registerAsset(input: {
     if (input.sourceJobId !== undefined) item.sourceJobId = input.sourceJobId
     if (input.meta !== undefined) item.meta = input.meta
     const next = [...items.filter(item => item.id !== id), item]
-    await writeIndex(next)
+    await writeIndex(next, projectDir)
     return { assetId: id }
   })
 }

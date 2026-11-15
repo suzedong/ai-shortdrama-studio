@@ -5,6 +5,8 @@
 // - 保存成功必调 onSaved（StudioApp 传 checkAiHealth，feature-808 D-013 复检链路）；
 //   patch 含 runtime 项 → 驻留并提示「运行时参数已保存，需手动重连运行时后生效」。
 import { useEffect, useState } from 'react'
+import ComfyServicePanel from './ComfyServicePanel'
+import { ipcErrorMessage } from './ipc-error'
 
 const SOURCE_LABEL: Record<AiFieldSource, string> = {
   store: '自定义',
@@ -28,13 +30,6 @@ export function formatChatModelLabel(providerID: AiProviderId, modelID: string):
   return `${providerID === 'ark' ? '火山方舟' : 'LM Studio'} · ${modelID}`
 }
 
-/** Electron invoke 抛错会被包一层 'Error invoking remote method …'，剥壳取主进程原文 */
-function ipcErrorMessage(e: unknown): string {
-  const msg = e instanceof Error ? e.message : String(e)
-  const m = /^Error invoking remote method '[^']+': Error: ([\s\S]*)$/.exec(msg)
-  return m ? m[1] : msg
-}
-
 export interface AiServicePanelProps {
   /** 对话区横幅同一数据源（D-013）：null=可用/未知，非空=连接失败 */
   aiDown: string | null
@@ -53,6 +48,7 @@ export default function AiServicePanel({ aiDown, onClose, onSaved }: AiServicePa
   const [reconnecting, setReconnecting] = useState(false)
   const [reconnected, setReconnected] = useState(false)
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [serviceTab, setServiceTab] = useState<'text' | 'comfy'>('text')
 
   // 两个服务商的表单状态独立保留；切换只改 activeProvider，不清空另一方
   const [activeProvider, setActiveProvider] = useState<AiProviderId>('ark')
@@ -173,29 +169,35 @@ export default function AiServicePanel({ aiDown, onClose, onSaved }: AiServicePa
       <div
         role="dialog"
         aria-label="AI 服务设置"
-        className="w-[520px] rounded-xl border border-line bg-white p-5 shadow-card"
+        className={`${serviceTab === 'comfy' ? 'w-[680px]' : 'w-[520px]'} max-h-[85vh] overflow-y-auto rounded-xl border border-line bg-surface p-5 shadow-card`}
       >
         <h3 className="text-[13px] font-extrabold text-ink">AI 服务设置</h3>
+        <div role="tablist" aria-label="服务类型" className="mt-3 grid grid-cols-2 rounded-lg bg-canvas p-1">
+          <button type="button" role="tab" aria-selected={serviceTab === 'text'} className={`rounded-md px-3 py-1.5 text-[12px] font-bold ${serviceTab === 'text' ? 'bg-surface text-ink shadow-sm' : 'text-muted'}`} onClick={() => { setServiceTab('text'); setError(null) }}>文本服务</button>
+          <button type="button" role="tab" aria-selected={serviceTab === 'comfy'} className={`rounded-md px-3 py-1.5 text-[12px] font-bold ${serviceTab === 'comfy' ? 'bg-surface text-ink shadow-sm' : 'text-muted'}`} onClick={() => { setServiceTab('comfy'); setError(null) }}>ComfyUI</button>
+        </div>
 
-        {error && (
+        {serviceTab === 'text' && error && (
           <div
             role="alert"
-            className="mt-3 rounded-lg border border-bad/40 bg-bad/10 px-3 py-2 text-[11.5px] leading-5 text-bad"
+            className="mt-3 rounded-lg border border-bad/30 bg-bad/10 px-3 py-2 text-[11.5px] leading-5 text-bad"
           >
             {error}
           </div>
         )}
 
-        {savedRuntime && (
+        {serviceTab === 'text' && savedRuntime && (
           <div
             data-testid="ai-runtime-hint"
-            className="mt-3 rounded-lg border border-[#C0841D]/40 bg-[#FFF4DE] px-3 py-2 text-[11.5px] font-semibold leading-5 text-[#C0841D]"
+            className="mt-3 rounded-lg border border-warn/30 bg-warn/10 px-3 py-2 text-[11.5px] font-semibold leading-5 text-warn"
           >
             {savedMessage}
           </div>
         )}
 
-        {!view ? (
+        {serviceTab === 'comfy' ? (
+          <ComfyServicePanel onClose={onClose} />
+        ) : !view ? (
           <p className="mt-4 text-[11.5px] text-muted">{error ? '设置读取失败，请关闭后重试。' : '读取中…'}</p>
         ) : (
           <>
@@ -258,7 +260,7 @@ export default function AiServicePanel({ aiDown, onClose, onSaved }: AiServicePa
                             ? '保存后清除当前 Key'
                             : (view.ark.apiKeyMasked ?? '未配置')
                         }
-                        className="min-w-0 flex-1 rounded-md border border-line bg-white px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-[#A0A6BC] focus:border-violet disabled:bg-canvas"
+                        className="min-w-0 flex-1 rounded-md border border-line bg-surface px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-muted focus:border-violet disabled:bg-canvas"
                       />
                       <button
                         type="button"
@@ -267,7 +269,7 @@ export default function AiServicePanel({ aiDown, onClose, onSaved }: AiServicePa
                           setClearKey(v => !v)
                           setApiKey('')
                         }}
-                        className="shrink-0 rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink disabled:opacity-40"
+                        className="shrink-0 rounded-lg border border-line bg-surface px-3 py-1 text-xs text-muted hover:text-ink disabled:opacity-40"
                       >
                         {clearKey ? '撤销清除' : '清除 Key'}
                       </button>
@@ -287,7 +289,7 @@ export default function AiServicePanel({ aiDown, onClose, onSaved }: AiServicePa
                       disabled={saving || savedRuntime}
                       onChange={e => setBaseUrl(e.target.value)}
                       placeholder="https://ark.cn-beijing.volces.com/api/v3"
-                      className="mt-1 w-full rounded-md border border-line bg-white px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-[#A0A6BC] focus:border-violet disabled:bg-canvas"
+                      className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-muted focus:border-violet disabled:bg-canvas"
                     />
                   </div>
 
@@ -304,7 +306,7 @@ export default function AiServicePanel({ aiDown, onClose, onSaved }: AiServicePa
                       disabled={saving || savedRuntime}
                       onChange={e => setModel(e.target.value)}
                       placeholder="如 doubao-…"
-                      className="mt-1 w-full rounded-md border border-line bg-white px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-[#A0A6BC] focus:border-violet disabled:bg-canvas"
+                      className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-muted focus:border-violet disabled:bg-canvas"
                     />
                   </div>
                 </>
@@ -323,7 +325,7 @@ export default function AiServicePanel({ aiDown, onClose, onSaved }: AiServicePa
                       disabled={saving || savedRuntime}
                       onChange={e => setLmStudioBaseUrl(e.target.value)}
                       placeholder="http://127.0.0.1:1234/v1 或局域网地址"
-                      className="mt-1 w-full rounded-md border border-line bg-white px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-[#A0A6BC] focus:border-violet disabled:bg-canvas"
+                      className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-muted focus:border-violet disabled:bg-canvas"
                     />
                   </div>
 
@@ -340,7 +342,7 @@ export default function AiServicePanel({ aiDown, onClose, onSaved }: AiServicePa
                       disabled={saving || savedRuntime}
                       onChange={e => setLmStudioModel(e.target.value)}
                       placeholder="填写 LM Studio 中已加载的模型 ID"
-                      className="mt-1 w-full rounded-md border border-line bg-white px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-[#A0A6BC] focus:border-violet disabled:bg-canvas"
+                      className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-muted focus:border-violet disabled:bg-canvas"
                     />
                   </div>
                 </>
@@ -384,7 +386,7 @@ export default function AiServicePanel({ aiDown, onClose, onSaved }: AiServicePa
                         disabled={saving || savedRuntime}
                         onChange={e => setPortStart(e.target.value)}
                         placeholder="4096"
-                        className="mt-1 w-full rounded-md border border-line bg-white px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-[#A0A6BC] focus:border-violet disabled:bg-canvas"
+                        className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-muted focus:border-violet disabled:bg-canvas"
                       />
                     </div>
                     <div>
@@ -401,7 +403,7 @@ export default function AiServicePanel({ aiDown, onClose, onSaved }: AiServicePa
                         disabled={saving || savedRuntime}
                         onChange={e => setHealthTimeout(e.target.value)}
                         placeholder="10000"
-                        className="mt-1 w-full rounded-md border border-line bg-white px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-[#A0A6BC] focus:border-violet disabled:bg-canvas"
+                        className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-muted focus:border-violet disabled:bg-canvas"
                       />
                     </div>
                     <div>
@@ -417,7 +419,7 @@ export default function AiServicePanel({ aiDown, onClose, onSaved }: AiServicePa
                         disabled={saving || savedRuntime}
                         onChange={e => setMockBaseUrl(e.target.value)}
                         placeholder="http://127.0.0.1:4099/v1"
-                        className="mt-1 w-full rounded-md border border-line bg-white px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-[#A0A6BC] focus:border-violet disabled:bg-canvas"
+                        className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1.5 text-[12px] text-ink outline-none placeholder:text-muted focus:border-violet disabled:bg-canvas"
                       />
                     </div>
                   </div>
@@ -434,7 +436,7 @@ export default function AiServicePanel({ aiDown, onClose, onSaved }: AiServicePa
                 type="button"
                 onClick={onClose}
                 disabled={reconnecting}
-                className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink disabled:opacity-40"
+                className="rounded-lg border border-line bg-surface px-3 py-1 text-xs text-muted hover:text-ink disabled:opacity-40"
               >
                 关闭
               </button>
@@ -455,7 +457,7 @@ export default function AiServicePanel({ aiDown, onClose, onSaved }: AiServicePa
                 type="button"
                 onClick={onClose}
                 disabled={saving}
-                className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink disabled:opacity-40"
+                className="rounded-lg border border-line bg-surface px-3 py-1 text-xs text-muted hover:text-ink disabled:opacity-40"
               >
                 取消
               </button>

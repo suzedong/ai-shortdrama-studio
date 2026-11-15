@@ -9,10 +9,10 @@ import { captureTopicLabel } from './chain'
 
 // C3 来源三色（复用 B-34 LabelTag 三色语义）
 function sourceTag(f: CapturedFact): { text: string; cls: string } {
-  if (f.source === 'user') return { text: '用户原话', cls: 'border-violet bg-white text-[#5A4BC4]' }
+  if (f.source === 'user') return { text: '用户原话', cls: 'border-violet bg-surface text-[#5A4BC4]' }
   return f.status === 'pending'
-    ? { text: '推断 · 待确认', cls: 'border-[#F6E6C4] bg-[#FFF4DE] text-[#C0841D]' }
-    : { text: '推断 · 已确认', cls: 'border-[#D9D3FB] bg-violet-soft text-[#5A4BC4]' }
+    ? { text: '推断 · 待确认', cls: 'border-warn/30 bg-warn/10 text-warn' }
+    : { text: '推断 · 已确认', cls: 'border-violet/30 bg-violet-soft text-[#5A4BC4]' }
 }
 
 function errMsg(e: unknown): string {
@@ -96,16 +96,16 @@ export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
   const pendingCount = list.filter(f => f.status === 'pending').length
 
   return (
-    <div data-testid="capture-bar" className="shrink-0 border-b border-line bg-[#FCFCFE]">
+    <div data-testid="capture-bar" className="shrink-0 border-b border-line bg-surface">
       {/* C1 头行（恒显）：标题 + 计数 + 待确认琥珀点 + 展开/收起钮 */}
       <div className="flex items-center gap-2 px-4 py-2">
-        <span className="text-[11px] font-extrabold tracking-[0.3px] text-[#1E2233]">已捕获口径</span>
+        <span className="text-[11px] font-extrabold tracking-[0.3px] text-ink">已捕获口径</span>
         <span data-testid="capture-bar-count" className="text-[10.5px] text-muted">
           · {list.length} 条
         </span>
         {pendingCount > 0 && (
-          <span className="flex items-center gap-1 text-[10.5px] font-bold text-[#C0841D]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#E8A33D]" />
+          <span className="flex items-center gap-1 text-[10.5px] font-bold text-warn">
+            <span className="h-1.5 w-1.5 rounded-full bg-warn" />
             · {pendingCount} 待确认
           </span>
         )}
@@ -121,7 +121,7 @@ export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
 
       {/* C7 list 失败错误态条（含文件损坏；不崩面板、不重试刷屏） */}
       {loadError && (
-        <div className="mx-4 mb-2 rounded-md border border-[#F3D1D1] bg-[#FDF2F2] px-2 py-1.5 text-[10.5px] leading-relaxed text-bad">
+        <div className="mx-4 mb-2 rounded-md border border-bad/30 bg-bad/10 px-2 py-1.5 text-[10.5px] leading-relaxed text-bad">
           口径读取失败：{loadError}
         </div>
       )}
@@ -144,7 +144,7 @@ export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
                 key={f.id}
                 data-testid="capture-item"
                 data-fact-id={f.id}
-                className="rounded-lg px-2 py-1.5 transition-colors hover:bg-white"
+                className="rounded-lg px-2 py-1.5 transition-colors hover:bg-surface"
               >
                 {editing ? (
                   /* C4 行内编辑三件套 */
@@ -153,13 +153,13 @@ export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
                       value={editTopic}
                       onChange={e => setEditTopic(e.target.value)}
                       placeholder="字段名（如 genre / platforms / 人物关系）"
-                      className="w-full rounded-md border border-line bg-white px-2 py-1 text-[11px] font-bold text-[#1E2233] outline-none focus:border-violet"
+                      className="w-full rounded-md border border-line bg-surface px-2 py-1 text-[11px] font-bold text-ink outline-none focus:border-violet"
                     />
                     <input
                       value={editValue}
                       onChange={e => setEditValue(e.target.value)}
                       placeholder="内容"
-                      className="w-full rounded-md border border-line bg-white px-2 py-1 text-[11px] text-[#3A3F55] outline-none focus:border-violet"
+                      className="w-full rounded-md border border-line bg-surface px-2 py-1 text-[11px] text-ink outline-none focus:border-violet"
                     />
                     <div className="flex gap-1.5">
                       <button
@@ -173,7 +173,7 @@ export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
                       <button
                         type="button"
                         data-testid="capture-item-edit-cancel"
-                        className="rounded-md border border-line bg-white px-2 py-0.5 text-[10.5px] font-bold text-muted transition-colors hover:bg-[#F4F4FA]"
+                        className="rounded-md border border-line bg-surface px-2 py-0.5 text-[10.5px] font-bold text-muted transition-colors hover:bg-canvas"
                         onClick={cancelEdit}
                       >
                         取消
@@ -184,11 +184,11 @@ export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
                   <div className="flex items-start gap-1.5">
                     <div className="min-w-0 flex-1 leading-snug">
                       <span
-                        className="text-[11px] font-bold text-[#1E2233]"
+                        className="text-[11px] font-bold text-ink"
                         title={captureTopicLabel(f.topic) !== f.topic ? `字段：${f.topic}` : undefined}
                       >{captureTopicLabel(f.topic)}</span>
                       <span className="mx-1 text-[10px] text-muted">·</span>
-                      <span className="break-all text-[11px] text-[#3A3F55]">{f.value}</span>
+                      <span className="break-all text-[11px] text-ink">{f.value}</span>
                       <span
                         title={f.quote ? `原话：${f.quote}` : undefined}
                         className={`ml-1.5 inline-block whitespace-nowrap rounded-[5px] border px-1.5 py-px align-middle text-[8.5px] font-extrabold tracking-[0.3px] ${tag.cls}`}
@@ -210,7 +210,7 @@ export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
                         <button
                           type="button"
                           data-testid="capture-item-confirm"
-                          className="rounded px-1 py-0.5 text-[10px] font-bold text-[#C0841D] transition-colors hover:bg-[#FFF4DE]"
+                          className="rounded px-1 py-0.5 text-[10px] font-bold text-warn transition-colors hover:bg-warn/10"
                           onClick={() => void confirmFact(f)}
                         >
                           确认
@@ -219,7 +219,7 @@ export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
                       <button
                         type="button"
                         data-testid="capture-item-remove"
-                        className="rounded px-1 py-0.5 text-[10px] font-bold text-bad transition-colors hover:bg-[#FDF2F2]"
+                        className="rounded px-1 py-0.5 text-[10px] font-bold text-bad transition-colors hover:bg-bad/10"
                         onClick={() => { setRemovingId(f.id); setEditingId(null); setRowError(null) }}
                       >
                         删除
@@ -230,7 +230,7 @@ export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
 
                 {/* C6 删除行内二次确认条 */}
                 {!editing && removingId === f.id && (
-                  <div className="mt-1 flex items-center gap-2 rounded-md border border-[#F3D1D1] bg-[#FDF2F2] px-2 py-1">
+                  <div className="mt-1 flex items-center gap-2 rounded-md border border-bad/30 bg-bad/10 px-2 py-1">
                     <span className="flex-1 text-[10.5px] text-bad">确认删除该条口径？删除后 id 不复用。</span>
                     <button
                       type="button"
@@ -242,7 +242,7 @@ export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
                     </button>
                     <button
                       type="button"
-                      className="rounded-md border border-line bg-white px-2 py-0.5 text-[10px] font-bold text-muted transition-colors hover:bg-[#F4F4FA]"
+                      className="rounded-md border border-line bg-surface px-2 py-0.5 text-[10px] font-bold text-muted transition-colors hover:bg-canvas"
                       onClick={() => setRemovingId(null)} // 取消零调用
                     >
                       取消
@@ -252,7 +252,7 @@ export default function CaptureBar({ projectId = '' }: { projectId?: string }) {
 
                 {/* C7 操作失败行底错误条 */}
                 {rowError && rowError.id === f.id && (
-                  <div className="mt-1 rounded-md border border-[#F3D1D1] bg-[#FDF2F2] px-2 py-1 text-[10.5px] leading-relaxed text-bad">
+                  <div className="mt-1 rounded-md border border-bad/30 bg-bad/10 px-2 py-1 text-[10.5px] leading-relaxed text-bad">
                     {rowError.message}
                   </div>
                 )}

@@ -44,19 +44,19 @@ export default function RealignConfirm({ node, onRealign, onKeepView, onCancel }
       <div
         role="dialog"
         aria-label="产物重新对齐"
-        className="w-[440px] rounded-xl border border-line bg-white p-5 shadow-card"
+        className="w-[440px] rounded-xl border border-line bg-surface p-5 shadow-card"
       >
         <h3 className="text-[13px] font-extrabold text-ink">产物重新对齐</h3>
-        <p className="mt-2.5 text-[11.5px] leading-[1.7] text-[#4A4F68]">
+        <p className="mt-2.5 text-[11.5px] leading-[1.7] text-ink">
           {kindLabel(node.kind)} · {node.title}
         </p>
-        <p className="mt-1 text-[11.5px] leading-[1.7] text-[#4A4F68]">
+        <p className="mt-1 text-[11.5px] leading-[1.7] text-ink">
           当前基于立项 v{dirty.sinceBriefVersion} · 最新立项 v{dirty.latestBriefVersion}
         </p>
-        <p className="mt-1 text-[11.5px] leading-[1.7] text-[#4A4F68]">命中字段：{fieldsText}</p>
-        <p className="mt-2 text-[11.5px] font-bold leading-[1.7] text-[#C0841D]">{severityText}</p>
+        <p className="mt-1 text-[11.5px] leading-[1.7] text-ink">命中字段：{fieldsText}</p>
+        <p className="mt-2 text-[11.5px] font-bold leading-[1.7] text-warn">{severityText}</p>
         {driftLabel && (
-          <p className="mt-1 text-[11.5px] font-bold leading-[1.7] text-[#C0841D]">{driftLabel}</p>
+          <p className="mt-1 text-[11.5px] font-bold leading-[1.7] text-warn">{driftLabel}</p>
         )}
         {dirty.impactReport && (
           <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-[1.7] text-muted">
@@ -67,14 +67,14 @@ export default function RealignConfirm({ node, onRealign, onKeepView, onCancel }
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink"
+            className="rounded-lg border border-line bg-surface px-3 py-1 text-xs text-muted hover:text-ink"
           >
             取消
           </button>
           <button
             type="button"
             onClick={onKeepView}
-            className="rounded-lg border border-line bg-white px-3 py-1 text-xs text-muted hover:text-ink"
+            className="rounded-lg border border-line bg-surface px-3 py-1 text-xs text-muted hover:text-ink"
           >
             保持现状查看
           </button>

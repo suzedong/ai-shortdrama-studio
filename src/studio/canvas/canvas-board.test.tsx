@@ -294,7 +294,7 @@ describe('feature-002 · StageNavPanel STAGE 0 徽标', () => {
       node({ id: 'step-1-outline', step: '1', kind: 'outline', title: '故事大纲', status: 'done' }),
     ])
     expect(badge?.textContent).toBe('✓ v2')
-    expect(badge?.className).toContain('bg-[#E7F8F0]')
+    expect(badge?.className).toContain('bg-ok/10')
   })
 
   it('已发布且画布有 dirty：黄态 vN ⚠k，k 为全画布 dirty 数，N 取 dirty.latestBriefVersion', () => {
@@ -318,7 +318,7 @@ describe('feature-002 · StageNavPanel STAGE 0 徽标', () => {
       }),
     ])
     expect(badge?.textContent).toBe('v3 ⚠2')
-    expect(badge?.className).toContain('bg-[#FFF4DE]')
+    expect(badge?.className).toContain('bg-warn/10')
   })
 })
 

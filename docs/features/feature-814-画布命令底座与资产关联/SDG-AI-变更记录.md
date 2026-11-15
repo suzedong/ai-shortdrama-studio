@@ -6,7 +6,7 @@
 
 ### D-001 · K1 + K8：画布命令底座、资产关联与绑定 UI（2026-11-10 已批准）
 
-- **依据**：用户批准 [.trae/documents/feature-814-画布命令底座与资产关联.md](../../../.trae/documents/feature-814-画布命令底座与资产关联.md)，同轮拍板“含绑定 UI / 记录完整来源 / 只绑定当前资产”。
+- **依据**：用户于 2026-11-10 批准本任务包实施范围（批准结论见[任务清单](./SDG-RE-任务清单.md)），同轮拍板“含绑定 UI / 记录完整来源 / 只绑定当前资产”。
 - **K1 范围**：shared/types.ts 的 Canvas v3、revision/receipts、CanvasNode.assetIds、AssetIndexItem.sourceSession、系统命令 DTO；不改其他共享类型形状。
 - **K8 范围**：恰 1 个 canvas:command IPC；扩展既有 canvas.update、asset.register DTO；同步 preload/global.d.ts/dev-mock；不增加 MCP 工具数。
 - **K9**：零新增依赖，不触发。明确不引入 React Flow、Dagre、SQLite。

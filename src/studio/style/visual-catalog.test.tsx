@@ -1,7 +1,7 @@
 // feature-810 T5 · AC5：VisualCatalog 谱系升级差异工作流 renderer 单测
 // 契约：docs/features/feature-810-谱系升级差异工作流/SDG-RE-契约.md §4（V1–V6 渲染 + 采纳/忽略闭环）
-// 通道 mock：组件仅经 window.api 三桥（styleCatalog / styleUpgradeDiff / updateBrief）——本文件全量 mock 三桥，不触主进程
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+// 通道 mock：组件仅经 window.api 四桥（styleCatalog / styleUpgradeDiff / stylePreviewMetadata / updateBrief）——本文件全量 mock，不触主进程
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import VisualCatalog, { PREVIEW_URL } from './VisualCatalog'
 
@@ -77,12 +77,44 @@ const STYLE_FIXTURE: StyleCatalogEntryDto[] = [
   e('E1', '3D CG', 'E', '材质工艺系', 'main', { feasibility: 'medium' }),
 ]
 
+const metadataOf = (
+  request: StylePreviewMetadataRequest,
+  over: Partial<StylePreviewMetadataDto> = {},
+): StylePreviewMetadataDto => ({
+  request,
+  status: 'ok',
+  prompts: request.mediaKind === 'image'
+    ? [
+        { key: 'positive', label: '正向提示词', text: '图片专属正向提示词：午后咖啡馆，浅景深' },
+        { key: 'negative', label: '负向提示词', text: '图片专属负向提示词：模糊，水印' },
+      ]
+    : [{ key: 'motion', label: '运动提示词', text: `视频 ${request.tier} 运动提示词：镜头缓慢推近` }],
+  params: request.mediaKind === 'image'
+    ? [
+        { key: 'seed', label: 'Seed', value: 947870040 },
+        { key: 'steps', label: 'Steps', value: 20 },
+        { key: 'width', label: '宽度', value: 768 },
+      ]
+    : [
+        { key: 'seed', label: 'Seed', value: 1789724923 },
+        { key: 'steps', label: 'Steps', value: request.tier === 'std' ? 20 : 8 },
+        { key: 'fps', label: 'FPS', value: 24 },
+      ],
+  ...over,
+})
+
 const installApi = () => {
   const catalogSpy = vi.fn().mockResolvedValue({ version: 'v1.46', count: 18, entries: STYLE_FIXTURE })
   const diffSpy = vi.fn().mockResolvedValue(diffOf())
   const updateSpy = vi.fn().mockResolvedValue({ ok: true, version: 2, jsonPath: '立项单.v2.json', mdPath: '立项单.v2.md' })
-  window.api = { styleCatalog: catalogSpy, styleUpgradeDiff: diffSpy, updateBrief: updateSpy } as unknown as Window['api']
-  return { catalogSpy, diffSpy, updateSpy }
+  const metadataSpy = vi.fn(async (request: StylePreviewMetadataRequest) => metadataOf(request))
+  window.api = {
+    styleCatalog: catalogSpy,
+    styleUpgradeDiff: diffSpy,
+    updateBrief: updateSpy,
+    stylePreviewMetadata: metadataSpy,
+  } as unknown as Window['api']
+  return { catalogSpy, diffSpy, updateSpy, metadataSpy }
 }
 
 const renderCatalog = () => render(<VisualCatalog open onClose={() => {}} />)
@@ -300,6 +332,10 @@ describe('谱系面板数据驱动（feature-811）', () => {
     fireEvent.click(container.querySelector('[data-cat-item="A7"] > div')!)
     const overlay = container.querySelector('[data-catalog-preview]') as HTMLElement
     expect(overlay).not.toBeNull()
+    await waitFor(() => {
+      expect(screen.getByTestId('preview-metadata-image')).toHaveAttribute('data-status', 'ok')
+      expect(screen.getByTestId('preview-metadata-video')).toHaveAttribute('data-status', 'ok')
+    })
     expect(overlay.textContent).toContain('realistic human-like anime, lifelike expression')
     expect(overlay.textContent).toContain('质感配方')
     expect(overlay.textContent).toContain('测试质感配方文')
@@ -307,6 +343,10 @@ describe('谱系面板数据驱动（feature-811）', () => {
     // A3 textureRecipe 空串 → 锚点词在、质感配方块不显
     fireEvent.click(container.querySelector('[data-cat-item="A3"] > div')!)
     const overlay2 = container.querySelector('[data-catalog-preview]') as HTMLElement
+    await waitFor(() => {
+      expect(screen.getByTestId('preview-metadata-image')).toHaveAttribute('data-status', 'ok')
+      expect(screen.getByTestId('preview-metadata-video')).toHaveAttribute('data-status', 'ok')
+    })
     expect(overlay2.textContent).toContain('A3 anchor words')
     expect(overlay2.textContent).not.toContain('质感配方')
   })
@@ -319,6 +359,156 @@ describe('谱系面板数据驱动（feature-811）', () => {
     await waitFor(() => expect(container.querySelector('[data-catalog-empty]')?.textContent).toContain('谱系不可用'))
     expect(container.querySelector('[data-cat-tab="all"]')?.textContent).toBe('全部')
     expect(container.querySelector('[data-cat-item]')).toBeNull()
+  })
+})
+
+// ---- feature-815 · 双媒体与当前文件内嵌 ComfyUI 元数据（契约 §5）----
+describe('VisualCatalog 双媒体与媒体内嵌元数据（feature-815）', () => {
+  const openStyle = async (id: string) => {
+    const { container } = renderCatalog()
+    await waitFor(() => expect(screen.getByTestId('style-catalog-version')).toHaveTextContent('v1.46'))
+    fireEvent.click(container.querySelector(`[data-cat-item="${id}"] > div`)!)
+    await screen.findByRole('dialog')
+    return container
+  }
+
+  it('T5：A1 图片与视频同屏，提示词和参数分源且不冒用谱系锚点词', async () => {
+    installApi()
+    const container = await openStyle('A1')
+
+    const image = await screen.findByRole('img', { name: 'A1 数字电影写实 参考图片' })
+    const video = container.querySelector('[data-preview-vid="A1"]')
+    expect(image).toBeVisible()
+    expect(video).toBeInTheDocument()
+    expect(video).toHaveAttribute('poster', image.getAttribute('src'))
+
+    const imageMeta = screen.getByTestId('preview-metadata-image')
+    const videoMeta = screen.getByTestId('preview-metadata-video')
+    await waitFor(() => expect(imageMeta).toHaveAttribute('data-status', 'ok'))
+    await waitFor(() => expect(videoMeta).toHaveAttribute('data-status', 'ok'))
+    expect(screen.getByTestId('preview-prompt-image-positive')).toHaveTextContent('图片专属正向提示词')
+    expect(screen.getByTestId('preview-prompt-video-motion')).toHaveTextContent('视频 std 运动提示词')
+    expect(within(imageMeta).getByText('947870040')).toBeInTheDocument()
+    expect(within(videoMeta).getByText('1789724923')).toBeInTheDocument()
+    expect(screen.getByText('A1 anchor words')).toBeInTheDocument()
+    expect(imageMeta).not.toHaveTextContent('A1 anchor words')
+    expect(videoMeta).not.toHaveTextContent('A1 anchor words')
+    expect(imageMeta).toHaveTextContent('未列出的字段表示文件未记录')
+    expect(videoMeta).toHaveTextContent('未列出的字段表示文件未记录')
+  })
+
+  it('T5：标准 → turbo → FastH3 只切视频及其元数据，图片与图片请求保持不变', async () => {
+    const { metadataSpy } = installApi()
+    const container = await openStyle('A1')
+    await screen.findByText('视频 std 运动提示词：镜头缓慢推近')
+    const image = screen.getByRole('img', { name: 'A1 数字电影写实 参考图片' })
+    const imageSrc = image.getAttribute('src')
+    const stdVideoSrc = container.querySelector('[data-preview-vid="A1"]')?.getAttribute('src')
+
+    fireEvent.click(container.querySelector('[data-vid="turbo"]')!)
+    await screen.findByText('视频 turbo 运动提示词：镜头缓慢推近')
+    expect(container.querySelector('[data-preview-vid="A1"]')?.getAttribute('src')).not.toBe(stdVideoSrc)
+    expect(screen.getByRole('img', { name: 'A1 数字电影写实 参考图片' })).toBe(image)
+    expect(image).toHaveAttribute('src', imageSrc)
+
+    fireEvent.click(container.querySelector('[data-vid="fast"]')!)
+    await screen.findByText('视频 fast 运动提示词：镜头缓慢推近')
+    expect(screen.getByRole('img', { name: 'A1 数字电影写实 参考图片' })).toBe(image)
+    expect(image).toHaveAttribute('src', imageSrc)
+
+    const imageRequests = metadataSpy.mock.calls.filter(([request]) => request.mediaKind === 'image')
+    const videoTiers = metadataSpy.mock.calls
+      .map(([request]) => request)
+      .filter(request => request.mediaKind === 'video')
+      .map(request => request.tier)
+    expect(imageRequests).toHaveLength(1)
+    expect(videoTiers).toEqual(['std', 'turbo', 'fast'])
+    expect(within(screen.getByTestId('preview-metadata-image')).getByText('20')).toBeInTheDocument()
+    expect(within(screen.getByTestId('preview-metadata-video')).getByText('8')).toBeInTheDocument()
+  })
+
+  it('T5：一键复制完整媒体提示词并给出反馈', async () => {
+    installApi()
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+    await openStyle('A1')
+    await screen.findByTestId('preview-prompt-image-positive')
+
+    fireEvent.click(screen.getByRole('button', { name: '复制正向提示词' }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('图片专属正向提示词：午后咖啡馆，浅景深'))
+    expect(screen.getByRole('button', { name: '复制正向提示词' })).toHaveTextContent('已复制')
+  })
+
+  it.each([
+    ['missing', '预览文件缺失'],
+    ['no-metadata', '文件未内嵌 ComfyUI 元数据'],
+    ['unsupported', '文件格式不支持解析'],
+    ['invalid', '媒体元数据损坏，无法解析'],
+  ] as const)('T5：图片 %s 独立降级，不拖垮视频媒体或参数', async (status, message) => {
+    const { metadataSpy } = installApi()
+    metadataSpy.mockImplementation(async request => request.mediaKind === 'image'
+      ? metadataOf(request, { status, prompts: [], params: [], message })
+      : metadataOf(request))
+    await openStyle('A1')
+
+    const imageMeta = screen.getByTestId('preview-metadata-image')
+    await waitFor(() => expect(imageMeta).toHaveAttribute('data-status', status))
+    expect(imageMeta).toHaveTextContent(message)
+    expect(imageMeta).not.toHaveTextContent('图片专属正向提示词')
+    expect(await screen.findByTestId('preview-prompt-video-motion')).toHaveTextContent('视频 std 运动提示词')
+    expect(screen.getByRole('img', { name: 'A1 数字电影写实 参考图片' })).toBeVisible()
+  })
+
+  it('T5：快速切档时 std 旧响应晚到，不覆盖 turbo 当前响应', async () => {
+    const deferred = <T,>() => {
+      let resolve!: (value: T) => void
+      const promise = new Promise<T>(r => { resolve = r })
+      return { promise, resolve }
+    }
+    const std = deferred<StylePreviewMetadataDto>()
+    const turbo = deferred<StylePreviewMetadataDto>()
+    const { metadataSpy } = installApi()
+    metadataSpy.mockImplementation(request => {
+      if (request.mediaKind === 'image') return Promise.resolve(metadataOf(request))
+      if (request.tier === 'std') return std.promise
+      if (request.tier === 'turbo') return turbo.promise
+      return Promise.resolve(metadataOf(request))
+    })
+    const container = await openStyle('A1')
+    fireEvent.click(container.querySelector('[data-vid="turbo"]')!)
+    await waitFor(() => expect(metadataSpy).toHaveBeenCalledWith({
+      styleId: 'A1', mediaKind: 'video', tier: 'turbo',
+    }))
+
+    await act(async () => {
+      turbo.resolve(metadataOf({ styleId: 'A1', mediaKind: 'video', tier: 'turbo' }))
+      await turbo.promise
+    })
+    expect(await screen.findByTestId('preview-prompt-video-motion')).toHaveTextContent('视频 turbo 运动提示词')
+
+    await act(async () => {
+      std.resolve(metadataOf({ styleId: 'A1', mediaKind: 'video', tier: 'std' }))
+      await std.promise
+    })
+    expect(screen.getByTestId('preview-prompt-video-motion')).toHaveTextContent('视频 turbo 运动提示词')
+    expect(screen.queryByText('视频 std 运动提示词：镜头缓慢推近')).not.toBeInTheDocument()
+  })
+
+  it('T5：备画风无视频时保留图片与图片元数据，视频单独提示缺失', async () => {
+    const { metadataSpy } = installApi()
+    metadataSpy.mockImplementation(async request => request.mediaKind === 'video'
+      ? metadataOf(request, { status: 'missing', prompts: [], params: [], message: '预览文件缺失' })
+      : metadataOf(request))
+    const container = await openStyle('A3')
+
+    expect(await screen.findByRole('img', { name: 'A3 年代胶片（千禧·90s·80s） 参考图片' })).toBeVisible()
+    expect(await screen.findByTestId('preview-prompt-image-positive')).toHaveTextContent('图片专属正向提示词')
+    expect(container.querySelector('[data-preview-vid="A3"]')).not.toBeInTheDocument()
+    expect(container.querySelector('[data-preview-vid-hint]')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('preview-metadata-video')).toHaveAttribute('data-status', 'missing'))
   })
 })
 

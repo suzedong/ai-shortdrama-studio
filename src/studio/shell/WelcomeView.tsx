@@ -66,7 +66,7 @@ export default function WelcomeView({ onCreate, onOpen }: Props) {
       className="flex h-full w-full items-start justify-center overflow-y-auto px-[26px] py-[26px]"
       data-view="welcome"
     >
-      <div className="w-full max-w-[560px] rounded-[14px] border border-line bg-white p-7 shadow-[0_10px_30px_rgba(40,42,80,0.06)]">
+      <div className="w-full max-w-[560px] rounded-[14px] border border-line bg-surface p-7 shadow-[0_10px_30px_rgba(40,42,80,0.06)]">
         <span className="grid h-12 w-12 place-items-center rounded-2xl bg-violet-soft text-xl text-violet">0</span>
         <h1 className="mt-3 text-[15px] font-extrabold text-ink">开始一部短剧</h1>
         <p className="mt-2 text-[11.5px] leading-[1.8] text-muted">
@@ -75,7 +75,7 @@ export default function WelcomeView({ onCreate, onOpen }: Props) {
 
         {error && (
           <div
-            className="mt-4 rounded-lg border border-bad/40 bg-bad/10 px-2 py-1.5 text-[11px] leading-4 text-bad"
+            className="mt-4 rounded-lg border border-bad/30 bg-bad/10 px-2 py-1.5 text-[11px] leading-4 text-bad"
             data-welcome-error
           >
             {error}
@@ -92,7 +92,7 @@ export default function WelcomeView({ onCreate, onOpen }: Props) {
           {creating ? '创建中…' : '＋ 新建项目'}
         </button>
 
-        <div className="my-5 flex items-center gap-3 text-[10.5px] text-[#9AA0B5]">
+        <div className="my-5 flex items-center gap-3 text-[10.5px] text-muted">
           <span className="h-px flex-1 bg-line" />
           或打开已有项目
           <span className="h-px flex-1 bg-line" />
@@ -111,7 +111,7 @@ export default function WelcomeView({ onCreate, onOpen }: Props) {
                   disabled={busy !== null}
                   onClick={() => void run('open', () => onOpen(p.dir), p.dir)}
                   title={p.dir}
-                  className="flex w-full items-center gap-2.5 rounded-[10px] border border-transparent p-2 text-left transition hover:bg-[#F5F6FB] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex w-full items-center gap-2.5 rounded-[10px] border border-transparent p-2 text-left transition hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-50"
                   data-welcome-open={p.dir}
                 >
                   <span
@@ -122,7 +122,7 @@ export default function WelcomeView({ onCreate, onOpen }: Props) {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[12px] font-bold text-ink">{p.name || '未命名项目'}</span>
-                    <span className="mt-0.5 block text-[10px] text-[#9AA0B5]">{relativeTime(p.updatedAt)}</span>
+                    <span className="mt-0.5 block text-[10px] text-muted">{relativeTime(p.updatedAt)}</span>
                   </span>
                   <span className="shrink-0 text-[10.5px] font-bold text-violet">
                     {busy?.kind === 'open' && busy.dir === p.dir ? '打开中…' : '打开'}
@@ -133,7 +133,7 @@ export default function WelcomeView({ onCreate, onOpen }: Props) {
           </ul>
         )}
 
-        <p className="mt-5 border-t border-line pt-3 text-[10px] text-[#9AA0B5]">
+        <p className="mt-5 border-t border-line pt-3 text-[10px] text-muted">
           0 立项 → 1 故事 → 2 分场 → 3 资产 → 4 分镜 → 5 镜头 → 6 后期 → 7 发布
         </p>
       </div>

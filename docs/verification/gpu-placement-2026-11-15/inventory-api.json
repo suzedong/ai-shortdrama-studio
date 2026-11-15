@@ -1,0 +1,309 @@
+{
+  "capturedAt": "2026-11-15T05:32:29.952Z",
+  "host": "10.203.3.52",
+  "instances": [
+    {
+      "port": 8000,
+      "stats": {
+        "system": {
+          "os": "win32",
+          "ram_total": 274246254592,
+          "ram_free": 255183540224,
+          "comfyui_version": "0.45.3",
+          "required_frontend_version": "1.58.5",
+          "installed_templates_version": "0.11.107",
+          "required_templates_version": "0.11.107",
+          "comfy_package_versions": [
+            {
+              "name": "comfyui-frontend-package",
+              "installed": "1.58.5",
+              "required": "1.58.5"
+            },
+            {
+              "name": "comfyui-workflow-templates",
+              "installed": "0.11.107",
+              "required": "0.11.107"
+            },
+            {
+              "name": "comfyui-embedded-docs",
+              "installed": "0.5.16",
+              "required": "0.5.16"
+            },
+            {
+              "name": "comfy-aimdo",
+              "installed": "0.6.0",
+              "required": "0.6.0"
+            },
+            {
+              "name": "comfy-kitchen",
+              "installed": "0.2.41",
+              "required": "0.2.41"
+            }
+          ],
+          "python_version": "3.12.11 (main, Aug 18 2025, 19:17:54) [MSC v.1944 64 bit (AMD64)]",
+          "pytorch_version": "2.10.0+cu130",
+          "embedded_python": false,
+          "deploy_environment": "local-desktop2-standalone",
+          "argv": [
+            "ComfyUI\\main.py",
+            "--feature-flag",
+            "show_signin_button=true",
+            "--feature-flag",
+            "enable_telemetry=true",
+            "--enable-assets",
+            "--base-directory",
+            "C:\\Users\\Lenovo\\Documents\\ComfyUI",
+            "--user-directory",
+            "C:\\Users\\Lenovo\\Documents\\ComfyUI\\user",
+            "--database-url",
+            "sqlite:///C:\\Users\\Lenovo\\Documents\\ComfyUI\\user\\comfyui.db",
+            "--port",
+            "8000",
+            "--enable-manager",
+            "--listen",
+            "0.0.0.0",
+            "--cuda-device",
+            "0",
+            "--extra-model-paths-config",
+            "C:\\Users\\Lenovo\\AppData\\Roaming\\Comfy Desktop\\instance-model-paths\\inst-1781504833970.yaml",
+            "--input-directory",
+            "C:\\Users\\Lenovo\\Documents\\ComfyUI\\input",
+            "--output-directory",
+            "C:\\Users\\Lenovo\\Documents\\ComfyUI\\output"
+          ]
+        },
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "type": "cuda",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ]
+      },
+      "queue": {
+        "queue_running": [],
+        "queue_pending": []
+      },
+      "requiredNodes": [
+        "SaveImage",
+        "ResolutionSelector",
+        "UNETLoader",
+        "CLIPLoader",
+        "VAELoader",
+        "MiniMaxH3ImageConditioning",
+        "ConditioningZeroOut",
+        "KSampler",
+        "VAEDecode"
+      ],
+      "requiredModels": {
+        "unet": "minimax_h3_image_pruned_int8_convrot.safetensors",
+        "clip": "qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+        "vae": "minimax_h3_image_vae_fp16.safetensors"
+      },
+      "missingNodes": [],
+      "missingModels": []
+    },
+    {
+      "port": 8001,
+      "stats": {
+        "system": {
+          "os": "win32",
+          "ram_total": 274246254592,
+          "ram_free": 255176499200,
+          "comfyui_version": "0.45.3",
+          "required_frontend_version": "1.58.5",
+          "installed_templates_version": "0.11.107",
+          "required_templates_version": "0.11.107",
+          "comfy_package_versions": [
+            {
+              "name": "comfyui-frontend-package",
+              "installed": "1.58.5",
+              "required": "1.58.5"
+            },
+            {
+              "name": "comfyui-workflow-templates",
+              "installed": "0.11.107",
+              "required": "0.11.107"
+            },
+            {
+              "name": "comfyui-embedded-docs",
+              "installed": "0.5.16",
+              "required": "0.5.16"
+            },
+            {
+              "name": "comfy-aimdo",
+              "installed": "0.6.0",
+              "required": "0.6.0"
+            },
+            {
+              "name": "comfy-kitchen",
+              "installed": "0.2.41",
+              "required": "0.2.41"
+            }
+          ],
+          "python_version": "3.13.12 (main, Feb 12 2026, 00:38:53) [MSC v.1944 64 bit (AMD64)]",
+          "pytorch_version": "2.12.1+cu130",
+          "embedded_python": false,
+          "deploy_environment": "local-desktop2-standalone",
+          "argv": [
+            "ComfyUI\\main.py",
+            "--feature-flag",
+            "show_signin_button=true",
+            "--feature-flag",
+            "enable_telemetry=true",
+            "--enable-assets",
+            "--port",
+            "8001",
+            "--enable-manager",
+            "--listen",
+            "0.0.0.0",
+            "--cuda-device",
+            "1",
+            "--extra-model-paths-config",
+            "C:\\Users\\Lenovo\\AppData\\Roaming\\Comfy Desktop\\instance-model-paths\\inst-1789710150280.yaml",
+            "--input-directory",
+            "C:\\Users\\Lenovo\\Documents\\ComfyUI\\input",
+            "--output-directory",
+            "C:\\Users\\Lenovo\\Documents\\ComfyUI\\output"
+          ]
+        },
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "type": "cuda",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ]
+      },
+      "queue": {
+        "queue_running": [],
+        "queue_pending": []
+      },
+      "requiredNodes": [
+        "SaveImage",
+        "ResolutionSelector",
+        "UNETLoader",
+        "CLIPLoader",
+        "VAELoader",
+        "MiniMaxH3ImageConditioning",
+        "ConditioningZeroOut",
+        "KSampler",
+        "VAEDecode"
+      ],
+      "requiredModels": {
+        "unet": "minimax_h3_image_pruned_int8_convrot.safetensors",
+        "clip": "qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+        "vae": "minimax_h3_image_vae_fp16.safetensors"
+      },
+      "missingNodes": [],
+      "missingModels": []
+    },
+    {
+      "port": 8002,
+      "stats": {
+        "system": {
+          "os": "win32",
+          "ram_total": 274246254592,
+          "ram_free": 255173881856,
+          "comfyui_version": "0.45.3",
+          "required_frontend_version": "1.58.5",
+          "installed_templates_version": "0.11.107",
+          "required_templates_version": "0.11.107",
+          "comfy_package_versions": [
+            {
+              "name": "comfyui-frontend-package",
+              "installed": "1.58.5",
+              "required": "1.58.5"
+            },
+            {
+              "name": "comfyui-workflow-templates",
+              "installed": "0.11.107",
+              "required": "0.11.107"
+            },
+            {
+              "name": "comfyui-embedded-docs",
+              "installed": "0.5.16",
+              "required": "0.5.16"
+            },
+            {
+              "name": "comfy-aimdo",
+              "installed": "0.6.0",
+              "required": "0.6.0"
+            },
+            {
+              "name": "comfy-kitchen",
+              "installed": "0.2.41",
+              "required": "0.2.41"
+            }
+          ],
+          "python_version": "3.13.12 (main, Feb 12 2026, 00:38:53) [MSC v.1944 64 bit (AMD64)]",
+          "pytorch_version": "2.12.1+cu130",
+          "embedded_python": false,
+          "deploy_environment": "local-desktop2-standalone",
+          "argv": [
+            "ComfyUI\\main.py",
+            "--feature-flag",
+            "show_signin_button=true",
+            "--feature-flag",
+            "enable_telemetry=true",
+            "--enable-assets",
+            "--port",
+            "8002",
+            "--enable-manager",
+            "--listen",
+            "0.0.0.0",
+            "--cuda-device",
+            "2",
+            "--extra-model-paths-config",
+            "C:\\Users\\Lenovo\\AppData\\Roaming\\Comfy Desktop\\instance-model-paths\\inst-1789713101484.yaml",
+            "--input-directory",
+            "C:\\Users\\Lenovo\\Documents\\ComfyUI\\input",
+            "--output-directory",
+            "C:\\Users\\Lenovo\\Documents\\ComfyUI\\output"
+          ]
+        },
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "type": "cuda",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ]
+      },
+      "queue": {
+        "queue_running": [],
+        "queue_pending": []
+      },
+      "requiredNodes": [
+        "SaveImage",
+        "ResolutionSelector",
+        "UNETLoader",
+        "CLIPLoader",
+        "VAELoader",
+        "MiniMaxH3ImageConditioning",
+        "ConditioningZeroOut",
+        "KSampler",
+        "VAEDecode"
+      ],
+      "requiredModels": {
+        "unet": "minimax_h3_image_pruned_int8_convrot.safetensors",
+        "clip": "qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+        "vae": "minimax_h3_image_vae_fp16.safetensors"
+      },
+      "missingNodes": [],
+      "missingModels": []
+    }
+  ]
+}

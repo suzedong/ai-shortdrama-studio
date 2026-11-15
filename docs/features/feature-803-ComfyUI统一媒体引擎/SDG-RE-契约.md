@@ -139,6 +139,8 @@ interface ComfyTestResult {
 
 ## 5. 工作流清单契约
 
+> **历史快照 / 现行指引（2026-11-15 校准）**：本节 `model='qwen-image'` 及旧校验语义只描述本包当时实施，不是现行生产契约。现行 H3 Image manifest、graph、输入与拒绝语义以 feature-816 / D-033 为准；本段不回写历史，也不得再作为新任务实现依据。
+
 默认目录：`resources/comfyui/workflows/`；生产清单初始为空。文件名只能引用该目录内 `.json`。
 
 ```ts

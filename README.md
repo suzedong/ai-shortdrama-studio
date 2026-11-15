@@ -1,8 +1,8 @@
 # 短剧 Agent 平台（ai-shortdrama-studio）
 
-> AI Agent 驱动的短剧内容生产桌面应用 —— 模仿 MiniMax Design 的交互形态，为 AI 短剧从零设计。**一块画布 = 一条连续生产线；一个指令 = 一支虚拟摄制组。**
+> AI Agent 驱动的短剧内容生产桌面应用 —— 全面复刻 MiniMax Design、短剧生产闭环优先，并保留本地 / 局域网 ComfyUI 与完整八步生产体系。**一块画布 = 一条连续生产线；一个指令 = 一支虚拟摄制组。**
 
-当前版本：v0.1.0（原型期）｜设计基线：v1.17（2026-11-02，D-024）
+当前版本：v0.1.0（原型期）｜设计基线：v1.23（2026-11-15，D-034）
 
 ## 它是什么
 
@@ -27,7 +27,7 @@
 
 - **多 Agent 摄制组**：showrunner 唯一主控，经 `task` 统一委派 writer / media-director / comfyui-operator 三个 subagent；subagent 禁止嵌套委派，工具经 MCP 网关与 opencode 运行时协作（仅本机）。
 - **确认门（人是导演）**：关键节点 Agent 暂停下游、发起确认门卡片，人工是唯一阻塞点，无隐藏自动放行。
-- **ComfyUI 统一媒体引擎（硬边界）**：图像（qwen-image）/ 视频（MiniMax H3）/ 音乐（Music3）三类媒体**全部经本地 / 局域网 ComfyUI 权重 / 工作流推理**——媒体生成零公网、无媒体云端 Key；平台出公网仅余文本侧火山方舟。
+- **ComfyUI 统一媒体引擎（硬边界）**：图像（MiniMax H3 Image）/ 视频（MiniMax H3）/ 音乐（MiniMax Music3）三类媒体**全部经本地 / 局域网 ComfyUI 权重 / 工作流推理**——媒体生成零公网、无媒体云端 Key；文本 Provider 为火山方舟 / LM Studio 二选一，仅选择火山方舟时文本调用出公网。当前生产仅 H3 Image 文生图链已接入。
 - **画布即真相**：全部产物与过程在一块画布上可见，节点自动连线，数据流即视觉。
 - **纯 JSON 文件持久化**：无数据库；事件流可重放；产物版本自动归档。
 - **Skill 沉淀**：一次跑通的过程可沉淀为可复用 Skill。
@@ -40,8 +40,8 @@
 | 渲染器 | React 18 + TypeScript + Vite + Tailwind CSS |
 | Agent 运行时 | opencode（@opencode-ai/sdk 1.18） |
 | 工具协议 | MCP（@modelcontextprotocol/sdk，仅 127.0.0.1 本地网关） |
-| 文本模型 | 火山方舟（OpenAI 兼容接口） |
-| 媒体引擎 | 本地 / 局域网 ComfyUI（qwen-image / H3 / Music3 权重 / 工作流） |
+| 文本模型 | 火山方舟 / LM Studio 二选一（OpenAI 兼容接口，D-021 / D-022） |
+| 媒体引擎 | 本地 / 局域网 ComfyUI（MiniMax H3 Image / H3 / Music3 权重 / 工作流） |
 | 持久化 | 纯 JSON 文件（项目目录 + 版本归档目录），无数据库 |
 | 测试 | Vitest + Testing Library |
 
@@ -51,7 +51,7 @@
 
 - Node.js 18+（建议 20 LTS）
 - npm
-- 可选（媒体生成必需）：本地或局域网 ComfyUI 实例，且已就位 qwen-image / H3 / Music3 三类权重 / 工作流（地址在应用内配置，支持多实例）
+- 可选（媒体生成必需）：本地或局域网 ComfyUI 实例；当前 H3 Image 生产链须具备对应权重 / 工作流，H3 视频与 Music3 参考能力尚未正式接入生产（地址在应用内配置，支持多实例）
 
 ### 安装与运行
 
@@ -59,7 +59,7 @@
 npm install
 ```
 
-配置环境变量（文本通道必需）：
+选择火山方舟时可配置环境变量；LM Studio 按应用内 AI 服务配置使用：
 
 ```bash
 cp .env.example .env
@@ -131,10 +131,10 @@ ai-shortdrama-studio/
 ## 当前状态与路线
 
 - **已落地（实现证据）**：runtime 对话单轨、29 个纯 MCP 工具（11 族）、STAGE 0 / 1 / 2-a / 2-b / 2-c 产物链、版本归档、确认门桥、画布基座、manifest 7 态状态机、立项再版与影响评估面板、视觉风格谱系、AI 服务配置及未选项目首启引导。
-- **现行任务包**：`docs/features/` 共 28 包，均已落地或实施；feature-201 的分场、台词与 2-c 分镜文字稿均已实施（2-c 自动化通过、未真机验收）。逐包状态以 [docs/features/README.md](./docs/features/README.md) 为准，各包实施边界以包内契约与任务清单为准。
-- **未落地**：STAGE 3-7（资产 / 分镜 / 镜头 / 后期 / 发布）完整生产闭环；ComfyUI 媒体引擎完整适配；T2A 人机通道；语音通道。
+- **现行任务包**：`docs/features/` 共 29 包，均已落地或实施；feature-201 的分场、台词与 2-c 分镜文字稿均已实施（自动化通过、未真机验收）；feature-817 实现已落地、验收中。逐包状态以 [docs/features/README.md](./docs/features/README.md) 为准，各包实施边界以包内契约与任务清单为准。
+- **未落地**：STAGE 3-7（资产 / 分镜 / 镜头 / 后期 / 发布）完整生产闭环；H3 视频与 Music3 生产链；完整产品面 Parity 验收；语音通道仍待裁决。
 
-一期 MVP 目标：单集全闭环（立项 → 故事 → 分场 → 资产 → 分镜 → 镜头 → 后期 → 成片），详见设计书 §11。
+现行路线为 P0—P7：先收口基线与桌面工作台，再统一媒体引擎、视觉生产链、后期发布、Agent 生态与完整产品面，最后全量验收；详见设计书 §11、[Parity 影响矩阵](./docs/design/MiniMax%20Design%20Parity影响矩阵.md) 与 [P0 基线报告](./docs/verification/p0-2026-11-15/P0基线报告.md)。
 
 ## 安全与隐私
 

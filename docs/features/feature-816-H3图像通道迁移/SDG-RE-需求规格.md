@@ -2,7 +2,7 @@
 
 > Feature：feature-816-H3图像通道迁移
 > 关联：D-033（K7）；K2 / K3 / K8 已在获批计划中呈报
-> 状态：生产迁移、参考库 C1 清理与 C2 新增 H3 API 文生图参考件登记均已闭环
+> 状态：生产迁移、参考库 C1 清理、C2 新增 H3 API 文生图参考件登记与 C3 Qwen 生产归档删除均已闭环；C3 专项 109/109 通过，全量 10 项既有失败与 typecheck 当前 3 项无关错误单列
 > 日期：2026-11-14；后续修订：2026-11-15
 
 ## 一、用户拍板与目标
@@ -113,9 +113,9 @@
 - [x] AC18（C2）：新增 API 文件保持原字节且 JSON、节点引用有效，与既有 UI 文生图参考模型组件一致；当前参考库为 20 份 JSON、10 UI + 10 API、7 用途域。
 - [x] AC19（C2）：Markdown/HTML 双索引各 20 项并与磁盘一致，第四节为 10 份 API；链接、锚点、HTML ID/标签配对和当前数量口径通过。
 - [x] AC20（C2）：生产 manifest/loader/graph、既有 19 份参考件、历史资产与归档不变；Feature 五文件、D-033 终局状态和 features README 同步，历史 19 份记录不改，未重跑生产专项、构建或 LAN 生成，未创建 Git commit。
-- [ ] AC21（C3）：精确 Qwen 生产归档已删除，空 `_archive` 已移除；全仓无 Qwen 命名文件，20 份参考 JSON 与 H3 manifest/graph 字节不变。
-- [ ] AC22（C3）：生产仍仅注册 `minimax-h3-image-t2i`，旧 Qwen ID 拒绝与历史 pending 续查语义不变；合法 `qwen3vl` 组件、历史项目作业/图片/资产、feature-815 媒体及元数据未删除或改写。
-- [ ] AC23（C3）：Feature 五文件、双总览、D-033 终局状态与 features README 同步，历史快照不改；适用专项、全量测试、typecheck、文档/链接/HTML 结构与 `git diff --check` 已执行并如实记录既有基线，未创建 Git commit。
+- [x] AC21（C3）：精确 Qwen 生产归档已删除并移至系统回收站，空 `_archive` 已移除；全仓无 Qwen 命名文件，20 份参考 JSON 与 H3 manifest/graph 的删除前后聚合哈希一致，证据见契约 §11.2/§11.4。
+- [x] AC22（C3）：生产仍仅注册 `minimax-h3-image-t2i`，旧 Qwen ID 拒绝与历史 pending 续查由专项回归覆盖；合法 `qwen3vl` 组件、历史项目作业/图片/资产、feature-815 媒体及元数据未删除或改写。
+- [x] AC23（C3）：Feature 五文件、双总览、D-033 终局状态与 features README 已同步；双索引各 20 项，专项 109/109 通过，全量 10 项失败、typecheck 当前 3 项无关错误已如实记录。scoped diff 已审阅，全量 `git diff --check` 通过，仅既存 LF→CRLF 提示，未创建 Git commit。
 
 ## 七、失败边界
 

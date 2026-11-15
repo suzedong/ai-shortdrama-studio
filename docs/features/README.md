@@ -55,13 +55,13 @@
 
 | 包 | 业务 | 解决偏差 | 技术落点 | 溯源 | 状态 |
 |---|---|---|---|---|---|
-| [feature-201-剧本创作链（分场+台词+分镜文字稿）](./feature-201-剧本创作链（分场+台词+分镜文字稿）/) | 分场（`Scene.sceneNo` 主键诞生）/ 台词（speakerId 归角色、空镜 `''`+speakerName 兜底）/ 一期分镜文字稿（`dialogue=null`、`refs=[]`） | 三阶段血缘已落地、**缺任务包**（反向补录）；分镜文字稿与 401 同一文件两阶段演进（§3 裁决①） | `剧本/分场.json/.md`、`剧本/台词.json/.md`、`分镜/shotlist.json/.md`（**2-c 待实施**）、writer.md | 改编 | 🟡 部分落地（2026-10-15）：2-a/2-b 已反向补录，2-c 分镜文字稿待实施 |
+| [feature-201-剧本创作链（分场+台词+分镜文字稿）](./feature-201-剧本创作链（分场+台词+分镜文字稿）/) | 分场（`Scene.sceneNo` 主键诞生）/ 台词（speakerId 归角色、空镜 `''`+speakerName 兜底）/ 分镜文字稿（`dialogue=null`、`refs=[]`） | 2-a/2-b/2-c 三阶段血缘与任务包均已落地；分镜文字稿与 401 同一文件两阶段演进（§3 裁决①）；2-c 真机人工验收待做 | `剧本/分场.json/.md`、`剧本/台词.json/.md`、`分镜/shotlist.json/.md`、writer.md | 改编 | 🟡 已实施；2-c 真机人工验收待（2-c 于 2026-11-11 完成；聚焦 27 项与当次全量 1058 项通过，既有 3 条类型错误单列） |
 
 ### 3xx · STAGE 3 资产
 
 | 包 | 业务 | 解决偏差 | 技术落点 | 溯源 | 状态 |
 |---|---|---|---|---|---|
-| feature-301-资产中心与角色定妆 | 资产索引选定/沉淀（query/select/import/export 扩展）；角色卡 + 一致性配方（seed/参考图/提示词）；qwen-image B0 概念图/定妆 | B-06（资产） | `electron/asset/*` 扩展、`资产/asset.index.json`、`资产/角色/`、media-director.md、image.submit | 改编 | ⬜ 未建包（P3） |
+| feature-301-资产中心与角色定妆 | 资产索引选定/沉淀（query/select/import/export 扩展）；角色卡 + 一致性配方（seed/参考图/提示词）；MiniMax H3 Image B0 概念图/定妆 | B-06（资产） | `electron/asset/*` 扩展、`资产/asset.index.json`、`资产/角色/`、media-director.md、comfyui.queue | 改编 | ⬜ 未建包（P3） |
 | feature-302-场景与道具资产 | 场景图 / 道具图流水线；主风格一致性配方复用 | B-06（资产） | `资产/场景/`、`资产/道具/`、image.submit | 改编 | ⬜ 未建包（P3） |
 
 ### 4xx · STAGE 4 分镜
@@ -80,14 +80,14 @@
 
 | 包 | 业务 | 解决偏差 | 技术落点 | 溯源 | 状态 |
 |---|---|---|---|---|---|
-| feature-601-声音通道（配音+配乐） | 一期 T2A 人机通道（配音任务文本：镜号/角色/台词/情绪/音色路径 → 豆包生成 → 网页上传对位，待配/已配清单防漏镜）；Music3 B9 配乐 / 音效 | B-06（后期·声音） | `声音/`、music.submit、声音 Agent | 自研新增 | ⬜ 未建包（P3） |
-| feature-602-时间线与程序化剪辑 | timeline.json（采用版本 / 切点 / 字幕 / 音量 / 过渡）；edit.cut/subtitle/concat/mix/slice（MediaKit/FFmpeg）；引擎不剪辑红线 | B-06（后期·剪辑） | `时间线/timeline.json`、edit.* 工具、剪辑 Agent | 改编 | ⬜ 未建包（P3） |
+| feature-601-声音通道（配音+配乐） | 语音通道待定；裁决前仅管理待配文本、任务与既有素材，可维护待配 / 已配清单，不绑定豆包 / T2A 或其他候选；Music3 B9 配乐 / 音效另包接入 | B-06（后期·声音） | `声音/`、音乐任务工具、声音 Agent；具体接口待各 Feature 契约裁决 | 自研新增 | ⬜ 未建包（P4；语音须先作产品 / 通道裁决） |
+| feature-602-时间线与程序化剪辑 | timeline.json（采用版本 / 切点 / 字幕 / 音量 / 过渡）；edit.cut/subtitle/concat/mix/slice（MediaKit/FFmpeg）；引擎不剪辑红线 | B-06（后期·剪辑） | `时间线/timeline.json`、edit.* 工具、剪辑 Agent | 改编 | ⬜ 未建包（P4） |
 
 ### 7xx · STAGE 7 发布
 
 | 包 | 业务 | 解决偏差 | 技术落点 | 溯源 | 状态 |
 |---|---|---|---|---|---|
-| feature-701-成片交付与切片 | 成片 / 封面 / 切片导出；渠道规格校验；成片确认门。渠道一键分发列三期 | B-06（发布） | `成片/`、导出 UI、harness 渠道规格校验 | 改编 | ⬜ 未建包（P3） |
+| feature-701-成片交付与切片 | 成片 / 封面 / 切片导出；渠道规格校验；成片确认门。渠道在线分发另列 P6 候选，须单独裁决 | B-06（发布） | `成片/`、导出 UI、harness 渠道规格校验 | 改编 | ⬜ 未建包（P4） |
 
 ### 8xx · 跨阶段平台基础
 
@@ -95,10 +95,10 @@
 |---|---|---|---|---|---|
 | [feature-801-manifest状态机推进](./feature-801-manifest状态机推进/) | 7 态 `initiating→story-outline→story-profiles→script-scenes→script-dialogue→script-storyboard→storyboard-done`，每次定稿读-改-写推进一格；先覆盖 STAGE 0-2，3-7 随各段包扩展；清退历史 10 态 `Stage` 骨架 | B-04 | `electron/project/manifest.ts`（读-改-写 + 纯函数跃迁）、manifest.get/advance 两工具（**共 16 工具**）、`electron/project/library.ts`、showrunner.md 定稿动作（**K1**：`shared/types.ts`）、删 `StageCanvas.tsx` | 自研新增 | ✅ 已落地（2026-10-13） |
 | [feature-802-视觉风格谱系接入](./feature-802-视觉风格谱系接入/) | 系统级外部数据源接入：路径注册 / 版本跟踪 / 风格 ID+谱系版本引用 / 主辅选型；平台只消费不私改（§8.3，§3 裁决②重建） | B-05 | ✅ 已落地（2026-10-13）：`electron/style/` 五文件（types/catalog/parse-md/loader/validate）+ `style.catalog/get/validate` 三工具（共 19 工具）；代码内 18 ID 注册表与谱系 md v1.46 运行时交叉核对，版本号不硬编码；根设计 §7.1/§8.3 已同步终局口径，B-05 已闭环 | 自研新增 | ✅ 已落地（2026-10-13） |
-| [feature-803-ComfyUI统一媒体引擎](./feature-803-ComfyUI统一媒体引擎/) | 本期先落地应用级多实例设置、真实 HTTP 客户端、受控 qwen-image API Format 映射、持久作业与安全收片入库；地址可配置 + 局域网多实例；媒体零公网；renderer 不直连 | B-06 前置（§11 一期·5） | **K1/K9 零触发**；**K8 已批**：`settings:comfy:test`、queue/status 收紧、实例项目级迁应用级；`electron/comfy/*`、设置面板页签、preload/global.d.ts/dev-mock | 改编 | 🟡 qwen-image 真机链路已通（2026-11-14；真实生成、收片、资产登记与幂等通过；资产中心 UI、第二实例与禁用行为待验收，全量验证受既有基线问题阻断） |
+| [feature-803-ComfyUI统一媒体引擎](./feature-803-ComfyUI统一媒体引擎/) | 已落地应用级多实例设置、真实 HTTP 客户端、受控 API Format 映射、持久作业与安全收片入库；地址可配置 + 局域网多实例；媒体零公网；renderer 不直连。历史 Qwen 生产事实冻结，现行通道以 feature-816 / D-033 的 H3 Image 为准 | B-06 前置（现行 P2） | **K1/K9 零触发**；**K8 已批**：`settings:comfy:test`、queue/status 收紧、实例项目级迁应用级；`electron/comfy/*`、设置面板页签、preload/global.d.ts/dev-mock | 改编 | 🟡 原范围已实施；历史 Qwen 真机链已通，现行 H3 真机验收见 feature-816。三端口 H3 直连 API 串行落卡已验（[证据](../verification/gpu-placement-2026-11-15/validation.json)）；资产中心 UI、应用内第二实例选择与禁用行为仍待验收，OS 级 GPU UUID / `nvidia-smi` 与三路并发未验 |
 | [feature-804-Windows窗口标题栏](./feature-804-Windows窗口标题栏/) | 修复 `hiddenInset` 在 Windows 无窗口控制缺陷：外壳平台分支（darwin hiddenInset / win32·linux frame:false）+ 顶栏右侧自绘最小化/最大化·还原/关闭三按钮（46×32、关闭红 #C42B1C）+ 4 IPC 1 推送；macOS 零变化 | B-10 | `electron/window/chrome.ts`（纯函数）、`electron/main.ts`（window:* IPC）、preload/global.d.ts/dev-mock 三处同步、`src/studio/WindowControls.tsx`、StudioApp 顶栏集成（**K8**：新增 IPC 登记；无 K1） | 改编 | ✅ 已落地（2026-10-29 Windows 真机人工验收通过；macOS 零变化回归本机无 macOS 维持挂起） |
-| feature-805-Skill体系 | Skill 检索 / 执行 / 沉淀 / 投稿；模板中心（二期） | §6 / §11 二期 | skill.* 工具 | Design 原有 | ⬜ 二期（暂不建包） |
-| [feature-806-Harness基础校验与确认门全链路](./feature-806-Harness基础校验与确认门全链路/) | 结构 / 内容 / 规格 / 一致性多轮校验；简报 / 定妆 / 分镜 / 整集 / 成片确认门卡片；校验不过不可确认（原 D-013 十五包方案的 804，因真机缺陷让位顺延 806，见决策台账 D-014） | B-06 配套（§9 / §11 一期·4）+ B-46 | harness.* 工具、`gate/bridge.ts` 门序扩展（1-a/1-b、2-a~2-c 及 3-7 门）、GateCardView | Design 原有 + 改编 | ✅ 批一已落地（2026-10-28：STAGE 0 harness 基础校验 + 0-final 门联动 + B-46 漂移提醒；T1-T9 全绿，真机目验双腿实证；分批与排期见 D-019） |
+| feature-805-Skill体系 | Skill 检索 / 执行 / 沉淀；在线投稿、公开模板市场另列待决，不以本地文件模拟在线成功 | §6 / §11 P5；在线能力见 Parity 矩阵 §3 | skill.* 工具；具体接口待建包裁决 | Design 原有 | ⬜ P5 候选（逐包裁决后建包） |
+| [feature-806-Harness基础校验与确认门全链路](./feature-806-Harness基础校验与确认门全链路/) | 结构 / 内容 / 规格 / 一致性多轮校验；简报 / 定妆 / 分镜 / 整集 / 成片确认门卡片；校验不过不可确认（原 D-013 十五包方案的 804，因真机缺陷让位顺延 806，见决策台账 D-014） | B-06 配套（§9 / 现行 P1）+ B-46 | harness.* 工具、`gate/bridge.ts` 门序扩展（1-a/1-b、2-a~2-c 及 3-7 门）、GateCardView | Design 原有 + 改编 | ✅ 批一已落地（2026-10-28：STAGE 0 harness 基础校验 + 0-final 门联动 + B-46 漂移提醒；T1-T9 全绿，真机目验双腿实证；分批与排期见 D-019） |
 | [feature-807-确认门口头拍板约束与门态防护](./feature-807-确认门口头拍板约束与门态防护/) | 修复 STAGE 0 真机走查缺陷：门 pending/rejected 时禁止 verbal 绕过发布（brief.publish 写盘前门态校验 + 版本绑定）；口头拍板两前提；gate 超时只许同 gateId 重挂、禁止回溯旧话；门卡字段来源回溯（platforms 不得凭空扩写） | B-14 / B-15 | `electron/gate/guard.ts`（新纯函数）、tools.ts brief.publish 拒绝分支（工具总数仍 22）、showrunner.md L80/91/100/103/115（**无 K1、无新工具**） | 自研新增 | ✅ 已落地（2026-10-15，T6 真机回归已通过） |
 | [feature-808-会话续聊（项目会话绑定与历史回放）](./feature-808-会话续聊（项目会话绑定与历史回放）/) | 与 MiniMax Design 对齐「项目即会话入口」：一项目绑定一条活跃 opencode 会话；重开项目自动回放历史气泡并可续聊；他会话事件过滤、404 自愈清绑定；惰性建会话（首条 prompt 才 createSession 并回写）；停止只 abort 不本地复位 | 设计书 §7.1 修订 R-001（chat.messages.json 终态作废） | 四层：**K1** `shared/types.ts`（ProjectSession.activeSessionId 单字段）+ **K8** 恰 2 新 IPC（`project:active-session` 双态 / `runtime:session:messages`）+ DTO 两端镜像、`electron/project/library.ts` 绑定读写、`electron/runtime/client.ts` getSessionMessages/toMessageRecord、preload/global.d.ts、`src/lib/history-replay.ts`（新纯函数 H1–H8）、StudioApp/ChatComposer/dev-mock；**K9 不触发**（零新依赖，SDK 1.18.34 已含 session.messages）；消息历史全部留 opencode 原生存储 | 改编（Design 形态对齐） | ✅ 已落地闭环（2026-10-15 自动化；2026-10-16 真机目验项 4/5 暴露 D-006/D-007，经批复方案 A 修复后自动化 44 文件 462 passed、真机复测 5/5 全通过、AC1–AC10 10/10 闭环，详见包内变更记录） |
 | [feature-809-对话流式活跃指示](./feature-809-对话流式活跃指示/) | 流式回合活跃指示：首事件前占位气泡（TypingDots）+ 行尾闪烁光标（激活既有 `cursor-blink` token）+ 行内工具状态行（spinner / ✓耗时 / ✗错误）+ 空态提示联动；核心原则「活跃不变式：running 全程 ≥1 个动画元素，与 token 到达频率解耦」 | —（体验缺口，用户反馈直建包；无对应 B 条目） | `src/studio/ChatComposer.tsx`（AgentTurn 改造 + TypingDots/ToolRow/toolDurationLabel/showStreamCursor）、`chat-liveness.test.tsx`（新增）；**纯 renderer，K1/K8/K9 零触发**（chat-runtime / StudioApp / tailwind.config / shared 零 diff） | Design 原有·形态对齐 | ✅ 已落地闭环（2026-10-17，单测 22 例 / 全量 49 文件 550 passed / 真机目验 gapPolls=0·polls=1122；X-001 契约 A4 修订经用户裁决，详见包内变更记录） |
@@ -108,8 +108,8 @@
 | [feature-813-工作目录更换](./feature-813-工作目录更换/) | 工作区根目录可更换（单一全局根，默认 `~/Documents/ai-shortdrama-studio`）：设置面板「工作目录」入口 → 目录选择器 → 确认；旧根 `project-*` 整体搬移、失败回滚零半搬态；session-state 同步重映射；系统直做（D-016），跨盘（EXDEV）不支持 | 本包建包（用户 2026-11-03 三项范围裁决） | `electron/settings/workspace.ts`（新 store + changeDir 十步流程）、`library.ts` / `main.ts` 两处硬编码接线（resolveWorkspaceRoot）、**K8 已批**：+3 IPC（settings:workspace:get/pick/change）、`WorkspacePanel.tsx`（新）+ StudioApp 菜单项、preload / global.d.ts / dev-mock 三处同步；**K1/K9 零触发**（DTO 镜像 global.d.ts，零新依赖） | 自研新增 | ✅ 已落地（2026-11-03：T1–T7 全绿，全量 82 文件 1029 passed / 1 skipped，详见包内变更记录） |
 | [feature-814-画布命令底座与资产关联](./feature-814-画布命令底座与资产关联/) | Canvas v3 单调 revision + 有界命令回执 + 原子 JSON/坏档保护；节点与四类资产系统直改绑定/解绑，资产完整记录任务及会话来源 | MiniMax 调研最小吸收（本包建包） | **K1 已批**：`shared/types.ts`；**K8 已批**：恰 1 个 `canvas:command` + MCP DTO 扩展 + preload/global.d.ts/dev-mock 三端镜像；CanvasStore 统一命令事务、AssetsPanel 多选交互、冲突刷新；**K9 零触发**（零新依赖，工具总数仍 29） | 自研新增 | ✅ 已落地（2026-11-10：全量 83 文件 1054 passed / 1 skipped；typecheck 仅余包前三条基线；Electron/Vite 构建通过） |
 | [feature-815-风格预览媒体元数据](./feature-815-风格预览媒体元数据/) | 风格详情固定 PNG 与当前档 MP4 同屏；三档仅切视频；从各文件内嵌 ComfyUI graph 展示真实提示词 / 参数，支持复制与独立降级 | 用户双媒体反馈（本包建包） | 主进程有限 PNG / MP4 解析 + 路径安全；**K8 已批**恰 1 个 `style:preview-metadata`；VisualCatalog 分源异步展示；**K1/K9 零触发** | 自研新增 | ✅ 已落地（2026-11-14：真实 Electron AC-1~AC-7 通过；专项 155/155、元数据 16/16、组件 28/28；全量仍有非本包 10 项 profile 基线失败） |
-| [feature-816-H3图像通道迁移](./feature-816-H3图像通道迁移/) | 参考方案与现有文生图生产链迁移 MiniMax H3 Image；Qwen 专用能力停用归档；C1 删除 27 份 Qwen 参考件并重排，后续再删除 8 份 P-H3 / FastH3/FastVideo / Pika H3 参考件；C2 原样登记用户新增的 1 份 H3 API 文生图参考件，现为 20 份 H3/Music3 文件（10 UI + 10 API、7 用途域） | D-033（K7，本包建包） | 生产阶段独占 workflow loader、生产 manifest/graph、Comfy 工作流测试与 operator 参数说明；K2/K3/K8 已批，K1/K9 零触发；不改 feature-803/815 历史。C1/C2 写权仅及参考目录、双总览与治理当前状态，不重开生产 loader / manifest / graph | 改编 | ✅ 生产迁移、参考库清理与新增参考登记闭环（2026-11-14 LAN H3 真机出图、收片、资产登记与幂等通过；2026-11-15 三类参考件后续清理完成并新增 1 份 API 参考。专项 110/110 为生产迁移历史结果，参考库清理与 C2 登记未重跑；全量仍有非本包 10 项 profile 基线失败） |
-| [feature-817-全局双主题与对话形态对齐](./feature-817-全局双主题与对话形态对齐/) | 全局浅色/深色主题 + MiniMax 真实任务详情与分步选项卡 | 用户 2026-11-15 拍板真实形态对齐与全局双主题 | 零 shared/IPC/依赖；OptionCard 发送契约由 feature-010 C1 移交 | 改编 | 实施中 |
+| [feature-816-H3图像通道迁移](./feature-816-H3图像通道迁移/) | 参考方案与现有文生图生产链迁移 MiniMax H3 Image；Qwen 专用能力停用；C1 删除 27 份 Qwen 参考件并重排，后续再删除 8 份 P-H3 / FastH3/FastVideo / Pika H3 参考件；C2 原样登记用户新增的 1 份 H3 API 文生图参考件，现为 20 份 H3/Music3 文件（10 UI + 10 API、7 用途域）；C3 删除唯一 Qwen 生产归档及空 `_archive` | D-033（K7，本包建包） | 生产阶段独占 workflow loader、生产 manifest/graph、Comfy 工作流测试与 operator 参数说明；K2/K3/K8 已批，K1/K9 零触发；不改 feature-803/815 历史。C1/C2 写权仅及参考目录、双总览与治理当前状态；C3 仅及精确生产归档、空目录、双总览与治理当前状态，均不重开生产 loader / manifest / graph | 改编 | ✅ 全部闭环：H3 LAN 真机出图、收片、资产登记与幂等通过；C3 文件进入系统回收站，空目录移除，20/20 参考 JSON 与保护边界哈希一致，专项 109/109 通过；AC1—AC23 已封闭，全量既有失败与 3 条类型错误单列 |
+| [feature-817-全局双主题与对话形态对齐](./feature-817-全局双主题与对话形态对齐/) | 全局浅色/深色主题 + MiniMax 真实任务详情与分步选项卡 | 用户 2026-11-15 拍板真实形态对齐与全局双主题 | 零 shared/IPC/依赖；OptionCard 发送契约由 feature-010 C1 移交 | 改编 | 🟡 实现已落地、验收中：本包历史对话 18 项与主题 3 项通过，P0 复跑为对话 12 项、主题 3 项通过；Electron 浅色 / 深色 / 最大化截图存在；真实 AI runtime 未连接，输入、OptionCard、真实任务详情与 Gate 现场未通过 |
 
 ## 2. 已落地平台基础（暂无任务包 · 反向补录可选）
 
@@ -123,17 +123,21 @@
 
 ## 3. 建包前裁决（已于 2026-10-13 拍板，见决策台账 D-013）
 
-1. **STAGE 2 分镜文字稿 ↔ STAGE 4 生产分镜表 = 同一文件两阶段演进**：201 产出 `分镜/shotlist.json` 文字稿（一期空镜 `dialogue=null`、`refs=[]`，不排镜）；401 在同一文件上启用 `refs[]` / 景别 / 运镜 / 时长，升级为生产分镜。不设两个产物文件。
+1. **STAGE 2 分镜文字稿 ↔ STAGE 4 生产分镜表 = 同一文件两阶段演进**：201 产出 `分镜/shotlist.json` 文字稿（2-c 文字稿阶段空镜 `dialogue=null`、`refs=[]`，不排镜）；401 在同一文件上启用 `refs[]` / 景别 / 运镜 / 时长，升级为生产分镜。不设两个产物文件。
 2. **B-05 取重建方案（终局口径）**：feature-802 已落地 `electron/style/` 五文件模块；代码内 ID 注册表与 `resources/H3-Style/` 谱系 md 运行时交叉核对，版本号从 md 解析、不硬编码，平台只消费不私改谱系（D-005 第 6 条；包级 D-001/D-002 已批准）。[根设计](../../短剧Agent平台设计.md) §7.1/§8.3 已同步该终局口径。
 3. **K1 共享层扩展已知情**：002 与 801 改 `shared/types.ts`（`manifest.briefVersion` / 产物 `parentReference` / `CanvasNode.dirty` / 7 态 status、清退历史 `Stage` 10 态），各包建包时正式走 K1——先出字段方案、用户确认后记包内变更记录，再动代码。
 
-## 4. 一期建设顺序（承接根设计 §11 MVP）
+## 4. 现行建设顺序（承接根设计 §11 P0—P7 / D-034）
 
-- **P1 立项闭环补全**：~~801 状态机推进（B-04）~~ ✅ 已落地（2026-10-13）→ 002 立项后变更（B-03，依赖 K1 字段）；~~802 风格谱系（B-05，裁决②先行）~~ ✅ 已落地（2026-10-13）；~~101 反向补录~~ ✅ 已补录（2026-10-15）；~~201 反向补录~~ ✅ 2-a/2-b 已补录、**2-c 分镜文字稿已实施**（2026-11-11，自动化通过、未真机验收）。
-- **P2 媒体链前置**：806 Harness 基础校验 + 确认门全链路 → 803 ComfyUI 统一媒体引擎（建包顺序按 D-019；原 804 编号由 D-014 让位给 Windows 窗口标题栏）。~~804 窗口标题栏~~ ✅ 已落地，Windows 真机于 2026-10-29 验收通过；macOS 零变化回归仍挂起，为独立缺陷修复，不占媒体链顺序。
-- **P3 八步 3→7**：301 角色 → 302 场景道具 → 401 生产分镜 → 501 逐镜视频 → 601 声音 → 602 时间线剪辑 → 701 成片交付。
+- **P0 基线收口**：D-034、Parity 影响矩阵、现有任务包校准、测试 / 构建 / 环境基线已登记；在线服务与 P6 产品域只形成待决清单，不代替用户拍板。
+- **P1 桌面工作台**：002 / 101 / 201 / 801 / 802 / 806 等已有基础，继续完成项目、会话、画布、确认门、diff、对话、双主题、设置与恢复的真机及 Parity 验收。201 的 2-c 已实施但真机人工验收待做；817 实现已落地、真实 AI runtime 现场受阻。
+- **P2 统一媒体引擎**：803 继续收口资产中心 UI、应用内第二实例与禁用行为；816 的 H3 Image 文生图链已验收。三端口 H3 任务已完成 API 级串行落卡验证，启动参数声明映射为 8000→0、8001→1、8002→2；仍须主机侧 `nvidia-smi` / GPU UUID、应用内多实例行为与三路并发验收。804 窗口标题栏为既有基础，macOS 零变化回归仍是独立缺陷。
+- **P3 视觉生产链**：301 角色 → 302 场景道具 → 401 生产分镜 → 501 逐镜视频；逐包落实 H3 Image / H3、资产引用、按镜实引门与显式 continuation，不把参考工作流当作生产能力。
+- **P4 后期与发布**：601 声音 → 602 时间线剪辑 → 701 成片交付；语音通道须先单独裁决，未裁决前只管理待配文本、任务与既有素材。
+- **P5 / P6 Agent 生态与完整产品面**：805、3D、浏览器、代码 / 网页、协作 / 移动入口等逐域逐包裁决；在线投稿、市场、账号、团队、社区、支付、积分、云同步等见 Parity 矩阵待决清单，禁止“大复刻包”。
+- **P7 全量验收与发布**：按 Parity 矩阵、八步闭环、异常恢复、性能、安装升级和证据总验收，最终只认已复刻 / 改编通过 / 经决策不纳入。
 
-> 依赖原则：生成动作只读已定稿上游（§5.1 / §7.1）；分镜未定不排镜；301/501/601 的媒体调用统一收敛于 803 引擎，renderer 不直连 ComfyUI。
+> 依赖原则：P0—P7 不替代 D-031 / D-032 的产物 DAG、双轨门控和精准挂脏。生成动作只读已定稿上游；分镜未定不排镜；301 / 501 及后续音乐媒体调用统一收敛于 803 引擎，renderer 不直连 ComfyUI。
 
 ## 5. 归档与重建说明
 

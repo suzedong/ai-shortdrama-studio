@@ -64,3 +64,13 @@
 - **实际执行结果**：双总览已新增该 API 文件并同步为 20 份、10 UI + 10 API、7 用途域；20/20 JSON 可解析，新增文件哈希、17 节点引用及与配套 UI 的 UNet / CLIP / VAE / Turbo LoRA 一致性复测通过。Markdown / HTML 各 20 个文件项且第四节各 10 API，本地链接、9 个页内锚点、HTML ID 唯一性和标签配对通过。
 - **受保护边界实测**：生产 manifest 仍只有原 H3 Image 条目，graph 仍为 9 节点专用拓扑，本轮未写生产 loader/graph 或既有 19 份参考 JSON；生产归档仍为 6762 字节且 SHA256 保持 `2A7985CA6A3489F2E864A095B14795DC09413EDD0CE71F624017B99584DC3145`，H3 验收 PNG 与 Qwen/H3 资产索引保留且 PNG 哈希不变。此前 8 份删除件未恢复。
 - **最终状态**：AC18–AC20、H1–H4 已封闭。D-033 终局状态和 features README 已同步，第九节与编年保留 19 份历史快照，编年正文与总索引均为 92 项，未新增项目级编年或 D-034。C2 scoped status / diff 已审阅，参考目录与 feature-816 的未跟踪集合由磁盘清单、哈希和双索引补足覆盖；全量 `git diff --check` 通过（仅既存 LF→CRLF 提示）。未重跑生产专项、构建或 LAN 生成，未创建 Git commit。
+
+## C3 · Qwen 生产归档删除
+
+- **日期与授权**：2026-11-15。用户要求“请帮我整理目录并删除 qwen 相关文件”，并明确选择“删除生产归档”。唯一目标为 `resources/comfyui/workflows/_archive/qwen-image-2512-text.json`，删除前冻结 6762 字节与 SHA256 `2A7985CA6A3489F2E864A095B14795DC09413EDD0CE71F624017B99584DC3145`；无第二人复核。
+- **实际删除**：删除工具返回 `1 recycled, 0 permanently deleted`，文件已从项目目录移除并进入系统回收站，不冒称物理永久擦除；`_archive` 在确认 0 项后移除。全仓 Qwen/qwen 命名文件为 0，生产目录仅剩 manifest 与 H3 Image graph。
+- **保护边界与基线校正**：20 份参考 JSON、生产 manifest/graph、历史项目 4 份文件和 18 PNG + 33 MP4 的聚合哈希均与删除前原始执行 `4e63beb4e0bd0f3cc8cc840f22681ceb` 一致。初稿四项异值属于登记笔误，契约 §11.2 已注明校正，未把异值伪装为通过或改写受保护文件。manifest 与 H3 graph 单文件 SHA256 分别为 `3E282E85B74F2834CCFE800FE03177CD2EA85E8DFC5F5A3C16360E71B7BB8A32`、`8F4A61B683D8E75BDBEE5B9C018A03DEC3870631EB5DFAB305AFAC2C357FBA0E`。
+- **静态与文档验证**：20/20 JSON 可解析；双总览按实际文本表格各核对 20 个目录/文件名项并与磁盘一致。HTML 9 个 section、锚点、ID 和标签配对通过。生产仍仅注册 `minimax-h3-image-t2i@h3-image-local-compat-v1.0`，9 节点及合法 `qwen3vl` 保留；历史作业、资产和风格媒体未改。
+- **测试实测**：Comfy/MCP/feature-815 专项 8 个文件、109/109 通过。全量 93 个文件为 91 passed、2 failed，1192 项为 1181 passed、10 failed、1 skipped；失败仅为 `agent-profile-install.test.ts` 1 项和 `agent-profiles.test.ts` 9 项。`npm run typecheck` 当前为 `canvas-zoom.test.tsx` 的 TS2322、TS6133 与 `runtime-client.test.ts` 的 TS2741 共 3 项错误。上述失败与本轮删除无关，未越权修复。
+- **边界**：未修改生产 loader、manifest、graph、共享类型、依赖、IPC/MCP 或设置 UI，未新增项目级决策或编年条目，未运行新的 LAN 生成，未提交 Git。
+- **最终状态**：AC21–AC23、I1–I4 已封闭；scoped status/diff 已审阅，全量 `git diff --check` 退出码 0，仅既存 LF→CRLF 提示。

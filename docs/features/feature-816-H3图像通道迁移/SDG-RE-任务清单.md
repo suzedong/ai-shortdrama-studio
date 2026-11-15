@@ -69,10 +69,10 @@
 
 ## I. C3 Qwen 生产归档删除（2026-11-15）
 
-- [ ] I1 登记用户“请帮我整理目录并删除 qwen 相关文件”及“删除生产归档”确认，冻结唯一精确路径、删除前哈希、未入 Git 不可恢复提示与无第二人复核事实。
-- [ ] I2 先更新 A 类规格与 Markdown 总览，再删除唯一 Qwen 生产归档，仅在确认为空后移除 `_archive`；不使用通配符，不删除历史资产或合法 `qwen3vl` 组件。
-- [ ] I3 同步 HTML 总览、Feature 五文件、D-033 终局状态和 features README；历史 C1/C2 记录与编年快照不改，不新增 D-034 或项目编年。
-- [ ] I4 校验 20/20 参考 JSON、生产 manifest/graph 与保护边界哈希、Qwen 命名文件清零、双索引/链接/HTML 结构，运行适用专项、全量测试、typecheck 与 `git diff --check`，单列既有基线；不创建 Git commit。
+- [x] I1 登记用户“请帮我整理目录并删除 qwen 相关文件”及“删除生产归档”确认，冻结唯一精确路径、删除前哈希、未入 Git 不可恢复提示与无第二人复核事实；初稿聚合哈希登记笔误已按删除前原始输出校正。
+- [x] I2 先更新 A 类规格与 Markdown 总览，再删除唯一 Qwen 生产归档，仅在确认为空后移除 `_archive`；文件进入系统回收站，未使用通配符，未删除历史资产或合法 `qwen3vl` 组件。
+- [x] I3 同步 HTML 总览、Feature 五文件、D-033 终局状态和 features README；历史 C1/C2 记录与编年快照不改，本 C3 不新增项目编年或决策条目。
+- [x] I4 20/20 参考 JSON、生产 manifest/graph 与保护边界哈希、Qwen 命名文件清零、双索引/HTML 结构均通过；专项 109/109 通过，全量 10 项失败及 typecheck 当前 3 项无关错误已单列。scoped diff 已审阅，全量 `git diff --check` 通过，仅既存 LF→CRLF 提示；未创建 Git commit。
 
 ## 停止条件
 

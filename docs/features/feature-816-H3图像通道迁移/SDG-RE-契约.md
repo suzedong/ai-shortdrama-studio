@@ -290,14 +290,25 @@ AC18–AC20 与 H1–H4 均已封闭；本次只完成参考登记与静态验�
 
 ### 11.2 不变量与写权
 
-- 参考库仍为 20 份 JSON、10 UI + 10 API、7 用途域，删除前路径与内容聚合 SHA256 为 `7F964164D503D17F3A4DA67EE0F5B0454DA1719D8A9DE9336AD76F6708B46B74`。
-- 生产 manifest 仍仅注册 `minimax-h3-image-t2i / h3-image-local-compat-v1.0`，H3 graph 仍为 9 节点；manifest + graph 聚合 SHA256 为 `D79978AF92EF603D87D37E02C1CE2AF7493F6C399ACCB1D432F2997AC910031B`。loader、IPC/MCP、shared 类型、设置 UI、依赖和测试 fixture 不改。
+- 参考库仍为 20 份 JSON、10 UI + 10 API、7 用途域，删除前路径与内容聚合 SHA256 为 `DC42B4F832712C827E06CCD25A89A8B41BE06C1B416C39CA3A87D9D4EB60B5AC`。
+- 生产 manifest 仍仅注册 `minimax-h3-image-t2i / h3-image-local-compat-v1.0`，H3 graph 仍为 9 节点；manifest + graph 聚合 SHA256 为 `AA57A07E0C86C01B4356E500506E731B630C37639B002F4AFEFC81701CB4A730`。loader、IPC/MCP、shared 类型、设置 UI、依赖和测试 fixture 不改。
 - H3 官方 `qwen3vl_32b_minimax_h3_int8_convrot.safetensors` 文本编码器及其引用保留；无关 LM Studio Qwen 文本模型测试配置不属于本 Feature。
-- 验收项目 `资产` 目录 4 个文件的聚合 SHA256 为 `D28BD43A16F9D09A70DFE1F59F52AC832E621AA45E862C71B2836030C62291`；feature-815 的 18 PNG + 33 MP4 共 51 份风格媒体聚合 SHA256 为 `22B9529C5D40A95405D673D743FA56D39E593733CD4D164D8CAA75550959D26B`，历史作业、资产索引和内嵌元数据不得改写。
-- 写权只扩展至唯一归档及空目录、双总览、Feature 五文件、D-033 终局状态和 features README。C1/C2 历史实测记录与项目编年保持当时快照，不新增 D-034 或项目编年条目，不创建 Git commit。
+- 验收项目 `资产` 目录 4 个文件的聚合 SHA256 为 `351444E4E7CB0C1BACF2E22A775CAA04DEA392ED23C031D6BCA37A7EDBCF819E`；feature-815 的 18 PNG + 33 MP4 共 51 份风格媒体聚合 SHA256 为 `1CCA1D9D281D92EE0925E6DFD09C6C47C7F9C514AF2A5D0FDEE4EA1D35461405`，历史作业、资产索引和内嵌元数据不得改写。
+- 写权只扩展至唯一归档及空目录、双总览、Feature 五文件、D-033 终局状态和 features README。C1/C2 历史实测记录与项目编年保持当时快照，本 C3 不新增项目编年或决策条目，不创建 Git commit。
+
+聚合口径为按完整路径排序，依次写入正斜杠相对路径、NUL、文件字节与 NUL 后计算 SHA256。删除前原始静态检查执行 `4e63beb4e0bd0f3cc8cc840f22681ceb` 已输出上述四项基线，当时归档仍存在且单文件 SHA256 为 §11.1 冻结值。C3 初稿中的另外四项异值经核对属于文档登记笔误，未作为实测证据；本节按删除前原始输出校正，未因此改写任何参考 JSON、生产 graph、历史资产或风格媒体。
 
 ### 11.3 验证与封闭
 
-按 A → B 顺序先改规格和 Markdown，再删除文件、同步 HTML。删除后必须复测目标与空目录不存在、全仓无 Qwen 命名文件、20/20 JSON 可解析、上述三组保护哈希不变、生产注册与旧 ID 拒绝不变，并校验双总览文件项、链接、锚点和 HTML 结构。
+按 A → B 顺序先改规格和 Markdown，再删除文件、同步 HTML。删除后必须复测目标与空目录不存在、全仓无 Qwen 命名文件、20/20 JSON 可解析、上述保护哈希不变、生产注册与旧 ID 拒绝不变，并校验双总览文件项、锚点和 HTML 结构。双总览采用文本文件索引而非 `.json` 超链接，按目录与文件名单元格核对，不另做链接改造。
 
 运行 Comfy 工作流/引擎/MCP 与相关风格元数据专项、项目全量测试和 typecheck；既有 agent-profile 与 typecheck 基线单列，不越权修复、不宣称全量全绿。最后执行 scoped diff 与 `git diff --check`，将实测结果回写本节、需求 AC21–AC23、任务 I、设计和变更记录。
+
+### 11.4 C3 实施结果
+
+- 删除工具报告 `1 recycled, 0 permanently deleted`：唯一 Qwen 生产 graph 已从项目目录删除并移至系统回收站；`_archive` 在确认 0 项后移除。生产目录仅剩 manifest 与 H3 Image graph，全仓无 Qwen/qwen 命名文件。
+- 删除后四组聚合 SHA256 与 §11.2 的删除前原始实测完全一致；20/20 参考 JSON 可解析。manifest 单文件 SHA256 为 `3E282E85B74F2834CCFE800FE03177CD2EA85E8DFC5F5A3C16360E71B7BB8A32`，H3 graph 为 `8F4A61B683D8E75BDBEE5B9C018A03DEC3870631EB5DFAB305AFAC2C357FBA0E`，9 节点及合法 `qwen3vl_32b_minimax_h3` 文本编码器保留。
+- Markdown 与 HTML 各有 20 个目录/文件名索引项，均与磁盘一一对应；HTML 9 个 section、页内锚点、ID 唯一性和标签配对通过。历史项目 4 份文件、18 PNG + 33 MP4 均保留，历史 H3 PNG 单文件 SHA256 仍为 `E0CA1D1DD9B053C419DF5A4FE900675682E6A1DE0A9109EC5FD111EAF6462A98`。
+- Comfy/MCP/feature-815 专项实际执行 8 个测试文件，109/109 通过。全量测试为 91/93 文件通过，1181 passed、10 failed、1 skipped；失败仅为 `agent-profile-install.test.ts` 1 项与 `agent-profiles.test.ts` 9 项，和本轮删除无关。
+- `npm run typecheck` 复测仍有 3 项工作区现存错误：`canvas-zoom.test.tsx` 的 TS2322、TS6133，以及 `runtime-client.test.ts` 的 TS2741；本轮未修改这些源码或越权修复。未运行新的 LAN 生成，未修改生产 loader、共享类型、依赖、IPC/MCP 或设置 UI，未创建 Git commit。
+- scoped status/diff 已审阅，全量 `git diff --check` 退出码 0，仅既存 LF→CRLF 提示；AC21–AC23、I1–I4、设计、变更记录、D-033 终局状态与 features README 已同步，C3 封闭。

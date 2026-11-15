@@ -53,7 +53,7 @@
 - 核对 [StudioViewer.tsx](../../../src/studio/StudioViewer.tsx)：`ScenesView`（L191 起）渲染 Scene[]、`DialogueView`（L229 起）渲染 DialogueScene[]；CanvasBoard KIND_LABEL 含 scenes/dialogue（L174–175）。
 - 结论：既有渲染满足查看需求，本包不做 UI 改动（设计说明 §2）。
 
-### 1B. 2-c 分镜文字稿（已完成）
+### 1B. 2-c 分镜文字稿（实施及自动化完成，真机人工验收待）
 
 > 2026-11-11 用户拍板「文字草案 + 系统推进」：完整 Shot 字段均落盘，景别/运镜/时长为草案；refs 恒 []，生产化归 feature-401 同文件演进。验收对应 AC7–AC10。
 

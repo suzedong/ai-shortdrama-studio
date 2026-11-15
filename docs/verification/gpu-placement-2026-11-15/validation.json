@@ -1,0 +1,67 @@
+{
+  "validatedAt": "2026-11-15T05:39:29.994Z",
+  "scope": "API 级验证；用户明确不启用主机侧访问，未取得 nvidia-smi、GPU UUID 或 OS 进程证据",
+  "declaredCudaDeviceByPort": {
+    "8000": "0",
+    "8001": "1",
+    "8002": "2"
+  },
+  "checks": [
+    {
+      "port": 8000,
+      "declaredCudaDevice": "0",
+      "promptId": "56b21d66-5f14-447d-982d-934b8e71b8c5",
+      "requestId": "gpu-placement-20261115-p8000-2026-11-15T05-32-26-011Z",
+      "runningSamples": 35,
+      "nonTargetStable": true,
+      "baselineFree": 24159191040,
+      "minTargetFree": 114159460,
+      "downloads": [
+        {
+          "sha256": "1857ba0faf4f7365f3f533e9c430eeea43158dca9ed277a5c46f7ec69adadf35",
+          "bytes": 59056,
+          "width": 320,
+          "height": 320
+        }
+      ]
+    },
+    {
+      "port": 8001,
+      "declaredCudaDevice": "1",
+      "promptId": "515fc7ad-11d1-42fe-a3ed-e8d29a4df48e",
+      "requestId": "gpu-placement-20261115-p8001-2026-11-15T05-32-26-011Z",
+      "runningSamples": 10,
+      "nonTargetStable": true,
+      "baselineFree": 24159191040,
+      "minTargetFree": 116374540,
+      "downloads": [
+        {
+          "sha256": "14e4c4ef5a6bbae03d2cbb38a0d9af1ff112b5c062278748f796c0e081c568fc",
+          "bytes": 60597,
+          "width": 320,
+          "height": 320
+        }
+      ]
+    },
+    {
+      "port": 8002,
+      "declaredCudaDevice": "2",
+      "promptId": "e66a881a-160b-4dbc-927c-10851c2f3673",
+      "requestId": "gpu-placement-20261115-p8002-2026-11-15T05-32-26-011Z",
+      "runningSamples": 15,
+      "nonTargetStable": true,
+      "baselineFree": 24159191040,
+      "minTargetFree": 115208036,
+      "downloads": [
+        {
+          "sha256": "dcdd0c3725fccf6a41e312689a1154546d6cb382be273c873d31179724f5ca56",
+          "bytes": 85353,
+          "width": 320,
+          "height": 320
+        }
+      ]
+    }
+  ],
+  "allPassed": true,
+  "conclusion": "三端口均完成独立 H3 任务；目标 promptId 在对应端口运行，目标实例显存显著变化且两个非目标实例保持稳定。可判定 API 级逐端口落卡通过，但不将启动参数映射冒称为 OS 级物理 GPU UUID 实测。"
+}

@@ -1,0 +1,169 @@
+{
+  "host": "10.203.3.52",
+  "ports": [
+    8000,
+    8001,
+    8002
+  ],
+  "startedAt": "2026-11-15T05:32:26.011Z",
+  "status": "completed",
+  "runs": [
+    {
+      "port": 8000,
+      "requestId": "gpu-placement-20261115-p8000-2026-11-15T05-32-26-011Z",
+      "promptId": "56b21d66-5f14-447d-982d-934b8e71b8c5",
+      "submittedAt": "2026-11-15T05:32:30.113Z",
+      "completedAt": "2026-11-15T05:33:11.416Z",
+      "sampleCount": 37,
+      "memoryByObservedPort": {
+        "8000": {
+          "firstFree": 24159191040,
+          "lastFree": 115325964,
+          "minFree": 114159460,
+          "minAt": "2026-11-15T05:33:09.815Z",
+          "maxFree": 24159191040,
+          "maxAt": "2026-11-15T05:32:30.113Z"
+        },
+        "8001": {
+          "firstFree": 24159191040,
+          "lastFree": 24159191040,
+          "minFree": 24159191040,
+          "minAt": "2026-11-15T05:32:30.113Z",
+          "maxFree": 24159191040,
+          "maxAt": "2026-11-15T05:32:30.113Z"
+        },
+        "8002": {
+          "firstFree": 24159191040,
+          "lastFree": 24159191040,
+          "minFree": 24159191040,
+          "minAt": "2026-11-15T05:32:30.113Z",
+          "maxFree": 24159191040,
+          "maxAt": "2026-11-15T05:32:30.113Z"
+        }
+      },
+      "downloads": [
+        {
+          "nodeId": "9",
+          "filename": "gpu_placement_20261115_p8000_2026-11-15T05-32-26-011Z_00001_.png",
+          "subfolder": "",
+          "type": "output",
+          "metadata": {
+            "kind": "image",
+            "width": 320,
+            "height": 320
+          },
+          "id": "4da54d4b-1806-4271-b20f-0bbb98f19a9d",
+          "contentType": "image/png",
+          "bytes": 59056,
+          "sha256": "1857ba0faf4f7365f3f533e9c430eeea43158dca9ed277a5c46f7ec69adadf35",
+          "localFile": "port-8000-output-0.png"
+        }
+      ]
+    },
+    {
+      "port": 8001,
+      "requestId": "gpu-placement-20261115-p8001-2026-11-15T05-32-26-011Z",
+      "promptId": "515fc7ad-11d1-42fe-a3ed-e8d29a4df48e",
+      "submittedAt": "2026-11-15T05:33:11.672Z",
+      "completedAt": "2026-11-15T05:33:23.397Z",
+      "sampleCount": 12,
+      "memoryByObservedPort": {
+        "8000": {
+          "firstFree": 115325964,
+          "lastFree": 115325964,
+          "minFree": 115325964,
+          "minAt": "2026-11-15T05:33:11.672Z",
+          "maxFree": 115325964,
+          "maxAt": "2026-11-15T05:33:11.672Z"
+        },
+        "8001": {
+          "firstFree": 24159191040,
+          "lastFree": 116374540,
+          "minFree": 116374540,
+          "minAt": "2026-11-15T05:33:23.252Z",
+          "maxFree": 24159191040,
+          "maxAt": "2026-11-15T05:33:11.672Z"
+        },
+        "8002": {
+          "firstFree": 24159191040,
+          "lastFree": 24159191040,
+          "minFree": 24159191040,
+          "minAt": "2026-11-15T05:33:11.672Z",
+          "maxFree": 24159191040,
+          "maxAt": "2026-11-15T05:33:11.672Z"
+        }
+      },
+      "downloads": [
+        {
+          "nodeId": "9",
+          "filename": "gpu_placement_20261115_p8001_2026-11-15T05-32-26-011Z_00001_.png",
+          "subfolder": "",
+          "type": "output",
+          "metadata": {
+            "kind": "image",
+            "width": 320,
+            "height": 320
+          },
+          "id": "2bccdd4e-e811-4b88-a238-d594cb78fbed",
+          "contentType": "image/png",
+          "bytes": 60597,
+          "sha256": "14e4c4ef5a6bbae03d2cbb38a0d9af1ff112b5c062278748f796c0e081c568fc",
+          "localFile": "port-8001-output-0.png"
+        }
+      ]
+    },
+    {
+      "port": 8002,
+      "requestId": "gpu-placement-20261115-p8002-2026-11-15T05-32-26-011Z",
+      "promptId": "e66a881a-160b-4dbc-927c-10851c2f3673",
+      "submittedAt": "2026-11-15T05:33:23.663Z",
+      "completedAt": "2026-11-15T05:33:41.169Z",
+      "sampleCount": 17,
+      "memoryByObservedPort": {
+        "8000": {
+          "firstFree": 115325964,
+          "lastFree": 115325964,
+          "minFree": 115325964,
+          "minAt": "2026-11-15T05:33:23.663Z",
+          "maxFree": 115325964,
+          "maxAt": "2026-11-15T05:33:23.663Z"
+        },
+        "8001": {
+          "firstFree": 116374540,
+          "lastFree": 116374540,
+          "minFree": 116374540,
+          "minAt": "2026-11-15T05:33:23.663Z",
+          "maxFree": 116374540,
+          "maxAt": "2026-11-15T05:33:23.663Z"
+        },
+        "8002": {
+          "firstFree": 24159191040,
+          "lastFree": 116374540,
+          "minFree": 115208036,
+          "minAt": "2026-11-15T05:33:39.858Z",
+          "maxFree": 24159191040,
+          "maxAt": "2026-11-15T05:33:23.663Z"
+        }
+      },
+      "downloads": [
+        {
+          "nodeId": "9",
+          "filename": "gpu_placement_20261115_p8002_2026-11-15T05-32-26-011Z_00001_.png",
+          "subfolder": "",
+          "type": "output",
+          "metadata": {
+            "kind": "image",
+            "width": 320,
+            "height": 320
+          },
+          "id": "75470c41-ae8a-4f42-849c-025b7cd0f9b7",
+          "contentType": "image/png",
+          "bytes": 85353,
+          "sha256": "dcdd0c3725fccf6a41e312689a1154546d6cb382be273c873d31179724f5ca56",
+          "localFile": "port-8002-output-0.png"
+        }
+      ]
+    }
+  ],
+  "completedAt": "2026-11-15T05:33:41.343Z"
+}

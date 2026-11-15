@@ -1,0 +1,598 @@
+[
+  {
+    "at": "2026-11-15T05:33:11.672Z",
+    "targetPort": 8001,
+    "instances": {
+      "8000": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 115325964,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 20954124
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      },
+      "8001": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ],
+        "runningPromptIds": [
+          "515fc7ad-11d1-42fe-a3ed-e8d29a4df48e"
+        ],
+        "pendingPromptIds": []
+      },
+      "8002": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      }
+    }
+  },
+  {
+    "at": "2026-11-15T05:33:12.837Z",
+    "targetPort": 8001,
+    "instances": {
+      "8000": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 115325964,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 20954124
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      },
+      "8001": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 23490993412,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 32251140
+          }
+        ],
+        "runningPromptIds": [
+          "515fc7ad-11d1-42fe-a3ed-e8d29a4df48e"
+        ],
+        "pendingPromptIds": []
+      },
+      "8002": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      }
+    }
+  },
+  {
+    "at": "2026-11-15T05:33:13.990Z",
+    "targetPort": 8001,
+    "instances": {
+      "8000": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 115325964,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 20954124
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      },
+      "8001": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 21597537988,
+            "torch_vram_total": 570425344,
+            "torch_vram_free": 30426820
+          }
+        ],
+        "runningPromptIds": [
+          "515fc7ad-11d1-42fe-a3ed-e8d29a4df48e"
+        ],
+        "pendingPromptIds": []
+      },
+      "8002": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      }
+    }
+  },
+  {
+    "at": "2026-11-15T05:33:15.153Z",
+    "targetPort": 8001,
+    "instances": {
+      "8000": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 115325964,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 20954124
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      },
+      "8001": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 11992630980,
+            "torch_vram_total": 1073741824,
+            "torch_vram_free": 1062274756
+          }
+        ],
+        "runningPromptIds": [
+          "515fc7ad-11d1-42fe-a3ed-e8d29a4df48e"
+        ],
+        "pendingPromptIds": []
+      },
+      "8002": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      }
+    }
+  },
+  {
+    "at": "2026-11-15T05:33:16.306Z",
+    "targetPort": 8001,
+    "instances": {
+      "8000": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 115325964,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 20954124
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      },
+      "8001": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 2125375172,
+            "torch_vram_total": 1073741824,
+            "torch_vram_free": 1060021956
+          }
+        ],
+        "runningPromptIds": [
+          "515fc7ad-11d1-42fe-a3ed-e8d29a4df48e"
+        ],
+        "pendingPromptIds": []
+      },
+      "8002": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      }
+    }
+  },
+  {
+    "at": "2026-11-15T05:33:17.462Z",
+    "targetPort": 8001,
+    "instances": {
+      "8000": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 115325964,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 20954124
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      },
+      "8001": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 3587466904,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 22308504
+          }
+        ],
+        "runningPromptIds": [
+          "515fc7ad-11d1-42fe-a3ed-e8d29a4df48e"
+        ],
+        "pendingPromptIds": []
+      },
+      "8002": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      }
+    }
+  },
+  {
+    "at": "2026-11-15T05:33:18.617Z",
+    "targetPort": 8001,
+    "instances": {
+      "8000": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 115325964,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 20954124
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      },
+      "8001": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 17681526124,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 21409132
+          }
+        ],
+        "runningPromptIds": [
+          "515fc7ad-11d1-42fe-a3ed-e8d29a4df48e"
+        ],
+        "pendingPromptIds": []
+      },
+      "8002": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      }
+    }
+  },
+  {
+    "at": "2026-11-15T05:33:19.783Z",
+    "targetPort": 8001,
+    "instances": {
+      "8000": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 115325964,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 20954124
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      },
+      "8001": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 9183866220,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 21409132
+          }
+        ],
+        "runningPromptIds": [
+          "515fc7ad-11d1-42fe-a3ed-e8d29a4df48e"
+        ],
+        "pendingPromptIds": []
+      },
+      "8002": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      }
+    }
+  },
+  {
+    "at": "2026-11-15T05:33:20.948Z",
+    "targetPort": 8001,
+    "instances": {
+      "8000": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 115325964,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 20954124
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      },
+      "8001": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 124169580,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 21409132
+          }
+        ],
+        "runningPromptIds": [
+          "515fc7ad-11d1-42fe-a3ed-e8d29a4df48e"
+        ],
+        "pendingPromptIds": []
+      },
+      "8002": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      }
+    }
+  },
+  {
+    "at": "2026-11-15T05:33:22.095Z",
+    "targetPort": 8001,
+    "instances": {
+      "8000": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 115325964,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 20954124
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      },
+      "8001": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 185517580,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 21939724
+          }
+        ],
+        "runningPromptIds": [
+          "515fc7ad-11d1-42fe-a3ed-e8d29a4df48e"
+        ],
+        "pendingPromptIds": []
+      },
+      "8002": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      }
+    }
+  },
+  {
+    "at": "2026-11-15T05:33:23.252Z",
+    "targetPort": 8001,
+    "instances": {
+      "8000": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 115325964,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 20954124
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      },
+      "8001": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 116374540,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 22002700
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      },
+      "8002": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      }
+    }
+  },
+  {
+    "at": "2026-11-15T05:33:23.397Z",
+    "targetPort": 8001,
+    "instances": {
+      "8000": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 115325964,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 20954124
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      },
+      "8001": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 116374540,
+            "torch_vram_total": 33554432,
+            "torch_vram_free": 22002700
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      },
+      "8002": {
+        "devices": [
+          {
+            "name": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+            "index": 0,
+            "vram_total": 25756696576,
+            "vram_free": 24159191040,
+            "torch_vram_total": 0,
+            "torch_vram_free": 0
+          }
+        ],
+        "runningPromptIds": [],
+        "pendingPromptIds": []
+      }
+    }
+  }
+]

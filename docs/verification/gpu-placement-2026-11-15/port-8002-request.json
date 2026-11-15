@@ -1,0 +1,143 @@
+{
+  "requestId": "gpu-placement-20261115-p8002-2026-11-15T05-32-26-011Z",
+  "port": 8002,
+  "prompt": {
+    "9": {
+      "inputs": {
+        "filename_prefix": "gpu_placement_20261115_p8002_2026-11-15T05-32-26-011Z",
+        "images": [
+          "23:8",
+          0
+        ]
+      },
+      "class_type": "SaveImage",
+      "_meta": {
+        "title": "Save Image"
+      }
+    },
+    "14": {
+      "inputs": {
+        "aspect_ratio": "1:1 (Square)",
+        "megapixels": 0.1,
+        "multiple": 32
+      },
+      "class_type": "ResolutionSelector",
+      "_meta": {
+        "title": "Resolution Selector"
+      }
+    },
+    "23:1": {
+      "inputs": {
+        "unet_name": "minimax_h3_image_pruned_int8_convrot.safetensors",
+        "weight_dtype": "default"
+      },
+      "class_type": "UNETLoader",
+      "_meta": {
+        "title": "Load H3 Image UNet"
+      }
+    },
+    "23:2": {
+      "inputs": {
+        "clip_name": "qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+        "type": "minimax",
+        "device": "default"
+      },
+      "class_type": "CLIPLoader",
+      "_meta": {
+        "title": "Load H3 Text Encoder"
+      }
+    },
+    "23:3": {
+      "inputs": {
+        "vae_name": "minimax_h3_image_vae_fp16.safetensors"
+      },
+      "class_type": "VAELoader",
+      "_meta": {
+        "title": "Load H3 Image VAE"
+      }
+    },
+    "23:5": {
+      "inputs": {
+        "prompt": "A single matte gray cube centered on a plain white background, soft studio lighting, hardware validation image, no text",
+        "width": [
+          "14",
+          0
+        ],
+        "height": [
+          "14",
+          1
+        ],
+        "clip": [
+          "23:2",
+          0
+        ],
+        "vae": [
+          "23:3",
+          0
+        ]
+      },
+      "class_type": "MiniMaxH3ImageConditioning",
+      "_meta": {
+        "title": "MiniMax H3 Image Conditioning"
+      }
+    },
+    "23:6": {
+      "inputs": {
+        "conditioning": [
+          "23:5",
+          0
+        ]
+      },
+      "class_type": "ConditioningZeroOut",
+      "_meta": {
+        "title": "Conditioning Zero Out"
+      }
+    },
+    "23:7": {
+      "inputs": {
+        "seed": 20261123002,
+        "steps": 6,
+        "cfg": 1,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1,
+        "model": [
+          "23:1",
+          0
+        ],
+        "positive": [
+          "23:5",
+          0
+        ],
+        "negative": [
+          "23:6",
+          0
+        ],
+        "latent_image": [
+          "23:5",
+          1
+        ]
+      },
+      "class_type": "KSampler",
+      "_meta": {
+        "title": "KSampler"
+      }
+    },
+    "23:8": {
+      "inputs": {
+        "samples": [
+          "23:7",
+          0
+        ],
+        "vae": [
+          "23:3",
+          0
+        ]
+      },
+      "class_type": "VAEDecode",
+      "_meta": {
+        "title": "VAE Decode"
+      }
+    }
+  }
+}

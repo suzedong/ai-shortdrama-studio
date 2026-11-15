@@ -7,5 +7,6 @@ dist-electron
 .env.local
 tsconfig.tsbuildinfo
 .trae-html-share-packages/
+.trae/documents/
 .screenshot/
 .workbuddy/

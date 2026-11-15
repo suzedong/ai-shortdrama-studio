@@ -35,7 +35,7 @@
 | 卡口 | 决策 | 用户依据 / 理由 |
 |---|---|---|
 | K1 | 零触发 | `shared/types.ts` 不修改；目录十键 DTO 不扩，新增主进程私有 DTO 与 global 镜像。 |
-| K8 | 已批准恰新增 `style:preview-metadata` 1 IPC | 用户批准 `.trae/documents/feature-815-style-preview-media-metadata.md`；二进制文件只能由主进程安全读取，renderer 不收路径。既有 catalog 不扩，不新增 MCP 工具。 |
+| K8 | 已批准恰新增 `style:preview-metadata` 1 IPC | 用户批准当时工具侧实施计划，批准结论已固化于本包；重复计划现已清理，不影响既有 K8 决策。二进制文件只能由主进程安全读取，renderer 不收路径；既有 catalog 不扩，不新增 MCP 工具。 |
 | K9 | 零触发 | 仅用 Node Buffer / fs / path 与现有 React，不新增依赖。 |
 
 以上为单 Feature 包内决策，不新增项目级 D 编号。

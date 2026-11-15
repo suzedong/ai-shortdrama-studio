@@ -5,7 +5,7 @@
 
 ## 2026-11-14 · 初始化任务包（A）
 
-- 依据已批准 `.trae/documents/feature-803-comfyui-lan-image-foundation.md` 建立五件标准任务包。
+- 依据当时已批准的工具侧实施计划建立五件标准任务包；批准结论已固化于本包，重复计划现已清理，不再保留外置路径依赖。
 - 固定应用级实例存储、`settings:comfy:test`、受控 queue/status、API Format 工作流、作业幂等与安全收片契约。
 - K1：`shared/types.ts` 零修改；K2/K9：零新依赖；K8 仅登记本包 IPC/MCP/存储变更。
 - 生产 qwen-image 工作流与真机地址待用户补充，真机验收挂起。

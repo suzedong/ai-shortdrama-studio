@@ -9,7 +9,7 @@ import type { Canvas, CanvasNode } from '@shared/types'
 import CanvasBoard from './CanvasBoard'
 
 function canvasWithNodes(): Canvas {
-  const n = (id: string, step: string, title: string, status: CanvasNode['status']): CanvasNode => ({
+  const n = (id: string, step: CanvasNode['step'], title: string, status: CanvasNode['status']): CanvasNode => ({
     id, step, kind: step === '0' ? 'brief' : 'outline', title, status,
     ref: { path: `${id}.json`, format: 'json' },
     updatedAt: new Date().toISOString(),
@@ -87,7 +87,7 @@ describe('CanvasBoard · 滚轮缩放锚点（StrictMode 开发态）', () => {
   })
 
   it('activeStep 切换后再缩放：水平 pan 只随锚点公式变化，不被重新居中', () => {
-    const { viewport, world, rerender } = setup('0')
+    const { world, rerender } = setup('0')
     // 切到 STAGE 1（允许 effect 居中一次）
     rerender(
       <React.StrictMode>

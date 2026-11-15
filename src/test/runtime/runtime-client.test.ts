@@ -57,6 +57,7 @@ function makeFakeClient(opts?: { allowedArkModel?: string; allowedLmStudioModel?
         record('session.abort', o)
         return resolve(null)
       }),
+      messages: vi.fn(),
       prompt: vi.fn(async (o: any) => {
         record('session.prompt', o)
         if (state.next.promptError) return resolve(undefined, state.next.promptError)

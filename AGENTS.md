@@ -16,6 +16,7 @@
 **本项目关键事实**：
 
 - 架构真相：[短剧Agent平台设计.md](./短剧Agent平台设计.md)
+- 总体开发计划：[MiniMax Design全面复刻开发计划](./docs/research/MiniMax%20Design全面复刻开发计划.md)（P0—P7 唯一跨阶段规划与阶段状态入口；不替代 Feature 实施授权）
 - 技术栈：Electron + React 18 + TypeScript + Vite + Tailwind CSS；Agent 文本服务固定火山方舟 / LM Studio 二选一（D-021 / D-022）；纯 JSON 文件持久化；无数据库
 - 复刻对账：[MiniMax Design Parity 影响矩阵](./docs/design/MiniMax%20Design%20Parity影响矩阵.md)（D-034；范围映射不代表验收通过）
 - 任务包目录：`docs/features/feature-{三位数字}-{业务名}/`

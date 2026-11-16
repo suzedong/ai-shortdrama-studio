@@ -235,6 +235,24 @@ describe('installAgentProfiles · 摄制组 profiles 安装（director 已退役
     const expected = path.join(fakeResources, 'opencode', 'agents', 'showrunner.md')
     await expect(resolveAgentTemplatePath('showrunner.md')).resolves.toBe(expected)
   })
+
+  it('开发态 isPackaged 误报 true（Electron 33 实测）：仍定位仓库 resources/ 而非包内旧副本（feature-819）', async () => {
+    Object.defineProperty(process, 'resourcesPath', {
+      value: path.join(os.tmpdir(), 'electron-dist', 'resources'),
+      configurable: true,
+    })
+    Object.defineProperty(process, 'defaultApp', { value: true, configurable: true })
+    electronMock.isPackaged = true
+    try {
+      const tpl = await resolveAgentTemplatePath('showrunner.md')
+      expect(tpl).toBe(
+        path.join(process.cwd(), 'resources', 'opencode', 'agents', 'showrunner.md'),
+      )
+      expect(await fsp.readFile(tpl, 'utf-8')).toContain('__MODEL_REF__')
+    } finally {
+      delete (process as unknown as Record<string, unknown>).defaultApp
+    }
+  })
 })
 
 describe('setupRuntimeFiles · 启动编排', () => {

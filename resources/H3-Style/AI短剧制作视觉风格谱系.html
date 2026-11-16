@@ -111,7 +111,7 @@
     <div class="kicker">《AI 短剧制作流程规范》附录 J · 独立文档</div>
     <h1>视觉风格谱系，立项预选。</h1>
     <p class="sub">风格目录数据 + 实测预览墙：形态 × 画风两层组织（4 形态 × 18 画风），含视觉特征 / 锚点词 / 质感配方 / 可行度明细，各主画风用本套技术栈实际跑出的样张与三档采样视频。"怎么选"的规则在规范附录 J·J.3，本文不重复。</p>
-    <p class="doclink">配套阅读：<a href="AI短剧制作流程规范.html">规范附录 J（规则版）</a> · <a href="AI短剧制作工具方法论.html">工具方法论（怎么干）</a> · <a href="AI短剧制作体系分析.html">体系分析（为什么）</a></p>
+    <p class="doclink">配套阅读：《AI 短剧制作流程规范》附录 J（规则版） · 《AI 短剧制作工具方法论》（怎么干） · 《AI 短剧制作体系分析》（为什么）——均为仓库外文档，不提供本地链接。</p>
     <div class="statrow">
       <div class="stat"><b>4</b><span>制作形态</span></div>
       <div class="stat"><b>18</b><span>主用画风</span></div>
@@ -126,7 +126,8 @@
   <div class="wrap">
     <div class="sec-head"><span class="num">J.0</span><h2>说明</h2><span class="tag">谱系怎么用</span></div>
     <div class="cards cols3">
-      <div class="card"><span class="k">本文版本</span><p>谱系 v1.46（2026-10-08；措辞修订：厘清主/备验证轴与主/辅角色轴，v1.45 见下）。演进只改本文 + 自版本号递增（v1.x），不动规范版本号（规范附录 J 定位与 J.3 权威不变）；承载 J.1/J.2/J.4 完整内容，编号沿用 J.0–J.4 防查找漂移。</p></div>
+      <div class="card"><span class="k">本文版本</span><p>谱系 v1.47（2026-11-15；新增时效边界，现行图像通道为 H3 Image，v1.46 见下）。演进只改本文 + 自版本号递增（v1.x），不动规范版本号（规范附录 J 定位与 J.3 权威不变）；承载 J.1/J.2/J.4 完整内容，编号沿用 J.0–J.4 防查找漂移。</p></div>
+      <div class="card" style="border-color:var(--amber)"><span class="k">时效边界（v1.47 · 2026-11-15 · D-033）</span><p>本文 Qwen-Image / Qwen-Image-2512 的质感配方、可行度与预览样张，是 2026-09—10 的<b>历史风格研究与样张生成记录</b>。现行生产图像通道已反转为<b>仅 MiniMax H3 Image</b>（经本地 / 局域网 ComfyUI 权重推理，feature-816 迁移），视频仅 H3、音乐仅 Music3；不得把 Qwen 配方当作现行生产指令，历史样张与提示词不重写、不据此重生成资产。</p></div>
       <div class="card"><span class="k">谱系定位</span><p>服务 AI 漫剧（竖屏短剧）有效视觉范围，按 <b>形态 × 画风两层</b>组织：形态层 = 四大制作形态（仿真人 / 2D 漫 / 3D 漫 / 沙雕漫）；画风层 = 各形态内主用画风（18 项）。2026-09-19 对照 2026 漫剧百强榜生态重构，移除无市场美术向风格 14 项。</p></div>
       <div class="card"><span class="k">主备标注（验证状态轴）</span><p><b>「主」</b>= 已被真实项目（《安妮的夏天》）验证跑通的画风（11 项）；<b>「备」</b>= 已登记入谱、但<b>尚未经项目验证的主风格候选</b>（7 项：A 系年代胶片 / DV·CCD / 黑白电影、C 系美式卡通 / 扁平矢量、D 系奇幻童话 / 暗黑·哥特）——选「备」作主风格风险自担。注意：主 / 备是<b>验证状态</b>，与「主风格 / 辅助风格」的使用角色无关，「备」≠ 辅助画风。</p></div>
       <div class="card"><span class="k">视觉三层决定</span><p>① 提示词锚点 / 模型先验（主导，占 70%+）；② 采样参数（质感档：采样器 × 调度器 × 步数 × CFG）；③ 参考锁风格（H3 Ref2VA 以概念图锁动态一致性，或挂风格 LoRA）。</p></div>
@@ -239,8 +240,7 @@
   <div class="wrap">
     <div class="sec-head"><span class="num">J.3</span><h2>立项选择规则（权威在规范）</h2><span class="tag">规则不重复</span></div>
     <div class="note">
-      规则全文见《AI短剧制作流程规范》附录 J·J.3（<b>先选形态 → 选主/辅画风 → 定质感档 → 固化锚点词 → 定案全链路同步 R10</b>），本文不重复——防双份漂移，改规则只改规范。
-      <a href="AI短剧制作流程规范.html#aJ" style="border-bottom:1px dotted var(--ac)">打开规则版 →</a>
+      规则全文见《AI短剧制作流程规范》附录 J·J.3（<b>先选形态 → 选主/辅画风 → 定质感档 → 固化锚点词 → 定案全链路同步 R10</b>），本文不重复——防双份漂移，改规则只改规范（该规范为仓库外文档）。
     </div>
   </div>
 </section>

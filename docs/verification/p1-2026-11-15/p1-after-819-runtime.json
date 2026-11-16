@@ -1,0 +1,205 @@
+{
+  "statusBefore": {
+    "state": "running",
+    "port": 4096,
+    "version": "1.18.34",
+    "healthy": true,
+    "startedAt": "2026-11-15T15:58:22.309Z",
+    "error": null
+  },
+  "start": {
+    "state": "running",
+    "port": 4096,
+    "version": "1.18.34",
+    "healthy": true,
+    "startedAt": "2026-11-15T15:58:22.309Z",
+    "error": null
+  },
+  "statusAfter": {
+    "state": "running",
+    "port": 4096,
+    "version": "1.18.34",
+    "healthy": true,
+    "startedAt": "2026-11-15T15:58:22.309Z",
+    "error": null
+  },
+  "agents": [
+    {
+      "name": "showrunner",
+      "description": "主创 / 主控 Agent（AI 短剧 Agent 平台 · feature-001）。理解意图、立项对话收敛、拆解八步任务、在关键节点发确认门、分派专职 agent；自身产出立项 / 故事 / 剧本类文本。",
+      "model": {
+        "providerID": "ark",
+        "modelID": "ark-code-latest"
+      },
+      "tools": [
+        "shortdrama_file_read",
+        "shortdrama_file_list",
+        "shortdrama_file_write",
+        "shortdrama_canvas_get",
+        "shortdrama_canvas_update",
+        "shortdrama_gate_request",
+        "shortdrama_brief.plan",
+        "shortdrama_brief.publish",
+        "shortdrama_brief.list",
+        "shortdrama_manifest.get",
+        "shortdrama_manifest.advance",
+        "shortdrama_style.catalog",
+        "shortdrama_style.validate",
+        "shortdrama_brief.impact.assess",
+        "shortdrama_brief.impact.commit",
+        "shortdrama_canvas.align",
+        "shortdrama_capture.list",
+        "shortdrama_capture.upsert",
+        "shortdrama_capture.upsert_many",
+        "shortdrama_capture.remove",
+        "shortdrama_web.search",
+        "shortdrama_web.fetch",
+        "shortdrama_harness.validate"
+      ]
+    }
+  ],
+  "sessions": [
+    {
+      "id": "ses_e6948eca3ffeXM36svMYmUvBXk",
+      "title": "重生复仇都市女频",
+      "createdAt": "2026-11-01T10:45:42.876Z"
+    },
+    {
+      "id": "ses_e690ca09bffeI1YN2VYqa09j3z",
+      "title": "重生复仇都市女频",
+      "createdAt": "2026-11-01T11:51:34.500Z"
+    },
+    {
+      "id": "ses_e6b3b90c2ffe0wC3WCTa7L0lGx",
+      "title": "重生复仇都市女频创作",
+      "createdAt": "2026-11-01T01:41:03.933Z"
+    },
+    {
+      "id": "ses_e6f8050a2ffe6eXnB8zriuCHos",
+      "title": "New session - 2026-10-31T05:47:29.501Z",
+      "createdAt": "2026-10-31T05:47:29.501Z"
+    },
+    {
+      "id": "ses_e6fcc5507ffebla13aKSe99LmE",
+      "title": "重生复仇都市女频小说",
+      "createdAt": "2026-10-31T04:24:27.640Z"
+    },
+    {
+      "id": "ses_e70599ce0ffe3DGT0noziUXaa0",
+      "title": "都市重生复仇女频小说",
+      "createdAt": "2026-10-31T01:50:08.671Z"
+    },
+    {
+      "id": "ses_e7087cfb7ffe5OivSb43zqgtjU",
+      "title": "都市女频重生复仇小说",
+      "createdAt": "2026-10-31T00:59:41.000Z"
+    },
+    {
+      "id": "ses_e70a9ca95ffegCWNxBg2Q1gChm",
+      "title": "PK-012-02-retest",
+      "createdAt": "2026-10-31T00:22:34.090Z"
+    },
+    {
+      "id": "ses_e70aac869ffev4lGEGFMa6Fn0J",
+      "title": "PK-012-02-retest",
+      "createdAt": "2026-10-31T00:21:29.111Z"
+    },
+    {
+      "id": "ses_e70d9bd33ffeKH0ZL6fpK2OKRi",
+      "title": "立项单再版：核心事件与120秒时长调整",
+      "createdAt": "2026-10-30T23:30:11.788Z"
+    },
+    {
+      "id": "ses_e70e00443ffeq5V6WJ4uWogW6u",
+      "title": "第1步：故事大纲与人物小传",
+      "createdAt": "2026-10-30T23:23:20.381Z"
+    },
+    {
+      "id": "ses_ea929e484ffew1s9RzcnBNSvnn",
+      "title": "为奶奶制作温暖怀旧纪念短片",
+      "createdAt": "2026-10-20T01:03:54.747Z"
+    },
+    {
+      "id": "ses_ea92fdb57ffeJ1b5HwL7MKwQii",
+      "title": "抖音短剧：外卖员逆袭成首富",
+      "createdAt": "2026-10-20T00:57:23.880Z"
+    },
+    {
+      "id": "ses_eb59f2af1ffeVPHCd168gvnK2C",
+      "title": "都市甜宠短剧E01立项单",
+      "createdAt": "2026-10-17T15:00:22.415Z"
+    },
+    {
+      "id": "ses_eb83868afffemNoMb1Y5vWGv1s",
+      "title": "都市女频重生复仇短剧选题诊断与立项",
+      "createdAt": "2026-10-17T02:53:45.168Z"
+    },
+    {
+      "id": "ses_ebde456afffe2o21UkHJuBNjXi",
+      "title": "feature-808真机点验需记住专有词紫晶麒麟",
+      "createdAt": "2026-10-16T00:27:51.504Z"
+    },
+    {
+      "id": "ses_ec03d0ddaffeIdJ5ZMC40YIl7G",
+      "title": "Quick check-in",
+      "createdAt": "2026-10-15T13:31:43.013Z"
+    },
+    {
+      "id": "ses_ec03fe73effePMMhsAQpDyk8Zd",
+      "title": "16:9 画幅设置",
+      "createdAt": "2026-10-15T13:28:36.289Z"
+    },
+    {
+      "id": "ses_ec299a0c1ffeGCFbmTxa00M3gV",
+      "title": "抖音红果A7加D1定案卡通过 口头拍板立项v1发布并推进",
+      "createdAt": "2026-10-15T02:31:21.662Z"
+    },
+    {
+      "id": "ses_ec29c006effexhtgR4TszkCmhI",
+      "title": "A7 v1.46/D1悬疑短剧立项定案卡及0-final门",
+      "createdAt": "2026-10-15T02:28:46.098Z"
+    },
+    {
+      "id": "ses_ec29ebb58ffeCAD3TRCaxg8q75",
+      "title": "80集都市真千金复仇剧背景档案与风格选择",
+      "createdAt": "2026-10-15T02:25:47.175Z"
+    },
+    {
+      "id": "ses_ec29fe42dffe2wzW17pf3oXfVN",
+      "title": "婚礼重生复仇渣男继妹 抖音红果80集都市女频竖屏短剧立项",
+      "createdAt": "2026-10-15T02:24:31.187Z"
+    },
+    {
+      "id": "ses_ec2d3b4c2ffeta669Jhyxe3J8w",
+      "title": "立项单v2平台口径修正（仅抖音/红果）",
+      "createdAt": "2026-10-15T01:27:55.453Z"
+    },
+    {
+      "id": "ses_ec3029be7ffe4x2Ql7ndUIrcFA",
+      "title": "0-final定案门：三项内容确认通过",
+      "createdAt": "2026-10-15T00:36:41.624Z"
+    },
+    {
+      "id": "ses_ec305373fffeB8YA3MrK41TGpI",
+      "title": "豪门重生婚礼复仇剧80集方案确认",
+      "createdAt": "2026-10-15T00:33:50.784Z"
+    },
+    {
+      "id": "ses_ec306d55cffe9bkGJuDK2kYt1R",
+      "title": "抖音红果女频复仇爽感短剧投放策划",
+      "createdAt": "2026-10-15T00:32:04.771Z"
+    },
+    {
+      "id": "ses_ec307826fffenSGmrs2XWhaCti",
+      "title": "重生婚礼当天复仇渣男继妹·80集竖屏短剧",
+      "createdAt": "2026-10-15T00:31:20.464Z"
+    }
+  ],
+  "configStatus": {
+    "arkConfigured": true
+  },
+  "composer": {
+    "disabled": false,
+    "placeholder": "描述创作目标，或 / 唤起 Skill…"
+  }
+}

@@ -221,8 +221,8 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   <h1>架构与<em>模块关系图</em></h1>
   <p class="lede">一张图看清平台<b>四层运行边界、模块归属、runtime 单轨与数据血缘</b>：渲染层 → 主进程 → opencode 子进程 → 外部世界，媒体全部收敛于局域网 ComfyUI。</p>
   <div class="verline">
-    <span class="chip">设计基准 <b>设计 v1.18</b>（2026-11-03 反向同步）</span>
-    <span class="chip">模块 / 通道口径 <b>磁盘实况</b>（2026-11-03 核对 · 1029 passed · 0 failed · 1 skipped）</span>
+    <span class="chip">设计基准 <b>设计 v1.24 · 总规划 v0.6</b></span>
+    <span class="chip">镜像同步 <b>2026-11-16</b>（36 个现行包 · 29 个 MCP 工具 / 11 个业务族）</span>
     <span class="chip">技术栈 <b>Electron 33 · React 18 · TS 5.6 · Vite</b></span>
     <span class="chip">Agent 运行时 <b>opencode 1.18 + MCP</b></span>
     <span class="chip">画像 <b>P2</b>（多模块 · 长期演进）</span>
@@ -231,12 +231,16 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <span class="tb-ic">⚠ FACT</span>
     <span>本页是 <b>B 类可视化文档</b>，仅用于快速理解，<b>不是事实源</b>。所有架构、模块、通道的权威定义以 A 类文档为准；如与 A 类冲突，一律以 A 类为准并修正本页。事实来源见 <a href="#sources">页底索引</a>。</span>
   </div>
+  <div class="truth-banner" style="border-color:var(--amber)">
+    <span class="tb-ic" style="border-color:var(--amber);color:var(--amber)">CURRENT</span>
+    <span><b>现行视图</b>：本页已按 2026-11-16 的设计 v1.24、总规划 v0.6 与 36 包索引同步。P0 基线收口完成，P1 仍未通过；当前回归为 <b>81 / 93 文件通过、12 文件失败</b>，不冒充全绿。IPC 按业务域展示，具体注册点以 <code>electron/main.ts</code> 为准；阶段门见 <a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划</a>。</span>
+  </div>
 </header>
 
 <!-- ══════ 01 四层架构 ══════ -->
 <section id="layers">
   <div class="sec-head rv"><span class="sec-no">01</span><h2>四层运行架构</h2></div>
-  <p class="sec-sub rv">信任从左到右逐级收窄：renderer 不直连任何外部服务与 ComfyUI；媒体调用一律收敛于主进程 / MCP 引擎工具。<b>下图模块为 2026-11-02 磁盘实况</b>（对话通道已按台账 D-012 定稿 runtime 单轨终态；业务层按设计 v1.18 口径认定）。</p>
+  <p class="sec-sub rv">信任从左到右逐级收窄：renderer 不直连任何外部服务与 ComfyUI；媒体调用一律收敛于主进程 / MCP 引擎工具。<b>下图为 2026-11-16 当前架构镜像</b>；对话通道遵循 D-012 runtime 单轨，业务与媒体边界按设计 v1.24 / D-034 展示。</p>
 
   <div class="diagram rv">
     <div class="legend">
@@ -264,14 +268,14 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <!-- MAIN -->
     <div class="layer l-main">
       <span class="ltag">② MAIN · 主进程（信任边界）</span>
-      <p class="ldesc">唯一持有文件系统、子进程与网络能力的层；42 个 IPC 处理器（38 业务 + 4 窗口控制）+ 运行时管理 + 28 个纯 MCP 工具（11 族）。</p>
+      <p class="ldesc">唯一持有文件系统、子进程与网络能力的层；按窗口 / 项目 / runtime / 画布 / 资产 / 设置等域暴露受控 IPC，并提供运行时管理与 29 个纯 MCP 工具（28 个业务工具 / 11 族 + tool.search）。</p>
       <div class="flowrow">
-        <div class="node"><div class="nt">main IPC 路由</div><div class="nd">窗口 · 项目 · runtime 等 42 通道</div><span class="path">electron/main.ts</span></div>
+        <div class="node"><div class="nt">main IPC 路由</div><div class="nd">窗口 · 项目 · runtime · 画布 · 设置等受控通道</div><span class="path">electron/main.ts</span></div>
         <div class="node"><div class="nt">RuntimeManager</div><div class="nd">子进程生命周期 · 注入鉴权</div><span class="path">electron/runtime/manager.ts</span></div>
         <div class="node"><div class="nt">provider / client</div><div class="nd">opencode 供给与事件客户端</div><span class="path">electron/runtime/</span></div>
         <div class="node"><div class="nt">projection</div><div class="nd">事件 → UI DTO 投影</div><span class="path">electron/runtime/projection.ts</span></div>
         <div class="node"><div class="nt">MCP HTTP 服务</div><div class="nd">/mcp · Bearer · 仅 loopback</div><span class="path">electron/mcp/server.ts</span></div>
-        <div class="node"><div class="nt">纯工具 28 个 · 11 族</div><div class="nd">file/canvas/asset/gate/comfyui/brief/manifest/style/capture/web/harness</div><span class="path">electron/mcp/tools.ts</span></div>
+        <div class="node"><div class="nt">纯工具 29 个 · 11 个业务族</div><div class="nd">28 个业务工具 + server.ts 的 tool.search</div><span class="path">electron/mcp/tools.ts · server.ts</span></div>
       </div>
       <div class="flowrow" style="margin-top:10px">
         <div class="node"><div class="nt">canvas / gate / asset</div><div class="nd">画布存储 · 门桥 · 资产索引</div><span class="path">electron/canvas · gate · asset/</span></div>
@@ -289,20 +293,20 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       <p class="ldesc">开源同源 Agent 运行时；Agent 经 MCP 调用主进程暴露的纯工具，不直接写文件。</p>
       <div class="flowrow">
         <div class="node"><div class="nt">摄制组 4 profile</div><div class="nd">showrunner（唯一 primary，独占 task）+ writer / media-director / comfyui-operator（subagent，task:false）</div><span class="path">resources/opencode/agents/*.md</span></div>
-        <div class="node"><div class="nt">MCP client</div><div class="nd">物理工具 ID = shortdrama_&lt;tool&gt;（28 个 / 11 族）；client 按物理 ID 逐个判定放行，v1.12 取消 shortdrama_ 前缀整体放行，8 个幽灵工具直接拒绝</div><span class="path">OPENCODE_MCP_URL/TOKEN</span></div>
+        <div class="node"><div class="nt">MCP client</div><div class="nd">物理工具 ID = shortdrama_&lt;tool&gt;（29 个，含 tool.search）；client 按物理 ID 逐个判定放行，不按前缀整体放行，未注册工具直接拒绝</div><span class="path">OPENCODE_MCP_URL/TOKEN</span></div>
         <div class="node future"><div class="nt">多 Agent 分工</div><div class="nd">设计 §4 六角色终态</div><span class="path">设计 §4（终态）</span></div>
       </div>
     </div>
 
-    <div class="conn">▲ 文本侧出公网 <span class="proto">火山方舟（OpenAI 兼容）</span> ｜ 媒体侧 ▶ <span class="secure">局域网 ComfyUI</span></div>
+    <div class="conn">▲ 文本服务二选一 <span class="proto">火山方舟（公网）</span> / <span class="secure">LM Studio（本地）</span> ｜ 媒体侧 ▶ <span class="secure">局域网 ComfyUI</span></div>
 
     <!-- EXTERNAL -->
     <div class="layer l-ext">
       <span class="ltag">④ EXTERNAL · 外部世界</span>
-      <p class="ldesc">平台出公网仅余文本；媒体生成零公网、无云端 Key、无按次云费用。</p>
+      <p class="ldesc">仅选择火山方舟时文本调用出公网；LM Studio 为本地文本选项。媒体生成零公网、无云端媒体 Key、无按次云费用。</p>
       <div class="flowrow">
-        <div class="node"><div class="nt">火山方舟</div><div class="nd">文本大模型（唯一公网）</div><span class="path">ark.cn-beijing.volces.com</span></div>
-        <div class="node"><div class="nt">ComfyUI 多实例</div><div class="nd">本地 / 局域网 · 地址可配</div><span class="path">qwen-image · H3 · Music3</span></div>
+        <div class="node"><div class="nt">文本服务二选一</div><div class="nd">火山方舟（公网）/ LM Studio（本地）</div><span class="path">D-021 · D-022</span></div>
+        <div class="node"><div class="nt">ComfyUI 多实例</div><div class="nd">本地 / 局域网 · 地址可配</div><span class="path">H3 Image · H3 · Music3</span></div>
       </div>
     </div>
   </div>
@@ -326,7 +330,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 02 模块清单 ══════ -->
 <section id="modules">
   <div class="sec-head rv"><span class="sec-no">02</span><h2>模块清单与落地状态</h2></div>
-  <p class="sec-sub rv">模块按进程归属分组。<b>以下为 2026-11-02 磁盘实况</b>（对话通道已按 D-012 定稿终态；业务层按设计 v1.18 口径认定）；另区分：终态规划。</p>
+  <p class="sec-sub rv">模块按进程归属分组。<b>以下为 2026-11-16 当前架构镜像</b>（对话通道遵循 D-012 runtime 单轨；业务与媒体边界按设计 v1.24 / D-034）；模块存在不等于 P1 阶段门已通过。</p>
 
   <table class="mtab rv">
     <thead><tr><th>模块</th><th>职责</th><th>状态</th></tr></thead>
@@ -336,11 +340,11 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       <tr><td><b>CanvasBoard / StudioViewer</b><span class="mp">src/studio/canvas/CanvasBoard.tsx · viewer/StudioViewer.tsx</span></td><td class="desc">数据驱动多步画布；经 file:read 的只读产物查看器</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
       <tr><td><b>GateCardView / ProjectNav</b><span class="mp">src/studio/chat/GateCardView.tsx · shell/ProjectNav.tsx</span></td><td class="desc">门裁决卡（渲染自 CanvasGate）；项目导航</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
       <tr><td><b>chat-runtime</b><span class="mp">src/lib/chat-runtime.ts</span></td><td class="desc">StreamingTurn / ToolView、事件归约、消息转换</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
-      <tr><td><b>IPC 路由</b><span class="mp">electron/main.ts</span></td><td class="desc">47 个处理器（2026-11-03 实测，含 4 窗口控制）：项目 / brief / capture / style / runtime / canvas / gate / asset / file / comfy · AI 服务 · 工作目录设置</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
+      <tr><td><b>IPC 路由</b><span class="mp">electron/main.ts</span></td><td class="desc">受控 IPC 按窗口、项目、brief、capture、style、runtime、canvas、gate、asset、file、ComfyUI、AI 服务与工作目录设置等域注册；数量以当前 main.ts 为准</td><td><span class="badge b-live">安全边界</span></td></tr>
       <tr><td><b>RuntimeManager</b><span class="mp">electron/runtime/manager.ts</span></td><td class="desc">opencode 子进程启停、端口探活、环境注入</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
       <tr><td><b>provider / client / projection</b><span class="mp">electron/runtime/</span></td><td class="desc">供给探测、事件流客户端、事件 → UI DTO 投影</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
       <tr><td><b>MCP HTTP 服务</b><span class="mp">electron/mcp/server.ts</span></td><td class="desc">Streamable HTTP，/mcp，Bearer，仅 loopback（server: shortdrama-tools）</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
-      <tr><td><b>纯工具层</b><span class="mp">electron/mcp/tools.ts</span></td><td class="desc">28 个纯工具 / 11 族：画布 3（canvas.get/update/align）· 文件 3 · 资产 2 · ComfyUI 3 · 确认门 1 · 立项 5（brief/impact）· 状态机 2（manifest）· 视觉风格 3（style）· 捕获 3（capture）· 公开检索 2（web）· 质检 1（harness.validate）</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
+      <tr><td><b>纯工具层</b><span class="mp">electron/mcp/tools.ts · server.ts</span></td><td class="desc">29 个纯工具 = 28 个业务工具 / 11 族 + tool.search：画布 3 · 文件 3 · 资产 2 · ComfyUI 3 · 确认门 1 · 立项 5 · 状态机 2 · 视觉风格 3 · 捕获 3 · 公开检索 2 · 质检 1</td><td><span class="badge b-live">写权边界</span></td></tr>
       <tr><td><b>fs / project 套件</b><span class="mp">electron/fs/ · electron/project/</span></td><td class="desc">沙箱边界、写队列、归档；项目库与当前项目</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
       <tr><td><b>canvas / gate / asset / comfy</b><span class="mp">electron/canvas · gate · asset · comfy/</span></td><td class="desc">画布存储与边、门桥、资产索引、ComfyUI 客户端与多实例设置</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
       <tr><td><b>app 设置 store</b><span class="mp">electron/settings/</span></td><td class="desc">AI 服务设置（feature-014，&lt;userData&gt;/ai-service.json）· 工作区根目录（feature-813：resolveWorkspaceRoot / changeDir，&lt;userData&gt;/workspace.json，单一全局根、搬移失败回滚）</td><td><span class="badge b-live">磁盘实况·现行</span></td></tr>
@@ -353,19 +357,19 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 
 <!-- ══════ 03 通道单轨 ══════ -->
 <section id="channels">
-  <div class="sec-head rv"><span class="sec-no">03</span><h2>IPC / MCP 通道（2026-11-03 磁盘实况）</h2></div>
-  <p class="sec-sub rv">对话统一走 runtime 单轨；旧 8 个 ark 直连对话 IPC 已删除（快照并入设计 §5.1 后删除）。<b>以下为 main.ts 现存 47 个 invoke 处理器（43 业务 + 4 窗口控制，均经 preload 白名单暴露），为现行通道实况（D-012 终态；feature-813 新增 settings:workspace 3 通道）。</b></p>
+  <div class="sec-head rv"><span class="sec-no">03</span><h2>IPC / MCP 通道（2026-11-16 当前镜像）</h2></div>
+  <p class="sec-sub rv">对话统一走 runtime 单轨；旧 ark 直连对话 IPC 已删除。<b>以下按 main.ts 的业务域与 preload 白名单展示受控通道，不沿用旧快照总数；具体注册点以当前代码为准。</b></p>
 
   <div class="chgrid rv">
     <div class="chcol new">
-      <h4>项目 / 应用 <span class="p">7 通道</span></h4>
+      <h4>项目 / 应用 <span class="p">按域列示</span></h4>
       <ul>
-        <li><span class="ch-name">project:list / create / open</span><span class="ch-cnt">项目库 3 通道</span></li>
+        <li><span class="ch-name">project:list / create / open</span><span class="ch-cnt">项目库</span></li>
         <li><span class="ch-name">project:rename / delete</span><span class="ch-cnt">重命名 / 删除</span></li>
         <li><span class="ch-name">project:active-session</span><span class="ch-cnt">当前会话记档</span></li>
         <li><span class="ch-name">app:config-status</span><span class="ch-cnt">方舟配置状态</span></li>
       </ul>
-      <h4 style="margin-top:14px">runtime <span class="p">13 通道</span></h4>
+      <h4 style="margin-top:14px">runtime <span class="p">按域列示</span></h4>
       <ul>
         <li><span class="ch-name">runtime:start / stop / status</span><span class="ch-cnt">生命周期</span></li>
         <li><span class="ch-name">runtime:session:create / list</span><span class="ch-cnt">会话管理</span></li>
@@ -377,21 +381,21 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </ul>
     </div>
     <div class="chcol new">
-      <h4>画布 / 门 / 资产 / 文件 <span class="p">6 通道</span></h4>
+      <h4>画布 / 门 / 资产 / 文件 <span class="p">按域列示</span></h4>
       <ul>
         <li><span class="ch-name">canvas:get / subscribe / un-</span><span class="ch-cnt">画布读取与推送</span></li>
         <li><span class="ch-name">gate:decide</span><span class="ch-cnt">门裁决</span></li>
         <li><span class="ch-name">asset:list</span><span class="ch-cnt">资产枚举</span></li>
         <li><span class="ch-name">file:read</span><span class="ch-cnt">产物只读</span></li>
       </ul>
-      <h4 style="margin-top:14px">立项 / 风格 / 捕获 <span class="p">9 通道</span></h4>
+      <h4 style="margin-top:14px">立项 / 风格 / 捕获 <span class="p">按域列示</span></h4>
       <ul>
         <li><span class="ch-name">brief:update / history</span><span class="ch-cnt">草案更新 / 历史</span></li>
         <li><span class="ch-name">brief:version-read / rollback</span><span class="ch-cnt">版本读取 / 回滚</span></li>
         <li><span class="ch-name">style:catalog / upgrade-diff</span><span class="ch-cnt">谱系全表 / 升级差异</span></li>
         <li><span class="ch-name">capture:list / upsert / remove</span><span class="ch-cnt">捕获口径管理</span></li>
       </ul>
-      <h4 style="margin-top:14px">应用设置 + MCP 端点 <span class="p">8 + HTTP</span></h4>
+      <h4 style="margin-top:14px">应用设置 + MCP 端点 <span class="p">按域列示 · HTTP</span></h4>
       <ul>
         <li><span class="ch-name">settings:comfy:list / upsert / remove</span><span class="ch-cnt">多实例配置</span></li>
         <li><span class="ch-name">settings:ai:get / update</span><span class="ch-cnt">AI 服务设置（feature-014，脱敏视图）</span></li>
@@ -400,15 +404,15 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </ul>
     </div>
   </div>
-  <p class="mut rv" style="margin-top:16px">MCP 侧现存 <b>28 个纯工具 / 11 族</b>（<code>file.read</code> / <code>canvas.align</code> / <code>gate.request</code> / <code>asset.register</code> / <code>comfyui.instances</code> / <code>brief.plan</code> / <code>manifest.advance</code> / <code>style.catalog</code> / <code>capture.list</code> / <code>web.search</code> 等），由 <code>electron/mcp/tools.ts</code> 注册；物理工具 ID 为 <code>shortdrama_&lt;tool&gt;</code>，已与实现对齐。v1.12 起 client 取消 <code>shortdrama_</code> 前缀整体放行，改为按物理 ID 逐个判定，8 个幽灵工具（profile 声明但网关未注册）直接拒绝。showrunner 持其中 23 个，asset/comfyui 5 个仅 subagent 持有。</p>
+  <p class="mut rv" style="margin-top:16px">MCP 侧现存 <b>29 个纯工具 = 28 个业务工具 / 11 族 + tool.search</b>。28 个业务工具由 <code>electron/mcp/tools.ts</code> 注册，<code>tool.search</code> 由 <code>electron/mcp/server.ts</code> 注册；物理工具 ID 为 <code>shortdrama_&lt;tool&gt;</code>。client 按物理 ID 逐个判定，未注册工具直接拒绝。showrunner 持 28 个业务工具中的 23 个，asset/comfyui 5 个仅 subagent 持有。</p>
 </section>
 
 <!-- ══════ 04 数据血缘 ══════ -->
 <section id="data">
   <div class="sec-head rv"><span class="sec-no">04</span><h2>会话目录与数据血缘</h2></div>
-  <p class="sec-sub rv">纯 JSON / Markdown 文件持久化，无数据库。<b>下列目录树为 2026-10-09 磁盘实况</b>（现行实现形态；工作区位于「文稿/ai-shortdrama-studio/」）；数据血缘按设计 §7.1「最终设计」定稿（v1.12，立项单.vN.json 取代 brief.json）。</p>
+  <p class="sec-sub rv">纯 JSON / Markdown 文件持久化，无数据库。<b>下列目录树保留为 2026-10-09 历史结构样例</b>；工作区根目录可配置，现行血缘与版本规则以设计 v1.24 §7.1 及当前实现为准。</p>
 
-  <div class="dltree rv"><span class="cmt"># 磁盘实况：项目工作区（2026-10-09 核对）</span>
+  <div class="dltree rv"><span class="cmt"># 历史结构样例：项目工作区（2026-10-09 核对，非当前目验）</span>
 <span class="dir">~/Documents/ai-shortdrama-studio/</span>   <span class="cmt"># 默认根，可经设置面板更换（feature-813）</span>
 ├── <span class="dir">project-{时间戳}-{随机}/</span>   <span class="cmt"># 每个短剧项目一个目录</span>
 │   ├── <span class="key">manifest.json</span>      <span class="cmt"># 项目骨架：status（7 态状态机，§7.1）/ nodes / 各门字段；画布节点以 canvas.json 为准（Stage 10 态）</span>
@@ -442,9 +446,9 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 
   <div class="crew rv">
     <div class="director">
-      <div class="role">PRIMARY · 唯一主控（2026-11-02 磁盘实况）</div>
+      <div class="role">PRIMARY · 唯一主控（2026-11-16 当前口径）</div>
       <div class="rn">showrunner Agent</div>
-      <div class="rd">理解意图 · 规划步骤 · 强制经 MCP 工具产出；独占 task 调度，持 28 个纯工具中的 23 个请求级白名单（asset/comfyui 5 个除外）。早期同名 director 已退役，主控统一为 showrunner</div>
+      <div class="rd">理解意图 · 规划步骤 · 强制经 MCP 工具产出；独占 task 调度，持 28 个业务工具中的 23 个请求级白名单（asset/comfyui 5 个除外）。早期同名 director 已退役，主控统一为 showrunner</div>
     </div>
     <div class="bus">消息总线 · 共享黑板</div>
     <div class="agentgrid">
@@ -457,7 +461,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     </div>
   </div>
 
-  <h3 class="rv">磁盘实况 · 28 个纯 MCP 工具 / 11 族（electron/mcp/tools.ts）</h3>
+  <h3 class="rv">29 个纯 MCP 工具 / 11 个业务族（tools.ts + server.ts）</h3>
   <div class="toolgrid rv">
     <div class="tcard"><span class="state badge b-live">canvas</span><h4><code>canvas.get</code></h4><p>读取当前项目画布</p></div>
     <div class="tcard"><span class="state badge b-live">canvas</span><h4><code>canvas.update</code></h4><p>节点 / 边 / pendingGate upsert</p></div>
@@ -487,6 +491,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="tcard"><span class="state badge b-live">web</span><h4><code>web.search</code></h4><p>公开数据搜索（零 Key）</p></div>
     <div class="tcard"><span class="state badge b-live">web</span><h4><code>web.fetch</code></h4><p>公开页面抓取（零 Key）</p></div>
     <div class="tcard"><span class="state badge b-live">harness</span><h4><code>harness.validate</code></h4><p>产物基础质量校验</p></div>
+    <div class="tcard"><span class="state badge b-live">server</span><h4><code>tool.search</code></h4><p>工具检索（server.ts 注册，不计入 28 个业务工具）</p></div>
   </div>
   <p class="mut rv" style="margin-top:12px">物理工具 ID = <code>shortdrama_&lt;tool&gt;</code>（点号保留）。showrunner 请求级白名单放行其中 <b>23 个</b>（不含 asset 2 与 comfyui 3）；writer / media-director / comfyui-operator 三个 subagent 按最小集分别持有 5 / 9 / 9 个。立项 5 工具归属 feature-001/002，<code>canvas.align</code> 归属 feature-002，<code>manifest</code> 2 个归属 feature-801，<code>style</code> 3 个归属 feature-802，<code>capture</code> 3 个归属 feature-005，<code>web</code> 2 个归属 feature-006，<code>harness.validate</code> 归属 feature-806。</p>
 </section>
@@ -502,7 +507,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       <span class="etag">媒体生成零公网 · 无云端 Key · 无按次费用</span>
     </div>
     <div class="erow">
-      <div class="ecard"><div class="model">qwen-image</div><div class="use">图像通道唯一模型（人物 / 场景 / 关键帧）</div></div>
+      <div class="ecard"><div class="model">MiniMax H3 Image</div><div class="use">图像通道唯一模型（人物 / 场景 / 关键帧）</div></div>
       <div class="ecard"><div class="model">MiniMax H3</div><div class="use">视频通道唯一模型（图生视频 / 镜头）</div></div>
       <div class="ecard"><div class="model">MiniMax Music3</div><div class="use">音乐通道唯一模型（配乐）</div></div>
     </div>
@@ -518,29 +523,29 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="src-grid">
       <div class="src-row">
         <span class="si-base">A · 架构</span>
-        <div><div class="si-ti">短剧Agent平台设计.md（v1.18）</div><div class="si-sub">§2.6 新立项模型 · §4 多 Agent 架构（实现层摄制组 4 profile 实况注记） · §5 MCP 工具层与对话生成网关（§5.1 runtime 单轨 · §5.2 已落地 28 工具 / 11 族） · §7/§7.1 目录与实体（最终设计） · §8/§8.3 引擎通道与系统级外部数据源 · §11 路线 · §13 版本记录</div></div>
+        <div><div class="si-ti">短剧Agent平台设计.md（v1.24）</div><div class="si-sub">D-034 全面复刻定位 · §4 多 Agent 架构 · §5 MCP 工具层与 runtime 单轨（28 个业务工具 / 11 族，另有 tool.search） · §7/§7.1 目录与实体 · §8 引擎通道 · §11 P0—P7 路线 · §13 版本记录</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 决策</span>
-        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005 / D-011 / D-012 / D-023 / D-024 · 最新 D-024）</div><div class="si-sub">立项模型重建 + 谱系定位系统级外部数据源；对话通道经 D-012 定稿 runtime 单轨终态；D-023 收口 Agent 调度权限，D-024 明确影响面板关闭不撤销再版</div></div>
+        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-012 / D-021 / D-022 / D-023 / D-033 / D-034）</div><div class="si-sub">runtime 单轨；文本服务二选一；Agent 调度权限；媒体固定 H3 Image / H3 / Music3 并经 ComfyUI；D-034 全面复刻 MiniMax Design、短剧生产闭环优先</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 治理</span>
-        <div><div class="si-ti">AGENTS.md（v1.5）+ docs/governance/AI-SDG-AI工具执行指令.md</div><div class="si-sub">§2.1 三层文档模型与项目画像 P2；K1–K10 卡口；L1/L2/L3 裁决</div></div>
+        <div><div class="si-ti">AGENTS.md（v1.7）+ docs/governance/AI-SDG-AI工具执行指令.md</div><div class="si-sub">三层文档模型；K1–K10 卡口；L1/L2/L3 裁决；全面复刻定位与媒体 / 局域网硬边界</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 新包</span>
-        <div><div class="si-ti">docs/features/（28 个现行包 · 2026-11-03）</div><div class="si-sub">feature-001~015 / 101 / 201 / 801·802·804·806~813；逐包状态与验收口径以各任务清单为准</div></div>
+        <div><div class="si-ti">docs/features/（36 个现行包 · 2026-11-16）</div><div class="si-sub">feature-001~015 / 101 / 201 / 801~820（不含 805）；逐包状态与验收口径以索引及各任务清单为准</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">代码核对</span>
-        <div><div class="si-ti">磁盘实况（只读核对 · 2026-11-02）</div><div class="si-sub"><code>electron/main.ts</code>（42 IPC：38 业务 + 4 窗口控制）· <code>electron/mcp/server.ts · tools.ts</code>（28 纯工具 / 11 族）· <code>electron/runtime/ · fs/ · comfy/ · canvas/ · gate/ · asset/</code> · <code>resources/opencode/agents/</code>（4 profile，showrunner 23 白名单且独占 task）· <code>src/studio/</code>（七组分包）· <code>src/lib/chat-runtime.ts</code></div></div>
+        <div><div class="si-ti">代码与阶段证据（只读核对 · 2026-11-16）</div><div class="si-sub"><code>electron/main.ts</code>（IPC 注册点）· <code>electron/mcp/server.ts · tools.ts</code>（29 = 28 业务 + tool.search）· <code>resources/opencode/agents/</code>（4 profile，showrunner 23 白名单且独占 task）· <a href="../verification/p1-2026-11-15/P1调查记录.md">P1 调查记录</a>（feature-819 / 820 真实 Electron 与真实对话证据）</div></div>
       </div>
     </div>
   </div>
 </details>
 
-<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准（设计 v1.18 / 决策台账 D-005·D-024）· 2026-11-02 随 v1.17 反向同步（4 profile · 28 工具 / 11 族 · 27 现行包），2026-11-03 随 v1.18 同步（feature-813 工作目录更换 · 28 现行包）</div>
+<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准 · 2026-11-16 镜像同步：设计 v1.24 / D-034 / 总规划 v0.6 / 36 个现行包 / 29 个 MCP 工具。当前 P0 已完成、P1 未通过；回归 81 / 93 文件通过。历史快照：2026-11-02—03 曾记录 27→28 包、28 个业务工具及 1029 用例通过，仅作编年史。</div>
 </main>
 </div>
 

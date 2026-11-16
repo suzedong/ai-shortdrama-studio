@@ -1,0 +1,38 @@
+{
+  "footerText": "文本 · 火山方舟 | ark-code-latest | 运行时 · 运行中 | ComfyUI 已配置 1/1 启用 | 画布更新于 08:30",
+  "staleInFooter": [],
+  "staleInBody": [],
+  "sources": {
+    "activeProvider": "ark",
+    "arkModel": "ark-code-latest",
+    "arkKeyConfigured": true,
+    "runtimeState": "running",
+    "runtimeHealthy": true,
+    "comfyCount": 1,
+    "comfyEnabled": 1,
+    "comfyNames": [
+      "局域网 RTX 4090"
+    ]
+  },
+  "skillsOpened": true,
+  "skillsNote": true,
+  "hasDeadTryButton": false,
+  "hasSkillCard1": true,
+  "hasSkillCard2": true,
+  "skillChipFound": true,
+  "afterCatEmotion": {
+    "card1": false,
+    "card2": true
+  },
+  "pluginsOpened": true,
+  "pluginSwitchCount": 0,
+  "pluginsNote": true,
+  "pluginListed": true,
+  "localOpened": true,
+  "localPanelTitle": true,
+  "localNoAction": true,
+  "localPathHint": true,
+  "localSettingsBtnFound": true,
+  "dialogAriaLabel": "AI 服务设置",
+  "footerAfterReset": "文本 · 火山方舟 | ark-code-latest | 运行时 · 运行中 | ComfyUI 已配置 1/1 启用 | 画布更新于 08:30"
+}

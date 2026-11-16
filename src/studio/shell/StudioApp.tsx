@@ -11,13 +11,14 @@ import {
   turnText,
   type StreamingTurn,
 } from '../../lib/chat-runtime'
+import type { RuntimeState } from '../../lib/runtime-types'
 import { replayMessages } from '../../lib/history-replay'
 import CanvasBoard, { kindLabel, type NodeAction } from '../canvas/CanvasBoard'
 import ChatComposer, { demoChatItems, type ChatItem, type ChatModelOption } from '../chat/ChatComposer'
 import CaptureBar from '../stage0/CaptureBar'
 import ProjectNav, { type ProjectNavHandle } from './ProjectNav'
 import WelcomeView from './WelcomeView'
-import { AssetsPanel, PluginsPanel, SkillsPanel } from './LeftPanels'
+import { AssetsPanel, LocalModelPanel, PluginsPanel, SkillsPanel } from './LeftPanels'
 import StageNavPanel from '../canvas/StageNavPanel'
 import { deriveBriefDisplay, stage0Tooltip } from '../canvas/brief-display'
 import Stage0View from '../stage0/Stage0View'
@@ -32,7 +33,7 @@ import {
   type ImpactView,
 } from '../impact/impact-select'
 import VisualCatalog from '../style/VisualCatalog'
-import AiServicePanel, { getChatModelOptions } from './AiServicePanel'
+import AiServicePanel, { getChatModelOptions, summarizeActiveProvider } from './AiServicePanel'
 import WorkspacePanel from './WorkspacePanel'
 import WindowControls from './WindowControls'
 
@@ -40,7 +41,7 @@ type CenterView = 'dag' | 'stage0'
 type DisplayGate = CanvasGate & { execution?: GateExecutionDto }
 
 type LeftView = 'resource' | 'nav'
-type PanTab = 'projects' | 'skills' | 'assets' | 'plugins'
+type PanTab = 'projects' | 'skills' | 'assets' | 'plugins' | 'local'
 
 const PAN_TAB_META: Record<PanTab, { title: string; icon: JSX.Element }> = {
   projects: {
@@ -77,6 +78,17 @@ const PAN_TAB_META: Record<PanTab, { title: string; icon: JSX.Element }> = {
       </svg>
     ),
   },
+  // feature-820：本地模型一级入口（P1 调查 §3-⑨ 缺失项；面板内为明确的未开放说明）
+  local: {
+    title: '本地模型',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
+        <rect x="4" y="4" width="16" height="16" rx="2" />
+        <rect x="9" y="9" width="6" height="6" />
+        <path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2" />
+      </svg>
+    ),
+  },
 }
 
 const PAN_TAB_TITLE: Record<PanTab, string> = {
@@ -84,10 +96,30 @@ const PAN_TAB_TITLE: Record<PanTab, string> = {
   skills:   'Skill 广场',
   assets:   '资产中心',
   plugins:  '专业插件',
+  local:    '本地模型',
 }
 
 type StudioTheme = 'light' | 'dark'
 const STUDIO_THEME_KEY = 'studio.theme'
+
+// feature-820：底栏状态槽位（只承载真实可读数据；null = 读取失败/未知，不用演示值填充）
+interface FooterStatus {
+  text: ReturnType<typeof summarizeActiveProvider> | null
+  runtime: { state: RuntimeState; healthy: boolean } | null
+  comfy: { total: number; enabled: number } | null
+}
+
+const EMPTY_FOOTER_STATUS: FooterStatus = { text: null, runtime: null, comfy: null }
+
+function runtimeLabel(runtime: FooterStatus['runtime']): string {
+  if (!runtime) return '运行时未读取'
+  switch (runtime.state) {
+    case 'running': return runtime.healthy ? '运行时 · 运行中' : '运行时 · 未就绪'
+    case 'starting': return '运行时 · 启动中'
+    case 'error': return '运行时 · 异常'
+    default: return '运行时 · 未启动'
+  }
+}
 
 function initialStudioTheme(): StudioTheme {
   try {
@@ -181,6 +213,8 @@ export default function StudioApp() {
   // D-013：AI 服务不可用原因（null=可用/未知）；进入对话区探测 + runtime.error 事件置位，
   // 探测 healthy 或发送路径 status 检查通过即清除；不轮询，用户可点横幅「重新检测」复检
   const [aiDown, setAiDown] = useState<string | null>(null)
+  // feature-820：底栏状态（只在有项目时读取；读取失败的槽位为 null，显示中性文案）
+  const [footer, setFooter] = useState<FooterStatus>(EMPTY_FOOTER_STATUS)
 
   // 入口动作 · 用户原话：会话首条用户消息（Stage0View 入口卡数据源）
   const entryQuote = useMemo(() => items.find(i => i.role === 'user')?.text?.trim() ?? '', [items])
@@ -370,6 +404,55 @@ export default function StudioApp() {
   useEffect(() => {
     void refreshChatModels()
   }, [refreshChatModels])
+
+  // feature-820：底栏只呈现真实状态——文本服务 / 运行时 / ComfyUI 配置 / 画布更新时间。
+  // 无项目不读取（沿用 feature-812 无项目零副作用约定）；任一读取失败 → 该槽位为 null 显示中性文案。
+  useEffect(() => {
+    if (!hasProject) {
+      setFooter(EMPTY_FOOTER_STATUS)
+      return
+    }
+    let alive = true
+    let offStatus: (() => void) | undefined
+    void (async () => {
+      let text: FooterStatus['text'] = null
+      try {
+        text = summarizeActiveProvider(await window.api.settings.ai.get())
+      } catch (e) {
+        console.error('底栏文本服务状态读取失败', e)
+      }
+      let runtime: FooterStatus['runtime'] = null
+      try {
+        const st = await window.api.runtime.status()
+        runtime = { state: st.state, healthy: st.healthy }
+        // 运行时状态推送（部分测试桩未提供该桥，可选调用）
+        offStatus = window.api.runtime.onStatusChange?.(next => {
+          if (alive) setFooter(cur => ({ ...cur, runtime: { state: next.state, healthy: next.healthy } }))
+        })
+      } catch (e) {
+        console.error('底栏运行时状态读取失败', e)
+      }
+      let comfy: FooterStatus['comfy'] = null
+      try {
+        const list = (await window.api.settings.comfy?.list?.()) ?? []
+        comfy = { total: list.length, enabled: list.filter(i => i.enabled).length }
+      } catch (e) {
+        console.error('底栏 ComfyUI 配置读取失败', e)
+      }
+      if (alive) setFooter({ text, runtime, comfy })
+    })()
+    return () => {
+      alive = false
+      offStatus?.()
+    }
+  }, [hasProject, canvas.projectId])
+
+  // feature-820：画布更新时间（真实落盘时间，替代原「2 分钟前自动保存」假文案）
+  const savedAtLabel = useMemo(() => {
+    const at = new Date(canvas.updatedAt)
+    if (Number.isNaN(at.getTime())) return null
+    return at.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  }, [canvas.updatedAt])
 
   // feature-808：回放装载（§4.2）。session 序号过期一律丢弃；404 → 清绑定 + info toast 降级
   const loadReplay = useCallback(async (sessionId: string, seq: number, projectId: string) => {
@@ -987,6 +1070,7 @@ export default function StudioApp() {
                   />
                 )}
                 {panTab === 'plugins'  && <PluginsPanel  query={leftQuery} />}
+                {panTab === 'local' && <LocalModelPanel onOpenAiSettings={() => setAiPanelOpen(true)} />}
               </>
             ) : (
               <StageNavPanel
@@ -1163,36 +1247,48 @@ export default function StudioApp() {
         </aside>
       </div>
 
-      {/* ═══ 底栏状态条（feature-812：无项目时整块不渲染，避免假状态）═══ */}
+      {/* ═══ 底栏状态条（feature-812：无项目时整块不渲染；feature-820：只呈现真实可读状态）═══ */}
       {hasProject && (
-      <footer className="flex h-9 shrink-0 items-center gap-3.5 border-t border-line bg-surface px-4 text-[10.5px] text-muted">
-        <div className="flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-ok" />
-          火山方舟（文本）
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-ok" />
-          10.203.3.52:8000
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-ok" />
-          :8001
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-ok" />
-          :8002
+      <footer data-statusbar className="flex h-9 shrink-0 items-center gap-3.5 border-t border-line bg-surface px-4 text-[10.5px] text-muted">
+        {/* 文本服务：配置完整度（非连通性检测） */}
+        <div className="flex items-center gap-2" data-status="text" title="文本服务配置状态，不代表连通性">
+          <span className={`h-1.5 w-1.5 rounded-full ${footer.text ? (footer.text.configured ? 'bg-violet' : 'bg-warn') : 'bg-line'}`} />
+          {footer.text ? (
+            <>
+              <span>文本 · {footer.text.label}</span>
+              {footer.text.model && <span className="font-mono text-[10px]">{footer.text.model}</span>}
+              {!footer.text.configured && (
+                <span className="text-warn">{footer.text.unconfiguredLabel}</span>
+              )}
+            </>
+          ) : (
+            <span>文本服务未读取</span>
+          )}
         </div>
         <div className="mx-1 h-4 w-px bg-line" />
-        <div className="flex items-center gap-2">
-          <span>镜头批量</span>
-          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-line">
-            <div className="h-full w-2/3 rounded-full bg-violet" />
-          </div>
-          <b className="text-ink">12 / 18</b>
+        {/* Agent 运行时：state / healthy 均来自 runtime.status */}
+        <div className="flex items-center gap-2" data-status="runtime" title="Agent 运行时状态">
+          <span className={`h-1.5 w-1.5 rounded-full ${
+            !footer.runtime ? 'bg-line'
+              : footer.runtime.state === 'running' ? (footer.runtime.healthy ? 'bg-ok' : 'bg-warn')
+              : footer.runtime.state === 'starting' ? 'bg-warn animate-pulse'
+              : footer.runtime.state === 'error' ? 'bg-bad'
+              : 'bg-line'
+          }`} />
+          <span>{runtimeLabel(footer.runtime)}</span>
+        </div>
+        <div className="mx-1 h-4 w-px bg-line" />
+        {/* ComfyUI：仅陈述配置数量，不做在线断言 */}
+        <div className="flex items-center gap-2" data-status="comfy" title="ComfyUI 实例配置数量，非在线探测">
+          <span className={`h-1.5 w-1.5 rounded-full ${footer.comfy && footer.comfy.total > 0 ? 'bg-violet' : 'bg-line'}`} />
+          <span>
+            {!footer.comfy ? 'ComfyUI 未读取'
+              : footer.comfy.total === 0 ? 'ComfyUI 未配置'
+              : `ComfyUI 已配置 ${footer.comfy.enabled}/${footer.comfy.total} 启用`}
+          </span>
         </div>
         <div className="ml-auto flex items-center gap-3">
-          <span className="rounded-full bg-ok/10 px-2 py-0.5 text-ok">✓ Harness 校验 30 项</span>
-          <span>2 分钟前自动保存</span>
+          {savedAtLabel && <span>画布更新于 {savedAtLabel}</span>}
         </div>
       </footer>
       )}

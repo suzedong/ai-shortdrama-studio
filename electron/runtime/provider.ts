@@ -147,11 +147,13 @@ interface RuntimeErrorBodyShape {
  * - 打包后：process.resourcesPath/opencode/agents/<file>（I-001 extraResources 方案）；
  * - 开发态：electron/runtime/（vitest 直跑 ts）或 dist-electron/electron/runtime/（编译产物）向上定位仓库根。
  *
- * 环境判定必须用 app.isPackaged：Electron 开发态下 process.resourcesPath 同样存在（指向
- * node_modules/electron/dist/Electron.app/Contents/Resources），不能用作打包态判据（2026-10-05 I-003）。
+ * 环境判定必须区分「真打包」与「electron <appdir> 开发启动」：2026-11-15 实测 Electron 33.4.11
+ * 下 `electron .` 启动时 `app.isPackaged` 仍返回 true（`process.defaultApp` 也为 true），仅凭
+ * isPackaged 会把开发态误判为打包态、读取 Electron 包内残留旧副本（feature-819）。
+ * 故打包态判据为 `app.isPackaged && !process.defaultApp`。
  */
 export async function resolveAgentTemplatePath(file: string): Promise<string> {
-  if (app.isPackaged) {
+  if (app.isPackaged && !process.defaultApp) {
     return path.join(
       process.resourcesPath,
       CONFIG_DIR_NAME,

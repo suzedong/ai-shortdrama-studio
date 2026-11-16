@@ -54,15 +54,19 @@ const SKILLS: SkillDef[] = [
   },
 ]
 
-const SKILL_CATS = ['全部', '短剧', '情绪', '校园']
+const SKILL_CATS = ['全部', ...Array.from(new Set(SKILLS.map(s => s.cat)))]
 
 export function SkillsPanel({ query = '' }: PanelProps) {
   const [cat, setCat] = useState('全部')
   const q = query.trim().toLowerCase()
-  const list = SKILLS.filter(s => !q || s.name.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q))
+  // feature-820：类目按钮真实筛选（此前只高亮不筛）；无执行通道，卡片标注「未开放」
+  const list = SKILLS.filter(s =>
+    (cat === '全部' || s.cat === cat)
+    && (!q || s.name.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q)))
 
   return (
     <div>
+      <p className="mb-2 px-1 text-[10px] leading-4 text-muted">Skill 市场尚未接入，以下为内置示例目录，暂不可执行。</p>
       <div className="mb-2.5 flex flex-wrap gap-1.5">
         {SKILL_CATS.map(c => (
           <button
@@ -100,11 +104,9 @@ export function SkillsPanel({ query = '' }: PanelProps) {
           <div className="mt-1.5 flex items-center gap-1.5">
             <span className={`rounded-full px-1.5 py-px text-[9px] font-bold tracking-wide ${s.catStyle}`}>{s.cat}</span>
             {s.portable && <span className="rounded-full bg-ok/10 px-1.5 py-px text-[9px] font-bold text-ok">可移植</span>}
+            <span className="rounded-full bg-canvas px-1.5 py-px text-[9px] font-bold text-muted">未开放</span>
             <span className="ml-auto rounded-full bg-canvas px-1.5 py-px font-mono text-[9px] font-semibold text-muted">{s.version}</span>
           </div>
-          <button type="button" className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-violet hover:underline">
-            在对话中试用 →
-          </button>
         </div>
       ))}
     </div>
@@ -332,63 +334,84 @@ export function AssetsPanel({ query = '', selectedNode, onBind, onUnbind }: Asse
 interface PluginDef {
   name: string
   desc: string
-  defaultOn: boolean
   icon: JSX.Element
 }
 
 const PLUGINS: PluginDef[] = [
   {
-    name: '3D 导演台', desc: '自然语言摆位、机位与姿态', defaultOn: true,
+    name: '3D 导演台', desc: '自然语言摆位、机位与姿态',
     icon: <><path d="M12 2 2 7l10 5 10-5z" /><path d="m2 17 10 5 10-5M2 12l10 5 10-5" /></>,
   },
   {
-    name: '智能剪辑台', desc: '语义化字幕、转场与拼接', defaultOn: true,
+    name: '智能剪辑台', desc: '语义化字幕、转场与拼接',
     icon: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M7 5v14M11 5v14M15 5v14" /></>,
   },
   {
-    name: '批量水印 / Logo', desc: '成片批量版权信息', defaultOn: false,
+    name: '批量水印 / Logo', desc: '成片批量版权信息',
     icon: <><path d="M12 3v18M3 12h18" /></>,
   },
   {
-    name: '多角度机位', desc: '同一主体多视角批量出片', defaultOn: false,
+    name: '多角度机位', desc: '同一主体多视角批量出片',
     icon: <><rect x="3" y="3" width="18" height="18" rx="9" /><circle cx="12" cy="12" r="3" /></>,
   },
 ]
 
 export function PluginsPanel({ query = '' }: PanelProps) {
-  const [on, setOn] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(PLUGINS.map(p => [p.name, p.defaultOn])))
   const q = query.trim().toLowerCase()
   const list = PLUGINS.filter(p => !q || p.name.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q))
 
   return (
     <div>
+      <p className="mb-2 px-1 text-[10px] leading-4 text-muted">插件能力未开放：以下为规划中的插件，当前不可启用。</p>
       {list.length === 0 && <p className="px-1 pt-2 text-[11px] text-muted">没有匹配的插件。</p>}
-      {list.map(p => {
-        const enabled = on[p.name]
-        return (
-          <div key={p.name} className="mb-2 flex items-center gap-2.5 rounded-[11px] border border-line bg-surface p-2.5">
-            <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg bg-violet-soft text-violet">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                {p.icon}
-              </svg>
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[12px] font-bold text-ink">{p.name}</div>
-              <div className="truncate text-[10px] text-muted">{p.desc}</div>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={enabled}
-              onClick={() => setOn(s => ({ ...s, [p.name]: !s[p.name] }))}
-              className={`relative h-[18px] w-8 shrink-0 rounded-full transition ${enabled ? 'bg-violet' : 'bg-line'}`}
-            >
-              <span className={`absolute top-0.5 h-[14px] w-[14px] rounded-full bg-surface shadow transition-all ${enabled ? 'left-4' : 'left-0.5'}`} />
-            </button>
+      {list.map(p => (
+        <div key={p.name} className="mb-2 flex items-center gap-2.5 rounded-[11px] border border-line bg-surface p-2.5">
+          <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg bg-violet-soft text-violet">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+              {p.icon}
+            </svg>
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[12px] font-bold text-ink">{p.name}</div>
+            <div className="truncate text-[10px] text-muted">{p.desc}</div>
           </div>
-        )
-      })}
+          <span className="shrink-0 rounded-full bg-canvas px-1.5 py-px text-[9px] font-bold text-muted">未开放</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* ───────────────────────── 本地模型 ───────────────────────── */
+
+// feature-820：P1 调查 §3-⑨ 缺失的一级入口；本面板只陈述未开放范围与现有替代路径，不伪造可操作项
+export function LocalModelPanel({ onOpenAiSettings }: { onOpenAiSettings: () => void }) {
+  return (
+    <div>
+      <div className="mb-2 rounded-[11px] border border-line bg-surface p-2.5">
+        <div className="flex items-center gap-1.5 text-[12px] font-bold text-ink">
+          本地模型管理
+          <span className="rounded-full bg-canvas px-1.5 py-px text-[9px] font-bold text-muted">未开放</span>
+        </div>
+        <p className="mt-1.5 text-[10.5px] leading-[1.5] text-muted">
+          应用内的模型下载、切换与显存管理尚未开放，本页不提供可执行操作。
+        </p>
+      </div>
+      <div className="mb-2 rounded-[11px] border border-line bg-surface p-2.5">
+        <p className="text-[11px] font-bold text-ink">当前可用路径</p>
+        <ul className="mt-1.5 space-y-1 text-[10.5px] leading-[1.5] text-muted">
+          <li>· 文本服务：在「AI 服务设置」中切换火山方舟 / 本地 LM Studio。</li>
+          <li>· 图像 / 视频 / 音乐：经本地或局域网 ComfyUI 推理，实例在「AI 服务设置 · ComfyUI」维护。</li>
+        </ul>
+        <button
+          type="button"
+          onClick={onOpenAiSettings}
+          data-local-models-settings
+          className="mt-2 rounded-md border border-violet/30 bg-violet-soft px-2 py-1.5 text-[10.5px] font-semibold text-violet transition hover:bg-violet hover:text-white"
+        >
+          打开 AI 服务设置
+        </button>
+      </div>
     </div>
   )
 }

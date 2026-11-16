@@ -30,6 +30,32 @@ export function formatChatModelLabel(providerID: AiProviderId, modelID: string):
   return `${providerID === 'ark' ? '火山方舟' : 'LM Studio'} · ${modelID}`
 }
 
+/** feature-820：底栏状态槽位的服务商差异——C7 架构断言禁止其余 shell 文件出现服务商字面量，统一收敛在本豁免面板。 */
+export function summarizeActiveProvider(view: AiServiceSettingsView): {
+  provider: AiProviderId
+  label: string
+  model: string
+  configured: boolean
+  unconfiguredLabel: string
+} {
+  if (view.activeProvider === 'ark') {
+    return {
+      provider: 'ark',
+      label: '火山方舟',
+      model: view.ark.model,
+      configured: view.ark.keyConfigured,
+      unconfiguredLabel: '未配置 Key',
+    }
+  }
+  return {
+    provider: view.activeProvider,
+    label: 'LM Studio',
+    model: view.lmstudio.model,
+    configured: Boolean(view.lmstudio.baseUrl),
+    unconfiguredLabel: '未配置地址',
+  }
+}
+
 export interface AiServicePanelProps {
   /** 对话区横幅同一数据源（D-013）：null=可用/未知，非空=连接失败 */
   aiDown: string | null

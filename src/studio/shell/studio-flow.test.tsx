@@ -79,10 +79,24 @@ function installApi(initial: Canvas): Harness {
       ai: {
         get: vi.fn(async () => ({
           activeProvider: 'ark',
-          ark: { model: 'doubao-pro-32k' },
-          lmstudio: { model: 'local-model' },
+          ark: {
+            model: 'doubao-pro-32k', baseUrl: 'https://ark.example.com/api/v3', keyConfigured: true,
+            sources: { apiKey: 'store' as const, baseUrl: 'store' as const, model: 'store' as const },
+          },
+          lmstudio: {
+            model: 'local-model', baseUrl: 'http://127.0.0.1:1234/v1',
+            sources: { baseUrl: 'store' as const, model: 'store' as const },
+          },
+          runtime: { portRangeStart: 40100, healthTimeoutMs: 20000, mockBaseUrl: '' },
+          updatedAt: new Date().toISOString(),
         })),
         update: vi.fn(),
+      },
+      // feature-820：底栏只陈述配置数量；默认 1 个已启用实例
+      comfy: {
+        list: vi.fn(async () => [
+          { id: 'comfy-1', name: '本机', baseUrl: 'http://127.0.0.1:8188', enabled: true, addedAt: '2026-11-10T00:00:00.000Z' },
+        ]),
       },
     },
     fileRead: vi.fn(async () => ({ ok: true as const, content: '{"a":1}', format: 'json' as const })), 
@@ -352,6 +366,8 @@ describe('feature-812 · 无项目态', () => {
     expect(document.querySelector('[data-view="welcome"]')).toBeTruthy()
     expect(screen.getByText('短剧 Agent · 未打开项目')).toBeInTheDocument()
     expect(document.querySelector('footer')).toBeNull()
+    expect(document.querySelector('[data-statusbar]')).toBeNull()
+    // feature-820：底栏虚构状态文案已移除，任何状态都不得出现
     expect(screen.queryByText('火山方舟（文本）')).not.toBeInTheDocument()
     // 误导性空态不得出现
     expect(screen.queryByText(/还没有任何产物/)).not.toBeInTheDocument()
@@ -558,5 +574,87 @@ describe('feature-814 · 资产绑定交互', () => {
     expect(await screen.findByLabelText('关联资产 1 项')).toBeInTheDocument()
     expect(screen.getByTitle('资产/女主.png')).toHaveAttribute('aria-pressed', 'true')
     expect(h.command).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('feature-820 · 一级入口与伪造状态收口', () => {
+  it('AC-1/AC-2/AC-4：底栏只呈现真实状态，虚构端口 / 批量 / Harness / 自动保存不出现', async () => {
+    installApi(emptyCanvas('测试项目'))
+    render(<StudioApp />)
+
+    const bar = await waitFor(() => {
+      const el = document.querySelector('[data-statusbar]')
+      expect(el).toBeTruthy()
+      return el as HTMLElement
+    })
+    const text = bar.textContent ?? ''
+    expect(text).toContain('火山方舟')
+    expect(text).toContain('doubao-pro-32k')
+    expect(text).toContain('运行时 · 运行中')
+    expect(text).toContain('ComfyUI 已配置 1/1 启用')
+    expect(text).toContain('画布更新于')
+    for (const stale of ['10.203.3.52:8000', ':8001', ':8002', '镜头批量', 'Harness 校验', '自动保存']) {
+      expect(text).not.toContain(stale)
+    }
+  })
+
+  it('AC-2：文本服务未配置 Key 时显示告警且不出现绿色在线点', async () => {
+    installApi(emptyCanvas('测试项目'))
+    ;(window.api.settings.ai.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      activeProvider: 'ark',
+      ark: {
+        model: 'doubao-pro-32k', baseUrl: '', keyConfigured: false,
+        sources: { apiKey: 'default' as const, baseUrl: 'default' as const, model: 'default' as const },
+      },
+      lmstudio: {
+        model: 'local-model', baseUrl: '',
+        sources: { baseUrl: 'default' as const, model: 'default' as const },
+      },
+      runtime: { portRangeStart: 40100, healthTimeoutMs: 20000, mockBaseUrl: '' },
+      updatedAt: new Date().toISOString(),
+    })
+    render(<StudioApp />)
+
+    const slot = await waitFor(() => {
+      const el = document.querySelector('[data-status="text"]')
+      expect(el).toBeTruthy()
+      return el as HTMLElement
+    })
+    expect(slot.textContent).toContain('未配置 Key')
+    expect(slot.querySelector('.bg-ok')).toBeNull()
+  })
+
+  it('AC-5：Skill 类目真实筛选、无死按钮；插件无假开关', async () => {
+    installApi(emptyCanvas('测试项目'))
+    render(<StudioApp />)
+    await screen.findByPlaceholderText(/描述创作目标/)
+
+    await user.click(document.querySelector('[data-rail="skills"]')!)
+    expect(await screen.findByText('日漫定妆流')).toBeInTheDocument()
+    expect(screen.getByText('强情绪三连镜')).toBeInTheDocument()
+    expect(screen.queryByText(/在对话中试用/)).not.toBeInTheDocument()
+
+    // 类目筛选生效：情绪只剩「强情绪三连镜」
+    await user.click(screen.getByRole('button', { name: '情绪' }))
+    await waitFor(() => expect(screen.queryByText('日漫定妆流')).not.toBeInTheDocument())
+    expect(screen.getByText('强情绪三连镜')).toBeInTheDocument()
+
+    await user.click(document.querySelector('[data-rail="plugins"]')!)
+    expect(await screen.findByText('3D 导演台')).toBeInTheDocument()
+    expect(screen.queryByRole('switch')).toBeNull()
+    expect(screen.getAllByText('未开放').length).toBeGreaterThan(0)
+  })
+
+  it('AC-6：本地模型入口可见未开放说明，并可打开 AI 服务设置', async () => {
+    installApi(emptyCanvas('测试项目'))
+    render(<StudioApp />)
+    await screen.findByPlaceholderText(/描述创作目标/)
+
+    await user.click(document.querySelector('[data-rail="local"]')!)
+    expect(await screen.findByText('本地模型管理')).toBeInTheDocument()
+    expect(screen.getByText(/不提供可执行操作/)).toBeInTheDocument()
+
+    await user.click(document.querySelector('[data-local-models-settings]')!)
+    expect(await screen.findByRole('dialog', { name: 'AI 服务设置' })).toBeInTheDocument()
   })
 })

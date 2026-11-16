@@ -1,0 +1,26 @@
+{
+  "startedAt": "2026-11-15T16:07:38.230Z",
+  "steps": [],
+  "subscribed": true,
+  "textareaFound": true,
+  "textareaDisabled": false,
+  "placeholder": "描述创作目标，或 / 唤起 Skill…",
+  "inputValue": "连通性验收：请只回复「收到」两个字，不要调用任何工具。",
+  "sendButtonFound": true,
+  "sendDisabled": false,
+  "stopButtonSeen": true,
+  "placeholderSeen": true,
+  "eventCount": 5,
+  "eventTypes": {
+    "runtime.connected": 1,
+    "message.part": 2,
+    "message.delta": 1,
+    "session.idle": 1
+  },
+  "toolCalls": [],
+  "terminal": [],
+  "bubbleNodes": 0,
+  "replyContainsShouDao": true,
+  "bodyTail": "认门态，再决定动作。\n\n任务详情 · 1 项\n已完成\n· 读取画布\n火山方舟 · ark-code-latest\n主\n主控 Agent\n推理过程\n\n0-final 定案门已挂起（pending），定案卡完整上屏。门调用层两次超时只是「等待」这一动作的回合超时，门本身稳定挂在你的界面上，不构成任何授权——需要你亲自点按钮裁决。\n\n请你点击定案卡上的选项：\n\n发布立项 v1：我随即 brief.publish 双写 立项单.v1.json/.md、upsert 画布 step-0-brief 节点、推进 manifest（initiating→story-outline），然后汇报并可进入第 1 步故事。\n再改改：告诉我改哪里，我回对话改草案、重跑就绪自检、以同一 gateId 重发门。\n\n你点完我下一回合就会接住结果继续。在你裁决前，我不做任何下游动作。\n\n火山方舟 · ark-code-latest\nSZ\n用户\n连通性验收：请只回复「收到」两个字，不要调用任何工具。\n主\n主控 Agent\n\n收到\n\n火山方舟 · ark-code-latest\n火山方舟 · ark-code-latest\nLM Studio · qwen3.8-27b\nH3 自动选配\n文本 · 火山方舟\nark-code-latest\n运行时 · 运行中\nComfyUI 已配置 1/1 启用\n画布更新于 08:30",
+  "finishedAt": "2026-11-15T16:11:38.783Z"
+}

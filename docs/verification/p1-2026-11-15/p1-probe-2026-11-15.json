@@ -1,0 +1,151 @@
+{
+  "collectedAt": "2026-11-15T15:51:47.781Z",
+  "app": {
+    "url": "http://localhost:5173/",
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "title": "短剧 Agent 平台"
+  },
+  "restoredProject": {
+    "projectId": "project-20261101-195128-q68i",
+    "title": "test",
+    "nodes": 0,
+    "keys": [
+      "schemaVersion",
+      "projectId",
+      "title",
+      "nodes",
+      "edges",
+      "gates",
+      "updatedAt",
+      "revision",
+      "receipts"
+    ]
+  },
+  "visibleViews": [
+    "stage0"
+  ],
+  "topNavButtons": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "🎨视觉风格谱系v1.46",
+    "项目",
+    "← 返回画布",
+    "×",
+    "展开 ▾"
+  ],
+  "keywordCounts": {
+    "演示": 0,
+    "本地模型": 0,
+    "开始创作": 0,
+    "上传": 0,
+    "附件": 0,
+    "小地图": 0,
+    "自动整理": 0,
+    "多画布": 0,
+    "创作页": 0
+  },
+  "composer": {
+    "disabled": true,
+    "placeholder": "AI 服务不可用，恢复后可继续对话"
+  },
+  "assets": {
+    "image": [],
+    "video": [],
+    "music": [],
+    "workflow": []
+  },
+  "runtimeStatus": {
+    "state": "error",
+    "port": null,
+    "version": null,
+    "healthy": false,
+    "startedAt": null,
+    "error": {
+      "code": "INTERNAL",
+      "message": "showrunner.md 模板缺少 __MODEL_REF__ 占位符：D:\\Code\\ai-shortdrama-studio\\node_modules\\electron\\dist\\resources\\opencode\\agents\\showrunner.md"
+    }
+  },
+  "configStatus": {
+    "arkConfigured": true
+  },
+  "projects": [
+    "test1",
+    "test"
+  ],
+  "apiSurface": {
+    "listProjects": "function",
+    "createProject": "function",
+    "openProject": "function",
+    "renameProject": "function",
+    "deleteProject": "function",
+    "updateBrief": "function",
+    "briefHistory": "function",
+    "briefVersionRead": "function",
+    "briefRollback": "function",
+    "captureList": "function",
+    "captureUpsert": "function",
+    "captureRemove": "function",
+    "onCaptureChanged": "function",
+    "styleCatalog": "function",
+    "styleUpgradeDiff": "function",
+    "stylePreviewMetadata": "function",
+    "activeSession": "function",
+    "configStatus": "function",
+    "runtime": [
+      "start",
+      "stop",
+      "status",
+      "createSession",
+      "listSessions",
+      "sessionMessages",
+      "abortSession",
+      "deleteSession",
+      "prompt",
+      "promptAsync",
+      "subscribe",
+      "unsubscribe",
+      "listAgents",
+      "onEvent",
+      "onStatusChange"
+    ],
+    "canvas": [
+      "get",
+      "command",
+      "subscribe",
+      "unsubscribe",
+      "onChange"
+    ],
+    "gate": [
+      "decide",
+      "onChanged"
+    ],
+    "asset": [
+      "list"
+    ],
+    "fileRead": "function",
+    "settings": [
+      "comfy",
+      "ai",
+      "workspace"
+    ],
+    "window": [
+      "platform",
+      "minimize",
+      "toggleMaximize",
+      "isMaximized",
+      "close",
+      "onMaximizeChange"
+    ]
+  },
+  "footerText": "火山方舟（文本）10.203.3.52:8000:8001:8002镜头批量12 / 18✓ Harness 校验 30 项2 分钟前自动保存",
+  "demoFooterHardcodedSample": true
+}

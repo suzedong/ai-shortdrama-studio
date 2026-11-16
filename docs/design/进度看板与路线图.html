@@ -10,9 +10,9 @@
   事实来源见页底「事实来源索引」。无构建、无外部依赖，仅含展示脚本。
   数据快照日期：2026-10-09（当日复核 test:run / typecheck，与 2026-10-08 首测结果一致）。
   2026-10-27 再核（v1.14 反向同步）：磁盘实况更新为 27 个纯 MCP 工具 / 10 族、4 个 Agent profile（showrunner 单 primary）、20 个现行 feature 包（19 落地 / 201 部分）；测试基线 722 通过 / 0 失败 / 1 跳过（61 文件），typecheck 恰 3 条历史基线。
-  2026-11-02 再核（v1.17 反向同步）：28 个纯 MCP 工具 / 11 族、showrunner 23 白名单且独占 task、27 个现行 feature 包；当前测试与类型基线见下方实测卡。
-  2026-11-03 再核（v1.18 反向同步）：feature-813 工作目录更换落地（根目录可更换，单一全局根，IPC 47 通道）· 28 个现行 feature 包；当前测试基线 1029 通过 / 1 跳过 / 0 失败（82 文件）。
-  D-005：立项模型重建已落地；任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段），本看板按现行 28 个任务包展示。
+  2026-11-02 再核（v1.17 反向同步）：28 个纯 MCP 工具 / 11 族、showrunner 23 白名单且独占 task、27 个现行 feature 包；当时测试与类型基线见下方历史实测卡。
+  2026-11-03 再核（v1.18 反向同步）：feature-813 工作目录更换落地（根目录可更换，单一全局根，IPC 47 通道）· 28 个现行 feature 包；当时测试基线 1029 通过 / 1 跳过 / 0 失败（82 文件）。
+  D-005：立项模型重建已落地；任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段）。2026-11-16 当前镜像按 36 个任务包展示，早期数量仅为历史再核。
 -->
 <style>
 :root{
@@ -192,41 +192,42 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   <a href="#features"><span class="n">01</span>Feature 看板</a>
   <a href="#steps"><span class="n">02</span>八步闭环</a>
   <a href="#quality"><span class="n">03</span>质量实况</a>
-  <a href="#roadmap"><span class="n">04</span>三期路线</a>
+  <a href="#roadmap"><span class="n">04</span>P0—P7 路线</a>
 </nav>
 
 <main>
 <header class="hero" id="top">
   <div class="kicker">PROGRESS · ROADMAP</div>
   <h1>进度<em>看板</em>与路线图</h1>
-  <p class="lede">面向不读规格的人：<b>现行 28 个任务包、八步闭环覆盖、测试质量与三期路线</b>，一眼看全局。对话通道已按 D-012 定稿 runtime 单轨终态；业务层按八步模块分段建包推进。</p>
+  <p class="lede">面向不读规格的人：<b>当前 36 个任务包、八步闭环覆盖、真实回归边界与 P0—P7 交付门</b>，一眼看全局。P0 基线收口完成；P1 已越过启动阻塞但仍未通过，下一入口为切片 C。旧数字与旧三期路线仅保留为页底历史。</p>
   <div class="verline">
-    <span class="chip">现行任务包 <b>28 个（逐包状态以任务清单为准）</b></span>
-    <span class="chip">待建包 <b>3xx–7xx 共 7 个 + 803/805</b></span>
-    <span class="chip">当前焦点 <b>Agent 权限与影响面板语义收口</b></span>
-    <span class="chip">画像 <b>P2</b></span>
+    <span class="chip">设计基准 <b>设计 v1.24 · 总规划 v0.6</b></span>
+    <span class="chip">现行任务包 <b>36 个</b></span>
+    <span class="chip">当前阶段 <b>P1 进行中 · 未通过</b></span>
+    <span class="chip">镜像同步 <b>2026-11-16</b></span>
   </div>
-  <div class="snapshot">数据快照：2026-10-09 复核 · npm run test:run（197 通过 / 1 跳过）/ typecheck（0 错误），与 10-08 首测一致</div>
-  <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-10-14 再核（v1.12）：磁盘实况已演进为 <b>22 个纯 MCP 工具 / 8 族 · 4 个 Agent profile（director 退役，showrunner 唯一 primary）· 5 个现行 feature 包</b>；当前测试基线 <b>369 通过 / 0 失败 / 1 跳过（35 文件，同日存量清零）</b>；typecheck 双 tsconfig + tsc -b 全绿。</div>
-  <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-11-02 再核（v1.17）：<b>28 个纯 MCP 工具 / 11 族 · showrunner 23 白名单且独占 task · 27 个现行 feature 包</b>；当前测试基线见下方实测卡，renderer typecheck 保留 3 条现存测试夹具基线。</div>
-  <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-11-03 再核（v1.18）：<b>feature-813 工作目录更换落地（根目录可更换，单一全局根，+3 IPC，47 通道）· 28 个现行 feature 包</b>；当前测试基线 <b>1029 通过 / 0 失败 / 1 跳过（82 文件）</b>；renderer typecheck 保留 3 条现存测试夹具基线。</div>
+  <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-11-16 当前视图（D-034）：<b>P0 基线收口完成，P1 已越过启动阻塞但未通过</b>。feature-818—820 已完成各自验收，真实 Electron 最小 AI 对话往返通过；上传、真实缩略图、对话侧资产引用、多画布 / 视口恢复与故障注入仍待后续切片。现行路线与阶段门以 <a href="../research/MiniMax%20Design全面复刻开发计划.md">总规划 v0.6</a> 为准。</div>
+  <div class="snapshot">历史快照：2026-10-09 复核 · npm run test:run（197 通过 / 1 跳过）/ typecheck（0 错误），与 10-08 首测一致</div>
+  <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-10-14 再核（v1.12）：磁盘实况已演进为 <b>22 个纯 MCP 工具 / 8 族 · 4 个 Agent profile（director 退役，showrunner 唯一 primary）· 5 个现行 feature 包</b>；当时测试基线 <b>369 通过 / 0 失败 / 1 跳过（35 文件，同日存量清零）</b>；typecheck 双 tsconfig + tsc -b 全绿。</div>
+  <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-11-02 再核（v1.17）：<b>28 个纯 MCP 工具 / 11 族 · showrunner 23 白名单且独占 task · 27 个现行 feature 包</b>；当时测试基线见下方历史实测卡，renderer typecheck 保留 3 条现存测试夹具基线。</div>
+  <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-11-03 再核（v1.18）：<b>feature-813 工作目录更换落地（根目录可更换，单一全局根，+3 IPC，47 通道）· 28 个现行 feature 包</b>；当时测试基线 <b>1029 通过 / 0 失败 / 1 跳过（82 文件）</b>；renderer typecheck 保留 3 条现存测试夹具基线。</div>
   <div class="truth-banner">
     <span class="tb-ic">⚠ FACT</span>
     <span>本页是 <b>B 类可视化文档</b>，仅用于汇报与快速理解，<b>不是事实源</b>。进度以各任务清单与 A 类文档为准；如冲突以 A 类为准并修正本页。事实来源见 <a href="#sources">页底索引</a>。</span>
   </div>
 
   <div class="stats rv">
-    <div class="stat"><div class="num"><span data-to="28">0</span><small> 个现行包</small></div><div class="lbl">0xx 立项 15 · 1xx 故事 1 · 2xx 剧本分场 1 · 8xx 平台基础 11；3xx–7xx 共 7 个待建</div></div>
-    <div class="stat"><div class="num"><span data-to="1029">0</span><small> 通过</small></div><div class="lbl">2026-11-03 当前基线（82 文件 · 1 跳过 · 0 失败）；历史：11-02 1001 / 80 文件，10-27 722 / 61 文件，10-14 369 / 35 文件，10-09 197 / 24 文件</div></div>
-    <div class="stat"><div class="num"><span data-to="3">0</span><small> /8 步</small></div><div class="lbl">新设计已落地 0–2 步（2-c 分镜文字稿待实施）；3–7 步待建包；对话通道已定稿终态</div></div>
-    <div class="stat"><div class="num"><span data-to="3">0</span><small> 条</small></div><div class="lbl">renderer typecheck 现存测试夹具基线（2026-11-02）；10-09 的 0 错误为历史快照</div></div>
+    <div class="stat"><div class="num"><span data-to="36">0</span><small> 个现行包</small></div><div class="lbl">Feature 索引当前口径；29 个 MCP 工具 = 28 个业务工具 / 11 族 + tool.search</div></div>
+    <div class="stat"><div class="num"><span data-to="81">0</span><small> /93 文件</small></div><div class="lbl">当前回归：81 文件通过、12 文件失败；1,111 用例通过、85 失败、1 跳过</div></div>
+    <div class="stat"><div class="num">P1<small> 当前阶段</small></div><div class="lbl">进行中 · 未通过；真实对话已通，下一切片 C 为资产上传与真实缩略图</div></div>
+    <div class="stat"><div class="num"><span data-to="0">0</span><small> 个类型错误</small></div><div class="lbl">typecheck 通过；architecture + studio-flow 专项 29 / 29；B-70 仍未关闭</div></div>
   </div>
 </header>
 
 <!-- ══════ 01 Feature 看板 ══════ -->
 <section id="features">
   <div class="sec-head rv"><span class="sec-no">01</span><h2>任务包看板</h2></div>
-  <p class="sec-sub rv">现行任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段），<b>已建 28 个</b>；另列 9 个待建包（3xx–7xx 共 7 个 + 803 媒体引擎 + 805 Skill）。对话通道经 D-012 定稿 runtime 单轨终态，其余按包内任务清单与 AC 逐项验收。</p>
+  <p class="sec-sub rv"><a href="../features/README.md">Feature 索引</a>共 <b>36 个现行包</b>；3xx–7xx 为后续业务段，805 编号保留、不建包。单包完成不等于 P0—P7 阶段门通过；feature-818—820 的真实证据见 <a href="../verification/p1-2026-11-15/P1调查记录.md">P1 调查记录</a>。</p>
 
   <div class="kanban">
     <div class="fcard done rv">
@@ -349,49 +350,49 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     </div>
 
     <div class="fcard todo rv">
-      <div class="ftop"><span class="fid">301</span><h4>资产中心与角色定妆</h4><span class="status st-todo">未建包 · P3</span></div>
-      <p class="fdesc">资产索引选定 / 沉淀；角色卡一致性配方（seed / 参考图 / 提示词）；qwen-image B0 定妆。</p>
+      <div class="ftop"><span class="fid">301</span><h4>资产中心与角色定妆</h4><span class="status st-todo">未建包</span></div>
+      <p class="fdesc">资产索引选定 / 沉淀；角色卡一致性配方（seed / 参考图 / 提示词）；H3 Image B0 定妆（经 ComfyUI）。</p>
       <div class="fmeta"><span>3xx · 资产</span><span>改编</span></div>
       <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
     </div>
 
     <div class="fcard todo rv">
-      <div class="ftop"><span class="fid">302</span><h4>场景与道具资产</h4><span class="status st-todo">未建包 · P3</span></div>
+      <div class="ftop"><span class="fid">302</span><h4>场景与道具资产</h4><span class="status st-todo">未建包</span></div>
       <p class="fdesc">场景图 / 道具图流水线；主风格一致性配方复用。</p>
       <div class="fmeta"><span>3xx · 资产</span><span>改编</span></div>
       <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
     </div>
 
     <div class="fcard todo rv">
-      <div class="ftop"><span class="fid">401</span><h4>生产分镜表</h4><span class="status st-todo">未建包 · P3</span></div>
+      <div class="ftop"><span class="fid">401</span><h4>生产分镜表</h4><span class="status st-todo">未建包</span></div>
       <p class="fdesc">分镜文字稿升级为可生产分镜：资产引用 refs、景别 / 运镜 / 逐镜时长 / 台词对位。</p>
       <div class="fmeta"><span>4xx · 分镜</span><span>改编</span></div>
       <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
     </div>
 
     <div class="fcard todo rv">
-      <div class="ftop"><span class="fid">501</span><h4>逐镜视频生成</h4><span class="status st-todo">未建包 · P3</span></div>
+      <div class="ftop"><span class="fid">501</span><h4>逐镜视频生成</h4><span class="status st-todo">未建包</span></div>
       <p class="fdesc">H3 工作流（B5 参考生视频 / B8 文生视频）+ 收片 + 断点续跑 + 单镜失败隔离。</p>
       <div class="fmeta"><span>5xx · 镜头</span><span>改编</span></div>
       <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
     </div>
 
     <div class="fcard todo rv">
-      <div class="ftop"><span class="fid">601</span><h4>声音通道（配音 + 配乐）</h4><span class="status st-todo">未建包 · P3</span></div>
+      <div class="ftop"><span class="fid">601</span><h4>声音通道（配音 + 配乐）</h4><span class="status st-todo">未建包</span></div>
       <p class="fdesc">一期 T2A 人机通道（待配 / 已配清单防漏镜）；Music3 B9 配乐 / 音效。</p>
       <div class="fmeta"><span>6xx · 后期</span><span>自研新增</span></div>
       <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
     </div>
 
     <div class="fcard todo rv">
-      <div class="ftop"><span class="fid">602</span><h4>时间线与程序化剪辑</h4><span class="status st-todo">未建包 · P3</span></div>
+      <div class="ftop"><span class="fid">602</span><h4>时间线与程序化剪辑</h4><span class="status st-todo">未建包</span></div>
       <p class="fdesc">timeline.json（采用版本 / 切点 / 字幕 / 音量 / 过渡）+ edit.*（MediaKit / FFmpeg）。</p>
       <div class="fmeta"><span>6xx · 后期</span><span>改编</span></div>
       <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
     </div>
 
     <div class="fcard todo rv">
-      <div class="ftop"><span class="fid">701</span><h4>成片交付与切片</h4><span class="status st-todo">未建包 · P3</span></div>
+      <div class="ftop"><span class="fid">701</span><h4>成片交付与切片</h4><span class="status st-todo">未建包</span></div>
       <p class="fdesc">成片 / 封面 / 切片导出；渠道规格校验；成片确认门。</p>
       <div class="fmeta"><span>7xx · 发布</span><span>改编</span></div>
       <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
@@ -411,11 +412,11 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
     </div>
 
-    <div class="fcard todo rv">
-      <div class="ftop"><span class="fid">803</span><h4>ComfyUI 统一媒体引擎</h4><span class="status st-todo">未建包 · P2 前置</span></div>
-      <p class="fdesc">B0/B5/B8/B9 工作流模板装载 / 队列 / WebSocket 进度 / 收片；局域网多实例池，媒体零公网。</p>
-      <div class="fmeta"><span>8xx · 平台基础</span><span>改编</span></div>
-      <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
+    <div class="fcard rv">
+      <div class="ftop"><span class="fid">803</span><h4>主链路壳 · 八步占位</h4><span class="status st-part">已立项 · 未完成</span></div>
+      <p class="fdesc">八步骨架已建，门后生产合同未完成；不得写成八步闭环已落地。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>自研新增</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:45%"></i></div>
     </div>
 
     <div class="fcard done rv">
@@ -426,9 +427,9 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     </div>
 
     <div class="fcard todo rv">
-      <div class="ftop"><span class="fid">805</span><h4>Skill 体系</h4><span class="status st-todo">二期</span></div>
-      <p class="fdesc">Skill 检索 / 执行 / 沉淀 / 投稿；模板中心。</p>
-      <div class="fmeta"><span>8xx · 平台基础</span><span>Design 原有</span></div>
+      <div class="ftop"><span class="fid">805</span><h4>Skill 体系（编号保留）</h4><span class="status st-todo">不建包</span></div>
+      <p class="fdesc">该编号保留、不建任务包；当前 Skill 一级入口与真实状态收口见 feature-820。</p>
+      <div class="fmeta"><span>8xx · 编号说明</span><span>不计入 36 包</span></div>
       <div class="pbar"><i class="pb-amber" style="width:0%"></i></div>
     </div>
 
@@ -487,33 +488,97 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       <div class="fmeta"><span>8xx · 平台基础</span><span>自研新增</span></div>
       <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
     </div>
+
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">814</span><h4>MiniMax Design 复刻调研</h4><span class="status st-done">已完成</span></div>
+      <p class="fdesc">D-030 证据基线与 D-034 全面复刻定位的调研输入。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>研究 / 证据</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+    <div class="fcard rv">
+      <div class="ftop"><span class="fid">815</span><h4>运行时任一工作区适配</h4><span class="status st-part">实施中</span></div>
+      <p class="fdesc">P0 基线包；单包状态不替代阶段门与当前全量回归。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>改编</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:70%"></i></div>
+    </div>
+    <div class="fcard rv">
+      <div class="ftop"><span class="fid">816</span><h4>媒体设置面</h4><span class="status st-part">实施中</span></div>
+      <p class="fdesc">P0 基线包；ComfyUI 实例与媒体通道配置。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>Design 原有 / 改编</span></div>
+      <div class="pbar"><i class="pb-amber" style="width:70%"></i></div>
+    </div>
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">817</span><h4>目标媒体工作流封装</h4><span class="status st-done">已完成</span></div>
+      <p class="fdesc">目标工作流封装证据已登记；不提前宣称 P2—P4 媒体闭环通过。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>改编</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">818</span><h4>项目库与类型基线</h4><span class="status st-done">已完成</span></div>
+      <p class="fdesc">Renderer 类型基线修复与项目库能力，P1 已完成项。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>Design 原有 / 改编</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">819</span><h4>运行时模板与真实对话</h4><span class="status st-done">已完成</span></div>
+      <p class="fdesc">开发态模板路径修复；真实 Electron 最小 AI 对话往返通过。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>修复 / 验证</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
+    <div class="fcard done rv">
+      <div class="ftop"><span class="fid">820</span><h4>一级入口与真实状态收口</h4><span class="status st-done">已完成</span></div>
+      <p class="fdesc">底栏真实状态、Skill / 插件 / 本地模型一级入口；伪造 UI 已收口。</p>
+      <div class="fmeta"><span>8xx · 平台基础</span><span>Design 原有 / 改编</span></div>
+      <div class="pbar"><i class="pb-green" style="width:100%"></i></div>
+    </div>
   </div>
 </section>
 
 <!-- ══════ 02 八步闭环 ══════ -->
 <section id="steps">
   <div class="sec-head rv"><span class="sec-no">02</span><h2>八步生产闭环覆盖</h2></div>
-  <p class="sec-sub rv">红色 0/1/2 = 现存代码已覆盖，但按旧立项门模型实现（与设计 §2.6 不符），<b>属待重建现状、不计为新设计落地，按现行任务包对齐重建</b>；重建顺序为立项 → 故事 → 剧本分场，随后第 3 步「资产」接入 ComfyUI 统一媒体引擎。</p>
+  <p class="sec-sub rv">0—2 的核心文本链已有实现，但门后生产合同与 P3 验收未完成；当前 P1 先补桌面工作台。第 3 步资产及后续媒体链必须经本地 / 局域网 ComfyUI，不得因骨架或目标工作流已存在而提前宣称闭环通过。</p>
 
   <div class="steps rv">
-    <div class="step legacy"><div class="dot">0</div><div class="sn">立项</div><div class="sd">诊断（含六要素草案）/ 故事前提 / 定案卡</div><div class="bar"></div></div>
-    <div class="step legacy"><div class="dot">1</div><div class="sn">故事</div><div class="sd">大纲 / 小传</div><div class="bar"></div></div>
-    <div class="step legacy"><div class="dot">2</div><div class="sn">剧本分场</div><div class="sd">分场 / 台词 / 分镜文本</div><div class="bar"></div></div>
-    <div class="step todo"><div class="dot">3</div><div class="sn">资产</div><div class="sd">定妆 / 场景图（待建）</div><div class="bar"></div></div>
+    <div class="step done"><div class="dot">0</div><div class="sn">立项</div><div class="sd">核心文本链 · 生产合同待验收</div><div class="bar"></div></div>
+    <div class="step done"><div class="dot">1</div><div class="sn">故事</div><div class="sd">核心文本链 · 生产合同待验收</div><div class="bar"></div></div>
+    <div class="step done"><div class="dot">2</div><div class="sn">剧本分场</div><div class="sd">核心文本链 · 生产合同待验收</div><div class="bar"></div></div>
+    <div class="step next"><div class="dot">3</div><div class="sn">资产</div><div class="sd">上传 / 矩阵 / ComfyUI</div><div class="bar"></div></div>
     <div class="step todo"><div class="dot">4</div><div class="sn">分镜</div><div class="sd">可视化分镜</div><div class="bar"></div></div>
     <div class="step todo"><div class="dot">5</div><div class="sn">镜头</div><div class="sd">图生视频</div><div class="bar"></div></div>
     <div class="step todo"><div class="dot">6</div><div class="sn">后期</div><div class="sd">剪辑 / 配乐 / 配音</div><div class="bar"></div></div>
     <div class="step todo"><div class="dot">7</div><div class="sn">发布</div><div class="sd">成片 / 分发</div><div class="bar"></div></div>
   </div>
-  <p class="mut rv" style="margin-top:18px">现存分镜仅为<b>文本结构</b>（现存代码产物），不含视觉画面；3–7 步尚未开始，全部媒体经局域网 ComfyUI（qwen-image / H3 / Music3）。新设计当前落地进度为 <b>3/8 步</b>（0–2 已落地，2-c 待实施）。</p>
+  <p class="mut rv" style="margin-top:18px">绿色仅表示核心文本链已有实现，不代表 P3 或八步闭环验收通过。图像固定 <b>MiniMax H3 Image</b>、视频 H3、音乐 Music3，全部经本地 / 局域网 ComfyUI；语音通道待定。P2—P4 未到验收。</p>
 </section>
 
 <!-- ══════ 03 质量实况 ══════ -->
 <section id="quality">
-  <div class="sec-head rv"><span class="sec-no">03</span><h2>质量实况（当日实测）</h2></div>
-  <p class="sec-sub rv">下列第一张/第二张卡为 <b>2026-10-09 当日复核</b>的命令行真实结果，作为历史快照保留、不改写；第三张卡为同日文档-代码偏差盘点。<b>2026-10-14 再核结果见末尾新增卡</b>（v1.12 反向同步）。</p>
+  <div class="sec-head rv"><span class="sec-no">03</span><h2>质量实况（当前 + 历史基线）</h2></div>
+  <p class="sec-sub rv">现行状态与历史基线分开：<b>2026-11-16 当前回归并非全绿</b>；P0 的 93 文件 / 1,198 用例是 2026-11-15 历史基线，不得冒充当前结果。更早测试卡均保留为明确历史快照。</p>
 
   <div class="alerts rv">
+    <div class="alert">
+      <span class="alvl al-warn">当前·11-16</span>
+      <div>
+        <h4>全量 Vitest：81 / 93 文件通过、12 文件失败</h4>
+        <p>1,111 用例通过、85 失败、1 跳过。typecheck 通过；architecture + studio-flow 专项 29 / 29 通过。B-70 涉及谱系 v1.47 临时目验修改与 v1.46 测试夹具不一致，以及 Windows profile frontmatter 夹具问题；详见 <a href="../设计现状与偏差清单.md">设计现状与偏差清单</a>。</p>
+      </div>
+    </div>
+    <div class="alert">
+      <span class="alvl al-ok">证据·11-16</span>
+      <div>
+        <h4>真实 Electron 最小 AI 对话往返通过</h4>
+        <p>feature-819 修复开发态运行时模板路径；feature-820 收口底栏真实状态与 Skill / 插件 / 本地模型一级入口。P1 仍未通过，证据见 <a href="../verification/p1-2026-11-15/P1调查记录.md">P1 调查记录</a>。</p>
+      </div>
+    </div>
+    <div class="alert">
+      <span class="alvl al-ok">历史·P0</span>
+      <div>
+        <h4>2026-11-15 P0 历史基线：93 文件 / 1,198 用例</h4>
+        <p>这是 P0 基线收口记录，不是 2026-11-16 当前全量回归结论。</p>
+      </div>
+    </div>
     <div class="alert">
       <span class="alvl al-ok">单测·10-09</span>
       <div>
@@ -538,15 +603,15 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="alert">
       <span class="alvl al-ok">实测·11-03</span>
       <div>
-        <h4>2026-11-03 当前基线：1029 通过 · 1 跳过 · 0 失败</h4>
-        <p>82 个测试文件通过（feature-813 工作目录更换落地，净增 28 例）；node / preload 类型检查通过，renderer typecheck 有 3 条现存测试夹具错误。最终数字以本轮全量复测为准，历史快照不改写。</p>
+        <h4>2026-11-03 历史基线：1029 通过 · 1 跳过 · 0 失败</h4>
+        <p>82 个测试文件通过（feature-813 工作目录更换落地，净增 28 例）；node / preload 类型检查通过，renderer typecheck 有 3 条现存测试夹具错误。此处仅描述当时基线，不改写历史快照；当前结果见上方 2026-11-16 实测卡。</p>
       </div>
     </div>
     <div class="alert">
       <span class="alvl al-ok">实测·11-02</span>
       <div>
         <h4>2026-11-02 基线：1001 通过 · 1 跳过 · 0 失败</h4>
-        <p>80 个测试文件通过；node / preload 类型检查通过，renderer typecheck 有 3 条现存测试夹具错误。最终数字以本轮全量复测为准，历史快照不改写。</p>
+        <p>80 个测试文件通过；node / preload 类型检查通过，renderer typecheck 有 3 条现存测试夹具错误。此处仅描述当时基线，不改写历史快照；当前结果见上方 2026-11-16 实测卡。</p>
       </div>
     </div>
     <div class="alert">
@@ -559,11 +624,49 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   </div>
 </section>
 
-<!-- ══════ 04 三期路线 ══════ -->
+<!-- ══════ 04 P0—P7 路线 ══════ -->
 <section id="roadmap">
-  <div class="sec-head rv"><span class="sec-no">04</span><h2>三期路线图</h2></div>
-  <p class="sec-sub rv">实施计划为本平台规划，与 MiniMax Design 发布节奏无关（设计 §11）。一期目标是单集闭环。</p>
+  <div class="sec-head rv"><span class="sec-no">04</span><h2>P0—P7 交付门</h2></div>
+  <p class="sec-sub rv">唯一跨阶段路线为 <a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划 v0.6</a>。当前 P0 已完成、P1 未通过；P2—P7 未到验收，不得按模块存在或单包完成提前宣称阶段通过。</p>
 
+  <div class="phases rv">
+    <div class="phase p1">
+      <div class="ph-head"><div class="ph-name">P0 · 已完成</div><h4>基线收口</h4><span class="ph-state">2026-11-15 完成</span></div>
+      <ul><li class="done">设计 v1.24 / D-034 定位</li><li class="done">36 包索引与 P0 基线证据</li><li>93 文件 / 1,198 用例仅作历史基线</li></ul>
+    </div>
+    <div class="phase p1">
+      <div class="ph-head"><div class="ph-name">P1 · 当前</div><h4>桌面工作台</h4><span class="ph-state">进行中 · 未通过</span></div>
+      <ul><li class="done">feature-818 项目库 / 类型基线</li><li class="done">feature-819 真实 Electron 最小对话往返</li><li class="done">feature-820 一级入口与真实状态</li><li class="doing">切片 C：资产上传与真实缩略图</li><li>切片 D：资产引用、多创作页 / 多画布、自由坐标与视口恢复</li><li>切片 E：revision 冲突、原子写与异常退出故障注入</li></ul>
+    </div>
+    <div class="phase p2">
+      <div class="ph-head"><div class="ph-name">P2</div><h4>统一媒体引擎与任务中心</h4><span class="ph-state">未到验收</span></div>
+      <ul><li>本地 / 局域网 ComfyUI 多实例</li><li>H3 Image / H3 视频统一提交、恢复、重试与追溯</li><li>任务中心、收片与资产登记</li></ul>
+    </div>
+    <div class="phase p2">
+      <div class="ph-head"><div class="ph-name">P3</div><h4>八步视觉生产链</h4><span class="ph-state">未到验收</span></div>
+      <ul><li>STAGE 2-c → 3 资产 → 4 分镜 → 5 镜头</li><li>角色 / 场景 / 道具、关键帧与逐镜视频</li><li>按镜实引门与真实镜头产物验收</li></ul>
+    </div>
+    <div class="phase p2">
+      <div class="ph-head"><div class="ph-name">P4</div><h4>八步后期与发布</h4><span class="ph-state">未到验收</span></div>
+      <ul><li>STAGE 6 后期 / 7 发布与完整 0—7 闭环</li><li>声音、时间线、剪辑、成片与发布包</li><li>语音通道待定，不伪造在线成功</li></ul>
+    </div>
+    <div class="phase p3">
+      <div class="ph-head"><div class="ph-name">P5</div><h4>Agent / Skill / 插件生态</h4><span class="ph-state">未到验收</span></div>
+      <ul><li>本地模板、技能与插件真实可配置 / 可执行 / 可追溯</li><li>本地模型与统一媒体入口复用</li><li>在线服务无真实支撑时不伪造成功</li></ul>
+    </div>
+    <div class="phase p3">
+      <div class="ph-head"><div class="ph-name">P6</div><h4>专业创作与完整产品面</h4><span class="ph-state">逐包裁决 · 未到验收</span></div>
+      <ul><li>3D、浏览器、代码 / 网页等产品面逐域建包</li><li>账号 / 团队 / 社区等按决策本地替代或不纳入</li></ul>
+    </div>
+    <div class="phase p3">
+      <div class="ph-head"><div class="ph-name">P7</div><h4>全量 Parity 验收与发布</h4><span class="ph-state">未到验收</span></div>
+      <ul><li>Parity 矩阵逐项对账</li><li>八步闭环、恢复与版本追溯</li><li>安装 / 升级 / 性能与证据链验收</li></ul>
+    </div>
+  </div>
+
+  <details class="source-index rv" style="margin-top:24px">
+    <summary>历史三期路线（已被 P0—P7 取代，仅作编年史）</summary>
+    <p class="sec-sub">以下为 2026-10 的三期路线历史快照，不得据此安排当前实施。</p>
   <div class="phases rv">
     <div class="phase p1">
       <div class="ph-head">
@@ -617,6 +720,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </ul>
     </div>
   </div>
+  </details>
 </section>
 
 <!-- ══════ 事实来源索引 ══════ -->
@@ -627,15 +731,15 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="src-grid">
       <div class="src-row">
         <span class="si-base">A · 规划</span>
-        <div><div class="si-ti">短剧Agent平台设计.md（v1.18）</div><div class="si-sub">§2.6 新立项模型 · §4 多 Agent 架构（4 profile 实况） · §5.1 对话生成网关（runtime 单轨） · §5.2 已落地 28 工具 / 11 族 · §7.1 数据血缘（最终设计） · §8.3 系统级外部数据源 · §11 三期路线 · §13 版本记录</div></div>
+        <div><div class="si-ti">短剧Agent平台设计.md（v1.24）+ MiniMax Design 全面复刻开发计划（v0.6）</div><div class="si-sub">D-034 全面复刻定位 · §4 多 Agent 架构 · §5 runtime 单轨与 28 个业务工具 / 11 族（另有 tool.search） · §7.1 数据血缘 · §8 媒体通道 · §11 P0—P7 路线</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 决策</span>
-        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-005 / D-011 / D-012 / D-023 / D-024 · 最新 D-024）</div><div class="si-sub">立项模型重建 + 谱系定位系统级外部数据源 + 对话通道定稿 runtime 单轨终态；D-023 收口 Agent 调度权限，D-024 明确影响面板关闭语义</div></div>
+        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-012 / D-021 / D-022 / D-023 / D-033 / D-034）</div><div class="si-sub">runtime 单轨；文本服务二选一；Agent 调度权限；媒体固定 H3 Image / H3 / Music3 并经 ComfyUI；D-034 全面复刻 MiniMax Design、短剧生产闭环优先</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 新包</span>
-        <div><div class="si-ti">docs/features/（28 个现行包 · 2026-11-03）</div><div class="si-sub">feature-001~015 / 101 / 201 / 801·802·804·806~813；逐包状态与验收口径以各任务清单为准</div></div>
+        <div><div class="si-ti">docs/features/（36 个现行包 · 2026-11-16）</div><div class="si-sub">feature-001~015 / 101 / 201 / 801~820（不含 805）；逐包状态与验收口径以索引及各任务清单为准</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">实测</span>
@@ -647,21 +751,21 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </div>
       <div class="src-row">
         <span class="si-base">实测·11-03</span>
-        <div><div class="si-ti">2026-11-03 当前命令行基线</div><div class="si-sub"><code>npm run test:run</code> → 1029 通过 / 82 文件 / 0 失败 / 1 跳过；node / preload 类型检查通过；renderer typecheck → 3 条现存测试夹具错误。最终登记以本轮复测为准（11-02 基线 1001 / 80 文件见上方历史卡）</div></div>
+        <div><div class="si-ti">2026-11-03 历史命令行基线</div><div class="si-sub"><code>npm run test:run</code> → 1029 通过 / 82 文件 / 0 失败 / 1 跳过；node / preload 类型检查通过；renderer typecheck → 3 条当时现存测试夹具错误。仅作历史记录（11-02 基线 1001 / 80 文件见上方历史卡）</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">代码核对</span>
-        <div><div class="si-ti">磁盘实况（只读核对 · 2026-11-02）</div><div class="si-sub"><code>electron/main.ts</code>（42 个 invoke 处理器，含 4 窗口控制）· <code>electron/mcp/server.ts · tools.ts</code>（28 纯工具 / 11 族）· <code>resources/opencode/agents/</code>（4 profile：showrunner 持 23 白名单且独占 task + writer/media-director/comfyui-operator）· <code>src/studio/</code>（七组分包 shell/canvas/chat/viewer/stage0/style/contracts）· <code>src/lib/chat-runtime.ts</code> · <code>electron/runtime/ · fs/ · comfy/</code></div></div>
+        <div><div class="si-ti">当前代码与阶段证据（2026-11-16）</div><div class="si-sub"><code>electron/main.ts</code>（IPC 注册点，数量不沿用旧快照）· <code>electron/mcp/server.ts · tools.ts</code>（29 = 28 业务 + tool.search）· <code>resources/opencode/agents/</code>（showrunner 23 白名单且独占 task）· <a href="../verification/p1-2026-11-15/P1调查记录.md">P1 调查记录</a> · <a href="../verification/p1-2026-11-15/p1-after-820-full-vitest.log">当前全量 Vitest 日志</a></div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 治理</span>
-        <div><div class="si-ti">AGENTS.md（v1.5）+ docs/governance/AI-SDG-AI工具执行指令.md</div><div class="si-sub">§2.1 三层文档模型与画像 P2 配置矩阵；铁律 3 反向同步；L1/L2/L3 裁决</div></div>
+        <div><div class="si-ti">AGENTS.md（v1.7）+ docs/governance/AI-SDG-AI工具执行指令.md</div><div class="si-sub">三层文档模型；铁律 3 反向同步；L1/L2/L3 裁决；全面复刻定位与媒体 / 局域网硬边界</div></div>
       </div>
     </div>
   </div>
 </details>
 
-<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准（设计 v1.18 / 决策台账 D-005·D-024）· 2026-10-09 / 10-14 / 10-27 历史快照保留，2026-11-02 随 v1.17 反向同步（4 profile · 28 工具 / 11 族 · 27 现行包），2026-11-03 随 v1.18 同步（feature-813 工作目录更换 · 28 现行包）</div>
+<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准 · 2026-11-16 镜像同步：设计 v1.24 / D-034 / 总规划 v0.6 / 36 个现行包。当前 P0 已完成、P1 未通过；全量回归 81 / 93 文件通过、12 文件失败。2026-10-09—11-15 的旧包数、旧三期路线与旧测试数字仅保留为历史编年史。</div>
 </main>
 </div>
 

@@ -1,8 +1,9 @@
 // 左栏资源库面板：Skill 广场 / 资产中心 / 专业插件（图标轨切换）
 // - Skills / Plugins：本地目录静态数据（后续接 Skill 市场 / 插件注册 IPC 再替换）
 // - Assets：接 window.api.asset.list（kind 维度见 shared/types.ts AssetIndexItem）
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AssetIndexItem, CanvasNode } from '@shared/types'
+import { ipcErrorMessage } from './ipc-error'
 
 interface PanelProps {
   query?: string
@@ -136,13 +137,62 @@ function basename(p: string): string {
   return seg[seg.length - 1] || p
 }
 
+function assetDisplayName(asset: AssetIndexItem): string {
+  const originalName = asset.meta?.originalName
+  if (typeof originalName === 'string') {
+    const name = originalName.trim()
+    if (name && name !== '.' && name !== '..' && !/[/\\\0]/.test(name)) return name
+  }
+  return basename(asset.path)
+}
+
+function AssetThumbnail({ projectId, asset, className }: {
+  projectId: string
+  asset: AssetIndexItem
+  className: string
+}) {
+  const [dataUrl, setDataUrl] = useState<string | null>(null)
+  const [imageFailed, setImageFailed] = useState(false)
+  const name = assetDisplayName(asset)
+
+  useEffect(() => {
+    let active = true
+    setDataUrl(null)
+    setImageFailed(false)
+    if (projectId && asset.kind === 'image') {
+      void window.api.asset.thumbnail(asset.id).then(result => {
+        if (!active) return
+        setDataUrl(result.dataUrl?.startsWith('data:image/webp;base64,') ? result.dataUrl : null)
+      }).catch(() => {
+        if (active) setDataUrl(null)
+      })
+    }
+    return () => { active = false }
+  }, [projectId, asset.id, asset.kind])
+
+  return (
+    <span className={className}>
+      {dataUrl && !imageFailed ? (
+        <img
+          src={dataUrl}
+          alt={name}
+          onError={() => setImageFailed(true)}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : name.charAt(0).toUpperCase()}
+    </span>
+  )
+}
+
 interface AssetsPanelProps extends PanelProps {
+  projectId: string
   selectedNode: CanvasNode | null
+  notify: (tone: 'ok' | 'bad' | 'info', text: string) => void
   onBind: (assetIds: string[]) => Promise<void>
   onUnbind: (assetIds: string[]) => Promise<void>
 }
 
-export function AssetsPanel({ query = '', selectedNode, onBind, onUnbind }: AssetsPanelProps) {
+export function AssetsPanel({ query = '', projectId, selectedNode, notify, onBind, onUnbind }: AssetsPanelProps) {
   const [kind, setKind] = useState<AssetKindTab>('image')
   const [assets, setAssets] = useState<AssetIndexItem[]>([])
   const [picked, setPicked] = useState<Set<string>>(() => new Set())
@@ -150,22 +200,50 @@ export function AssetsPanel({ query = '', selectedNode, onBind, onUnbind }: Asse
   const [loadError, setLoadError] = useState<string | null>(null)
   const [busy, setBusy] = useState<'bind' | 'unbind' | null>(null)
   const [commandError, setCommandError] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const loadSeqRef = useRef(0)
+  const projectVersionRef = useRef(0)
+  const uploadInFlightRef = useRef(false)
+
+  useEffect(() => {
+    const version = ++projectVersionRef.current
+    uploadInFlightRef.current = false
+    setUploading(false)
+    setPicked(new Set())
+    setCommandError(null)
+    return () => {
+      if (projectVersionRef.current === version) projectVersionRef.current += 1
+    }
+  }, [projectId])
 
   const load = useCallback(async (k: AssetKindTab) => {
+    const request = ++loadSeqRef.current
+    const version = projectVersionRef.current
+    const isCurrent = () => request === loadSeqRef.current && version === projectVersionRef.current
     setLoaded(false)
     setLoadError(null)
+    if (!projectId) {
+      setAssets([])
+      setLoaded(true)
+      return
+    }
     try {
-      setAssets(await window.api.asset.list(k))
+      const next = await window.api.asset.list(k)
+      if (isCurrent()) setAssets(next)
     } catch (e) {
+      if (!isCurrent()) return
       console.error('asset.list failed', e)
       setAssets([])
       setLoadError('资产索引读取失败，请稍后重试。')
     } finally {
-      setLoaded(true)
+      if (isCurrent()) setLoaded(true)
     }
-  }, [])
+  }, [projectId])
 
-  useEffect(() => { void load(kind) }, [kind, load])
+  useEffect(() => {
+    void load(kind)
+    return () => { loadSeqRef.current += 1 }
+  }, [kind, load])
 
   useEffect(() => window.api.runtime.onEvent(event => {
     if (event.type === 'tool.call' && event.status === 'completed'
@@ -174,8 +252,30 @@ export function AssetsPanel({ query = '', selectedNode, onBind, onUnbind }: Asse
     }
   }), [kind, load])
 
+  const upload = async () => {
+    if (!projectId || uploadInFlightRef.current) return
+    const version = projectVersionRef.current
+    uploadInFlightRef.current = true
+    setUploading(true)
+    try {
+      const result = await window.api.asset.import()
+      if (version !== projectVersionRef.current || result.status === 'cancelled') return
+      notify('ok', `已上传图片：${assetDisplayName(result.asset)}`)
+      await load('image')
+    } catch (error) {
+      if (version === projectVersionRef.current) notify('bad', ipcErrorMessage(error))
+    } finally {
+      if (version === projectVersionRef.current) {
+        uploadInFlightRef.current = false
+        setUploading(false)
+      }
+    }
+  }
+
   const q = query.trim().toLowerCase()
-  const visible = q ? assets.filter(a => basename(a.path).toLowerCase().includes(q)) : assets
+  const visible = q
+    ? assets.filter(a => `${assetDisplayName(a)}\n${a.path}`.toLowerCase().includes(q))
+    : assets
   const boundIds = new Set(selectedNode?.assetIds ?? [])
   const selectedIds = Array.from(picked)
 
@@ -204,7 +304,7 @@ export function AssetsPanel({ query = '', selectedNode, onBind, onUnbind }: Asse
   }
 
   return (
-    <div aria-busy={busy !== null}>
+    <div aria-busy={busy !== null || uploading}>
       <div className="mb-2.5 flex gap-1">
         {ASSET_TABS.map(t => (
           <button
@@ -223,6 +323,21 @@ export function AssetsPanel({ query = '', selectedNode, onBind, onUnbind }: Asse
           </button>
         ))}
       </div>
+
+      {kind === 'image' && (
+        <div className="mb-2 flex items-center gap-2">
+          <button
+            type="button"
+            disabled={!projectId || uploading}
+            onClick={() => void upload()}
+            title={projectId ? '选择一张 PNG、JPEG 或 WebP 图片' : '请先打开一个项目'}
+            className="rounded-md border border-violet/30 bg-violet-soft px-2.5 py-1.5 text-[10.5px] font-semibold text-violet transition hover:border-violet disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {uploading ? '上传中…' : '上传图片'}
+          </button>
+          <span className="text-[9.5px] text-muted">单张 · PNG / JPEG / WebP</span>
+        </div>
+      )}
 
       <div className="mb-2 rounded-lg border border-line bg-surface px-2.5 py-2">
         <p className="truncate text-[11px] font-semibold text-ink" title={selectedNode?.title}>
@@ -264,7 +379,7 @@ export function AssetsPanel({ query = '', selectedNode, onBind, onUnbind }: Asse
       ) : kind === 'image' ? (
         <div className="grid grid-cols-2 gap-1.5">
           {visible.map(a => {
-            const name = basename(a.path)
+            const name = assetDisplayName(a)
             const active = picked.has(a.id)
             return (
               <button
@@ -277,9 +392,11 @@ export function AssetsPanel({ query = '', selectedNode, onBind, onUnbind }: Asse
                 }`}
                 title={a.path}
               >
-                <span className="absolute inset-0 grid place-items-center text-[22px] font-bold text-muted/60">
-                  {name.charAt(0).toUpperCase()}
-                </span>
+                <AssetThumbnail
+                  projectId={projectId}
+                  asset={a}
+                  className="absolute inset-0 grid place-items-center overflow-hidden text-[22px] font-bold text-muted/60"
+                />
                 {boundIds.has(a.id) && <span className="absolute left-[5px] top-[5px] rounded bg-surface/90 px-1 py-px text-[9px] font-semibold text-violet">已关联</span>}
                 {active && (
                   <span className="absolute right-[5px] top-[5px] grid h-[15px] w-[15px] place-items-center rounded-full bg-violet">
@@ -298,7 +415,7 @@ export function AssetsPanel({ query = '', selectedNode, onBind, onUnbind }: Asse
       ) : (
         <div className="space-y-1.5">
           {visible.map(a => {
-            const name = basename(a.path)
+            const name = assetDisplayName(a)
             const active = picked.has(a.id)
             return (
               <button

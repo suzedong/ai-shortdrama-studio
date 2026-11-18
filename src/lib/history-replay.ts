@@ -1,5 +1,6 @@
 import type { ChatItem } from '../studio/chat/ChatComposer'
 import type { ToolView, TurnSegment } from './chat-runtime'
+import type { RuntimeAssetRef } from './runtime-types'
 
 /** IPC runtime:session:messages 的单条记录（runtime-types 镜像，主进程从 SDK {info,parts} 映射） */
 export interface ReplayMessageRecord {
@@ -10,8 +11,8 @@ export interface ReplayMessageRecord {
   parts: ReplayPart[]
 }
 
-/** 回放消费正文、推理与工具状态；其余 part 类型不进 DTO（主进程侧丢弃，见契约 §5.2） */
-export interface ReplayPart {
+/** 回放消费正文、推理、工具状态与安全资产引用；文件 URL / 字节不进 DTO。 */
+export interface ReplayStandardPart {
   type: 'text' | 'reasoning' | 'tool'
   text: string
   /** assistant part 的起始时间（ms）；用户文本无，pending tool 缺省时为 0 */
@@ -26,9 +27,26 @@ export interface ReplayPart {
   endedAt?: number
   error?: string
 }
+export interface ReplayAssetPart {
+  type: 'asset'
+  text: ''
+  asset: RuntimeAssetRef
+}
+export type ReplayPart = ReplayStandardPart | ReplayAssetPart
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null
+}
+
+function isReplayAsset(value: unknown): value is RuntimeAssetRef {
+  if (!isRecord(value)) return false
+  const { assetId, kind, path, name } = value
+  return typeof assetId === 'string' && assetId.trim().length > 0 &&
+    (kind === 'image' || kind === 'video' || kind === 'music' || kind === 'workflow') &&
+    typeof path === 'string' && path.length > 0 && !path.startsWith('/') &&
+    !path.includes('\\') && !/^[A-Za-z]:/.test(path) &&
+    path.split('/').every(segment => segment && segment !== '.' && segment !== '..') &&
+    typeof name === 'string' && name.trim().length > 0 && !name.includes('/') && !name.includes('\\')
 }
 
 /**
@@ -54,11 +72,25 @@ export function replayMessages(records: ReplayMessageRecord[]): ChatItem[] {
     // segments 保留推理 / 正文 / 工具的交错顺序。
     const texts: string[] = []
     const segments: TurnSegment[] = []
+    const assets: RuntimeAssetRef[] = []
+    const assetIds = new Set<string>()
     const toolIndexes = new Map<string, number>()
     let reasoningCount = 0
 
     for (const part of parts) {
       if (!isRecord(part)) continue
+      if (part.type === 'asset') {
+        if (role === 'user' && isReplayAsset(part.asset) && !assetIds.has(part.asset.assetId)) {
+          assetIds.add(part.asset.assetId)
+          assets.push({
+            assetId: part.asset.assetId,
+            kind: part.asset.kind,
+            path: part.asset.path,
+            name: part.asset.name,
+          })
+        }
+        continue
+      }
       if (part.ignored === true || part.synthetic === true) continue
 
       if (part.type === 'tool') {
@@ -112,9 +144,9 @@ export function replayMessages(records: ReplayMessageRecord[]): ChatItem[] {
 
     const text = texts.join('')
     if (role === 'user') {
-      // H5：用户空文本丢弃
-      if (text.length === 0) continue
-      items.push({ id, role: 'user', text })
+      // 空文本且无资产才丢弃；资产回放不得改写历史正文。
+      if (text.length === 0 && assets.length === 0) continue
+      items.push({ id, role: 'user', text, ...(assets.length > 0 ? { assets } : {}) })
     } else {
       const hasContent = segments.some(s => s.kind !== 'text' || s.text.trim().length > 0)
       // H4（修订）：正文、reasoning、tools 三者全空才丢弃

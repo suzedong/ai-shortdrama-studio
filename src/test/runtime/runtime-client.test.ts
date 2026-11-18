@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { pathToFileURL } from 'node:url'
+
 import { OpencodeRuntimeClient, type SdkHandle } from '../../../electron/runtime/client'
 import type { RuntimePromptRequest } from '../../../electron/runtime/types'
 
@@ -404,6 +406,80 @@ describe('prompt / promptAsync 边界与透传', () => {
     f2.state.next.promptError = undefined
     // 500 且无 error 字段：status 非 204/200/202 → PROMPT_FAILED
     await expect(f2.client.promptAsync(baseReq)).rejects.toMatchObject({ name: 'PROMPT_FAILED' })
+  })
+})
+
+describe('feature-822 · 原生资产 file parts', () => {
+  const baseReq: RuntimePromptRequest = { sessionId: 'ses_1', text: 'hello' }
+  const resolved = [
+    {
+      assetId: 'a1', kind: 'image' as const, path: '资产/anni.png', name: '安妮.png',
+      absolutePath: '/tmp/project/资产/anni.png', mime: 'image/png',
+    },
+    {
+      assetId: 'v1', kind: 'video' as const, path: '资产/V001.mp4', name: 'V001.mp4',
+      absolutePath: '/tmp/project/资产/V001.mp4', mime: 'video/mp4',
+    },
+  ]
+
+  it('undefined 与空 assetRefs 完全保持旧纯文本请求体', async () => {
+    const { client, state } = makeFakeClient()
+    await client.promptAsync(baseReq)
+    await client.promptAsync({ ...baseReq, assetRefs: [] }, [])
+    const bodies = state.calls['session.promptAsync']!.map(call => call.body)
+    expect(bodies).toHaveLength(2)
+    expect(bodies[0].parts).toEqual([{ type: 'text', text: baseReq.text }])
+    expect(bodies[1].parts).toEqual(bodies[0].parts)
+  })
+
+  it('promptAsync 与 prompt 均先写安全 synthetic 清单，再按同序写原生 file parts', async () => {
+    const { client, state } = makeFakeClient()
+    state.next.prompt = { info: { id: 'reply' }, parts: [] }
+    const req = { ...baseReq, assetRefs: [{ assetId: 'a1' }, { assetId: 'v1' }] }
+    await client.promptAsync(req, resolved)
+    await client.prompt(req, resolved)
+    for (const body of [
+      state.calls['session.promptAsync']![0].body,
+      state.calls['session.prompt']![0].body,
+    ]) {
+      expect(body.parts).toHaveLength(4)
+      expect(body.parts[0]).toEqual({ type: 'text', text: baseReq.text })
+      expect(body.parts[1].synthetic).toBe(true)
+      expect(JSON.parse(body.parts[1].text)).toEqual({
+        kind: 'shortdrama.asset-refs',
+        version: 1,
+        assets: [
+          { assetId: 'a1', kind: 'image', path: '资产/anni.png', name: '安妮.png' },
+          { assetId: 'v1', kind: 'video', path: '资产/V001.mp4', name: 'V001.mp4' },
+        ],
+      })
+      expect(body.parts[1].text).not.toContain('/tmp/project')
+      expect(body.parts.slice(2)).toEqual([
+        {
+          type: 'file', mime: 'image/png', filename: '安妮.png',
+          url: pathToFileURL('/tmp/project/资产/anni.png').href,
+        },
+        {
+          type: 'file', mime: 'video/mp4', filename: 'V001.mp4',
+          url: pathToFileURL('/tmp/project/资产/V001.mp4').href,
+        },
+      ])
+    }
+  })
+
+  it('非空引用未经 main 复核或顺序不一致时拒绝且不触网；重复 ID 按已复核去重结果发送', async () => {
+    const { client, state } = makeFakeClient()
+    const req = { ...baseReq, assetRefs: [{ assetId: 'a1' }, { assetId: 'a1' }] }
+    await expect(client.promptAsync(req)).rejects.toMatchObject({ name: 'ASSET_REF_INVALID' })
+    await expect(client.promptAsync(req, [resolved[1]!])).rejects.toMatchObject({ name: 'ASSET_REF_INVALID' })
+    expect(state.calls['session.promptAsync'] ?? []).toHaveLength(0)
+
+    await client.promptAsync(req, [resolved[0]!])
+    const body = state.calls['session.promptAsync']![0].body
+    expect(body.parts).toHaveLength(3)
+    expect(JSON.parse(body.parts[1].text).assets).toEqual([
+      { assetId: 'a1', kind: 'image', path: '资产/anni.png', name: '安妮.png' },
+    ])
   })
 })
 

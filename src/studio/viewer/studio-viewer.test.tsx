@@ -10,6 +10,7 @@ import type { Canvas, CanvasNode, ProjectBrief, StepId } from '@shared/types'
 import StudioViewer from './StudioViewer'
 import StudioApp from '../shell/StudioApp'
 import { _setStyleCatalogSnapshotForTest } from '../style/style-catalog-store'
+import { canvasV4 } from '../../test/canvas-fixtures'
 
 // feature-811：风格显示名消费 style:catalog 快照——prime ok 态后首订阅懒 ensure no-op（store 契约）
 const PRIME_ENTRIES: StyleCatalogEntryDto[] = [
@@ -333,8 +334,7 @@ interface ImpactAppHarness {
 function installImpactAppApi(fileReadImpl: (path: string) => Promise<unknown>): ImpactAppHarness {
   const promptAsync = vi.fn(async () => ({ accepted: true as const, messageId: 'msg-1' }))
   const fileRead = vi.fn(async ({ path }: { path: string }) => fileReadImpl(path))
-  const canvas: Canvas = {
-    schemaVersion: 3,
+  const canvas: Canvas = canvasV4({
     revision: 0,
     receipts: [],
     projectId: 'p1',
@@ -343,7 +343,7 @@ function installImpactAppApi(fileReadImpl: (path: string) => Promise<unknown>): 
     edges: [],
     gates: [],
     updatedAt: new Date().toISOString(),
-  }
+  })
   window.api = {
     runtime: {
       status: vi.fn(async () => ({ state: 'running', port: 0, version: '1.18.34', healthy: true, startedAt: null, error: null })),

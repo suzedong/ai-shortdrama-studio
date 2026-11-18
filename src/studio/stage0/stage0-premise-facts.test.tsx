@@ -10,6 +10,7 @@ import type { Canvas, CanvasNode, CaptureFile, CapturedFact, ProjectBrief, StepI
 import Stage0View from './Stage0View'
 import { selectPremiseConfirmation } from './premise-facts'
 import { _setStyleCatalogSnapshotForTest } from '../style/style-catalog-store'
+import { canvasV4, type CanvasFixtureOverrides } from '../../test/canvas-fixtures'
 
 /* ── 选择器（组件凭据为 data-stage0-*，非 data-testid）── */
 
@@ -48,9 +49,8 @@ function node(partial: Partial<CanvasNode> & { id: string }): CanvasNode {
   }
 }
 
-function canvas(over: Partial<Canvas> = {}): Canvas {
-  return {
-    schemaVersion: 3,
+function canvas(over: CanvasFixtureOverrides = {}): Canvas {
+  return canvasV4({
     revision: 0,
     receipts: [],
     projectId: 'p1',
@@ -60,7 +60,7 @@ function canvas(over: Partial<Canvas> = {}): Canvas {
     gates: [],
     updatedAt: '2026-10-15T00:00:00.000Z',
     ...over,
-  }
+  })
 }
 
 const BRIEF_PATH = '立项单.v1.json'

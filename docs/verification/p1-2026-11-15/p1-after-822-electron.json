@@ -1,0 +1,92 @@
+{
+  "feature": "feature-822",
+  "result": "pass",
+  "capturedAt": "2026-11-17T05:12:49.060Z",
+  "projectDir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/sdg822-accept-VHbjA8/Documents/ai-shortdrama-studio/project-20261117-131211-d7cc",
+  "projectId": "project-20261117-131211-d7cc",
+  "sessionId": "ses_dd3bd03f5ffeOU6IZ41rqD8NHP",
+  "asset": {
+    "id": "a-f822-image",
+    "kind": "image",
+    "path": "assets/images/f822-cover.png",
+    "name": "F822封面.png"
+  },
+  "optimistic": {
+    "chipText": "@图片F822封面.png",
+    "chipPresent": true
+  },
+  "safeUserMessage": {
+    "info": {
+      "id": "msg_dd3bced2d001lH5uTTsJh0Jki8",
+      "role": "user"
+    },
+    "parts": [
+      {
+        "type": "text",
+        "text": "请引用这张封面"
+      },
+      {
+        "type": "asset",
+        "text": "",
+        "asset": {
+          "assetId": "a-f822-image",
+          "kind": "image",
+          "path": "assets/images/f822-cover.png",
+          "name": "F822封面.png"
+        }
+      }
+    ]
+  },
+  "safeDtoLeakChecks": {
+    "fileUrl": false,
+    "absoluteProjectPath": false,
+    "mediaBytes": false
+  },
+  "persistedFileParts": [
+    {
+      "messageId": "msg_dd3bced2d001lH5uTTsJh0Jki8",
+      "type": "file",
+      "mime": "image/png",
+      "filename": "F822封面.png",
+      "hasFileUrl": false,
+      "hasDataUrl": true,
+      "hasMatchingOpencodeRead": true
+    }
+  ],
+  "persistedManifest": {
+    "id": "prt_dd3bcece2001eku2DqpOzxUFY9",
+    "type": "text",
+    "synthetic": true,
+    "manifestKind": "shortdrama.asset-refs",
+    "manifestVersion": 1,
+    "assets": [
+      {
+        "assetId": "a-f822-image",
+        "kind": "image",
+        "path": "assets/images/f822-cover.png",
+        "name": "F822封面.png"
+      }
+    ]
+  },
+  "stub": {
+    "chatRequestCount": 2,
+    "imageInputs": 1,
+    "manifestInputs": 1,
+    "textInputs": 1,
+    "model": "mock-1",
+    "network": "loopback"
+  },
+  "restartChipRestored": true,
+  "restartEvidence": {
+    "bodyContainsPrompt": true,
+    "bodyContainsAssetName": true,
+    "chipCount": 1,
+    "chipText": "@图片F822封面.png",
+    "chipHtmlContainsFileUrl": false
+  },
+  "evidenceLimits": [
+    "使用隔离 Electron、真实 preload IPC 与真实 opencode serve",
+    "模型为本机 OpenAI 兼容桩，不宣称生产模型理解了图片语义",
+    "通过 CDP DOM、window.api 与 SQLite 取证，不宣称已取得截图"
+  ]
+}

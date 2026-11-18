@@ -115,6 +115,11 @@
 | [feature-818-Renderer基线类型修复](./feature-818-Renderer基线类型修复/) | 修复 P0 基线 3 条 Renderer 构建类型错误 | 用户 2026-11-15 明确要求修复 | 仅两份测试文件；K1/K8/K9 零触发，产品代码零改动 | 自研新增·测试基线 | ✅ 已闭环：相关测试 29/29、typecheck 与完整 `build:renderer` 通过；仅保留既有 chunk 大小警告，P0 历史报告与原始日志不改写 |
 | [feature-819-Agent运行时模板解析修复](./feature-819-Agent运行时模板解析修复/) | 开发态 agent 模板被误判为打包态，读取 Electron 包内旧副本导致真实 AI 运行时启动失败（缺 `__MODEL_REF__`） | P1 准入调查发现（[P1 调查记录](../verification/p1-2026-11-15/P1调查记录.md) §3-⑤） | `electron/runtime/provider.ts` 判据改 `app.isPackaged && !process.defaultApp` + 1 条回归用例；K1/K8/K9 零触发 | 自研新增·运行时基线 | ✅ 已闭环：`runtime-provider` 19/19、typecheck exit 0；真实 Electron `healthy:true`、showrunner 23 工具、27 会话恢复；真实对话往返已于 feature-820 专项验收（见 P1 调查记录补记二） |
 | [feature-820-一级入口与伪造状态收口](./feature-820-一级入口与伪造状态收口/) | P1 切片 B：底栏硬编码假状态（火山方舟/三端口/镜头批量/Harness 30 项/自动保存）改为真实数据源，Skill 死按钮与插件假开关收口，补「本地模型」未开放入口 | [P1 调查记录](../verification/p1-2026-11-15/P1调查记录.md) §3-⑧⑨ | 仅消费既有 `settings.ai.get` / `runtime.status` / `settings.comfy.list`；4 个代码文件（含 C7 豁免的 `AiServicePanel` 纯函数）；K1/K8/K9 全零触发 | 自研新增 | ✅ 已闭环（2026-11-16）：`architecture` + 专项 29/29、shell 套件全绿、typecheck exit 0；真实 Electron CDP 取证底栏与配置源一致、虚构文案 0 命中，Skill 筛选/插件未开放/本地模型入口均实测，真实对话往返（SSE + 停止钮）通过；全量失败 12 文件均为既有谱系 v1.46/1.47 与 CRLF 基线 |
+| [feature-821-资产上传与真实缩略图](./feature-821-资产上传与真实缩略图/) | P1 切片 C：单张 PNG/JPEG/WebP 系统直传、项目内安全落盘与索引登记、上传及旧 ComfyUI 图片真实 WebP 缩略图 | [P1 调查记录](../verification/p1-2026-11-15/P1调查记录.md) §3-⑥ / §8 | **K8 已批**：恰 2 IPC（`asset:import` / `asset:thumbnail`）+ main/preload/global.d.ts/dev-mock；复用 `registerAsset` 与已有 sharp，派生缩略图路径，K1/K9 零触发 | Design 原有·形态对齐 / 自研新增实现 | ✅ 已闭环（2026-11-16）：专项、typecheck 与构建通过；真实 Electron 三种格式原生上传、取消/坏图、项目隔离及重开 WebP 恢复通过；全量既有 12 文件失败单列，不代表 D/E 或 P1 通过 |
+| [feature-822-对话侧资产引用](./feature-822-对话侧资产引用/) | P1 切片 D：当前项目资产选择、正文结构化 chip、main 项目/沙箱复核、opencode 原生 file parts 与安全历史回放 | [P1 调查记录](../verification/p1-2026-11-15/P1调查记录.md) §3-⑦ / §9；Parity 影响矩阵 §2.2 / §2.3 | **最小 K8 已批**：仅扩 `runtime:prompt` / `runtime:session:messages` DTO，0 新 IPC；main/preload/global.d.ts/dev-mock 同步；K1/K9 零触发 | Design 原有·形态对齐 / 自研新增实现 | **已闭环（2026-11-17）**：T1—T8 完成；专项 122 项、真实 opencode 8 项及真实 Electron 原生文件 parts / 完整重启 chip 回放通过；不代表切片 E 或 P1 通过 |
+| [feature-823-多创作页与自由画布持久化](./feature-823-多创作页与自由画布持久化/) | P1 切片 E：Canvas v4 多创作页、页内多画布、自由坐标、逐画布 viewport、活动页/画布/视图完整重启恢复；页/画布 CRUD 与项目隔离 | [P1 调查记录](../verification/p1-2026-11-15/P1调查记录.md) §3-③④ / §11；Parity 影响矩阵 §1.4 / §2.1 | **K1/K8 已批**：`shared/types.ts` Canvas v4、`electron/canvas/*`、恰一个 `canvas:view-state` IPC、main/preload/dev-mock/MCP 与 CanvasBoard/StudioApp；K9 零触发 | Design 原有·形态对齐 / 自研新增实现 | **已闭环（2026-11-17）**：专项、构建及真实 Electron 两次完整重启恢复通过；B-70 75 项未修复，不代表 P1 或完整 Parity 通过 |
+| [feature-824-项目库真机补验](./feature-824-项目库真机补验/) | P1 切片 F：真实 Electron 验收项目改名、删除保护、macOS 废纸篓删除与 Finder 恢复，以及异常 manifest/session/目录/权限/canvas 容错 | 登记 F824-01 / B-71；[P1 调查记录](../verification/p1-2026-11-15/P1调查记录.md) §12 | 验收专用：复用既有 project/canvas API，真实 UI + CDP + Finder 取证；产品代码、shared、IPC/preload/dev-mock/MCP、依赖与生产资源零改动，K1/K8/K9 零触发 | 自研新增·既有能力真机补验 | **矩阵执行完成，验收整体不通过（2026-11-17）**：AC-F1—F9 通过；AC-F10 检出坏 canvas 导致主进程与 Renderer 项目状态分裂，F824-01 / B-71 已由 feature-825 修复并闭环；本包历史结论不改写，不代表 P1 或完整 Parity 通过 |
+| [feature-825-坏画布打开事务修复](./feature-825-坏画布打开事务修复/) | F824-01 / B-71：目标 canvas 损坏时，打开失败不得提前切换 currentDir、清理原项目门或造成 Renderer/主进程项目分裂 | feature-824 AC-F10；[P1 调查记录](../verification/p1-2026-11-15/P1调查记录.md) §13 | `CanvasStore` 显式根目录只读预检 + `openProject` 写队列内提交前 guard + `project:open` 接入；外部 IPC/DTO 不变，K1/K8/K9 零触发 | 自研新增·缺陷修复 | **已闭环（2026-11-18）**：定向 42 项、typecheck、build 通过；真实 Electron 坏 G 保持 A、零目标广播、坏档哈希/session 不变，正常 B 与异常路径通过；B-70 仍 75 项失败，不代表 P1 或完整 Parity 通过 |
 
 ## 2. 已落地平台基础（暂无任务包 · 反向补录可选）
 
@@ -135,7 +140,7 @@
 ## 4. 现行建设顺序（承接根设计 §11 P0—P7 / D-034）
 
 - **P0 基线收口**：D-034、Parity 影响矩阵、现有任务包校准、测试 / 构建 / 环境基线已登记；在线服务与 P6 产品域只形成待决清单，不代替用户拍板。
-- **P1 桌面工作台**：002 / 101 / 201 / 801 / 802 / 806 等已有基础，继续完成项目、会话、画布、确认门、diff、对话、双主题、设置与恢复的真机及 Parity 验收。201 的 2-c 已实施但真机人工验收待做；817 实现已落地，真实任务详情与 OptionCard 现场验收待补。运行时阻塞已由 819 解除（真实对话往返经 820 专项验收通过），底栏与插件 / Skill / 本地模型入口等伪造状态已由 820 收口；仍缺资产上传与真实缩略图、对话侧资产引用、多创作页 / 自由坐标 / 视口持久化。
+- **P1 桌面工作台**：002 / 101 / 201 / 801 / 802 / 806 等已有基础，继续完成项目、会话、画布、确认门、diff、对话、双主题、设置与恢复的真机及 Parity 验收。201 的 2-c 已实施但真机人工验收待做；817 实现已落地，真实任务详情与 OptionCard 现场验收待补。P1 切片 A/B/C/D/E 已分别闭环：819 解除运行时阻塞，820 收口伪造状态并验收真实对话往返，821 闭环资产上传与真实缩略图，822 闭环对话侧资产引用，823 闭环多创作页 / 多画布 / 自由坐标 / 视口持久化及完整重启恢复。切片 F / 824 已执行完整项目库真机矩阵，AC-F1—F9 通过，AC-F10 检出 F824-01 / B-71，验收整体不通过且待另包授权修复。B-70、B-71 与其余 P1 缺口未因此关闭，不宣称整阶段通过。
 - **P2 统一媒体引擎**：803 继续收口资产中心 UI、应用内第二实例与禁用行为；816 的 H3 Image 文生图链已验收。三端口 H3 任务已完成 API 级串行落卡验证，启动参数声明映射为 8000→0、8001→1、8002→2；仍须主机侧 `nvidia-smi` / GPU UUID、应用内多实例行为与三路并发验收。804 窗口标题栏为既有基础，macOS 零变化回归仍是独立缺陷。
 - **P3 视觉生产链**：301 角色 → 302 场景道具 → 401 生产分镜 → 501 逐镜视频；逐包落实 H3 Image / H3、资产引用、按镜实引门与显式 continuation，不把参考工作流当作生产能力。
 - **P4 后期与发布**：601 声音 → 602 时间线剪辑 → 701 成片交付；语音通道须先单独裁决，未裁决前只管理待配文本、任务与既有素材。
@@ -146,4 +151,4 @@
 
 ## 5. 归档与重建说明
 
-任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段），新包取所属段内当前最大已用编号 + 1，编号不回收、不复用；现行 36 个包。路线与落地状态以本文件及各任务包为准；未闭环偏差见 [docs/设计现状与偏差清单.md](../设计现状与偏差清单.md)。
+任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段），新包取所属段内当前最大已用编号 + 1，编号不回收、不复用；现行 40 个包。路线与落地状态以本文件及各任务包为准；未闭环偏差见 [docs/设计现状与偏差清单.md](../设计现状与偏差清单.md)。

@@ -382,3 +382,54 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
     expect(input).toEqual(snapshot)
   })
 })
+
+describe('feature-822 · 用户资产 chip 回放', () => {
+  const image = { assetId: 'a1', kind: 'image', path: '资产/anni.png', name: '安妮.png' }
+  const workflow = { assetId: 'w1', kind: 'workflow', path: '资产/storyboard.json', name: '分镜.json' }
+
+  it('用户正文与资产分别恢复；重复 ID 去重且顺序稳定，额外文件字段不上屏', () => {
+    const input = [rec('u-assets', 'user', [
+      t('参考'),
+      { type: 'asset', text: '', asset: { ...image, absolutePath: '/secret/anni.png', url: 'file:///secret/anni.png' } },
+      { type: 'asset', text: '', asset: workflow },
+      { type: 'asset', text: '', asset: image },
+      t('继续创作'),
+    ])]
+    const snapshot = structuredClone(input)
+    expect(replayMessages(input)).toEqual([{
+      id: 'u-assets', role: 'user', text: '参考继续创作', assets: [image, workflow],
+    }])
+    expect(input).toEqual(snapshot)
+  })
+
+  it('仅资产且正文为空仍保留；坏资产 ID、路径、类型和显示名不会制造空气泡', () => {
+    expect(replayMessages([
+      rec('u-only-asset', 'user', [{ type: 'asset', text: '', asset: image }]),
+      rec('u-bad-path', 'user', [{ type: 'asset', text: '', asset: { ...image, path: '../secret.png' } }]),
+      rec('u-absolute', 'user', [{ type: 'asset', text: '', asset: { ...image, path: '/secret.png' } }]),
+      rec('u-windows-absolute', 'user', [{ type: 'asset', text: '', asset: { ...image, path: 'C:/secret.png' } }]),
+      rec('u-bad-name', 'user', [{ type: 'asset', text: '', asset: { ...image, name: '../安妮.png' } }]),
+      rec('u-bad-kind', 'user', [{ type: 'asset', text: '', asset: { ...image, kind: 'document' } }]),
+      rec('u-bad-id', 'user', [{ type: 'asset', text: '', asset: { ...image, assetId: '' } }]),
+    ])).toEqual([{ id: 'u-only-asset', role: 'user', text: '', assets: [image] }])
+  })
+
+  it('assistant 资产 part 不上屏，既有推理/正文/工具顺序保持不变', () => {
+    expect(replayMessages([rec('a-segments', 'assistant', [
+      { type: 'reasoning', text: '先分析', startedAt: 1 },
+      { type: 'asset', text: '', asset: image },
+      { type: 'tool', text: '', callId: 'c1', tool: 'read_file', status: 'completed', startedAt: 2, endedAt: 3 },
+      t('完成', { startedAt: 4 }),
+    ])])).toEqual([{
+      id: 'a-segments', role: 'agent', text: '完成', agent: 'showrunner',
+      segments: [
+        { kind: 'reasoning', key: 'r-0', text: '先分析' },
+        {
+          kind: 'tool', key: 'c1',
+          tool: { callId: 'c1', tool: 'read_file', status: 'completed', args: {}, startedAt: 2, endedAt: 3 },
+        },
+        { kind: 'text', key: 't-0', text: '完成' },
+      ],
+    }])
+  })
+})

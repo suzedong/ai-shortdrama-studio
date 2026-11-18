@@ -13,6 +13,7 @@ vi.mock('electron', () => ({
 import { applyGateDecision } from '../../../electron/gate/execute'
 import { canvasStore } from '../../../electron/canvas/store'
 import { writeSessionState } from '../../../electron/project/library'
+import { activeDocument } from '../canvas-fixtures'
 import { MANIFEST_FILE } from '../../../electron/project/manifest'
 import { publishV1InQueue } from '../../../electron/brief/publish'
 import * as harness from '../../../electron/harness/validate'
@@ -122,8 +123,8 @@ describe('feature-015 · 0-final 首版与再版发布边界', () => {
     })
 
     const canvas = await canvasStore.get()
-    expect(canvas.nodes).toHaveLength(1)
-    expect(canvas.nodes[0]).toMatchObject({
+    expect(activeDocument(canvas).nodes).toHaveLength(1)
+    expect(activeDocument(canvas).nodes[0]).toMatchObject({
       id: 'step-0-brief', status: 'done', ref: { path: '立项单.v1.json' }, meta: { version: 'v1' },
     })
     const manifest = await readManifestFile(dir)
@@ -155,7 +156,7 @@ describe('feature-015 · 0-final 首版与再版发布边界', () => {
     }))
     const filesBefore = await briefFiles(dir)
     const manifestBefore = await readManifestFile(dir)
-    const nodesBefore = structuredClone((await canvasStore.get()).nodes)
+    const nodesBefore = structuredClone(activeDocument(await canvasStore.get()).nodes)
 
     const result = await applyGateDecision(gate)
 
@@ -163,7 +164,7 @@ describe('feature-015 · 0-final 首版与再版发布边界', () => {
     expect(await briefFiles(dir)).toEqual(filesBefore)
     expect(await briefFiles(dir)).toEqual(['立项单.v1.json', '立项单.v1.md'])
     expect(await readManifestFile(dir)).toEqual(manifestBefore)
-    expect((await canvasStore.get()).nodes).toEqual(nodesBefore)
+    expect(activeDocument(await canvasStore.get()).nodes).toEqual(nodesBefore)
   })
 
   it('历史无草案首版门：保持 approved 并返回 GATE_DRAFT_MISSING，零发布', async () => {
@@ -278,7 +279,7 @@ describe('feature-015 · 其他门的系统后置映射', () => {
     expect(manifest.statusHistory.map(t => t.event)).toEqual([
       'outline-approved', 'profiles-approved', 'scenes-approved', 'dialogue-approved', 'storyboard-finalized',
     ])
-    expect((await canvasStore.get()).nodes).toEqual([])
+    expect(activeDocument(await canvasStore.get()).nodes).toEqual([])
   })
 
   it('already-there 视为幂等成功，bad-transition 返回执行失败', async () => {

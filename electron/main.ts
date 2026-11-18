@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import type { WebContents } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -32,7 +32,12 @@ import {
 } from './settings/workspace.js'
 import { canvasStore } from './canvas/store.js'
 import { gateBridge } from './gate/bridge.js'
-import { listAssets, captureAssetSource } from './asset/index.js'
+import {
+  listAssets,
+  captureAssetSource,
+  resolvePromptAssetRefs,
+} from './asset/index.js'
+import { importImageFromPath, readAssetThumbnail } from './asset/image.js'
 import { readProjectFile } from './fs/read.js'
 import { getActiveProjectDir } from './project/current.js'
 import { updateBriefFields, type BriefUpdatePatch } from './brief/update.js'
@@ -54,7 +59,12 @@ import { runtimeManager } from './runtime/manager.js'
 import { resolveRuntimeProxyEnv } from './network.js'
 import { OpencodeRuntimeClient } from './runtime/client.js'
 import { subscribeEvents, type EventStreamHandle } from './runtime/projection.js'
-import type { RuntimeEvent, RuntimeStatus } from './runtime/types.js'
+import type {
+  RuntimeEvent,
+  RuntimePromptRequest,
+  RuntimeResolvedAsset,
+  RuntimeStatus,
+} from './runtime/types.js'
 import { windowChromeOptions, type WindowPlatform } from './window/chrome.js'
 
 /** process.platform 收窄到三分支：非 darwin/win32 的类 Unix 一律按 linux 自绘外壳处理 */
@@ -175,7 +185,7 @@ ipcMain.handle('project:open', (_e, dir: unknown) => {
     err.name = 'INVALID_ARGUMENT'
     throw err
   }
-  return openProject(dir).then(async res => {
+  return openProject(dir, resolved => canvasStore.assertReadable(resolved)).then(async res => {
     // feature-017/018：清算旧门 → 丢弃画布投影 → 重挂新项目的 pending 门（顺序固定）
     gateBridge.clearLive()
     canvasStore.reset()
@@ -504,6 +514,15 @@ const RUNTIME_ERROR_NAMES: ReadonlySet<string> = new Set([
   'PROMPT_ABORTED',
   'STRUCTURED_OUTPUT_FAILED',
   'UPSTREAM_AUTH_MISSING',
+  'NO_ACTIVE_PROJECT',
+  'PROJECT_CHANGED',
+  'ASSET_REF_INVALID',
+  'ASSET_REF_NOT_FOUND',
+  'ASSET_REF_NOT_REGULAR_FILE',
+  'ASSET_REF_UNSUPPORTED',
+  'ASSET_INDEX_CORRUPT',
+  'ASSET_NOT_FOUND',
+  'PATH_ESCAPE_DENIED',
   'INTERNAL',
 ])
 
@@ -685,6 +704,39 @@ runtimeManager.addBeforeStopHook(async () => {
   }
 })
 
+async function resolveRuntimePromptAssets(
+  req: RuntimePromptRequest,
+): Promise<RuntimeResolvedAsset[]> {
+  if (req.assetRefs === undefined || (Array.isArray(req.assetRefs) && req.assetRefs.length === 0)) {
+    return []
+  }
+  if (!Array.isArray(req.assetRefs)) throw makeRuntimeError('ASSET_REF_INVALID', '资产引用格式不正确')
+  const currentRoot = (): string | null => {
+    try {
+      return getActiveProjectDir()
+    } catch {
+      return null
+    }
+  }
+  const projectRoot = currentRoot()
+  if (!projectRoot) throw makeRuntimeError('NO_ACTIVE_PROJECT', '请先打开一个项目，再引用项目资产')
+  const canvas = await canvasStore.get()
+  if (currentRoot() !== projectRoot) {
+    throw makeRuntimeError('PROJECT_CHANGED', '项目已切换，本次资产引用已取消')
+  }
+  const projectId = canvas.projectId
+  if (!projectId) throw makeRuntimeError('NO_ACTIVE_PROJECT', '当前项目尚未初始化，无法引用资产')
+  const resolved = await resolvePromptAssetRefs(req.assetRefs, projectRoot)
+  if (currentRoot() !== projectRoot) {
+    throw makeRuntimeError('PROJECT_CHANGED', '项目已切换，本次资产引用已取消')
+  }
+  const current = await canvasStore.get()
+  if (currentRoot() !== projectRoot || current.projectId !== projectId) {
+    throw makeRuntimeError('PROJECT_CHANGED', '项目已切换，本次资产引用已取消')
+  }
+  return resolved
+}
+
 // -- 12 个 invoke handle（契约 §3.1） -----------------------------------------
 
 ipcMain.handle('runtime:start', async () => {
@@ -761,11 +813,21 @@ ipcMain.handle('runtime:session:delete', (_e, sessionId: unknown) =>
 
 // 业务失败（结构化校验 / ProviderAuth / abort）经 result.error 返回，不 reject（契约 §5.4）
 ipcMain.handle('runtime:prompt', (_e, req: unknown) =>
-  withRuntime(() => runtimeClient.prompt(req as Parameters<typeof runtimeClient.prompt>[0])),
+  withRuntime(async () => {
+    if (!isRecord(req)) throw makeRuntimeError('INVALID_ARGUMENT', 'prompt 请求体缺失')
+    const promptReq = req as unknown as RuntimePromptRequest
+    const assets = await resolveRuntimePromptAssets(promptReq)
+    return runtimeClient.prompt(promptReq, assets)
+  }),
 )
 
 ipcMain.handle('runtime:prompt:async', (_e, req: unknown) =>
-  withRuntime(() => runtimeClient.promptAsync(req as Parameters<typeof runtimeClient.promptAsync>[0])),
+  withRuntime(async () => {
+    if (!isRecord(req)) throw makeRuntimeError('INVALID_ARGUMENT', 'prompt 请求体缺失')
+    const promptReq = req as unknown as RuntimePromptRequest
+    const assets = await resolveRuntimePromptAssets(promptReq)
+    return runtimeClient.promptAsync(promptReq, assets)
+  }),
 )
 
 ipcMain.handle('runtime:event:subscribe', (e, arg?: unknown) =>
@@ -823,6 +885,11 @@ ipcMain.handle('canvas:command', async (_e, request: unknown) => {
   return canvasStore.command(request as import('../shared/types.js').CanvasCommandRequest)
 })
 
+// feature-823 · 活动页/画布、canvas/stage0 与逐画布视口；不进入 revision/receipts。
+ipcMain.handle('canvas:view-state', async (_e, request: unknown) => {
+  return canvasStore.viewState(request as import('../shared/types.js').CanvasViewStateRequest)
+})
+
 ipcMain.handle('canvas:subscribe', (e) => {
   canvasSubscribers.add(e.sender)
   // 门重挂修复：renderer 订阅时重挂 pending 门，确保重启后 decide 可用
@@ -862,6 +929,70 @@ ipcMain.handle('gate:decide', async (_e, arg: unknown) => {
 ipcMain.handle('asset:list', (_e, arg?: unknown) => {
   const kind = (arg as { kind?: AssetIndexItem['kind'] } | undefined)?.kind
   return listAssets(kind)
+})
+
+// feature-821 · 系统直做上传：renderer 不接触源路径，选择前后绑定同一项目上下文
+ipcMain.handle('asset:import', async event => {
+  let projectRoot: string
+  try {
+    projectRoot = getActiveProjectDir()
+  } catch {
+    throw Object.assign(new Error('请先打开一个项目，再上传图片。'), { code: 'NO_ACTIVE_PROJECT' })
+  }
+  const projectId = (await canvasStore.get()).projectId
+  const owner = BrowserWindow.fromWebContents(event.sender)
+  const options = {
+    title: '上传图片',
+    buttonLabel: '上传',
+    properties: ['openFile'] as ['openFile'],
+    filters: [{ name: '图片（PNG / JPEG / WebP）', extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
+  }
+  const selected = owner
+    ? await dialog.showOpenDialog(owner, options)
+    : await dialog.showOpenDialog(options)
+  if (selected.canceled || selected.filePaths.length === 0) return { status: 'cancelled' as const }
+
+  try {
+    const currentRoot = getActiveProjectDir()
+    const currentProjectId = (await canvasStore.get()).projectId
+    if (currentRoot !== projectRoot || currentProjectId !== projectId) {
+      throw Object.assign(new Error('项目已切换，本次上传已取消，请重新选择图片。'), { code: 'PROJECT_CHANGED' })
+    }
+    const sourcePath = selected.filePaths[0]!
+    const asset = await importImageFromPath({ projectRoot, sourcePath })
+    return { status: 'imported' as const, asset }
+  } catch (error) {
+    const code = (error as { code?: unknown })?.code
+    if (typeof code === 'string' && [
+      'PROJECT_CHANGED', 'SOURCE_NOT_REGULAR_FILE', 'IMAGE_TOO_LARGE', 'IMAGE_UNSUPPORTED',
+      'IMAGE_TOO_MANY_PIXELS', 'PATH_ESCAPE_DENIED', 'ASSET_INDEX_CORRUPT', 'ASSET_IMPORT_FAILED',
+    ].includes(code)) throw error
+    throw Object.assign(new Error('图片导入失败，请检查文件和项目目录后重试。'), {
+      code: 'ASSET_IMPORT_FAILED', cause: error,
+    })
+  }
+})
+
+ipcMain.handle('asset:thumbnail', async (_event, arg: unknown) => {
+  const assetId = (arg as { assetId?: unknown } | undefined)?.assetId
+  if (typeof assetId !== 'string' || assetId.trim() === '') {
+    throw Object.assign(new Error('缩略图参数必须为非空资产 ID。'), { code: 'INVALID_ARGUMENT' })
+  }
+  let projectRoot: string
+  try {
+    projectRoot = getActiveProjectDir()
+  } catch {
+    throw Object.assign(new Error('当前没有打开的项目，无法读取缩略图。'), { code: 'NO_ACTIVE_PROJECT' })
+  }
+  try {
+    return await readAssetThumbnail({ projectRoot, assetId })
+  } catch (error) {
+    const code = (error as { code?: unknown })?.code
+    if (code === 'ASSET_INDEX_CORRUPT' || code === 'ASSET_THUMBNAIL_FAILED') throw error
+    throw Object.assign(new Error('缩略图读取失败，请稍后重试。'), {
+      code: 'ASSET_THUMBNAIL_FAILED', cause: error,
+    })
+  }
 })
 
 // 只读产物查看：renderer 唯一读文件通道

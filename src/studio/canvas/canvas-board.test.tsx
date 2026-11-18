@@ -1,17 +1,18 @@
 // feature-020 C5 · CanvasBoard 多步分组渲染测试（契约 §3，OD §2/§5，需求 AC-7/AC-9）
 // 断言：按 step 动态分组、STAGE 列标题动态、跨组贝塞尔横边、无单步硬编码、空态步骤无关。
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { Canvas, CanvasNode } from '@shared/types'
+import type { Canvas, CanvasNode, CanvasViewStateRequest } from '@shared/types'
 import CanvasBoard, { snapNode } from './CanvasBoard'
 import StageNavPanel from './StageNavPanel'
+import { activeDocument, canvasV4, withActiveDocument } from '../../test/canvas-fixtures'
 
 function emptyCanvas(): Canvas {
-  return {
-    schemaVersion: 3, projectId: 'p1', title: '测试项目', nodes: [], edges: [], gates: [],
+  return canvasV4({
+    projectId: 'p1', title: '测试项目', nodes: [], edges: [], gates: [],
     revision: 0, receipts: [], updatedAt: new Date().toISOString(),
-  }
+  })
 }
 
 function node(partial: Partial<CanvasNode> & Pick<CanvasNode, 'id' | 'step' | 'kind' | 'title' | 'status'>): CanvasNode {
@@ -32,11 +33,11 @@ describe('C5 · CanvasBoard 多步分组', () => {
 
   it('仅第 0 步数据：只有立项组，不出现空的第 1 步组', () => {
     const c = emptyCanvas()
-    c.nodes = [
+    activeDocument(c).nodes = [
       node({ id: 'step-0-diagnosis', step: '0', kind: 'diagnosis', title: '选题诊断', status: 'done' }),
       node({ id: 'step-0-brief', step: '0', kind: 'brief', title: '立项单', status: 'done' }),
     ]
-    c.edges = [{ id: 'e-diag-brief', from: 'step-0-diagnosis', to: 'step-0-brief', auto: true }]
+    activeDocument(c).edges = [{ id: 'e-diag-brief', from: 'step-0-diagnosis', to: 'step-0-brief', auto: true }]
     render(<CanvasBoard canvas={c} />)
 
     expect(screen.getByText('STAGE 0 · 立项')).toBeInTheDocument()
@@ -45,12 +46,12 @@ describe('C5 · CanvasBoard 多步分组', () => {
 
   it('第 0、1 步数据：横向两列 + 动态列标题 + outline/profiles 中文标签', () => {
     const c = emptyCanvas()
-    c.nodes = [
+    activeDocument(c).nodes = [
       node({ id: 'step-0-brief', step: '0', kind: 'brief', title: '立项单', status: 'done' }),
       node({ id: 'step-1-outline', step: '1', kind: 'outline', title: '故事大纲', status: 'done' }),
       node({ id: 'step-1-profiles', step: '1', kind: 'profiles', title: '人物小传', status: 'active' }),
     ]
-    c.edges = [
+    activeDocument(c).edges = [
       { id: 'e-step-0-brief--step-1-outline', from: 'step-0-brief', to: 'step-1-outline', auto: true },
       { id: 'e-step-1-outline--step-1-profiles', from: 'step-1-outline', to: 'step-1-profiles', auto: true },
     ]
@@ -67,7 +68,7 @@ describe('C5 · CanvasBoard 多步分组', () => {
 
   it('状态数据驱动：active 节点显示进行中，done 显示已完成', () => {
     const c = emptyCanvas()
-    c.nodes = [
+    activeDocument(c).nodes = [
       node({ id: 'step-1-outline', step: '1', kind: 'outline', title: '故事大纲', status: 'active' }),
       node({ id: 'step-1-profiles', step: '1', kind: 'profiles', title: '人物小传', status: 'pending' }),
     ]
@@ -78,7 +79,7 @@ describe('C5 · CanvasBoard 多步分组', () => {
 
   it('仅第 0、1 步数据：不出现空的第 2 步组', () => {
     const c = emptyCanvas()
-    c.nodes = [
+    activeDocument(c).nodes = [
       node({ id: 'step-0-brief', step: '0', kind: 'brief', title: '立项单', status: 'done' }),
       node({ id: 'step-1-profiles', step: '1', kind: 'profiles', title: '人物小传', status: 'done' }),
     ]
@@ -88,13 +89,13 @@ describe('C5 · CanvasBoard 多步分组', () => {
 
   it('第 0、1、2 步数据：横向三列 + 标题「STAGE 2 · 剧本分场」+ scenes/dialogue 中文标签', () => {
     const c = emptyCanvas()
-    c.nodes = [
+    activeDocument(c).nodes = [
       node({ id: 'step-0-brief', step: '0', kind: 'brief', title: '立项单', status: 'done' }),
       node({ id: 'step-1-profiles', step: '1', kind: 'profiles', title: '人物小传', status: 'done' }),
       node({ id: 'step-2-scenes', step: '2', kind: 'scenes', title: '第一集分场', status: 'done' }),
       node({ id: 'step-2-dialogue', step: '2', kind: 'dialogue', title: '第一集台词', status: 'active' }),
     ]
-    c.edges = [
+    activeDocument(c).edges = [
       { id: 'e-step-1-profiles--step-2-scenes', from: 'step-1-profiles', to: 'step-2-scenes', auto: true },
       { id: 'e-step-2-scenes--step-2-dialogue', from: 'step-2-scenes', to: 'step-2-dialogue', auto: true },
     ]
@@ -113,7 +114,7 @@ describe('C5 · CanvasBoard 多步分组', () => {
 describe('feature-002 · CanvasBoard 脏读标识', () => {
   it('dirty 节点：meta.version 旁黄 ⚠ 角标，hover 文案含中文字段；无 dirty 不渲染', () => {
     const c = emptyCanvas()
-    c.nodes = [
+    activeDocument(c).nodes = [
       node({ id: 'step-0-brief', step: '0', kind: 'brief', title: '立项单 v2', status: 'done', meta: { version: 'v2' } }),
       node({
         id: 'step-1-outline', step: '1', kind: 'outline', title: '故事大纲', status: 'done',
@@ -138,7 +139,7 @@ describe('feature-002 · CanvasBoard 脏读标识', () => {
 
   it('有任一 dirty 节点：顶部黄条给出计数与最新版；无 dirty 时黄条不渲染', () => {
     const dirtyCanvas = emptyCanvas()
-    dirtyCanvas.nodes = [
+    activeDocument(dirtyCanvas).nodes = [
       node({ id: 'step-0-brief', step: '0', kind: 'brief', title: '立项单 v3', status: 'done', meta: { version: 'v3' } }),
       node({
         id: 'step-2-scenes', step: '2', kind: 'scenes', title: '第一集分场', status: 'done',
@@ -155,7 +156,7 @@ describe('feature-002 · CanvasBoard 脏读标识', () => {
 
     unmount()
     const clean = emptyCanvas()
-    clean.nodes = [
+    activeDocument(clean).nodes = [
       node({ id: 'step-0-brief', step: '0', kind: 'brief', title: '立项单 v1', status: 'done', meta: { version: 'v1' } }),
       node({ id: 'step-1-outline', step: '1', kind: 'outline', title: '故事大纲', status: 'done' }),
     ]
@@ -331,7 +332,7 @@ describe('feature-814 · 节点选择与资产关联展示', () => {
       id: 'profiles', step: '1', kind: 'profiles', title: '人物小传', status: 'done',
       assetIds: ['asset-1', 'asset-2'],
     })
-    const initial = { ...emptyCanvas(), nodes: [outline, profiles] }
+    const initial = withActiveDocument(emptyCanvas(), { nodes: [outline, profiles] })
     const onSelectNode = vi.fn()
     const { container, rerender } = render(
       <CanvasBoard canvas={initial} onSelectNode={onSelectNode} />,
@@ -343,12 +344,340 @@ describe('feature-814 · 节点选择与资产关联展示', () => {
 
     rerender(
       <CanvasBoard
-        canvas={{ ...initial, revision: 1, nodes: [{ ...outline }, { ...profiles }] }}
+        canvas={withActiveDocument({ ...initial, revision: 1 }, {
+          nodes: [{ ...outline }, { ...profiles }],
+        })}
         onSelectNode={onSelectNode}
       />,
     )
     expect(container.querySelector('[data-node-id="profiles"]')?.className).toContain('border-violet')
     expect(container.querySelector('[data-node-id="outline"]')?.className).not.toContain('border-violet')
     expect(onSelectNode).toHaveBeenLastCalledWith('profiles')
+  })
+})
+
+describe('feature-823 · 多创作页与自由画布交互', () => {
+  function deferred<T>() {
+    let resolve!: (value: T) => void
+    let reject!: (reason?: unknown) => void
+    const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej })
+    return { promise, resolve, reject }
+  }
+
+  function boardCanvas(): Canvas {
+    const base = emptyCanvas()
+    const boardNode = (title: string, x = 0, status: CanvasNode['status'] = 'pending') => node({
+      id: 'shared-node', step: '1', kind: 'outline', title, status,
+      position: { x, y: 0 },
+    })
+    return {
+      ...base,
+      activePageId: 'page-a',
+      revision: 7,
+      pages: [
+        {
+          id: 'page-a', title: '页 A', activeCanvasId: 'canvas-a1',
+          canvases: [
+            { id: 'canvas-a1', title: '画布 A1', nodes: [boardNode('A1 节点')], edges: [], viewport: { x: 40, y: 50, zoom: 1.25 } },
+            { id: 'canvas-a2', title: '画布 A2', nodes: [boardNode('A2 节点', 200)], edges: [], viewport: { x: -20, y: 30, zoom: 0.5 } },
+          ],
+        },
+        {
+          id: 'page-b', title: '页 B', activeCanvasId: 'canvas-b1',
+          canvases: [{ id: 'canvas-b1', title: '画布 B1', nodes: [boardNode('B1 节点', 400)], edges: [], viewport: null }],
+        },
+      ],
+    }
+  }
+
+  function mockBoardApi() {
+    const command = vi.fn()
+    const viewState = vi.fn(async (_request: CanvasViewStateRequest) => ({ ok: true as const }))
+    window.api = {
+      canvas: { command, viewState, onChange: vi.fn(() => () => {}) },
+    } as unknown as Window['api']
+    return { command, viewState }
+  }
+
+  function worldOf(container: HTMLElement): HTMLElement {
+    return container.querySelectorAll('[data-canvas-bg]')[1] as HTMLElement
+  }
+
+  it('新建创作页与画布时携带完整目标和当前 revision', async () => {
+    let current = boardCanvas()
+    const { command } = mockBoardApi()
+    command.mockImplementation(async request => {
+      const next = structuredClone(current)
+      if (request.type === 'page.create') {
+        next.pages.push({
+          id: 'page-c', title: '创作页 3', activeCanvasId: 'canvas-c1',
+          canvases: [{ id: 'canvas-c1', title: '画布 1', nodes: [], edges: [], viewport: null }],
+        })
+        next.activePageId = 'page-c'
+      } else if (request.type === 'canvas.create') {
+        const page = next.pages.find(item => item.id === request.pageId)!
+        page.canvases.push({ id: 'canvas-c2', title: '画布 2', nodes: [], edges: [], viewport: null })
+        page.activeCanvasId = 'canvas-c2'
+      }
+      next.revision += 1
+      current = next
+      return { commandId: request.commandId, revision: next.revision, canvas: next }
+    })
+    render(<CanvasBoard canvas={current} />)
+
+    fireEvent.click(screen.getByRole('button', { name: '新建创作页' }))
+    expect(await screen.findByText('创作页 3')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '新建画布' }))
+    expect(await screen.findByRole('option', { name: '画布 2' })).toBeInTheDocument()
+
+    expect(command.mock.calls[0]?.[0]).toMatchObject({
+      type: 'page.create', projectId: 'p1', expectedRevision: 7,
+    })
+    expect(command.mock.calls[1]?.[0]).toMatchObject({
+      type: 'canvas.create', projectId: 'p1', pageId: 'page-c', expectedRevision: 8,
+    })
+  })
+
+  it('页与画布改名使用最新 revision 和切换后的活动目标', async () => {
+    let current = boardCanvas()
+    const { command } = mockBoardApi()
+    command.mockImplementation(async request => {
+      const next = structuredClone(current)
+      if (request.type === 'page.rename') {
+        next.pages.find(page => page.id === request.pageId)!.title = request.title
+      } else if (request.type === 'canvas.rename') {
+        const page = next.pages.find(item => item.id === request.pageId)!
+        page.canvases.find(canvas => canvas.id === request.canvasId)!.title = request.title
+      }
+      next.revision += 1
+      current = next
+      return { commandId: request.commandId, revision: next.revision, canvas: next }
+    })
+    render(<CanvasBoard canvas={current} />)
+
+    fireEvent.click(screen.getByRole('button', { name: '重命名创作页' }))
+    fireEvent.change(screen.getByDisplayValue('页 A'), { target: { value: '页 A 改名' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存页名' }))
+    expect(await screen.findByText('页 A 改名')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '重命名画布' }))
+    fireEvent.change(screen.getByDisplayValue('画布 A1'), { target: { value: '画布 A1 改名' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存画布名' }))
+    expect(await screen.findByRole('option', { name: '画布 A1 改名' })).toBeInTheDocument()
+    expect(command.mock.calls[1]?.[0]).toMatchObject({
+      type: 'canvas.rename', pageId: 'page-a', canvasId: 'canvas-a1', expectedRevision: 8,
+    })
+  })
+
+  it('非空画布与创作页删除均需确认并发送 confirmNonEmpty', async () => {
+    let current = boardCanvas()
+    const { command } = mockBoardApi()
+    command.mockImplementation(async request => {
+      const next = structuredClone(current)
+      if (request.type === 'canvas.delete') {
+        const page = next.pages.find(item => item.id === request.pageId)!
+        page.canvases = page.canvases.filter(canvas => canvas.id !== request.canvasId)
+        page.activeCanvasId = 'canvas-a2'
+      } else if (request.type === 'page.delete') {
+        next.pages = next.pages.filter(page => page.id !== request.pageId)
+        next.activePageId = 'page-b'
+      }
+      next.revision += 1
+      current = next
+      return { commandId: request.commandId, revision: next.revision, canvas: next }
+    })
+    render(<CanvasBoard canvas={current} />)
+
+    fireEvent.click(screen.getByRole('button', { name: '删除画布' }))
+    expect(command).not.toHaveBeenCalled()
+    fireEvent.click(await screen.findByRole('button', { name: '仍删除' }))
+    await waitFor(() => expect(command).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: '删除创作页' }))
+    fireEvent.click(await screen.findByRole('button', { name: '仍删除' }))
+    await waitFor(() => expect(command).toHaveBeenCalledTimes(2))
+
+    expect(command.mock.calls[0]?.[0]).toMatchObject({ type: 'canvas.delete', confirmNonEmpty: true })
+    expect(command.mock.calls[1]?.[0]).toMatchObject({ type: 'page.delete', confirmNonEmpty: true })
+  })
+
+  it('最后页与最后画布禁用删除并说明原因', () => {
+    const { command } = mockBoardApi()
+    const onError = vi.fn()
+    render(<CanvasBoard canvas={emptyCanvas()} onError={onError} />)
+
+    const deletePage = screen.getByRole('button', { name: '删除创作页' })
+    const deleteCanvas = screen.getByRole('button', { name: '删除画布' })
+    expect(deletePage).toBeDisabled()
+    expect(deletePage).toHaveAttribute('title', '每个项目至少保留一个创作页')
+    expect(deleteCanvas).toBeDisabled()
+    expect(deleteCanvas).toHaveAttribute('title', '每个创作页至少保留一个画布')
+    fireEvent.click(deletePage)
+    fireEvent.click(deleteCanvas)
+    expect(command).not.toHaveBeenCalled()
+    expect(onError).not.toHaveBeenCalled()
+  })
+
+  it('active.set 切换失败时回滚到原创作页', async () => {
+    const { viewState } = mockBoardApi()
+    const onError = vi.fn()
+    viewState.mockRejectedValueOnce(new Error('写入失败'))
+    const { container } = render(<CanvasBoard canvas={boardCanvas()} onError={onError} />)
+
+    fireEvent.click(container.querySelector('[data-page-id="page-b"]')!)
+    await waitFor(() => expect(onError).toHaveBeenCalledWith('切换创作页或画布失败：写入失败'))
+    expect(container.querySelector('[data-page-id="page-a"]')).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getAllByText('A1 节点')).not.toHaveLength(0)
+    expect(viewState).toHaveBeenCalledWith({
+      type: 'active.set', projectId: 'p1', pageId: 'page-b', canvasId: 'canvas-b1',
+    })
+  })
+
+  it('快速往返切换时，旧 active.set 失败不得回滚新目标', async () => {
+    const { viewState } = mockBoardApi()
+    const first = deferred<{ ok: true }>()
+    viewState.mockReturnValueOnce(first.promise)
+    viewState.mockResolvedValue({ ok: true })
+    const onError = vi.fn()
+    const { container } = render(<CanvasBoard canvas={boardCanvas()} onError={onError} />)
+
+    fireEvent.click(container.querySelector('[data-page-id="page-b"]')!)
+    fireEvent.click(container.querySelector('[data-page-id="page-a"]')!)
+    fireEvent.click(container.querySelector('[data-page-id="page-b"]')!)
+    await act(async () => {
+      first.reject(new Error('旧请求失败'))
+      try { await first.promise } catch { /* 已由组件处理 */ }
+    })
+
+    expect(onError).not.toHaveBeenCalled()
+    expect(container.querySelector('[data-page-id="page-b"]')).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('每个画布恢复独立 viewport，同目标广播不抢回本港缩放', async () => {
+    mockBoardApi()
+    const initial = boardCanvas()
+    const { container, rerender } = render(<CanvasBoard canvas={initial} />)
+    const world = worldOf(container)
+    expect(world.style.transform).toBe('translate(40px, 50px) scale(1.25)')
+
+    fireEvent.change(screen.getByLabelText('当前画布'), { target: { value: 'canvas-a2' } })
+    await waitFor(() => expect(world.style.transform).toBe('translate(-20px, 30px) scale(0.5)'))
+    const viewport = container.querySelector('[data-canvas-bg]') as HTMLElement
+    vi.spyOn(viewport, 'getBoundingClientRect').mockReturnValue({
+      x: 0, y: 0, left: 0, top: 0, width: 800, height: 600, right: 800, bottom: 600,
+      toJSON: () => ({}),
+    } as DOMRect)
+    fireEvent.wheel(viewport, { deltaY: -100, clientX: 200, clientY: 200 })
+    expect(world.style.transform).toContain('scale(0.56)')
+
+    const broadcast = structuredClone(initial)
+    broadcast.pages[0]!.activeCanvasId = 'canvas-a2'
+    rerender(<CanvasBoard canvas={broadcast} />)
+    expect(world.style.transform).toContain('scale(0.56)')
+  })
+
+  it('滚轮 160ms 只保存一次，卸载取消旧定时器', async () => {
+    const { viewState } = mockBoardApi()
+    const initial = boardCanvas()
+    const { container, unmount } = render(<CanvasBoard canvas={initial} />)
+    const viewport = container.querySelector('[data-canvas-bg]') as HTMLElement
+    vi.spyOn(viewport, 'getBoundingClientRect').mockReturnValue({
+      x: 0, y: 0, left: 0, top: 0, width: 800, height: 600, right: 800, bottom: 600,
+      toJSON: () => ({}),
+    } as DOMRect)
+
+    fireEvent.wheel(viewport, { deltaY: -100, clientX: 200, clientY: 200 })
+    fireEvent.wheel(viewport, { deltaY: -100, clientX: 200, clientY: 200 })
+    expect(viewState).not.toHaveBeenCalled()
+    await new Promise(resolve => setTimeout(resolve, 100))
+    expect(viewState).not.toHaveBeenCalled()
+    await waitFor(() => expect(viewState).toHaveBeenCalledTimes(1))
+
+    fireEvent.wheel(viewport, { deltaY: -100, clientX: 200, clientY: 200 })
+    unmount()
+    await new Promise(resolve => setTimeout(resolve, 180))
+    expect(viewState).toHaveBeenCalledTimes(1)
+  })
+
+  it('pan 松手与用户 fit 各保存一次视口', async () => {
+    const { viewState } = mockBoardApi()
+    const { container } = render(<CanvasBoard canvas={boardCanvas()} />)
+    const viewport = container.querySelector('[data-canvas-bg]') as HTMLElement
+    viewport.setPointerCapture = vi.fn()
+    viewport.releasePointerCapture = vi.fn()
+
+    fireEvent.pointerDown(viewport, { button: 0, pointerId: 1, clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(viewport, { pointerId: 1, clientX: 150, clientY: 130, buttons: 1 })
+    fireEvent.pointerUp(viewport, { pointerId: 1 })
+    await waitFor(() => expect(viewState).toHaveBeenCalledTimes(1))
+    expect(viewState.mock.calls[0]?.[0]).toMatchObject({
+      type: 'viewport.set', pageId: 'page-a', canvasId: 'canvas-a1',
+      viewport: { x: 90, y: 80, zoom: 1.25 },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '适应内容' }))
+    await waitFor(() => expect(viewState).toHaveBeenCalledTimes(2))
+    expect(viewState.mock.calls[1]?.[0]).toMatchObject({
+      type: 'viewport.set', viewport: { x: 0, y: 0, zoom: 0.5 },
+    })
+  })
+
+  it('跨 STAGE 拖为负坐标时仅在 pointer-up 发送一次 node.move', async () => {
+    const initial = boardCanvas()
+    initial.pages[0]!.canvases[0]!.viewport = { x: 0, y: 0, zoom: 1 }
+    const completion = deferred<{ commandId: string; revision: number; canvas: Canvas }>()
+    const { command } = mockBoardApi()
+    command.mockReturnValue(completion.promise)
+    const { container } = render(<CanvasBoard canvas={initial} />)
+    const viewport = container.querySelector('[data-canvas-bg]') as HTMLElement
+    const card = container.querySelector('[data-node-id="shared-node"]') as HTMLElement
+
+    fireEvent.pointerDown(card, { button: 0, pointerId: 1, clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(viewport, { pointerId: 1, clientX: 40, clientY: 60, buttons: 1 })
+    expect(command).not.toHaveBeenCalled()
+    expect(card.style.left).toBe('-60px')
+    expect(card.style.top).toBe('-40px')
+    fireEvent.pointerUp(viewport, { pointerId: 1 })
+    await waitFor(() => expect(command).toHaveBeenCalledTimes(1))
+    expect(command.mock.calls[0]?.[0]).toMatchObject({
+      type: 'node.move', projectId: 'p1', pageId: 'page-a', canvasId: 'canvas-a1',
+      nodeId: 'shared-node', position: { x: -60, y: -40 }, expectedRevision: 7,
+    })
+
+    const next = structuredClone(initial)
+    next.pages[0]!.canvases[0]!.nodes[0]!.position = { x: -60, y: -40 }
+    next.revision = 8
+    await act(async () => {
+      completion.resolve({ commandId: 'move-1', revision: 8, canvas: next })
+      await completion.promise
+    })
+  })
+
+  it('拖动命令未返回时切换画布，旧响应不得覆盖新目标', async () => {
+    const initial = boardCanvas()
+    initial.pages[0]!.canvases[0]!.viewport = { x: 0, y: 0, zoom: 1 }
+    const completion = deferred<{ commandId: string; revision: number; canvas: Canvas }>()
+    const { command } = mockBoardApi()
+    command.mockReturnValue(completion.promise)
+    const onCanvasChange = vi.fn()
+    const { container } = render(<CanvasBoard canvas={initial} onCanvasChange={onCanvasChange} />)
+    const viewport = container.querySelector('[data-canvas-bg]') as HTMLElement
+    const card = container.querySelector('[data-node-id="shared-node"]') as HTMLElement
+
+    fireEvent.pointerDown(card, { button: 0, pointerId: 1, clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(viewport, { pointerId: 1, clientX: 40, clientY: 60, buttons: 1 })
+    fireEvent.pointerUp(viewport, { pointerId: 1 })
+    await waitFor(() => expect(command).toHaveBeenCalledTimes(1))
+    fireEvent.change(screen.getByLabelText('当前画布'), { target: { value: 'canvas-a2' } })
+    const callsAfterSwitch = onCanvasChange.mock.calls.length
+
+    const stale = structuredClone(initial)
+    stale.pages[0]!.canvases[0]!.nodes[0]!.position = { x: -60, y: -40 }
+    stale.revision = 8
+    await act(async () => {
+      completion.resolve({ commandId: 'move-old', revision: 8, canvas: stale })
+      await completion.promise
+    })
+    expect(onCanvasChange).toHaveBeenCalledTimes(callsAfterSwitch)
+    expect(screen.getAllByText('A2 节点')).not.toHaveLength(0)
   })
 })

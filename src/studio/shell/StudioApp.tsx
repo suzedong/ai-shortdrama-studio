@@ -4,16 +4,17 @@
 // 所有 IPC 与组件接线保持不变；仅把视觉骨架对齐高保真原型。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import type { Canvas, CanvasCommandType, CanvasGate, CanvasNode, StepId } from '@shared/types'
+import type { Canvas, CanvasGate, CanvasNode, StepId } from '@shared/types'
 import {
   reduceRuntimeEvent,
   turnSegments,
   turnText,
   type StreamingTurn,
 } from '../../lib/chat-runtime'
-import type { RuntimeState } from '../../lib/runtime-types'
+import type { RuntimeAssetRef, RuntimeState } from '../../lib/runtime-types'
 import { replayMessages } from '../../lib/history-replay'
 import CanvasBoard, { kindLabel, type NodeAction } from '../canvas/CanvasBoard'
+import { activeCanvasDocument, activeCanvasPage } from '../canvas/document'
 import ChatComposer, { demoChatItems, type ChatItem, type ChatModelOption } from '../chat/ChatComposer'
 import CaptureBar from '../stage0/CaptureBar'
 import ProjectNav, { type ProjectNavHandle } from './ProjectNav'
@@ -36,6 +37,7 @@ import VisualCatalog from '../style/VisualCatalog'
 import AiServicePanel, { getChatModelOptions, summarizeActiveProvider } from './AiServicePanel'
 import WorkspacePanel from './WorkspacePanel'
 import WindowControls from './WindowControls'
+import { ipcErrorMessage } from './ipc-error'
 
 type CenterView = 'dag' | 'stage0'
 type DisplayGate = CanvasGate & { execution?: GateExecutionDto }
@@ -131,11 +133,23 @@ function initialStudioTheme(): StudioTheme {
 
 function emptyCanvas(): Canvas {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     projectId: '',
     title: '',
-    nodes: [],
-    edges: [],
+    activePageId: 'empty-page',
+    activeView: 'stage0',
+    pages: [{
+      id: 'empty-page',
+      title: '创作页 1',
+      activeCanvasId: 'empty-canvas',
+      canvases: [{
+        id: 'empty-canvas',
+        title: '画布 1',
+        nodes: [],
+        edges: [],
+        viewport: null,
+      }],
+    }],
     gates: [],
     revision: 0,
     receipts: [],
@@ -194,8 +208,10 @@ export default function StudioApp() {
   // 定稿闭包（SSE 订阅仅一次）经此 ref 读取当前模型，快照写入每条 AI 消息（气泡显示实际模型）
   const selectedModelRef = useRef<ChatModelOption | null>(null)
   selectedModelRef.current = selectedModel
-  const [centerView, setCenterView] = useState<CenterView>('dag')
   const [toast, setToast] = useState<{ tone: 'ok' | 'bad' | 'info'; text: string } | null>(null)
+  const notify = useCallback((tone: 'ok' | 'bad' | 'info', text: string) => {
+    setToast({ tone, text })
+  }, [])
   const projectNavRef = useRef<ProjectNavHandle>(null)
 
   const streamRef = useRef<StreamingTurn | null>(null)
@@ -205,45 +221,78 @@ export default function StudioApp() {
   const activeSessionIdRef = useRef<string | null>(null)
   // 防快速切项目时旧回放覆盖新右栏：每次装载递增，迟到结果按序号/ projectId 丢弃
   const projectSessionSeqRef = useRef(0)
+  const sendSeqRef = useRef(0)
+  const [composerResetKey, setComposerResetKey] = useState('no-project')
   // SSE 全程只订阅一次（无参订阅，首发送时惰性触发）
   const subscribedRef = useRef(false)
-  // feature-013：记录已自动切过立项视图的项目；同项目用户手动返回 DAG 后不再强切
-  const viewAutoProjectRef = useRef<string | null>(null)
   const [historyLoading, setHistoryLoading] = useState(false)
   // D-013：AI 服务不可用原因（null=可用/未知）；进入对话区探测 + runtime.error 事件置位，
   // 探测 healthy 或发送路径 status 检查通过即清除；不轮询，用户可点横幅「重新检测」复检
   const [aiDown, setAiDown] = useState<string | null>(null)
   // feature-820：底栏状态（只在有项目时读取；读取失败的槽位为 null，显示中性文案）
   const [footer, setFooter] = useState<FooterStatus>(EMPTY_FOOTER_STATUS)
+  const canvasReadSeqRef = useRef(0)
+  const canvasViewStateSeqRef = useRef(0)
+  const canvasTargetKeyRef = useRef('')
+  const viewTransitionProjectRef = useRef('')
+  const viewTransitionTargetRef = useRef('')
+  const viewInteractionProjectRef = useRef('')
+  const previousDocumentNodeCountRef = useRef(0)
 
   // 入口动作 · 用户原话：会话首条用户消息（Stage0View 入口卡数据源）
   const entryQuote = useMemo(() => items.find(i => i.role === 'user')?.text?.trim() ?? '', [items])
+  const currentPage = activeCanvasPage(canvas)
+  const currentDocument = activeCanvasDocument(canvas)
+  const currentTargetKey = `${canvas.projectId}:${currentPage.id}:${currentDocument.id}`
   const selectedNode = useMemo(
-    () => canvas.nodes.find(node => node.id === selectedNodeId) ?? null,
-    [canvas.nodes, selectedNodeId],
+    () => currentDocument.nodes.find(node => node.id === selectedNodeId) ?? null,
+    [currentDocument.nodes, selectedNodeId],
   )
 
-  const refreshCanvas = useCallback(async () => {
-    const value = await window.api.canvas.get()
-    const next = value ?? emptyCanvas()
+  // 命令响应只允许落回发起时的项目/文档；切页或切画布后，迟到响应直接丢弃。
+  const applyCurrentProjectCanvas = useCallback((next: Canvas): boolean => {
+    if (next.projectId !== projectIdRef.current) return false
+    const page = activeCanvasPage(next)
+    const document = activeCanvasDocument(next)
+    const nextTargetKey = `${next.projectId}:${page.id}:${document.id}`
+    if (canvasTargetKeyRef.current && canvasTargetKeyRef.current !== nextTargetKey) {
+      setViewerNode(null)
+      setConfirmNode(null)
+      setSelectedNodeId(null)
+      canvasViewStateSeqRef.current += 1
+    }
+    canvasTargetKeyRef.current = nextTargetKey
+    canvasReadSeqRef.current += 1
     setCanvas(next)
     setPendingGate(pendingFromCanvas(next))
-    return next
+    return true
   }, [])
 
-  const runAssetCommand = useCallback(async (type: CanvasCommandType, assetIds: string[]) => {
+  const refreshCanvas = useCallback(async () => {
+    const seq = ++canvasReadSeqRef.current
+    const value = await window.api.canvas.get()
+    const next = value ?? emptyCanvas()
+    if (seq === canvasReadSeqRef.current) applyCurrentProjectCanvas(next)
+    return next
+  }, [applyCurrentProjectCanvas])
+
+  const runAssetCommand = useCallback(async (type: 'assets.bind' | 'assets.unbind', assetIds: string[]) => {
     if (!selectedNodeId) throw new Error('请先在画布中选择节点。')
+    const targetKey = currentTargetKey
     try {
       const result = await window.api.canvas.command({
         commandId: globalThis.crypto.randomUUID(),
         expectedRevision: canvas.revision,
+        projectId: canvas.projectId,
+        pageId: currentPage.id,
+        canvasId: currentDocument.id,
         type,
         nodeId: selectedNodeId,
         assetIds,
       })
-      setCanvas(result.canvas)
-      setPendingGate(pendingFromCanvas(result.canvas))
+      if (canvasTargetKeyRef.current === targetKey) applyCurrentProjectCanvas(result.canvas)
     } catch (error) {
+      if (canvasTargetKeyRef.current !== targetKey) return
       const code = typeof error === 'object' && error !== null && 'code' in error
         ? String((error as { code: unknown }).code)
         : ''
@@ -257,7 +306,16 @@ export default function StudioApp() {
       }
       throw error
     }
-  }, [canvas.revision, refreshCanvas, selectedNodeId])
+  }, [
+    applyCurrentProjectCanvas,
+    canvas.projectId,
+    canvas.revision,
+    currentDocument.id,
+    currentPage.id,
+    currentTargetKey,
+    refreshCanvas,
+    selectedNodeId,
+  ])
 
   const bindAssets = useCallback(
     (assetIds: string[]) => runAssetCommand('assets.bind', assetIds),
@@ -490,6 +548,9 @@ export default function StudioApp() {
   const onProjectSessionChange = useCallback((projectId: string) => {
     if (devMockActive()) return
     const seq = ++projectSessionSeqRef.current
+    sendSeqRef.current += 1
+    setComposerResetKey(`${projectId || 'no-project'}:${seq}`)
+    setSending(false)
     setItems([])
     streamRef.current = null
     setStream(null)
@@ -503,6 +564,7 @@ export default function StudioApp() {
       .then(bind => {
         if (seq !== projectSessionSeqRef.current || projectId !== projectIdRef.current) return
         activeSessionIdRef.current = bind.sessionId
+        setComposerResetKey(`${projectId}:${bind.sessionId ?? `new-${seq}`}`)
         if (bind.sessionId) {
           void loadReplay(bind.sessionId, seq, projectId)
         } else {
@@ -516,67 +578,120 @@ export default function StudioApp() {
       })
   }, [loadReplay, checkAiHealth])
 
-  // feature-013：进入尚无任何节点的立项期项目，中间区自动切到 Stage0View（口径在顶部链条可视化），
-  // 避免停在空 DAG 产生「无反馈」错觉；同项目首个节点到达自动回 DAG（此时用户还不可能手动返回过）；
-  // 自动投影每项目至多一次，用户手动返回 DAG 后同项目后续推送不再强切（B-50）。
-  useEffect(() => {
+  const centerView: CenterView = canvas.activeView === 'stage0' ? 'stage0' : 'dag'
+  const changeCenterView = useCallback((view: CenterView) => {
+    const activeView = view === 'stage0' ? 'stage0' : 'canvas'
     if (!canvas.projectId) return
-    if (viewAutoProjectRef.current === canvas.projectId) return
-    viewAutoProjectRef.current = canvas.projectId
-    if (canvas.nodes.length === 0) {
-      setCenterView('stage0')
-      setActiveStep('0')
-    } else {
-      setCenterView('dag')
+    viewInteractionProjectRef.current = canvas.projectId
+    if (canvas.activeView === activeView) return
+    const projectId = canvas.projectId
+    const targetKey = currentTargetKey
+    const seq = ++canvasViewStateSeqRef.current
+    // 只乐观修改视图字段；响应不得整棵覆盖节点、revision 或其他画布。
+    setCanvas(current => {
+      if (`${current.projectId}:${current.activePageId}:${activeCanvasDocument(current).id}` !== targetKey) return current
+      return { ...current, activeView }
+    })
+    void window.api.canvas.viewState({ type: 'active.set', projectId, activeView })
+      .then(result => {
+        if (seq !== canvasViewStateSeqRef.current || canvasTargetKeyRef.current !== targetKey) return
+        setCanvas(current => {
+          if (`${current.projectId}:${current.activePageId}:${activeCanvasDocument(current).id}` !== targetKey) return current
+          return { ...current, activeView: result.canvas.activeView }
+        })
+      })
+      .catch(error => {
+        if (seq !== canvasViewStateSeqRef.current || canvasTargetKeyRef.current !== targetKey) return
+        notify('bad', `视图状态保存失败：${ipcErrorMessage(error)}`)
+        void refreshCanvas()
+      })
+  }, [canvas.activeView, canvas.projectId, currentTargetKey, notify, refreshCanvas])
+
+  // 保留 B-50 的“首个产物到达”体验，但初次加载/重启绝不改写持久化 activeView；
+  // 用户在同项目明确选过视图后，也不再自动切换。
+  useEffect(() => {
+    const projectId = canvas.projectId
+    const count = currentDocument.nodes.length
+    if (!projectId) {
+      viewTransitionProjectRef.current = ''
+      viewTransitionTargetRef.current = ''
+      previousDocumentNodeCountRef.current = count
+      return
     }
-  }, [canvas.projectId])
+    if (viewTransitionProjectRef.current !== projectId) {
+      viewTransitionProjectRef.current = projectId
+      viewInteractionProjectRef.current = ''
+    }
+    if (viewTransitionTargetRef.current !== currentTargetKey) {
+      viewTransitionTargetRef.current = currentTargetKey
+      previousDocumentNodeCountRef.current = count
+      return
+    }
+    const previous = previousDocumentNodeCountRef.current
+    previousDocumentNodeCountRef.current = count
+    if (
+      previous === 0 && count > 0 && canvas.activeView === 'stage0'
+      && viewInteractionProjectRef.current !== projectId
+    ) {
+      changeCenterView('dag')
+    }
+  }, [canvas.activeView, canvas.projectId, changeCenterView, currentDocument.nodes.length, currentTargetKey])
 
-  useEffect(() => {
-    if (!canvas.projectId) return
-    if (canvas.nodes.length > 0) setCenterView('dag')
-  }, [canvas.projectId, canvas.nodes.length])
-
-  // ---- 画布初值 + 订阅；项目切换时 canvas:changed 自动刷新 ----
+  // ---- 画布初值 + 订阅；异项目广播必须经 canvas.get() 核实，防止排队写改投旧项目 ----
   useEffect(() => {
     let alive = true
     const syncProjectSession = (projectId: string) => {
-      // projectId 变化（含 '' → 首次有项目）才装载；同项目重复推送不重放
       if (projectId !== projectIdRef.current) {
         projectIdRef.current = projectId
         onProjectSessionChange(projectId)
       }
     }
-    const offChange = window.api.canvas.onChange(c => {
-      setCanvas(c)
-      setPendingGate(pendingFromCanvas(c))
-      // 仅切项目（projectId 变化）时关闭 viewer（契约 §6.3）；常规节点/门推送不关
-      if (projectIdRef.current && c.projectId !== projectIdRef.current) {
+    const applyVerifiedCanvas = (next: Canvas) => {
+      const page = activeCanvasPage(next)
+      const document = activeCanvasDocument(next)
+      const nextTargetKey = `${next.projectId}:${page.id}:${document.id}`
+      if (canvasTargetKeyRef.current && canvasTargetKeyRef.current !== nextTargetKey) {
         setViewerNode(null)
         setConfirmNode(null)
         setSelectedNodeId(null)
+        canvasViewStateSeqRef.current += 1
       }
-      syncProjectSession(c.projectId)
-    })
-    window.api.canvas.get()
-      .then(value => {
-        if (!alive) return
-        const c = value ?? emptyCanvas()
-        setCanvas(c)
-        setCanvasLoaded(true)
-        setPendingGate(pendingFromCanvas(c))
-        syncProjectSession(c.projectId)
-      })
-      .catch(e => {
-        console.error('canvas.get failed', e)
-        if (alive) {
-          setCanvasLoaded(true) // 失败也结束加载态：由错误条提示，不把用户永久挡在欢迎页
+      canvasTargetKeyRef.current = nextTargetKey
+      canvasReadSeqRef.current += 1
+      setCanvas(next)
+      setCanvasLoaded(true)
+      setPendingGate(pendingFromCanvas(next))
+      syncProjectSession(next.projectId)
+    }
+    const readCurrentCanvas = () => {
+      const seq = ++canvasReadSeqRef.current
+      return window.api.canvas.get()
+        .then(value => {
+          if (!alive || seq !== canvasReadSeqRef.current) return
+          applyVerifiedCanvas(value ?? emptyCanvas())
+        })
+        .catch(e => {
+          if (!alive || seq !== canvasReadSeqRef.current) return
+          console.error('canvas.get failed', e)
+          setCanvasLoaded(true)
           setError('画布加载失败，请重试。')
-        }
-      })
+        })
+    }
+    const offChange = window.api.canvas.onChange(next => {
+      if (!alive) return
+      if (!projectIdRef.current || next.projectId === projectIdRef.current) {
+        applyVerifiedCanvas(next)
+      } else {
+        void readCurrentCanvas()
+      }
+    })
+    void readCurrentCanvas()
     window.api.canvas.subscribe().catch(e => console.error('canvas.subscribe failed', e))
 
     return () => {
       alive = false
+      canvasReadSeqRef.current += 1
+      canvasViewStateSeqRef.current += 1
       offChange()
       window.api.canvas.unsubscribe().catch(e => console.error('canvas.unsubscribe failed', e))
     }
@@ -598,24 +713,35 @@ export default function StudioApp() {
     subscribedRef.current = true
   }, [])
 
-  // ---- 发送一轮：复用绑定会话；无绑定才惰性建会话并回写，指定 showrunner 与当前模型 ----
-  const handleSend = useCallback(async (text: string) => {
+  // ---- 发送一轮：复用绑定会话；资产只提交 ID，安全快照仅用于本地气泡 ----
+  const handleSend = useCallback(async (text: string, assets: RuntimeAssetRef[] = []): Promise<boolean> => {
     // feature-812（契约 §6）：无项目零副作用早退——不建会话、不拉运行时、不烧 token
     if (!hasProject) {
       setError('请先新建或打开项目，再开始对话。')
-      return
+      return false
     }
     if (!selectedModel) {
       setError('请先在 AI 服务设置中配置模型。')
-      return
+      return false
     }
+    const projectId = projectIdRef.current
+    const sendSeq = sendSeqRef.current
+    const stale = () => sendSeq !== sendSeqRef.current || projectId !== projectIdRef.current
+    const optimisticId = `u-${Date.now()}`
     setError(null)
     setSending(true)
-    setItems(p => [...p, { id: `u-${Date.now()}`, role: 'user', text }])
+    setItems(p => [...p, {
+      id: optimisticId,
+      role: 'user',
+      text,
+      ...(assets.length > 0 ? { assets } : {}),
+    }])
     try {
       const st = await window.api.runtime.status()
+      if (stale()) return false
       if (st.state !== 'running') {
         const started = await window.api.runtime.start()
+        if (stale()) return false
         if (started.state !== 'running') {
           throw new Error(started.error?.message || '运行时启动失败，请稍后重试。')
         }
@@ -623,31 +749,48 @@ export default function StudioApp() {
       // D-013：发送路径 status 检查通过 = 服务已恢复，清除不可用横幅
       setAiDown(null)
       await ensureSubscribedOnce()
+      if (stale()) return false
       let sid = activeSessionIdRef.current
       if (!sid) {
         const session = await window.api.runtime.createSession()
+        if (stale()) return false
         sid = session.id
         activeSessionIdRef.current = session.id
         // 回写绑定：崩溃只记 error，不阻断本轮发送（重开表现为未绑定空态）
         try {
           await window.api.activeSession(session.id)
         } catch (bindErr) {
-          console.error('activeSession write failed', bindErr)
+          if (!stale()) console.error('activeSession write failed', bindErr)
         }
       }
+      if (stale() || activeSessionIdRef.current !== sid) return false
       await window.api.runtime.promptAsync({
         sessionId: sid,
         text,
         agent: 'showrunner',
         model: { providerID: selectedModel.providerID, modelID: selectedModel.modelID },
+        ...(assets.length > 0 ? { assetRefs: assets.map(asset => ({ assetId: asset.assetId })) } : {}),
       })
       // D-006：accepted 后进入生成态，停止钮持续可达；真实环境由 session.idle /
       // runtime.error 事件复位。dev mock 不产生任何 runtime 事件，不置位以免停止钮卡死。
-      if (!devMockActive()) setGenerating(true)
+      if (!stale() && !devMockActive()) setGenerating(true)
+      return !stale()
     } catch (e) {
-      setError(e instanceof Error ? e.message : '发送失败，请重试。')
+      if (!stale()) {
+        setItems(current => current.filter(item => item.id !== optimisticId))
+        const message = ipcErrorMessage(e)
+        const exposesAssetLocation = assets.length > 0 && (
+          message.includes('file://') ||
+          /(?:^|[\s"'(（:=：])\/[^\s]+/.test(message) ||
+          /\b[A-Za-z]:[\\/]/.test(message)
+        )
+        setError(exposesAssetLocation
+          ? '资产引用发送失败，请检查资产或模型文件输入支持后重试。'
+          : message || '发送失败，请重试。')
+      }
+      return false
     } finally {
-      setSending(false)
+      if (!stale()) setSending(false)
     }
   }, [hasProject, ensureSubscribedOnce, selectedModel])
 
@@ -784,16 +927,6 @@ export default function StudioApp() {
     return () => clearTimeout(t)
   }, [toast])
 
-  // ---- 节点拖拽松手反馈（feature-027）----
-  // 业务约束：产物 kind 固定归属步骤，节点只能在本列内会话态摆位，不写盘；
-  // 越界松手画布自行回弹，仅在此时由上层补一条警告 toast。
-  const handleDropped = useCallback((info: { nodeId: string; illegal: boolean }) => {
-    if (!info.illegal) return
-    const node = canvas.nodes.find(n => n.id === info.nodeId)
-    const title = node?.title ?? info.nodeId
-    setToast({ tone: 'bad', text: `产物不可跨步骤移动，已回到原步骤 · ${title}` })
-  }, [canvas.nodes])
-
   // feature-812：无项目时不得自称"未命名项目"
   const projectTitle = hasProject ? (canvas.title || '未命名项目') : '未打开项目'
   // feature-812 X-005：锁定必须覆盖"加载中"——首拉未回时 projectId 仍为空，
@@ -813,7 +946,7 @@ export default function StudioApp() {
       '4': ['storyboard'], '5': ['shot'], '6': ['timeline'], '7': ['final'],
     }
     let n = 0
-    for (const node of canvas.nodes) {
+    for (const node of currentDocument.nodes) {
       const st = Object.entries(KIND_BY_STAGE).find(([, ks]) => ks.includes(node.kind))?.[0] as StepId | undefined
       if (!st) continue
       if (node.status === 'pending' || node.status === 'invalidated') n++
@@ -830,7 +963,7 @@ export default function StudioApp() {
   }
   // 默认 cur = 首个含 active 节点的 step（dev-mock 演示态：n-char-anni step '3' active）
   const defaultCur: StepId = (() => {
-    const s = (['0', '1', '2', '3', '4', '5', '6', '7'] as StepId[]).find(s => canvas.nodes.some(n => n.step === s && n.status === 'active'))
+    const s = (['0', '1', '2', '3', '4', '5', '6', '7'] as StepId[]).find(s => currentDocument.nodes.some(n => n.step === s && n.status === 'active'))
     return s ?? '0'
   })()
   const curStep: StepId = activeStep ?? defaultCur
@@ -838,7 +971,7 @@ export default function StudioApp() {
     // feature-812（契约 §3.2）：无项目时八格全 idle，不得出现"正在立项"的 cur 假象
     if (!hasProject) return { step, state: 'idle' as const }
     if (step === curStep) return { step, state: 'cur' as const }
-    const matched = canvas.nodes.filter(n => n.step === step)
+    const matched = currentDocument.nodes.filter(n => n.step === step)
     if (matched.length === 0) return { step, state: 'idle' as const }
     if (matched.some(n => n.status === 'active')) return { step, state: 'active' as const }
     if (matched.every(n => n.status === 'done')) return { step, state: 'done' as const }
@@ -846,7 +979,7 @@ export default function StudioApp() {
   })
 
   // feature-013：顶栏 STAGE 0 tooltip「立项 vN · X 产物已对齐 · Y 待处理」（与左栏徽标同源派生；未发布降级 null）
-  const stage0TooltipText = stage0Tooltip(deriveBriefDisplay(canvas.nodes))
+  const stage0TooltipText = stage0Tooltip(deriveBriefDisplay(currentDocument.nodes))
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-win shadow-[0_18px_50px_rgba(40,42,80,0.18)]">
@@ -873,10 +1006,10 @@ export default function StudioApp() {
                   // feature-812：无项目时八步进度仅展示，不切视图（否则进到没有落点的 STAGE 0）
                   if (!hasProject) return
                   if (s.step === '0') {
-                    setCenterView('stage0')
+                    changeCenterView('stage0')
                     setActiveStep('0')
                   } else {
-                    setCenterView('dag')
+                    changeCenterView('dag')
                     setLeftView('nav')
                     setActiveStep(s.step)
                   }
@@ -1063,8 +1196,11 @@ export default function StudioApp() {
                 {panTab === 'skills'   && <SkillsPanel   query={leftQuery} />}
                 {panTab === 'assets' && (
                   <AssetsPanel
+                    key={canvas.projectId || 'no-project'}
                     query={leftQuery}
+                    projectId={canvas.projectId}
                     selectedNode={selectedNode}
+                    notify={notify}
                     onBind={bindAssets}
                     onUnbind={unbindAssets}
                   />
@@ -1074,14 +1210,14 @@ export default function StudioApp() {
               </>
             ) : (
               <StageNavPanel
-                nodes={canvas.nodes}
+                nodes={currentDocument.nodes}
                 activeStep={activeStep}
                 onSelect={step => {
                   if (step === '0') {
-                    setCenterView('stage0')
+                    changeCenterView('stage0')
                     setActiveStep('0')
                   } else {
-                    setCenterView('dag')
+                    changeCenterView('dag')
                     setActiveStep(step)
                   }
                 }}
@@ -1120,7 +1256,7 @@ export default function StudioApp() {
             <Stage0View
               canvas={canvas}
               projectTitle={projectTitle}
-              onBackToDag={() => setCenterView('dag')}
+              onBackToDag={() => changeCenterView('dag')}
               entryQuote={entryQuote}
               onBriefUpdated={handleBriefUpdated}
             />
@@ -1132,8 +1268,9 @@ export default function StudioApp() {
                 onOpenNode={handleOpenNode}
                 activeStep={activeStep}
                 onNodeAction={handleNodeAction}
-                onDropped={handleDropped}
                 onSelectNode={setSelectedNodeId}
+                onCanvasChange={applyCurrentProjectCanvas}
+                onError={message => notify('bad', message)}
               />
               {viewerNode && (
                 <StudioViewer
@@ -1234,6 +1371,7 @@ export default function StudioApp() {
               aiDown={aiDown}
               onAiRetry={() => void checkAiHealth()}
               historyLoading={historyLoading}
+              resetKey={composerResetKey}
               modelOptions={modelOptions}
               selectedModel={selectedModel}
               onModelChange={setSelectedModel}

@@ -10,6 +10,7 @@ import type { RuntimeEvent } from '../../lib/runtime-types'
 import RealignConfirm, { buildRealignPrompt } from './RealignConfirm'
 import StudioViewer from '../viewer/StudioViewer'
 import StudioApp from '../shell/StudioApp'
+import { canvasV4 } from '../../test/canvas-fixtures'
 
 /* ── 夹具 ── */
 
@@ -163,6 +164,7 @@ describe('feature-007 · StudioViewer 脏读黄条（契约 §3.4）', () => {
 
 interface AppHarness {
   emitCanvas: (c: Canvas) => void
+  get: ReturnType<typeof vi.fn>
   promptAsync: ReturnType<typeof vi.fn>
   fileRead: ReturnType<typeof vi.fn>
 }
@@ -172,6 +174,7 @@ function installAppApi(initial: Canvas): AppHarness {
   const canvasCbs = new Set<(c: Canvas) => void>()
   const promptAsync = vi.fn(async () => ({ accepted: true as const, messageId: 'msg-1' }))
   const fileRead = vi.fn(async ({ path }: { path: string }) => fileReadResult(path))
+  const get = vi.fn(async () => initial)
 
   window.api = {
     runtime: {
@@ -186,7 +189,7 @@ function installAppApi(initial: Canvas): AppHarness {
       onEvent: vi.fn(cb => { runtimeCbs.add(cb); return () => runtimeCbs.delete(cb) }),
     },
     canvas: {
-      get: vi.fn(async () => initial),
+      get,
       subscribe: vi.fn(async () => ({ ok: true as const })),
       unsubscribe: vi.fn(async () => ({ ok: true as const })),
       onChange: vi.fn(cb => { canvasCbs.add(cb); return () => canvasCbs.delete(cb) }),
@@ -215,6 +218,7 @@ function installAppApi(initial: Canvas): AppHarness {
   } as unknown as Window['api']
 
   return {
+    get,
     promptAsync,
     fileRead,
     emitCanvas: c => act(() => {
@@ -224,11 +228,11 @@ function installAppApi(initial: Canvas): AppHarness {
 }
 
 function appCanvas(projectId = 'p1'): Canvas {
-  return {
-    schemaVersion: 3, projectId, title: '测试项目',
+  return canvasV4({
+    projectId, title: '测试项目',
     nodes: [dirtyOutlineNode(), cleanScenesNode()], edges: [], gates: [],
     revision: 0, receipts: [], updatedAt: new Date().toISOString(),
-  }
+  })
 }
 
 function nodeCard(container: HTMLElement, id: string): HTMLElement {
@@ -329,17 +333,25 @@ describe('feature-007 · StudioApp 集成（契约 §5 ④）', () => {
     expect(await screen.findByRole('dialog', { name: '产物重新对齐' })).toBeInTheDocument()
     h.emitCanvas(appCanvas('p1'))
     expect(screen.getByRole('dialog', { name: '产物重新对齐' })).toBeInTheDocument()
-    h.emitCanvas(appCanvas('p2'))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    const other = appCanvas('p2')
+    h.get.mockResolvedValue(other)
+    h.emitCanvas(other)
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 
     // 查看器 + 黄条态：切项目同复位
-    h.emitCanvas(appCanvas('p1'))
+    const back = appCanvas('p1')
+    h.get.mockResolvedValue(back)
+    h.emitCanvas(back)
+    await waitFor(() => expect(h.get).toHaveBeenCalledTimes(3))
     await user.click(nodeCard(container, 'step-1-outline'))
     await user.click(await screen.findByRole('button', { name: '保持现状查看' }))
     expect(await screen.findByText('当前基于 v2 立项，与最新 v3 不一致：季边界、集数')).toBeInTheDocument()
-    h.emitCanvas(appCanvas('p2'))
-    expect(screen.queryByText('故事/故事大纲.json')).not.toBeInTheDocument()
-    expect(screen.queryByText(/当前基于 v2 立项/)).not.toBeInTheDocument()
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    h.get.mockResolvedValue(other)
+    h.emitCanvas(other)
+    await waitFor(() => {
+      expect(screen.queryByText('故事/故事大纲.json')).not.toBeInTheDocument()
+      expect(screen.queryByText(/当前基于 v2 立项/)).not.toBeInTheDocument()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
   })
 })

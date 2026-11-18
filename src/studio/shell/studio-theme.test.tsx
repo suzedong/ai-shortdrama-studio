@@ -3,10 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Canvas } from '@shared/types'
 import StudioApp from './StudioApp'
+import { canvasV4 } from '../../test/canvas-fixtures'
 
 function emptyCanvas(): Canvas {
-  return {
-    schemaVersion: 3,
+  return canvasV4({
     projectId: 'p1',
     title: '主题测试',
     nodes: [],
@@ -15,7 +15,7 @@ function emptyCanvas(): Canvas {
     revision: 0,
     receipts: [],
     updatedAt: new Date().toISOString(),
-  }
+  })
 }
 
 function installApi() {
@@ -39,7 +39,11 @@ function installApi() {
       unsubscribe: vi.fn(async () => ({ ok: true as const })),
       onChange: vi.fn(() => () => undefined),
     },
-    asset: { list: vi.fn(async () => []) },
+    asset: {
+      list: vi.fn(async () => []),
+      import: vi.fn(async () => ({ status: 'cancelled' as const })),
+      thumbnail: vi.fn(async () => ({ dataUrl: null })),
+    },
     gate: {
       decide: vi.fn(async () => ({ ok: true as const })),
       onChanged: vi.fn(() => () => undefined),

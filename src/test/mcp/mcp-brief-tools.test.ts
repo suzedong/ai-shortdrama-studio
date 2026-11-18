@@ -12,7 +12,8 @@ import { registerPureTools } from '../../../electron/mcp/tools'
 import { writeSessionState } from '../../../electron/project/library'
 import { canvasStore } from '../../../electron/canvas/store'
 import { MANIFEST_FILE } from '../../../electron/project/manifest'
-import type { BriefDraft, ProjectBrief, ProjectManifest } from '@shared/types'
+import type { BriefDraft, Canvas, ProjectBrief, ProjectManifest } from '@shared/types'
+import { activeDocument } from '../canvas-fixtures'
 
 type Handler = (args: Record<string, unknown>) => Promise<{
   content: { text: string }[]
@@ -98,7 +99,7 @@ describe('feature-001 brief MCP 工具（契约 §3）', () => {
     expect(r.ok).toBe(false)
     expect(r.error?.code).toBe('BRIEF_NOT_READY')
     expect(await fsp.readdir(projDir)).toEqual([MANIFEST_FILE])
-    expect((await canvasStore.get()).nodes).toEqual([])
+    expect(activeDocument(await canvasStore.get()).nodes).toEqual([])
   })
 
   it('口头拍板无 quote → INVALID_ARGUMENT', async () => {
@@ -129,7 +130,7 @@ describe('feature-001 brief MCP 工具（契约 §3）', () => {
     expect(md).toContain('首版立项')
 
     const canvas = await canvasStore.get()
-    const node = canvas.nodes.find(n => n.id === 'step-0-brief')
+    const node = activeDocument(canvas).nodes.find(n => n.id === 'step-0-brief')
     expect(node).toMatchObject({
       step: '0', kind: 'brief', status: 'done',
       title: '立项单 v1',
@@ -137,7 +138,7 @@ describe('feature-001 brief MCP 工具（契约 §3）', () => {
       meta: { version: 'v1' },
     })
     // STAGE 0 不自动连边
-    expect(canvas.edges).toEqual([])
+    expect(activeDocument(canvas).edges).toEqual([])
   })
 
   it('v2 不覆盖 v1：新文件双写、diff 有内容、节点同 id 更新指向 v2', async () => {
@@ -161,8 +162,8 @@ describe('feature-001 brief MCP 工具（契约 §3）', () => {
     expect(brief2.approve).toMatchObject({ by: 'verbal', verbal: { quote: '行，就这样' } })
 
     const canvas = await canvasStore.get()
-    expect(canvas.nodes).toHaveLength(1)
-    expect(canvas.nodes[0]).toMatchObject({
+    expect(activeDocument(canvas).nodes).toHaveLength(1)
+    expect(activeDocument(canvas).nodes[0]).toMatchObject({
       id: 'step-0-brief', title: '立项单 v2',
       ref: { path: '立项单.v2.json' }, meta: { version: 'v2' },
     })
@@ -179,7 +180,7 @@ describe('feature-001 brief MCP 工具（契约 §3）', () => {
     })
     expect(r.version).toBe(3)
     const canvas = await canvasStore.get()
-    expect(canvas.nodes).toHaveLength(1)
+    expect(activeDocument(canvas).nodes).toHaveLength(1)
   })
 
   it('brief.list 返回 v1..v3 升序、latestVersion=3', async () => {
@@ -232,7 +233,7 @@ describe('feature-814 canvas/asset MCP 兼容契约', () => {
       }],
     }
     const result = await call<{
-      canvas: { revision: number; nodes: { id: string; assetIds?: string[] }[] }
+      canvas: Canvas
       commandId: string
       revision: number
       replayed: boolean
@@ -240,15 +241,18 @@ describe('feature-814 canvas/asset MCP 兼容契约', () => {
     expect(result).toMatchObject({
       ok: true, commandId: 'cmd-mcp-canvas-1', revision: before.revision + 1, replayed: false,
     })
-    expect(result.canvas.nodes.find(node => node.id === 'mcp-command-node')?.assetIds)
+    expect(activeDocument(result.canvas).nodes.find(node => node.id === 'mcp-command-node')?.assetIds)
       .toEqual([registered.assetId])
 
-    const replay = await call<{ revision: number; replayed: boolean }>('canvas.update', args)
+    const replay = await call<{ revision: number; replayed: boolean }>('canvas.update', {
+      ...args, expectedRevision: result.revision,
+    })
     expect(replay).toMatchObject({ ok: true, revision: result.revision, replayed: true })
     expect((await canvasStore.get()).revision).toBe(result.revision)
 
     const conflict = await call('canvas.update', {
-      ...args, nodes: [{ ...args.nodes[0], title: '不同请求' }],
+      ...args, expectedRevision: result.revision,
+      nodes: [{ ...args.nodes[0], title: '不同请求' }],
     })
     expect(conflict).toMatchObject({ ok: false, error: { code: 'CANVAS_COMMAND_CONFLICT' } })
     const stale = await call('canvas.update', { ...args, commandId: 'cmd-mcp-canvas-2' })

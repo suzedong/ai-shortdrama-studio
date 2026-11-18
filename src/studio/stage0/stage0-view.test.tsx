@@ -13,6 +13,7 @@ import {
   selectStage0State,
 } from './select'
 import { _setStyleCatalogSnapshotForTest } from '../style/style-catalog-store'
+import { canvasV4, type CanvasFixtureOverrides } from '../../test/canvas-fixtures'
 
 // feature-811：风格显示名/编辑面板选项消费 style:catalog 快照——prime 全 18 条（编辑面板 select 须含 C1 option），懒 ensure no-op
 const primeEntry = (
@@ -77,9 +78,8 @@ function gate(partial: Partial<CanvasGate> & { status: CanvasGate['status'] }): 
   return { gateId: '0-final', question: '是否批准立项？', options: ['批准', '驳回'], ...partial }
 }
 
-function canvas(over: Partial<Canvas> = {}): Canvas {
-  return {
-    schemaVersion: 3,
+function canvas(over: CanvasFixtureOverrides = {}): Canvas {
+  return canvasV4({
     revision: 0,
     receipts: [],
     projectId: 'p1',
@@ -89,7 +89,7 @@ function canvas(over: Partial<Canvas> = {}): Canvas {
     gates: [],
     updatedAt: '2026-10-15T00:00:00.000Z',
     ...over,
-  }
+  })
 }
 
 function brief(over: Partial<ProjectBrief> = {}): ProjectBrief {

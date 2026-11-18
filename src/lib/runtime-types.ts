@@ -16,6 +16,14 @@ export type RuntimeErrorCode =
   | 'STRUCTURED_OUTPUT_FAILED'
   | 'UPSTREAM_AUTH_MISSING'
   | 'RUNTIME_UPSTREAM_ERROR'
+  | 'PATH_ESCAPE_DENIED'
+  | 'NO_ACTIVE_PROJECT'
+  | 'PROJECT_CHANGED'
+  | 'ASSET_REF_INVALID'
+  | 'ASSET_REF_NOT_FOUND'
+  | 'ASSET_REF_NOT_REGULAR_FILE'
+  | 'ASSET_REF_UNSUPPORTED'
+  | 'ASSET_INDEX_CORRUPT'
   | 'INTERNAL'
 
 export interface RuntimeErrorBody {
@@ -38,8 +46,22 @@ export interface RuntimeSession {
   createdAt: string
 }
 
-/** session.messages 回放记录（正文 + 推理 + 工具状态；不含工具参数/结果） */
-export interface RuntimeSessionMessagePart {
+export type RuntimeAssetKind = 'image' | 'video' | 'music' | 'workflow'
+
+export interface RuntimePromptAssetRef {
+  assetId: string
+}
+
+/** 安全回放 / 乐观显示快照；只允许项目相对路径。 */
+export interface RuntimeAssetRef {
+  assetId: string
+  kind: RuntimeAssetKind
+  path: string
+  name: string
+}
+
+/** session.messages 回放记录（正文 + 推理 + 工具状态 + 安全资产引用） */
+interface RuntimeSessionMessageStandardPart {
   type: 'text' | 'reasoning' | 'tool'
   text: string
   /** assistant part 的 time.start（ms）；user text 无，pending tool 缺省为 0 */
@@ -54,6 +76,14 @@ export interface RuntimeSessionMessagePart {
   endedAt?: number
   error?: string
 }
+export interface RuntimeSessionMessageAssetPart {
+  type: 'asset'
+  text: ''
+  asset: RuntimeAssetRef
+}
+export type RuntimeSessionMessagePart =
+  | RuntimeSessionMessageStandardPart
+  | RuntimeSessionMessageAssetPart
 export interface RuntimeSessionMessageRecord {
   info: { id: string; role: 'user' | 'assistant' }
   parts: RuntimeSessionMessagePart[]
@@ -77,6 +107,7 @@ export interface RuntimePromptRequest {
   model?: RuntimeModelRef
   format?: RuntimeStructuredFormat
   tools?: string[]
+  assetRefs?: RuntimePromptAssetRef[]
 }
 
 export interface RuntimePromptResult {

@@ -11,7 +11,8 @@ import {
   type TurnSegment,
 } from '../../lib/chat-runtime'
 import { summarizeToolActions, toolActionPhrase, toolArgPreview } from '../../lib/tool-labels'
-import type { CanvasGate } from '@shared/types'
+import type { AssetIndexItem, CanvasGate } from '@shared/types'
+import type { RuntimeAssetKind, RuntimeAssetRef } from '../../lib/runtime-types'
 import GateCardView from './GateCardView'
 import MarkdownText from './ChatMarkdown'
 import { FAMILY_GRAD, PREVIEW_URL } from '../style/VisualCatalog'
@@ -51,6 +52,8 @@ export interface ChatItem {
   id: string
   role: 'user' | 'agent'
   text?: string
+  /** 用户消息安全资产快照；不含绝对路径、文件 URL 或媒体字节。 */
+  assets?: RuntimeAssetRef[]
   reasoning?: string // Agent 本轮推理（单段，向后兼容）；与 reasoningBlocks 二选一
   reasoningBlocks?: string[] // 一个 turn 内多段思维链（推理→工具→再推理…），按发生顺序逐段折叠
   /**
@@ -497,8 +500,10 @@ interface Props {
   /** feature-808 D-006：流式生成态（promptAsync accepted 后 → idle/error 前），驱动停止钮持续可达 */
   generating?: boolean
   error: string | null
-  onSend: (text: string) => void
+  onSend: (text: string, assets?: RuntimeAssetRef[]) => void | boolean | Promise<void | boolean>
   onDecide: (decision: 'approved' | 'rejected', note?: string) => void
+  /** projectId + 会话边界；变化时重置选择并使旧异步结果失效。 */
+  resetKey?: string
   /** feature-808（R4 / D-006）：sending 或 generating 中显示停止钮；不传则维持仅发送钮形态 */
   onStop?: () => void
   /** feature-808：历史回放加载态（默认 false）；加载中禁用发送 */
@@ -523,6 +528,59 @@ function chatModelKey(model: ChatModelOption): string {
 
 function chatModelLabel(model: ChatModelOption): string {
   return formatChatModelLabel(model.providerID, model.modelID)
+}
+
+const ASSET_KIND_LABEL: Record<RuntimeAssetKind, string> = {
+  image: '图片',
+  video: '视频',
+  music: '音乐',
+  workflow: '工作流',
+}
+
+function promptAssetRef(item: AssetIndexItem): RuntimeAssetRef | null {
+  if (item.kind !== 'image' && item.kind !== 'video' && item.kind !== 'music' && item.kind !== 'workflow') {
+    return null
+  }
+  const originalName = item.meta?.originalName
+  const name = typeof originalName === 'string' && originalName.trim() &&
+    !originalName.includes('/') && !originalName.includes('\\')
+    ? originalName
+    : item.path.split('/').pop() || item.id
+  return { assetId: item.id, kind: item.kind, path: item.path, name }
+}
+
+function AssetChip({
+  asset,
+  unavailable = false,
+  onRemove,
+}: {
+  asset: RuntimeAssetRef
+  unavailable?: boolean
+  onRemove?: () => void
+}) {
+  return (
+    <span
+      data-testid={`asset-chip-${asset.assetId}`}
+      title={asset.path}
+      className={`inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] ${
+        unavailable ? 'border-bad/40 bg-bad/10 text-bad' : 'border-violet/30 bg-violet-soft text-violet'
+      }`}
+    >
+      <span className="shrink-0 font-semibold">@{ASSET_KIND_LABEL[asset.kind]}</span>
+      <span className="truncate">{asset.name}</span>
+      {unavailable && <span className="shrink-0">· 资产不可用</span>}
+      {onRemove && (
+        <button
+          type="button"
+          aria-label={`移除资产 ${asset.name}`}
+          onClick={onRemove}
+          className="shrink-0 rounded px-0.5 text-current opacity-70 transition hover:opacity-100"
+        >
+          ×
+        </button>
+      )}
+    </span>
+  )
 }
 
 // ── 浏览器预览演示消息（对齐原型 #chatBody 5 条） ──
@@ -926,15 +984,109 @@ function InterleavedContent({
 
 export default function ChatComposer({
   items, stream, pendingGate, deciding, sending, generating = false, error, onSend, onDecide, onStop,
-  historyLoading, aiDown = null, onAiRetry, modelOptions, selectedModel, onModelChange,
+  resetKey = '', historyLoading, aiDown = null, onAiRetry, modelOptions, selectedModel, onModelChange,
   lockedReason = null,
   lockedHint = null,
 }: Props) {
   const [draft, setDraft] = useState('')
+  const [selectedAssets, setSelectedAssets] = useState<RuntimeAssetRef[]>([])
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerAssets, setPickerAssets] = useState<RuntimeAssetRef[]>([])
+  const [pickerQuery, setPickerQuery] = useState('')
+  const [pickerLoading, setPickerLoading] = useState(false)
+  const [pickerError, setPickerError] = useState<string | null>(null)
+  const [thumbnails, setThumbnails] = useState<Record<string, string>>({})
+  const [knownAssetIds, setKnownAssetIds] = useState<Set<string> | null>(null)
+  const assetRequestRef = useRef(0)
+  const contextKeyRef = useRef(resetKey)
+  contextKeyRef.current = resetKey
   const scrollRef = useRef<HTMLDivElement>(null)
   const stickToBottomRef = useRef(true)
   /** B-55：程序化滚动期间抑制 onScroll 回算（scrollTop 赋值本身会触发 scroll 事件） */
   const programmaticScrollRef = useRef(false)
+
+  useEffect(() => {
+    assetRequestRef.current += 1
+    setSelectedAssets([])
+    setPickerOpen(false)
+    setPickerAssets([])
+    setPickerQuery('')
+    setPickerError(null)
+    setThumbnails({})
+    setKnownAssetIds(null)
+  }, [resetKey])
+
+  useEffect(() => () => {
+    assetRequestRef.current += 1
+  }, [])
+
+  const loadAssets = async (withThumbnails: boolean): Promise<void> => {
+    const request = ++assetRequestRef.current
+    const context = resetKey
+    if (typeof window.api.asset?.list !== 'function') {
+      setPickerError('当前环境不支持项目资产选择')
+      setPickerLoading(false)
+      return
+    }
+    setPickerLoading(true)
+    setPickerError(null)
+    try {
+      const listed = await window.api.asset.list()
+      const assets = listed.map(promptAssetRef).filter((asset): asset is RuntimeAssetRef => asset !== null)
+      if (assetRequestRef.current !== request || contextKeyRef.current !== context) return
+      setPickerAssets(assets)
+      setKnownAssetIds(new Set(assets.map(asset => asset.assetId)))
+      if (withThumbnails && typeof window.api.asset.thumbnail === 'function') {
+        const images = listed.filter(item => item.kind === 'image')
+        const rows = await Promise.all(images.map(async item => {
+          try {
+            const thumbnail = await window.api.asset.thumbnail(item.id)
+            return thumbnail?.dataUrl?.startsWith('data:image/webp;base64,')
+              ? [item.id, thumbnail.dataUrl] as const
+              : null
+          } catch {
+            return null
+          }
+        }))
+        if (assetRequestRef.current !== request || contextKeyRef.current !== context) return
+        setThumbnails(Object.fromEntries(rows.filter((row): row is readonly [string, string] => row !== null)))
+      }
+      setPickerLoading(false)
+    } catch {
+      if (assetRequestRef.current !== request || contextKeyRef.current !== context) return
+      setPickerLoading(false)
+      setPickerError('资产列表读取失败，请重试')
+    }
+  }
+
+  const historyAssetKey = items.flatMap(item => item.assets ?? []).map(asset => asset.assetId).join('|')
+  useEffect(() => {
+    if (historyAssetKey) void loadAssets(false)
+    // 仅在历史引用集合或项目 / 会话边界变化时刷新可用性。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey, historyAssetKey])
+
+  const filteredPickerAssets = pickerAssets.filter(asset => {
+    const query = pickerQuery.trim().toLowerCase()
+    return !query || asset.name.toLowerCase().includes(query) || asset.path.toLowerCase().includes(query)
+  })
+
+  const toggleAssetPicker = (): void => {
+    if (pickerOpen) {
+      assetRequestRef.current += 1
+      setPickerOpen(false)
+      setPickerLoading(false)
+      return
+    }
+    setPickerOpen(true)
+    void loadAssets(true)
+  }
+
+  const selectAsset = (asset: RuntimeAssetRef): void => {
+    setSelectedAssets(current => current.some(item => item.assetId === asset.assetId) ? current : [...current, asset])
+    setPickerOpen(false)
+    setPickerQuery('')
+  }
 
   useEffect(() => {
     const el = scrollRef.current
@@ -955,15 +1107,34 @@ export default function ChatComposer({
     stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 120
   }
 
-  const submit = (): void => {
+  const submit = async (): Promise<void> => {
     // feature-812（契约 L4）：锁定原因优先——回车 / 点击 / 选项代发三入口同源早退
     if (lockedReason) return
     const text = draft.trim()
     if (!text || sending || generating || historyLoading || aiDown || !selectedModel) return
+    const assets = selectedAssets
+    const context = resetKey
     setDraft('')
+    setSelectedAssets([])
+    setPickerOpen(false)
     // B-55：用户主动发送 → 后续新气泡与流式增长强制贴底
     stickToBottomRef.current = true
-    onSend(text)
+    let accepted: void | boolean
+    try {
+      accepted = await onSend(text, assets)
+    } catch {
+      accepted = false
+    }
+    if (accepted === false && contextKeyRef.current === context) {
+      setDraft(current => current.length > 0 ? current : text)
+      setSelectedAssets(current => {
+        const restored = [...assets]
+        for (const asset of current) {
+          if (!restored.some(item => item.assetId === asset.assetId)) restored.push(asset)
+        }
+        return restored
+      })
+    }
   }
 
   // B-35：选项点击 = 代发编号（与手打同路径）；忙态或无可用模型禁点
@@ -1050,6 +1221,17 @@ export default function ChatComposer({
               <Avatar user />
               <div className="relative max-w-[85%] rounded-[12px] rounded-tr-[4px] bg-violet px-3 py-[9px] text-[12px] leading-[1.6] text-white">
                 <LabelTag label={item.label ?? { text: '用户', tone: 'user' }} side="right" />
+                {item.assets && item.assets.length > 0 && (
+                  <div className="mb-1.5 flex flex-wrap gap-1">
+                    {item.assets.map(asset => (
+                      <AssetChip
+                        key={asset.assetId}
+                        asset={asset}
+                        unavailable={knownAssetIds !== null && !knownAssetIds.has(asset.assetId)}
+                      />
+                    ))}
+                  </div>
+                )}
                 {item.text}
               </div>
             </div>
@@ -1246,6 +1428,64 @@ export default function ChatComposer({
       {/* ── chat-input ── */}
       <div className="border-t border-line px-3.5 pb-3.5 pt-2.5">
         <div className="rounded-xl border border-line bg-canvas px-[11px] py-[9px] transition focus-within:border-violet focus-within:ring-2 focus-within:ring-violet/15">
+          {selectedAssets.length > 0 && (
+            <div data-testid="selected-asset-chips" className="mb-2 flex flex-wrap gap-1">
+              {selectedAssets.map(asset => (
+                <AssetChip
+                  key={asset.assetId}
+                  asset={asset}
+                  unavailable={knownAssetIds !== null && !knownAssetIds.has(asset.assetId)}
+                  onRemove={() => setSelectedAssets(current => current.filter(item => item.assetId !== asset.assetId))}
+                />
+              ))}
+            </div>
+          )}
+          {pickerOpen && (
+            <div data-testid="asset-picker" className="mb-2 rounded-lg border border-line bg-surface p-2 shadow-lg">
+              <input
+                aria-label="搜索项目资产"
+                value={pickerQuery}
+                onChange={event => setPickerQuery(event.target.value)}
+                placeholder="搜索资产名称或项目相对路径"
+                className="h-8 w-full rounded-md border border-line bg-canvas px-2 text-[11px] text-ink outline-none focus:border-violet"
+              />
+              <div className="mt-2 max-h-52 space-y-1 overflow-y-auto">
+                {pickerLoading && <div className="px-1 py-2 text-[11px] text-muted" role="status">正在读取当前项目资产…</div>}
+                {pickerError && <div className="px-1 py-2 text-[11px] text-bad" role="alert">{pickerError}</div>}
+                {!pickerLoading && !pickerError && filteredPickerAssets.length === 0 && (
+                  <div className="px-1 py-2 text-[11px] text-muted">当前项目没有匹配的可引用资产</div>
+                )}
+                {!pickerError && filteredPickerAssets.map(asset => (
+                  <button
+                    key={asset.assetId}
+                    type="button"
+                    data-testid={`asset-option-${asset.assetId}`}
+                    onClick={() => selectAsset(asset)}
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition hover:bg-violet-soft"
+                  >
+                    {thumbnails[asset.assetId] ? (
+                      <img
+                        src={thumbnails[asset.assetId]}
+                        alt=""
+                        className="h-9 w-9 shrink-0 rounded object-cover"
+                      />
+                    ) : (
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded bg-violet-soft text-[10px] font-semibold text-violet">
+                        {ASSET_KIND_LABEL[asset.kind]}
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[11px] font-semibold text-ink">{asset.name}</span>
+                      <span className="block truncate text-[9.5px] text-muted">{ASSET_KIND_LABEL[asset.kind]} · {asset.path}</span>
+                    </span>
+                    {selectedAssets.some(item => item.assetId === asset.assetId) && (
+                      <span className="shrink-0 text-[9.5px] text-violet">已引用</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <textarea
             value={draft}
             onChange={e => setDraft(e.target.value)}
@@ -1273,7 +1513,12 @@ export default function ChatComposer({
             <button
               type="button"
               title="资产"
-              className="grid h-6 w-6 place-items-center rounded-[7px] text-muted transition hover:bg-line hover:text-violet"
+              aria-label="引用项目资产"
+              aria-expanded={pickerOpen}
+              data-testid="asset-picker-toggle"
+              disabled={busy}
+              onClick={toggleAssetPicker}
+              className="grid h-6 w-6 place-items-center rounded-[7px] text-muted transition hover:bg-line hover:text-violet disabled:cursor-not-allowed disabled:opacity-40"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-3.5 w-3.5">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />

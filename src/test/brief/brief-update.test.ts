@@ -16,6 +16,7 @@ import { writeSessionState } from '../../../electron/project/library'
 import { canvasStore } from '../../../electron/canvas/store'
 import { MANIFEST_FILE } from '../../../electron/project/manifest'
 import type { Canvas, ProjectBrief, ProjectManifest } from '@shared/types'
+import { activeDocument, canvasV4 } from '../canvas-fixtures'
 
 const baseBrief: ProjectBrief = {
   schemaVersion: 2,
@@ -62,8 +63,7 @@ async function seed(opts: { withBaseline?: boolean; aux?: string } = {}): Promis
       : baseBrief
     await fsp.writeFile(path.join(projDir, '立项单.v1.json'), JSON.stringify(brief, null, 2), 'utf-8')
   }
-  const canvas: Canvas = {
-    schemaVersion: 3,
+  const canvas: Canvas = canvasV4({
     revision: 0,
     receipts: [],
     projectId: 'project',
@@ -83,7 +83,7 @@ async function seed(opts: { withBaseline?: boolean; aux?: string } = {}): Promis
     edges: [],
     gates: [],
     updatedAt: now,
-  }
+  })
   await fsp.writeFile(path.join(projDir, 'canvas.json'), JSON.stringify(canvas, null, 2), 'utf-8')
   writeSessionState({ currentDir: projDir })
   canvasStore.reset()
@@ -178,7 +178,7 @@ describe('D-017 修改立项面板直写（updateBriefFields）', () => {
 
     // 画布：scenes 挂脏五字段 + markedAt（feature-806 B-46）、status 仍 done；brief 节点指向 v2
     const canvas = await canvasStore.get()
-    const scenes = canvas.nodes.find(n => n.id === 'step-1-scenes')!
+    const scenes = activeDocument(canvas).nodes.find(n => n.id === 'step-1-scenes')!
     expect(scenes.status).toBe('done')
     expect(scenes.dirty).toMatchObject({
       sinceBriefVersion: 1,
@@ -189,14 +189,14 @@ describe('D-017 修改立项面板直写（updateBriefFields）', () => {
     })
     expect(typeof scenes.dirty?.markedAt).toBe('string')
     expect(Number.isNaN(Date.parse(scenes.dirty!.markedAt!))).toBe(false)
-    const briefNode = canvas.nodes.find(n => n.id === 'step-0-brief')!
+    const briefNode = activeDocument(canvas).nodes.find(n => n.id === 'step-0-brief')!
     expect(briefNode).toMatchObject({
       status: 'done', ref: { path: '立项单.v2.json', format: 'json' }, meta: { version: 'v2' },
     })
 
     // persistInQueue → listeners 自动广播（renderer 经 canvas:changed 自动重读新版）
     expect(broadcasts.length).toBeGreaterThan(0)
-    expect(broadcasts[broadcasts.length - 1]!.nodes.find(n => n.id === 'step-0-brief')?.meta?.version).toBe('v2')
+    expect(activeDocument(broadcasts[broadcasts.length - 1]!).nodes.find(n => n.id === 'step-0-brief')?.meta?.version).toBe('v2')
     unsubscribe()
   })
 
@@ -214,14 +214,14 @@ describe('D-017 修改立项面板直写（updateBriefFields）', () => {
     expect(v2.style.mainStyleId).toBe('A7')
     expect('auxiliaryStyleId' in v2.style).toBe(false)
     const canvas = await canvasStore.get()
-    expect(canvas.nodes.find(n => n.id === 'step-1-scenes')?.dirty).toBeUndefined()
+    expect(activeDocument(canvas).nodes.find(n => n.id === 'step-1-scenes')?.dirty).toBeUndefined()
   })
 
   it('改项目性质 → diff 记 kind（medium 分级），命中消费 kind 的血缘节点挂脏', async () => {
     // scenes 血缘加 kind 消费（seed 默认只消费集数/题材）
     const canvasPath = path.join(projDir, 'canvas.json')
     const c0 = JSON.parse(await fsp.readFile(canvasPath, 'utf-8')) as Canvas
-    c0.nodes.find(n => n.id === 'step-1-scenes')!.parentReference!.fields.push('kind')
+    activeDocument(c0).nodes.find(n => n.id === 'step-1-scenes')!.parentReference!.fields.push('kind')
     await fsp.writeFile(canvasPath, JSON.stringify(c0, null, 2), 'utf-8')
     canvasStore.reset()
 
@@ -238,18 +238,18 @@ describe('D-017 修改立项面板直写（updateBriefFields）', () => {
 
   it('feature-806 B-46：同一节点重复挂脏 → markedAt 刷新为最新时间', async () => {
     await updateBriefFields(projDir, { fiveElements: { episodeCount: '100 集' } })
-    const first = (await canvasStore.get()).nodes.find(n => n.id === 'step-1-scenes')!.dirty!.markedAt!
+    const first = activeDocument(await canvasStore.get()).nodes.find(n => n.id === 'step-1-scenes')!.dirty!.markedAt!
     await new Promise(r => setTimeout(r, 5))
     // 模拟 align 清脏（血缘指针跟进 v2）后再次变更 → 同一节点二次挂脏（assessImpact 候选要求 parentReference.briefVersion===fromVersion）
     const c = await canvasStore.get()
-    const idx = c.nodes.findIndex(n => n.id === 'step-1-scenes')
-    const node = c.nodes[idx]!
+    const idx = activeDocument(c).nodes.findIndex(n => n.id === 'step-1-scenes')
+    const node = activeDocument(c).nodes[idx]!
     const { dirty: _cleared, ...rest } = node
-    c.nodes[idx] = { ...rest, parentReference: { briefVersion: 2, fields: node.parentReference!.fields } }
+    activeDocument(c).nodes[idx] = { ...rest, parentReference: { briefVersion: 2, fields: node.parentReference!.fields } }
     await fsp.writeFile(path.join(projDir, 'canvas.json'), JSON.stringify(c, null, 2), 'utf-8')
     canvasStore.reset()
     await updateBriefFields(projDir, { fiveElements: { episodeCount: '120 集' } })
-    const dirty = (await canvasStore.get()).nodes.find(n => n.id === 'step-1-scenes')!.dirty!
+    const dirty = activeDocument(await canvasStore.get()).nodes.find(n => n.id === 'step-1-scenes')!.dirty!
     expect(dirty.sinceBriefVersion).toBe(2)
     expect(dirty.latestBriefVersion).toBe(3)
     expect(Date.parse(dirty.markedAt!)).toBeGreaterThan(Date.parse(first))
@@ -265,7 +265,7 @@ describe('feature-810 style.catalogVersion 键（谱系升级采纳 · 直改通
     await fsp.writeFile(briefPath, JSON.stringify(b0, null, 2), 'utf-8')
     const canvasPath = path.join(projDir, 'canvas.json')
     const c0 = JSON.parse(await fsp.readFile(canvasPath, 'utf-8')) as Canvas
-    c0.nodes.find(n => n.id === 'step-1-scenes')!.parentReference!.fields.push('style.catalogVersion')
+    activeDocument(c0).nodes.find(n => n.id === 'step-1-scenes')!.parentReference!.fields.push('style.catalogVersion')
     await fsp.writeFile(canvasPath, JSON.stringify(c0, null, 2), 'utf-8')
     canvasStore.reset()
 
@@ -308,7 +308,7 @@ describe('feature-810 style.catalogVersion 键（谱系升级采纳 · 直改通
 async function addLineageFields(...fields: string[]): Promise<void> {
   const canvasPath = path.join(projDir, 'canvas.json')
   const c = JSON.parse(await fsp.readFile(canvasPath, 'utf-8')) as Canvas
-  c.nodes.find(n => n.id === 'step-1-scenes')!.parentReference!.fields.push(...fields)
+  activeDocument(c).nodes.find(n => n.id === 'step-1-scenes')!.parentReference!.fields.push(...fields)
   await fsp.writeFile(canvasPath, JSON.stringify(c, null, 2), 'utf-8')
   canvasStore.reset()
 }
@@ -379,7 +379,7 @@ describe('feature-013 · 全字段直改（genre/tone/platforms/premise/diagnosi
     expect(r.items).toEqual([])
     expect(r.markedDirty).toEqual([])
     const canvas = await canvasStore.get()
-    expect(canvas.nodes.find(n => n.id === 'step-1-scenes')?.dirty).toBeUndefined()
+    expect(activeDocument(canvas).nodes.find(n => n.id === 'step-1-scenes')?.dirty).toBeUndefined()
   })
 
   it('存量无 L0 立项单：改其他字段 → 无 l0 伪 diff，v2 不落 l0 键', async () => {

@@ -175,6 +175,10 @@ export function registerPureTools(server: McpServer): void {
           kind: z.string(),
           title: z.string(),
           status: z.enum(['pending', 'active', 'done', 'invalidated']),
+          position: z.object({
+            x: z.number().finite(),
+            y: z.number().finite(),
+          }).optional(),
           ref: z.object({ path: z.string(), format: z.enum(['json', 'md']) }).optional(),
           meta: z.record(z.string(), z.unknown()).optional(),
           assetIds: z.array(z.string().min(1)).optional(),
@@ -198,9 +202,11 @@ export function registerPureTools(server: McpServer): void {
     },
     async (args) => {
       try {
-        const result = await canvasStore.updateWithCommand(args, {
-          commandId: args.commandId,
-          expectedRevision: args.expectedRevision,
+        // 事务元数据只参与 revision/重放判定，不属于画布 merge payload。
+        const { commandId, expectedRevision, ...patch } = args
+        const result = await canvasStore.updateWithCommand(patch, {
+          commandId,
+          expectedRevision,
         })
         return respond<{ canvas: Canvas; commandId: string; revision: number; replayed: boolean }>({
           ok: true,
@@ -763,9 +769,9 @@ export function registerPureTools(server: McpServer): void {
           ) as ProjectBrief
 
           // 复算影响（不信任 Agent 传入清单）
-          const canvas0 = await canvasStore.get()
+          const canvasContext = await canvasStore.capture()
           const changes = diffBrief(prev, draft)
-          const assessment = assessImpact(changes, canvas0, fromVersion)
+          const assessment = assessImpact(changes, canvasContext.canvas, fromVersion)
 
           // decisions 必须恰好覆盖复算 items 全集
           const want = new Set(assessment.items.map(i => i.nodeId))
@@ -822,12 +828,12 @@ export function registerPureTools(server: McpServer): void {
           )
           // feature-806 B-46：挂脏写入 markedAt（整批同一时间戳；重复挂脏整体覆盖即刷新）
           const markedAt = new Date().toISOString()
-          const canvas = await canvasStore.persistInQueue(c => {
+          const canvas = await canvasStore.persistInQueue((_c, document) => {
             for (const item of assessment.items) {
-              const idx = c.nodes.findIndex(x => x.id === item.nodeId)
+              const idx = document.nodes.findIndex(x => x.id === item.nodeId)
               if (idx < 0) continue // assess 候选来自当前画布，理论必在
-              const old = c.nodes[idx]!
-              c.nodes[idx] = {
+              const old = document.nodes[idx]!
+              document.nodes[idx] = {
                 ...old,
                 dirty: {
                   sinceBriefVersion: fromVersion,
@@ -839,11 +845,11 @@ export function registerPureTools(server: McpServer): void {
                 },
               }
             }
-            const bIdx = c.nodes.findIndex(x => x.id === written.briefNode.id)
+            const bIdx = document.nodes.findIndex(x => x.id === written.briefNode.id)
             const { linksTo: _links, ...briefNode } = written.briefNode
-            if (bIdx >= 0) c.nodes[bIdx] = briefNode
-            else c.nodes.push(briefNode)
-          })
+            if (bIdx >= 0) document.nodes[bIdx] = briefNode
+            else document.nodes.push(briefNode)
+          }, canvasContext)
 
           return {
             version: toVersion,
@@ -881,15 +887,18 @@ export function registerPureTools(server: McpServer): void {
           return respond(fail('BRIEF_NO_BASELINE', '当前项目尚无已发布立项，无法对齐版本'))
         }
         const result = await enqueue(async () => {
-          const canvas0 = await canvasStore.get()
-          const idx = canvas0.nodes.findIndex(x => x.id === args.nodeId)
+          const canvasContext = await canvasStore.capture()
+          const canvas0 = canvasContext.canvas
+          const activePage = canvas0.pages.find(page => page.id === canvasContext.target.pageId)!
+          const activeDocument = activePage.canvases.find(document => document.id === canvasContext.target.canvasId)!
+          const idx = activeDocument.nodes.findIndex(x => x.id === args.nodeId)
           if (idx < 0) {
             throw Object.assign(
               new Error(`画布节点 ${args.nodeId} 不存在`),
               { code: 'CANVAS_NODE_NOT_FOUND' },
             )
           }
-          const node = canvas0.nodes[idx]!
+          const node = activeDocument.nodes[idx]!
           if (!node.dirty) {
             return { nodeId: args.nodeId, briefVersion: target, alreadyAligned: true as const, canvas: canvas0 }
           }
@@ -900,16 +909,16 @@ export function registerPureTools(server: McpServer): void {
             )
           }
           const fields = node.parentReference?.fields ?? node.dirty.fields
-          const canvas = await canvasStore.persistInQueue(c => {
-            const i = c.nodes.findIndex(x => x.id === args.nodeId)
-            const old = c.nodes[i]!
+          const canvas = await canvasStore.persistInQueue((_c, document) => {
+            const i = document.nodes.findIndex(x => x.id === args.nodeId)
+            const old = document.nodes[i]!
             const { dirty: _dirty, ...rest } = old
-            c.nodes[i] = {
+            document.nodes[i] = {
               ...rest,
               parentReference: { briefVersion: target, fields },
               updatedAt: new Date().toISOString(),
             }
-          })
+          }, canvasContext)
           return { nodeId: args.nodeId, briefVersion: target, canvas }
         })
         return respond({ ok: true as const, ...result })

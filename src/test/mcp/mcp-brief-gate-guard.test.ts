@@ -12,6 +12,7 @@ import { registerPureTools } from '../../../electron/mcp/tools'
 import { writeSessionState } from '../../../electron/project/library'
 import { canvasStore } from '../../../electron/canvas/store'
 import type { BriefDraft, CanvasGate } from '@shared/types'
+import { activeDocument } from '../canvas-fixtures'
 
 type Handler = (args: Record<string, unknown>) => Promise<{
   content: { text: string }[]
@@ -96,7 +97,7 @@ describe('feature-807 brief.publish 门态防护（契约 §3，违例零写盘�
     const after = await canvasStore.get()
     expect(after.gates).toHaveLength(1)
     expect(after.gates[0]).toEqual(gate)
-    expect(after.nodes).toEqual([])
+    expect(activeDocument(after).nodes).toEqual([])
   })
 
   it('rejected 门 + verbal → BRIEF_GATE_REJECTED：零写盘', async () => {
@@ -110,7 +111,7 @@ describe('feature-807 brief.publish 门态防护（契约 §3，违例零写盘�
     expect(r.ok).toBe(false)
     expect(r.error?.code).toBe('BRIEF_GATE_REJECTED')
     expect(await briefFiles(dir)).toEqual([])
-    expect((await canvasStore.get()).nodes).toEqual([])
+    expect(activeDocument(await canvasStore.get()).nodes).toEqual([])
   })
 
   it('无门 + verbal(quote) → 成功 v1（现状回归）', async () => {
@@ -169,7 +170,7 @@ describe('feature-807 brief.publish 门态防护（契约 §3，违例零写盘�
     expect(r.ok).toBe(false)
     expect(r.error?.code).toBe('BRIEF_GATE_APPROVED_USE_GATE')
     expect(await briefFiles(dir)).toEqual([])
-    expect((await canvasStore.get()).nodes).toEqual([])
+    expect(activeDocument(await canvasStore.get()).nodes).toEqual([])
   })
 
   it('历史门无 payload.version：pending → PENDING；rejected → REJECTED；approved+gate 放行（兼容）', async () => {

@@ -10,6 +10,7 @@ import RealignConfirm from './RealignConfirm'
 import StudioViewer from '../viewer/StudioViewer'
 import Stage0View from '../stage0/Stage0View'
 import { _setStyleCatalogSnapshotForTest } from '../style/style-catalog-store'
+import { canvasV4 } from '../../test/canvas-fixtures'
 
 /* ── 夹具 ── */
 
@@ -45,11 +46,11 @@ function node(partial: Partial<CanvasNode> & { id: string }): CanvasNode {
 }
 
 function canvasOf(nodes: CanvasNode[]): Canvas {
-  return {
-    schemaVersion: 3, projectId: 'p1', title: '测试项目', revision: 0, receipts: [],
+  return canvasV4({
+    projectId: 'p1', title: '测试项目', revision: 0, receipts: [],
     nodes, edges: [], gates: [],
     updatedAt: '2026-10-15T00:00:00.000Z',
-  }
+  })
 }
 
 const briefNodeV2 = () => node({

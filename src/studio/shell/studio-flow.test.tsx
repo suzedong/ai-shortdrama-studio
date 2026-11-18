@@ -4,9 +4,10 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { AssetIndexItem, Canvas, CanvasCommandRequest, CanvasGate } from '@shared/types'
+import type { AssetIndexItem, Canvas, CanvasCommandRequest, CanvasGate, CanvasViewStateRequest } from '@shared/types'
 import type { RuntimeEvent } from '../../lib/runtime-types'
 import StudioApp from './StudioApp'
+import { activeDocument, canvasV4, withActiveDocument } from '../../test/canvas-fixtures'
 
 interface Harness {
   emitRuntime: (e: RuntimeEvent) => void
@@ -14,15 +15,19 @@ interface Harness {
   emitGate: (g: CanvasGate) => void
   promptAsync: ReturnType<typeof vi.fn>
   decide: ReturnType<typeof vi.fn>
+  get: ReturnType<typeof vi.fn>
   command: ReturnType<typeof vi.fn>
+  viewState: ReturnType<typeof vi.fn>
   assetList: ReturnType<typeof vi.fn>
+  assetImport: ReturnType<typeof vi.fn>
+  assetThumbnail: ReturnType<typeof vi.fn>
 }
 
 function emptyCanvas(title = ''): Canvas {
-  return {
-    schemaVersion: 3, projectId: 'p1', title, nodes: [], edges: [], gates: [],
+  return canvasV4({
+    projectId: 'p1', title, nodes: [], edges: [], gates: [], activeView: 'stage0',
     revision: 0, receipts: [], updatedAt: new Date().toISOString(),
-  }
+  })
 }
 
 function installApi(initial: Canvas): Harness {
@@ -32,16 +37,35 @@ function installApi(initial: Canvas): Harness {
 
   const promptAsync = vi.fn(async () => ({ accepted: true as const, messageId: 'msg-1' }))
   const decide = vi.fn(async () => ({ ok: true as const }))
+  const get = vi.fn(async () => initial)
   const command = vi.fn(async (request: CanvasCommandRequest) => ({
     commandId: request.commandId,
     revision: initial.revision,
-    replayed: false,
     canvas: initial,
   }))
-  const assetList = vi.fn(async () => [
-    { id: 'asset-1', kind: 'image' as const, path: '资产/女主.png', createdAt: '2026-11-10T00:00:00.000Z' },
-    { id: 'asset-2', kind: 'image' as const, path: '资产/男主.png', createdAt: '2026-11-10T00:00:00.000Z' },
+  const viewState = vi.fn(async (request: CanvasViewStateRequest) => {
+    const canvas = request.type === 'active.set' && request.activeView
+      ? { ...initial, activeView: request.activeView }
+      : initial
+    return {
+      ok: true as const,
+      target: {
+        projectId: canvas.projectId,
+        pageId: canvas.activePageId,
+        canvasId: activeDocument(canvas).id,
+      },
+      canvas,
+    }
+  })
+  const assetList = vi.fn(async (_kind: AssetIndexItem['kind']): Promise<AssetIndexItem[]> => [
+    { id: 'asset-1', kind: 'image', path: '资产/女主.png', createdAt: '2026-11-10T00:00:00.000Z' },
+    { id: 'asset-2', kind: 'image', path: '资产/男主.png', createdAt: '2026-11-10T00:00:00.000Z' },
   ])
+  const assetImport = vi.fn(async (): Promise<
+    | { status: 'imported'; asset: AssetIndexItem }
+    | { status: 'cancelled' }
+  > => ({ status: 'cancelled' }))
+  const assetThumbnail = vi.fn(async (_assetId: string): Promise<{ dataUrl: string | null }> => ({ dataUrl: null }))
 
   window.api = {
     runtime: {
@@ -56,13 +80,14 @@ function installApi(initial: Canvas): Harness {
       onEvent: vi.fn(cb => { runtimeCbs.add(cb); return () => runtimeCbs.delete(cb) }),
     },
     canvas: {
-      get: vi.fn(async () => initial),
+      get,
       command,
+      viewState,
       subscribe: vi.fn(async () => ({ ok: true as const })),
       unsubscribe: vi.fn(async () => ({ ok: true as const })),
       onChange: vi.fn(cb => { canvasCbs.add(cb); return () => canvasCbs.delete(cb) }),
     },
-    asset: { list: assetList },
+    asset: { list: assetList, import: assetImport, thumbnail: assetThumbnail },
     gate: {
       decide,
       onChanged: vi.fn(cb => { gateCbs.add(cb); return () => gateCbs.delete(cb) }),
@@ -106,7 +131,7 @@ function installApi(initial: Canvas): Harness {
   } as unknown as Window['api']
 
   return {
-    promptAsync, decide, command, assetList,
+    promptAsync, decide, get, command, viewState, assetList, assetImport, assetThumbnail,
     emitRuntime: e => act(() => runtimeCbs.forEach(cb => cb(e))),
     emitCanvas: c => act(() => canvasCbs.forEach(cb => cb(c))),
     emitGate: g => act(() => gateCbs.forEach(cb => cb({ gate: g }))),
@@ -121,9 +146,10 @@ function gate0final(status: CanvasGate['status'] = 'pending'): CanvasGate {
   }
 }
 
-function canvasWithDiagnosis(): Canvas {
+function canvasWithDiagnosis(activeView: Canvas['activeView'] = 'canvas'): Canvas {
   const c = emptyCanvas('测试项目')
-  c.nodes = [{
+  c.activeView = activeView
+  activeDocument(c).nodes = [{
     id: 'step-0-diagnosis', step: '0', kind: 'diagnosis', title: '重生复仇：选题诊断', status: 'done',
     ref: { path: '立项/diagnosis.json', format: 'json' }, updatedAt: new Date().toISOString(),
   }]
@@ -159,7 +185,7 @@ describe('C7 · StudioApp 立项驱动', () => {
   it('流式文本 → GateCard 挂载 → approved 裁决 → 画布节点更新', async () => {
     const h = installApi(emptyCanvas())
     render(<StudioApp />)
-    await screen.findByText(/未命名项目/)
+    await screen.findAllByText(/未命名项目/)
 
     // 先发送惰性建会话（绑定 sess-1）；D-007 严格归属后，流式只接受当前绑定 sid
     await user.type(screen.getByPlaceholderText(/描述创作目标/), '做一个重生复仇项目')
@@ -192,7 +218,7 @@ describe('C7 · StudioApp 立项驱动', () => {
   it('rejected：带 note 提交否决', async () => {
     const h = installApi(emptyCanvas())
     render(<StudioApp />)
-    await screen.findByText(/未命名项目/)
+    await screen.findAllByText(/未命名项目/)
 
     h.emitGate(gate0final('pending'))
     await user.click(screen.getByRole('button', { name: '否决 / 重做' }))
@@ -255,7 +281,7 @@ describe('三栏与产物查看', () => {
   it('点击有 ref.path 的节点 → fileRead 打开只读查看器；关闭后消失', async () => {
     const h = installApi(emptyCanvas())
     render(<StudioApp />)
-    await screen.findByText(/未命名项目/)
+    await screen.findAllByText(/未命名项目/)
 
     h.emitCanvas(canvasWithDiagnosis())
     const node = await screen.findByText('重生复仇：选题诊断')
@@ -279,7 +305,7 @@ describe('三栏与产物查看', () => {
       ok: false as const, error: { code: 'NOT_FOUND', message: '产物文件不存在' },
     }))
     render(<StudioApp />)
-    await screen.findByText(/未命名项目/)
+    await screen.findAllByText(/未命名项目/)
     h.emitCanvas(canvasWithDiagnosis())
     await user.click(await screen.findByText('重生复仇：选题诊断'))
     expect(await screen.findByText('产物文件不存在')).toBeInTheDocument()
@@ -288,7 +314,7 @@ describe('三栏与产物查看', () => {
   it('切项目（projectId 变化）时关闭查看器；常规推送不关', async () => {
     const h = installApi(emptyCanvas())
     render(<StudioApp />)
-    await screen.findByText(/未命名项目/)
+    await screen.findAllByText(/未命名项目/)
     h.emitCanvas(canvasWithDiagnosis())
     await user.click(await screen.findByText('重生复仇：选题诊断'))
     expect(await screen.findByText('立项/diagnosis.json')).toBeInTheDocument()
@@ -301,49 +327,89 @@ describe('三栏与产物查看', () => {
     // projectId 变化：viewer 关闭（p2 为空项目，B-50 自动进 Stage0View）
     const other = emptyCanvas('另一个项目')
     other.projectId = 'p2'
+    h.get.mockResolvedValue(other)
     h.emitCanvas(other)
-    expect(screen.queryByText('立项/diagnosis.json')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('立项/diagnosis.json')).not.toBeInTheDocument())
     expect(await screen.findByText('立项尚未定案')).toBeInTheDocument()
   })
 })
 
-// B-50 · 立项期视图自动投影
-describe('B-50 · 立项期自动切 Stage0View', () => {
-  it('空 nodes 项目进入：中间区呈现 Stage0View；随后节点到达自动回 DAG', async () => {
+// B-50 / feature-823 · 双视图与 activeView 持久化
+describe('B-50 · Stage0View / 自由画布双视图与 activeView 持久化', () => {
+  it('空 nodes 从 Stage0 开始；首个节点到达后保存并切回 DAG', async () => {
     const h = installApi(emptyCanvas())
     render(<StudioApp />)
     expect(await screen.findByText('立项尚未定案')).toBeInTheDocument()
-    expect(screen.queryByText(/还没有任何产物/)).not.toBeInTheDocument()
+    expect(document.querySelector('[data-stp="0"]')).toBeTruthy()
 
-    h.emitCanvas(canvasWithDiagnosis())
+    h.emitCanvas(canvasWithDiagnosis('stage0'))
     expect(await screen.findByText('重生复仇：选题诊断')).toBeInTheDocument()
+    await waitFor(() => expect(h.viewState).toHaveBeenCalledWith({
+      type: 'active.set', projectId: 'p1', activeView: 'canvas',
+    }))
     expect(screen.queryByText('立项尚未定案')).not.toBeInTheDocument()
+  })
+
+  it('重启恢复 stage0 + 既有 nodes：保持 Stage0View，不改写 activeView', async () => {
+    const h = installApi(canvasWithDiagnosis('stage0'))
+    render(<StudioApp />)
+    await waitFor(() => expect(document.querySelector('[data-view="stage0"]')).toBeTruthy())
+    expect(h.viewState).not.toHaveBeenCalled()
     expect(screen.queryByText(/还没有任何产物/)).not.toBeInTheDocument()
   })
 
-  it('初始即有 nodes 的项目：直接停在 DAG，不进 Stage0View', async () => {
-    installApi(canvasWithDiagnosis())
+  it('初始即有 nodes 且 activeView=canvas：直接 DAG，不倒播 Stage0View', async () => {
+    const h = installApi(canvasWithDiagnosis())
     render(<StudioApp />)
     expect(await screen.findByText('重生复仇：选题诊断')).toBeInTheDocument()
     expect(screen.queryByText('立项尚未定案')).not.toBeInTheDocument()
+    expect(h.viewState).not.toHaveBeenCalled()
   })
 
-  it('自动投影每项目仅一次：手动「返回画布」后不再被同项目空推送强切', async () => {
+  it('切到已有节点的目标画布时不把 stage0 自动改成 DAG', async () => {
+    const h = installApi(emptyCanvas())
+    render(<StudioApp />)
+    expect(await screen.findByText('立项尚未定案')).toBeInTheDocument()
+
+    const next = emptyCanvas()
+    const second = { ...activeDocument(canvasWithDiagnosis('stage0')), id: 'canvas-2', title: '画布 2' }
+    next.pages[0]!.canvases.push(second)
+    next.pages[0]!.activeCanvasId = second.id
+    h.emitCanvas(next)
+
+    await waitFor(() => expect(document.querySelector('[data-view="stage0"]')).toBeTruthy())
+    expect(h.viewState).not.toHaveBeenCalled()
+  })
+
+  it('用户手动选择当前 Stage0 后，首个节点到达不再自动切换', async () => {
+    const h = installApi(emptyCanvas())
+    render(<StudioApp />)
+    expect(await screen.findByText('立项尚未定案')).toBeInTheDocument()
+
+    await user.click(document.querySelector('[data-stp="0"]')!)
+    h.emitCanvas(canvasWithDiagnosis('stage0'))
+
+    await waitFor(() => expect(document.querySelector('[data-view="stage0"]')).toBeTruthy())
+    expect(h.viewState).not.toHaveBeenCalled()
+  })
+
+  it('手动返回画布后保持选择；切到其他项目则恢复其 stage0', async () => {
     const h = installApi(emptyCanvas())
     render(<StudioApp />)
     expect(await screen.findByText('立项尚未定案')).toBeInTheDocument()
 
     await user.click(screen.getAllByText('← 返回画布')[0]!)
     expect(await screen.findByText(/还没有任何产物/)).toBeInTheDocument()
+    await waitFor(() => expect(h.viewState).toHaveBeenCalledTimes(1))
 
-    // 同 projectId 的空 nodes 推送：不再强切
-    h.emitCanvas(emptyCanvas())
-    expect(screen.getByText(/还没有任何产物/)).toBeInTheDocument()
+    h.emitCanvas({ ...emptyCanvas(), activeView: 'canvas' })
+    expect(await screen.findByText(/还没有任何产物/)).toBeInTheDocument()
     expect(screen.queryByText('立项尚未定案')).not.toBeInTheDocument()
+    expect(h.viewState).toHaveBeenCalledTimes(1)
 
-    // 切到另一个空项目：重新放行
     const other = emptyCanvas('新项目')
     other.projectId = 'p2'
+    h.get.mockResolvedValue(other)
     h.emitCanvas(other)
     expect(await screen.findByText('立项尚未定案')).toBeInTheDocument()
   })
@@ -440,8 +506,9 @@ describe('feature-812 · 无项目态', () => {
 
 function canvasWithAssetNode(): Canvas {
   const c = emptyCanvas('资产关联项目')
+  c.activeView = 'canvas'
   c.revision = 4
-  c.nodes = [{
+  activeDocument(c).nodes = [{
     id: 'step-1-profiles', step: '1', kind: 'profiles', title: '人物小传', status: 'active',
     updatedAt: '2026-11-10T00:00:00.000Z',
   }]
@@ -452,19 +519,15 @@ describe('feature-814 · 资产绑定交互', () => {
   it('多选绑定与解绑共用命令入口，并以最新 revision 提交下一命令', async () => {
     const initial = canvasWithAssetNode()
     const h = installApi(initial)
-    const bound: Canvas = {
-      ...initial,
-      revision: 5,
-      nodes: [{ ...initial.nodes[0]!, assetIds: ['asset-1', 'asset-2'] }],
-    }
-    const unbound: Canvas = {
-      ...bound,
-      revision: 6,
-      nodes: [{ ...bound.nodes[0]!, assetIds: ['asset-2'] }],
-    }
+    const bound = withActiveDocument({ ...initial, revision: 5 }, {
+      nodes: [{ ...activeDocument(initial).nodes[0]!, assetIds: ['asset-1', 'asset-2'] }],
+    })
+    const unbound = withActiveDocument({ ...bound, revision: 6 }, {
+      nodes: [{ ...activeDocument(bound).nodes[0]!, assetIds: ['asset-2'] }],
+    })
     h.command
-      .mockResolvedValueOnce({ commandId: 'cmd-bind', revision: 5, replayed: false, canvas: bound })
-      .mockResolvedValueOnce({ commandId: 'cmd-unbind', revision: 6, replayed: false, canvas: unbound })
+      .mockResolvedValueOnce({ commandId: 'cmd-bind', revision: 5, canvas: bound })
+      .mockResolvedValueOnce({ commandId: 'cmd-unbind', revision: 6, canvas: unbound })
     render(<StudioApp />)
 
     await screen.findAllByText('人物小传')
@@ -480,6 +543,9 @@ describe('feature-814 · 资产绑定交互', () => {
       commandId: expect.any(String),
       expectedRevision: 4,
       type: 'assets.bind',
+      projectId: 'p1',
+      pageId: 'page-1',
+      canvasId: 'canvas-1',
       nodeId: 'step-1-profiles',
       assetIds: ['asset-1', 'asset-2'],
     })
@@ -493,6 +559,9 @@ describe('feature-814 · 资产绑定交互', () => {
       commandId: expect.any(String),
       expectedRevision: 5,
       type: 'assets.unbind',
+      projectId: 'p1',
+      pageId: 'page-1',
+      canvasId: 'canvas-1',
       nodeId: 'step-1-profiles',
       assetIds: ['asset-1'],
     })
@@ -513,12 +582,16 @@ describe('feature-814 · 资产绑定交互', () => {
     }])
     h.command
       .mockImplementationOnce(async (request: CanvasCommandRequest) => ({
-        commandId: request.commandId, revision: 5, replayed: false,
-        canvas: { ...initial, revision: 5, nodes: [{ ...initial.nodes[0]!, assetIds: [`${kind}-1`] }] },
+        commandId: request.commandId, revision: 5,
+        canvas: withActiveDocument({ ...initial, revision: 5 }, {
+          nodes: [{ ...activeDocument(initial).nodes[0]!, assetIds: [`${kind}-1`] }],
+        }),
       }))
       .mockImplementationOnce(async (request: CanvasCommandRequest) => ({
-        commandId: request.commandId, revision: 6, replayed: false,
-        canvas: { ...initial, revision: 6, nodes: [{ ...initial.nodes[0]!, assetIds: [] }] },
+        commandId: request.commandId, revision: 6,
+        canvas: withActiveDocument({ ...initial, revision: 6 }, {
+          nodes: [{ ...activeDocument(initial).nodes[0]!, assetIds: [] }],
+        }),
       }))
     render(<StudioApp />)
 
@@ -547,11 +620,9 @@ describe('feature-814 · 资产绑定交互', () => {
 
   it('revision 冲突时刷新画布、提示重试并保留已选资产', async () => {
     const initial = canvasWithAssetNode()
-    const refreshed: Canvas = {
-      ...initial,
-      revision: 5,
-      nodes: [{ ...initial.nodes[0]!, assetIds: ['asset-1'] }],
-    }
+    const refreshed = withActiveDocument({ ...initial, revision: 5 }, {
+      nodes: [{ ...activeDocument(initial).nodes[0]!, assetIds: ['asset-1'] }],
+    })
     const h = installApi(initial)
     h.command.mockRejectedValue(Object.assign(
       new Error('画布 revision 冲突'),
@@ -574,6 +645,164 @@ describe('feature-814 · 资产绑定交互', () => {
     expect(await screen.findByLabelText('关联资产 1 项')).toBeInTheDocument()
     expect(screen.getByTitle('资产/女主.png')).toHaveAttribute('aria-pressed', 'true')
     expect(h.command).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('feature-823 · Studio 画布竞态隔离', () => {
+  it('异项目旧广播经 canvas.get 核实后丢弃', async () => {
+    const initial = canvasWithDiagnosis()
+    const h = installApi(initial)
+    render(<StudioApp />)
+    await screen.findByText('重生复仇：选题诊断')
+
+    const verified = deferred<Canvas | null>()
+    h.get.mockReturnValueOnce(verified.promise)
+    const stale = emptyCanvas('不应切入的旧项目')
+    stale.projectId = 'p2'
+    h.emitCanvas(stale)
+    await waitFor(() => expect(h.get).toHaveBeenCalledTimes(2))
+    await act(async () => {
+      verified.resolve(initial)
+      await verified.promise
+    })
+
+    expect(screen.queryByText('不应切入的旧项目')).not.toBeInTheDocument()
+    expect(screen.getByText('重生复仇：选题诊断')).toBeInTheDocument()
+  })
+
+  it('同项目新广播到达后，迟到的旧 canvas.get 响应被丢弃', async () => {
+    const initial = emptyCanvas('过期读取')
+    const staleGet = deferred<Canvas | null>()
+    const h = installApi(initial)
+    h.get.mockReturnValueOnce(staleGet.promise)
+    render(<StudioApp />)
+    await waitFor(() => expect(h.get).toHaveBeenCalledTimes(1))
+
+    h.emitCanvas(canvasWithDiagnosis())
+    expect(await screen.findByText('重生复仇：选题诊断')).toBeInTheDocument()
+    await act(async () => {
+      staleGet.resolve(initial)
+      await staleGet.promise
+    })
+
+    expect(screen.queryByText('过期读取')).not.toBeInTheDocument()
+    expect(screen.getByText('重生复仇：选题诊断')).toBeInTheDocument()
+  })
+
+  it('切换项目后，迟到的旧资产命令响应不得覆盖当前项目', async () => {
+    const initial = canvasWithAssetNode()
+    const pending = deferred<{ commandId: string; revision: number; canvas: Canvas }>()
+    const h = installApi(initial)
+    h.command.mockReturnValueOnce(pending.promise)
+    render(<StudioApp />)
+
+    await screen.findAllByText('人物小传')
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+    await screen.findByTitle('资产/女主.png')
+    await screen.findByText('当前节点：人物小传')
+    await user.click(screen.getByTitle('资产/女主.png'))
+    await user.click(screen.getByRole('button', { name: '绑定所选' }))
+    await waitFor(() => expect(h.command).toHaveBeenCalledTimes(1))
+
+    const other = emptyCanvas('目标项目')
+    other.projectId = 'p2'
+    h.get.mockResolvedValue(other)
+    h.emitCanvas(other)
+    expect(await screen.findByText('目标项目')).toBeInTheDocument()
+
+    const staleResult = withActiveDocument({ ...initial, revision: 5 }, {
+      nodes: [{ ...activeDocument(initial).nodes[0]!, assetIds: ['asset-1'] }],
+    })
+    await act(async () => {
+      pending.resolve({ commandId: 'cmd-stale', revision: 5, canvas: staleResult })
+      await pending.promise
+    })
+
+    expect(screen.getByText('目标项目')).toBeInTheDocument()
+    expect(screen.queryByLabelText('关联资产 1 项')).not.toBeInTheDocument()
+  })
+
+  it('切换项目后，迟到的旧 ViewState 响应不得覆盖当前项目', async () => {
+    const initial = canvasWithAssetNode()
+    const pending = deferred<{
+      ok: true
+      target: { projectId: string; pageId: string; canvasId: string }
+      canvas: Canvas
+    }>()
+    const h = installApi(initial)
+    h.viewState.mockReturnValueOnce(pending.promise)
+    render(<StudioApp />)
+    await screen.findAllByText('人物小传')
+
+    await user.click(document.querySelector('[data-seg="nav"]')!)
+    await user.click(document.querySelector('[data-stage="0"]')!)
+    await waitFor(() => expect(h.viewState).toHaveBeenCalledTimes(1))
+
+    const other = emptyCanvas('目标项目')
+    other.projectId = 'p2'
+    h.get.mockResolvedValue(other)
+    h.emitCanvas(other)
+    expect(await screen.findByText('目标项目')).toBeInTheDocument()
+
+    await act(async () => {
+      pending.resolve({
+        ok: true,
+        target: { projectId: 'p1', pageId: 'page-1', canvasId: 'canvas-1' },
+        canvas: { ...initial, title: '旧视图响应', activeView: 'stage0' },
+      })
+      await pending.promise
+    })
+
+    expect(screen.getByText('目标项目')).toBeInTheDocument()
+    expect(screen.queryByText('旧视图响应')).not.toBeInTheDocument()
+  })
+
+  it('activeView 响应只更新视图，不覆盖新广播的 nodes 与 revision', async () => {
+    const initial = { ...canvasWithAssetNode(), activeView: 'stage0' as const }
+    const pending = deferred<{
+      ok: true
+      target: { projectId: string; pageId: string; canvasId: string }
+      canvas: Canvas
+    }>()
+    const h = installApi(initial)
+    h.viewState.mockReturnValueOnce(pending.promise)
+    render(<StudioApp />)
+
+    await waitFor(() => expect(document.querySelector('[data-stage0-back]')).not.toBeNull())
+    await user.click(document.querySelector('[data-stage0-back]')!)
+    await waitFor(() => expect(h.viewState).toHaveBeenCalledTimes(1))
+    const fresh = withActiveDocument({
+      ...initial,
+      title: '新画布状态',
+      revision: 9,
+      activeView: 'stage0',
+    }, {
+      nodes: [{ ...activeDocument(initial).nodes[0]!, title: '最新人物小传' }],
+    })
+    h.emitCanvas(fresh)
+    await screen.findAllByText('新画布状态')
+
+    await act(async () => {
+      pending.resolve({
+        ok: true,
+        target: { projectId: 'p1', pageId: 'page-1', canvasId: 'canvas-1' },
+        canvas: { ...initial, activeView: 'canvas' },
+      })
+      await pending.promise
+    })
+
+    expect(await screen.findAllByText('最新人物小传')).not.toHaveLength(0)
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+    await screen.findByTitle('资产/女主.png')
+    await screen.findByText('当前节点：最新人物小传')
+    await user.click(screen.getByTitle('资产/女主.png'))
+    await user.click(screen.getByRole('button', { name: '绑定所选' }))
+    await waitFor(() => expect(h.command).toHaveBeenCalledTimes(1))
+    expect(h.command.mock.calls[0]?.[0]).toMatchObject({
+      expectedRevision: 9,
+      nodeId: 'step-1-profiles',
+      assetIds: ['asset-1'],
+    })
   })
 })
 
@@ -656,5 +885,273 @@ describe('feature-820 · 一级入口与伪造状态收口', () => {
 
     await user.click(document.querySelector('[data-local-models-settings]')!)
     expect(await screen.findByRole('dialog', { name: 'AI 服务设置' })).toBeInTheDocument()
+  })
+})
+
+function imageAsset(id: string, path: string, originalName?: string): AssetIndexItem {
+  return {
+    id, kind: 'image', path, createdAt: '2026-11-10T00:00:00.000Z',
+    meta: originalName === undefined ? undefined : { originalName },
+  }
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason: unknown) => void
+  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej })
+  return { promise, resolve, reject }
+}
+
+const WEBP_DATA_URL = 'data:image/webp;base64,UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA'
+
+describe('feature-821 · 资产上传与真实缩略图', () => {
+  it('上传成功仅刷新图片列表、显示 Toast 和原始文件名，不自动绑定', async () => {
+    const h = installApi(canvasWithAssetNode())
+    const imported = imageAsset('asset-3', '资产/上传/abc123.png', '女主定妆照.png')
+    h.assetList
+      .mockResolvedValueOnce([imageAsset('asset-1', '资产/女主.png'), imageAsset('asset-2', '资产/男主.png')])
+      .mockResolvedValue([
+        imageAsset('asset-1', '资产/女主.png'),
+        imageAsset('asset-2', '资产/男主.png'),
+        imported,
+      ])
+    h.assetImport.mockResolvedValue({ status: 'imported', asset: imported })
+    render(<StudioApp />)
+
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+    await screen.findByTitle('资产/女主.png')
+    await user.click(screen.getByRole('button', { name: '上传图片' }))
+
+    expect(await screen.findByText('已上传图片：女主定妆照.png')).toBeInTheDocument()
+    expect(await screen.findByText('女主定妆照.png')).toBeInTheDocument()
+    expect(h.assetImport).toHaveBeenCalledTimes(1)
+    expect(h.assetList).toHaveBeenCalledTimes(2)
+    expect(h.assetList.mock.calls.every(([kind]) => kind === 'image')).toBe(true)
+    expect(h.command).not.toHaveBeenCalled()
+    expect(screen.getByTitle('资产/上传/abc123.png')).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('取消上传保持静默且不刷新，失败提示剥壳后的安全错误', async () => {
+    const h = installApi(emptyCanvas())
+    render(<StudioApp />)
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+    await screen.findByTitle('资产/女主.png')
+
+    await user.click(screen.getByRole('button', { name: '上传图片' }))
+    await waitFor(() => expect(h.assetImport).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.getByRole('button', { name: '上传图片' })).toBeEnabled())
+    expect(h.assetList).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText(/已上传图片/)).not.toBeInTheDocument()
+
+    h.assetImport.mockRejectedValueOnce(new Error(
+      "Error invoking remote method 'asset:import': Error: 图片为空、损坏、被截断或格式不受支持",
+    ))
+    await user.click(screen.getByRole('button', { name: '上传图片' }))
+    expect(await screen.findByText('图片为空、损坏、被截断或格式不受支持')).toBeInTheDocument()
+    expect(screen.queryByText(/Error invoking remote method/)).not.toBeInTheDocument()
+    expect(h.assetList).toHaveBeenCalledTimes(1)
+  })
+
+  it('上传中防重入，无项目时禁用上传且不读取资产索引', async () => {
+    const h = installApi(emptyCanvas())
+    const pending = deferred<{ status: 'cancelled' }>()
+    h.assetImport.mockReturnValue(pending.promise)
+    const mounted = render(<StudioApp />)
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+    await screen.findByTitle('资产/女主.png')
+
+    await user.click(screen.getByRole('button', { name: '上传图片' }))
+    const uploading = screen.getByRole('button', { name: '上传中…' })
+    expect(uploading).toBeDisabled()
+    fireEvent.click(uploading)
+    fireEvent.click(uploading)
+    expect(h.assetImport).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      pending.resolve({ status: 'cancelled' })
+      await pending.promise
+    })
+    await screen.findByRole('button', { name: '上传图片' })
+
+    mounted.unmount()
+    const noProject = installApi(canvasNoProject())
+    render(<StudioApp />)
+    await screen.findByText('开始一部短剧')
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+    const disabled = await screen.findByRole('button', { name: '上传图片' })
+    expect(disabled).toBeDisabled()
+    fireEvent.click(disabled)
+    expect(noProject.assetList).not.toHaveBeenCalled()
+    expect(noProject.assetImport).not.toHaveBeenCalled()
+    expect(noProject.assetThumbnail).not.toHaveBeenCalled()
+  })
+
+  it('项目切换使上传中的旧响应失效，不刷新列表也不弹旧项目 Toast', async () => {
+    const h = installApi(emptyCanvas('旧项目'))
+    h.assetList.mockResolvedValue([])
+    const pending = deferred<
+      | { status: 'imported'; asset: AssetIndexItem }
+      | { status: 'cancelled' }
+    >()
+    h.assetImport.mockReturnValue(pending.promise)
+    render(<StudioApp />)
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+    await screen.findByRole('button', { name: '上传图片' })
+    await user.click(screen.getByRole('button', { name: '上传图片' }))
+
+    const other = { ...emptyCanvas('新项目'), projectId: 'p2' }
+    h.get.mockResolvedValue(other)
+    h.emitCanvas(other)
+    await waitFor(() => expect(h.assetList).toHaveBeenCalledTimes(2))
+    await act(async () => {
+      pending.resolve({
+        status: 'imported',
+        asset: imageAsset('old-upload', '资产/上传/old.png', '旧项目图片.png'),
+      })
+      await pending.promise
+    })
+
+    expect(screen.queryByText(/已上传图片/)).not.toBeInTheDocument()
+    expect(screen.queryByText('旧项目图片.png')).not.toBeInTheDocument()
+    expect(h.assetList).toHaveBeenCalledTimes(2)
+    expect(await screen.findByRole('button', { name: '上传图片' })).toBeEnabled()
+  })
+
+  it('项目切换丢弃迟到的旧列表响应', async () => {
+    const h = installApi(emptyCanvas('旧项目'))
+    const oldList = deferred<AssetIndexItem[]>()
+    h.assetList
+      .mockReturnValueOnce(oldList.promise)
+      .mockResolvedValue([imageAsset('new-asset', '资产/新项目.png')])
+    render(<StudioApp />)
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+    await waitFor(() => expect(h.assetList).toHaveBeenCalledTimes(1))
+
+    const other = { ...emptyCanvas('新项目'), projectId: 'p2' }
+    h.get.mockResolvedValue(other)
+    h.emitCanvas(other)
+    expect(await screen.findByText('新项目.png')).toBeInTheDocument()
+    await act(async () => {
+      oldList.resolve([imageAsset('old-asset', '资产/旧项目.png')])
+      await oldList.promise
+    })
+    expect(screen.queryByText('旧项目.png')).not.toBeInTheDocument()
+    expect(screen.getByText('新项目.png')).toBeInTheDocument()
+  })
+
+  it('显示 WebP Data URL 真缩略图，非法 meta 名称回退且搜索匹配显示名和路径', async () => {
+    const h = installApi(emptyCanvas())
+    h.assetList.mockResolvedValue([
+      imageAsset('asset-1', '资产/上传/abc123.png', '定妆原图.png'),
+      imageAsset('asset-2', '资产/场景/教室.png', '../不安全'),
+    ])
+    h.assetThumbnail.mockImplementation(async (id: string) => ({
+      dataUrl: id === 'asset-1' ? WEBP_DATA_URL : null,
+    }))
+    render(<StudioApp />)
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+
+    const image = await screen.findByRole('img', { name: '定妆原图.png' })
+    expect(image).toHaveAttribute('src', WEBP_DATA_URL)
+    expect(image.getAttribute('src')).not.toContain('file://')
+    expect(screen.getByText('教室.png')).toBeInTheDocument()
+    expect(screen.queryByText('../不安全')).not.toBeInTheDocument()
+
+    const search = screen.getByPlaceholderText('搜索项目 / Skill / 资产')
+    await user.type(search, 'abc123')
+    expect(screen.getByTitle('资产/上传/abc123.png')).toBeInTheDocument()
+    expect(screen.queryByTitle('资产/场景/教室.png')).not.toBeInTheDocument()
+    await user.clear(search)
+    await user.type(search, '场景/教室')
+    expect(screen.getByTitle('资产/场景/教室.png')).toBeInTheDocument()
+    expect(screen.queryByTitle('资产/上传/abc123.png')).not.toBeInTheDocument()
+  })
+
+  it('缩略图 null、请求失败和图片解码失败均回退首字母', async () => {
+    const h = installApi(emptyCanvas())
+    h.assetList
+      .mockResolvedValueOnce([imageAsset('asset-null', '资产/空图.png')])
+      .mockResolvedValueOnce([imageAsset('asset-fail', '资产/坏图.png')])
+      .mockResolvedValue([imageAsset('asset-decode', '资产/解码.png')])
+    h.assetThumbnail
+      .mockResolvedValueOnce({ dataUrl: null })
+      .mockRejectedValueOnce(new Error('缩略图读取失败'))
+      .mockResolvedValue({ dataUrl: WEBP_DATA_URL })
+    render(<StudioApp />)
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+    await screen.findByTitle('资产/空图.png')
+    await waitFor(() => expect(h.assetThumbnail).toHaveBeenCalledWith('asset-null'))
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(screen.getByText('空')).toBeInTheDocument()
+
+    h.emitRuntime({
+      type: 'tool.call', ts: '', sessionId: 'sess-1', messageId: 'msg-1', callId: 'call-1',
+      tool: 'shortdrama_asset_register', status: 'completed', argsPreview: '', args: {},
+    })
+    await screen.findByTitle('资产/坏图.png')
+    await waitFor(() => expect(h.assetThumbnail).toHaveBeenCalledWith('asset-fail'))
+    expect(screen.getByText('坏')).toBeInTheDocument()
+
+    h.emitRuntime({
+      type: 'tool.call', ts: '', sessionId: 'sess-1', messageId: 'msg-1', callId: 'call-2',
+      tool: 'shortdrama_asset_register', status: 'completed', argsPreview: '', args: {},
+    })
+    const image = await screen.findByRole('img', { name: '解码.png' })
+    fireEvent.error(image)
+    expect(screen.queryByRole('img', { name: '解码.png' })).not.toBeInTheDocument()
+    expect(screen.getByText('解')).toBeInTheDocument()
+  })
+
+  it('项目切换后旧缩略图响应不得覆盖同 ID 的新图片', async () => {
+    const h = installApi(emptyCanvas('旧项目'))
+    const asset = imageAsset('same-id', '资产/角色.png')
+    const oldThumbnail = deferred<{ dataUrl: string | null }>()
+    const newDataUrl = `${WEBP_DATA_URL.slice(0, -4)}BBBB`
+    h.assetList.mockResolvedValue([asset])
+    h.assetThumbnail
+      .mockReturnValueOnce(oldThumbnail.promise)
+      .mockResolvedValueOnce({ dataUrl: newDataUrl })
+    render(<StudioApp />)
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+    await waitFor(() => expect(h.assetThumbnail).toHaveBeenCalledTimes(1))
+
+    const other = { ...emptyCanvas('新项目'), projectId: 'p2' }
+    h.get.mockResolvedValue(other)
+    h.emitCanvas(other)
+    const image = await screen.findByRole('img', { name: '角色.png' })
+    expect(image).toHaveAttribute('src', newDataUrl)
+    await act(async () => {
+      oldThumbnail.resolve({ dataUrl: WEBP_DATA_URL })
+      await oldThumbnail.promise
+    })
+    expect(screen.getByRole('img', { name: '角色.png' })).toHaveAttribute('src', newDataUrl)
+  })
+
+  it('非图片资产不请求缩略图，上传与绑定命令保持独立', async () => {
+    const initial = canvasWithAssetNode()
+    const h = installApi(initial)
+    h.assetList.mockImplementation(async (kind: AssetIndexItem['kind']) => kind === 'video'
+      ? [{ id: 'video-1', kind: 'video' as const, path: '资产/镜头.mp4', createdAt: '2026-11-10T00:00:00.000Z' }]
+      : [imageAsset('asset-1', '资产/女主.png')])
+    h.command.mockResolvedValue({
+      commandId: 'cmd-bind', revision: 5,
+      canvas: withActiveDocument({ ...initial, revision: 5 }, {
+        nodes: [{ ...activeDocument(initial).nodes[0]!, assetIds: ['asset-1'] }],
+      }),
+    })
+    render(<StudioApp />)
+    await user.click(document.querySelector('[data-rail="assets"]')!)
+    await screen.findByTitle('资产/女主.png')
+
+    await user.click(screen.getByRole('button', { name: '视频' }))
+    expect(await screen.findByTitle('资产/镜头.mp4')).toBeInTheDocument()
+    expect(h.assetThumbnail).not.toHaveBeenCalledWith('video-1')
+    expect(screen.queryByRole('button', { name: '上传图片' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '图片' }))
+    await user.click(await screen.findByTitle('资产/女主.png'))
+    await user.click(screen.getByRole('button', { name: '绑定所选' }))
+    await waitFor(() => expect(h.command).toHaveBeenCalledTimes(1))
+    expect(h.command.mock.calls[0]?.[0]).toMatchObject({ type: 'assets.bind', assetIds: ['asset-1'] })
+    expect(h.assetImport).not.toHaveBeenCalled()
   })
 })

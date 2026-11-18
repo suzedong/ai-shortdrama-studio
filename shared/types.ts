@@ -381,6 +381,8 @@ export interface CanvasNode {
   kind: string                       // 产物类型：brief/outline/profiles/scenes/dialogue/storyboard/asset-image/...
   title: string
   status: 'pending' | 'active' | 'done' | 'invalidated'
+  /** 自由画布世界坐标；允许负值，缺省时由 renderer 按 STAGE 确定性布局。 */
+  position?: CanvasPosition
   ref?: { path: string; format: 'json' | 'md' }  // 产物落盘位置
   meta?: Record<string, unknown>
   /** 当前节点关联的资产索引 id；canvas.update 省略时保留（feature-814） */
@@ -409,6 +411,37 @@ export interface CanvasGate {
   payload?: unknown                  // 待裁决的候选产物引用
 }
 
+/** 节点在世界坐标中的持久化位置；缺省继续使用确定性 STAGE 布局。 */
+export interface CanvasPosition {
+  x: number
+  y: number
+}
+
+/** 单个画布的屏幕平移与缩放状态。 */
+export interface CanvasViewport {
+  x: number
+  y: number
+  zoom: number
+}
+
+/** 一个创作页中的独立画布文档。节点 id 只要求在该文档内唯一。 */
+export interface CanvasDocument {
+  id: string
+  title: string
+  nodes: CanvasNode[]
+  edges: CanvasEdge[]
+  /** null 表示尚无用户视口，renderer 可执行一次不落盘的自动 fit。 */
+  viewport: CanvasViewport | null
+}
+
+/** 创作页：持有多个画布及页内活动画布。 */
+export interface CanvasPage {
+  id: string
+  title: string
+  activeCanvasId: string
+  canvases: CanvasDocument[]
+}
+
 /** 画布命令回执；与 revision 在同一 canvas.json 事务中落盘（feature-814） */
 export interface CanvasCommandReceipt {
   commandId: string
@@ -416,35 +449,93 @@ export interface CanvasCommandReceipt {
   requestHash: string
   revision: number
   appliedAt: string
+  payload?: unknown
 }
 
 /** Canvas 单一工作态 */
 export interface Canvas {
-  schemaVersion: 3
+  schemaVersion: 4
   projectId: string
   title: string
-  nodes: CanvasNode[]
-  edges: CanvasEdge[]
+  activePageId: string
+  activeView: 'canvas' | 'stage0'
+  pages: CanvasPage[]
+  /** Gate 属于项目共享会话，保留在根级，不随页/画布复制。 */
   gates: CanvasGate[]
+  /** 命令与既有 MCP/Gate 写事务的乐观并发版本；active/viewport 写入不增加。 */
   revision: number
   receipts: CanvasCommandReceipt[]
   updatedAt: string
 }
 
-export type CanvasCommandType = 'assets.bind' | 'assets.unbind'
+export type CanvasCommandType =
+  | 'page.create'
+  | 'page.rename'
+  | 'page.delete'
+  | 'canvas.create'
+  | 'canvas.rename'
+  | 'canvas.delete'
+  | 'node.move'
+  | 'assets.bind'
+  | 'assets.unbind'
 
-export interface CanvasCommandRequest {
+interface CanvasCommandBase {
   commandId: string
   expectedRevision: number
-  type: CanvasCommandType
-  nodeId: string
-  assetIds: string[]
+  projectId: string
+}
+
+export type CanvasCommandRequest =
+  | (CanvasCommandBase & { type: 'page.create'; title?: string })
+  | (CanvasCommandBase & { type: 'page.rename'; pageId: string; title: string })
+  | (CanvasCommandBase & { type: 'page.delete'; pageId: string; confirmNonEmpty?: boolean })
+  | (CanvasCommandBase & { type: 'canvas.create'; pageId: string; title?: string })
+  | (CanvasCommandBase & { type: 'canvas.rename'; pageId: string; canvasId: string; title: string })
+  | (CanvasCommandBase & { type: 'canvas.delete'; pageId: string; canvasId: string; confirmNonEmpty?: boolean })
+  | (CanvasCommandBase & { type: 'node.move'; pageId: string; canvasId: string; nodeId: string; position: CanvasPosition })
+  | (CanvasCommandBase & {
+      type: 'assets.bind' | 'assets.unbind'
+      pageId: string
+      canvasId: string
+      nodeId: string
+      assetIds: string[]
+    })
+
+export interface CanvasTarget {
+  projectId: string
+  pageId: string
+  canvasId: string
 }
 
 export interface CanvasCommandResult {
-  canvas: Canvas
+  ok: true
+  commandId: string
+  revision: number
   receipt: CanvasCommandReceipt
-  replayed: boolean
+  target: CanvasTarget
+  canvas: Canvas
+}
+
+export type CanvasViewStateRequest =
+  | {
+      type: 'active.set'
+      projectId: string
+      pageId?: string
+      canvasId?: string
+      activeView?: 'canvas' | 'stage0'
+    }
+  | {
+      type: 'viewport.set'
+      projectId: string
+      pageId: string
+      canvasId: string
+      viewport: CanvasViewport
+    }
+
+export interface CanvasViewStateResult {
+  ok: true
+  target: CanvasTarget
+  canvas: Canvas
 }
 
 /** 本地 / 局域网 ComfyUI 实例配置 */

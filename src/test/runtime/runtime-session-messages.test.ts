@@ -2,8 +2,10 @@
 // toMessageRecord 纯映射 + getSessionMessages 成功/404/空白 id。
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
+import { pathToFileURL } from 'node:url'
 
-import { OpencodeRuntimeClient, toMessageRecord, type SdkHandle } from '../../../electron/runtime/client'
+import { OpencodeRuntimeClient, toMessageRecord } from '../../../electron/runtime/client'
+import type { SdkHandle } from '../../../electron/runtime/client'
 
 function makeClient(opts: {
   messages?: unknown[]
@@ -233,5 +235,117 @@ describe('feature-808 · getSessionMessages（契约 §6.2）', () => {
       name: 'INVALID_ARGUMENT',
     })
     expect(calls).toHaveLength(0)
+  })
+})
+
+describe('feature-822 · 用户资产引用安全投影', () => {
+  const assets = [
+    { assetId: 'a1', kind: 'image', path: '资产/anni.png', name: '安妮.png' },
+    { assetId: 'w1', kind: 'workflow', path: '资产/storyboard.json', name: '分镜工作流.json' },
+  ]
+  const manifest = JSON.stringify({ kind: 'shortdrama.asset-refs', version: 1, assets })
+  const files = [
+    {
+      type: 'file', mime: 'image/png', filename: '安妮.png',
+      url: pathToFileURL('/private/project/资产/anni.png').href,
+      source: { bytes: '不得透传' },
+    },
+    {
+      type: 'file', mime: 'application/json', filename: '分镜工作流.json',
+      url: pathToFileURL('/private/project/资产/storyboard.json').href,
+    },
+  ]
+
+  it('结构合法且紧邻同序 file parts 完全匹配时只输出安全 asset DTO', () => {
+    const record = toMessageRecord({
+      info: { id: 'u-assets', role: 'user' },
+      parts: [
+        { type: 'text', text: '请参考这些资产' },
+        { type: 'text', text: manifest, synthetic: true },
+        ...files,
+      ],
+    } as never)
+    expect(record).toEqual({
+      info: { id: 'u-assets', role: 'user' },
+      parts: [
+        { type: 'text', text: '请参考这些资产' },
+        { type: 'asset', text: '', asset: assets[0] },
+        { type: 'asset', text: '', asset: assets[1] },
+      ],
+    })
+    expect(JSON.stringify(record)).not.toContain('file://')
+    expect(JSON.stringify(record)).not.toContain('/private/project')
+    expect(JSON.stringify(record)).not.toContain('不得透传')
+  })
+
+  it('兼容 opencode 1.18.34 的 synthetic Read + data file 图片持久化形态', () => {
+    const absolutePath = '/private/project/资产/anni.png'
+    const readText = `Called the Read tool with the following input: ${JSON.stringify({ filePath: absolutePath })}`
+    const singleManifest = JSON.stringify({ kind: 'shortdrama.asset-refs', version: 1, assets: [assets[0]] })
+    const record = toMessageRecord({
+      info: { id: 'u-opencode-image', role: 'user' },
+      parts: [
+        { type: 'text', text: '请参考封面' },
+        { type: 'text', text: singleManifest, synthetic: true },
+        { type: 'text', text: readText, synthetic: true },
+        { type: 'file', mime: 'image/png', url: 'data:image/png;base64,cG5nLWJ5dGVz', filename: '安妮.png' },
+      ],
+    } as never)
+    expect(record).toEqual({
+      info: { id: 'u-opencode-image', role: 'user' },
+      parts: [
+        { type: 'text', text: '请参考封面' },
+        { type: 'asset', text: '', asset: assets[0] },
+      ],
+    })
+    expect(JSON.stringify(record)).not.toContain('/private/project')
+    expect(JSON.stringify(record)).not.toContain('data:image')
+
+    const orphan = toMessageRecord({
+      info: { id: 'u-orphan-read', role: 'user' },
+      parts: [{ type: 'text', text: readText, synthetic: true }],
+    } as never)
+    expect(orphan.parts).toEqual([])
+    expect(JSON.stringify(orphan)).not.toContain('/private/project')
+  })
+
+  it('普通非 synthetic 的相似 JSON 仍是正文，不被清单消费', () => {
+    const record = toMessageRecord({
+      info: { id: 'u-plain', role: 'user' },
+      parts: [{ type: 'text', text: manifest }, files[0]],
+    } as never)
+    expect(record.parts).toEqual([{ type: 'text', text: manifest }])
+  })
+
+  it('版本、路径、MIME、顺序或紧邻关系不匹配时不恢复资产，也不透传文件', () => {
+    const cases = [
+      [{ type: 'text', text: JSON.stringify({ kind: 'shortdrama.asset-refs', version: 2, assets }), synthetic: true }, ...files],
+      [{ type: 'text', text: manifest, synthetic: true }, files[1], files[0]],
+      [{ type: 'text', text: manifest, synthetic: true }, { ...files[0], mime: 'image/jpeg' }, files[1]],
+      [{ type: 'text', text: manifest, synthetic: true }, { type: 'text', text: '普通正文' }, ...files],
+      [{ type: 'text', text: manifest, synthetic: true }, files[0]],
+      [{
+        type: 'text', synthetic: true,
+        text: JSON.stringify({ kind: 'shortdrama.asset-refs', version: 1, assets: [{ ...assets[0], path: '/etc/passwd' }] }),
+      }, files[0]],
+      [{
+        type: 'text', synthetic: true,
+        text: JSON.stringify({ kind: 'shortdrama.asset-refs', version: 1, assets: [{ ...assets[0], path: 'C:/secret.png' }] }),
+      }, files[0]],
+    ]
+    for (const parts of cases) {
+      const record = toMessageRecord({ info: { id: 'u-invalid', role: 'user' }, parts } as never)
+      expect(record.parts.some(part => (part.type as string) === 'asset')).toBe(false)
+      expect(JSON.stringify(record)).not.toContain('file://')
+      expect(JSON.stringify(record)).not.toContain('/private/project')
+    }
+  })
+
+  it('assistant 中的相同清单和 file parts 保持旧行为，不投成用户资产', () => {
+    const record = toMessageRecord({
+      info: { id: 'a-assets', role: 'assistant' },
+      parts: [{ type: 'text', text: manifest, synthetic: true, time: { start: 1 } }, ...files],
+    } as never)
+    expect(record.parts).toEqual([{ type: 'text', text: manifest, startedAt: 1, synthetic: true }])
   })
 })

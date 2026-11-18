@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import type { BriefChange, Canvas, CanvasNode } from '@shared/types'
 import { assessImpact, classifyChanges, classifyField } from '../../../electron/brief/impact'
+import { canvasV4 } from '../canvas-fixtures'
 
 function change(field: string): BriefChange {
   return { field, from: '旧', to: '新' }
 }
 
 function canvasWith(nodes: CanvasNode[]): Canvas {
-  return {
-    schemaVersion: 3, projectId: 'p1', title: '新项目', nodes, edges: [], gates: [],
+  return canvasV4({
+    projectId: 'p1', title: '新项目', nodes, edges: [], gates: [],
     revision: 0, receipts: [], updatedAt: '2026-10-14T00:00:00.000Z',
-  }
+  })
 }
 
 function doneNode(

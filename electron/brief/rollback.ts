@@ -22,6 +22,7 @@ export async function rollbackBriefToVersion(
   version: number,
 ): Promise<BriefRollbackResult> {
   return enqueue(async () => {
+    const canvasContext = await canvasStore.capture()
     // R1：定位 vK；不存在拒，零写盘
     const listing = await listBriefVersions(projectDir)
     const entry = listing.versions.find(v => v.version === version)
@@ -63,12 +64,12 @@ export async function rollbackBriefToVersion(
     await fsp.writeFile(manifestAbs, JSON.stringify(nextManifest, null, 2), 'utf-8')
 
     // R5-b：画布 brief 节点 upsert（persistInQueue 自动广播 canvas:changed）
-    await canvasStore.persistInQueue(c => {
-      const bIdx = c.nodes.findIndex(x => x.id === written.briefNode.id)
+    await canvasStore.persistInQueue((_c, document) => {
+      const bIdx = document.nodes.findIndex(x => x.id === written.briefNode.id)
       const { linksTo: _links, ...briefNode } = written.briefNode
-      if (bIdx >= 0) c.nodes[bIdx] = briefNode
-      else c.nodes.push(briefNode)
-    })
+      if (bIdx >= 0) document.nodes[bIdx] = briefNode
+      else document.nodes.push(briefNode)
+    }, canvasContext)
 
     return {
       version: written.version,

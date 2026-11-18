@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { activeDocument } from './canvas-fixtures'
 
 // 每个用例重装模块，隔离 demoBriefLib 等模块级演示状态。
 beforeEach(async () => {
@@ -125,20 +126,32 @@ describe('浏览器 dev-mock 直接契约', () => {
       })
   })
 
-  it('画布命令支持绑定、集合重放、冲突检查与订阅广播', async () => {
+  it('图片上传明确不可用，缩略图不伪造磁盘图片', async () => {
+    await expect(window.api.asset.import()).rejects.toMatchObject({
+      code: 'ASSET_IMPORT_UNAVAILABLE',
+      message: '浏览器开发环境不支持真实图片上传，请在 Electron 中操作。',
+    })
+    await expect(window.api.asset.thumbnail('a1')).resolves.toEqual({ dataUrl: null })
+  })
+
+  it('画布命令支持绑定、集合同命令重放、冲突检查与订阅广播', async () => {
     const listener = vi.fn()
     const off = window.api.canvas.onChange(listener)
     const request = {
       commandId: 'cmd-bind-1',
       expectedRevision: 0,
       type: 'assets.bind' as const,
+      projectId: 'anni',
+      pageId: 'page-1',
+      canvasId: 'canvas-1',
       nodeId: 'n-char-anni',
       assetIds: ['a2', 'a1', 'a1'],
     }
     const result = await window.api.canvas.command(request)
-    expect(result).toMatchObject({ replayed: false, receipt: { revision: 1 } })
+    expect(result).toMatchObject({ receipt: { revision: 1 } })
+    expect(result).not.toHaveProperty('replayed')
     expect(result.receipt.requestHash).toMatch(/^[0-9a-f]{64}$/)
-    expect(result.canvas.nodes.find(node => node.id === 'n-char-anni')?.assetIds).toEqual(['a1', 'a2'])
+    expect(activeDocument(result.canvas).nodes.find(node => node.id === 'n-char-anni')?.assetIds).toEqual(['a1', 'a2'])
     expect(listener).toHaveBeenCalledTimes(1)
 
     const replay = await window.api.canvas.command({
@@ -146,13 +159,13 @@ describe('浏览器 dev-mock 直接契约', () => {
       expectedRevision: 99,
       assetIds: ['a1', 'a2'],
     })
-    expect(replay.replayed).toBe(true)
+    expect(replay).not.toHaveProperty('replayed')
     expect(replay.receipt).toEqual(result.receipt)
     expect(replay.canvas.revision).toBe(1)
     expect(listener).toHaveBeenCalledTimes(1)
 
     await expect(window.api.canvas.command({ ...request, assetIds: ['a3'] }))
-      .rejects.toMatchObject({ code: 'CANVAS_COMMAND_CONFLICT' })
+      .rejects.toMatchObject({ code: 'CANVAS_COMMAND_REPLAY' })
     await expect(window.api.canvas.command({ ...request, commandId: 'cmd-stale' }))
       .rejects.toMatchObject({ code: 'CANVAS_REVISION_CONFLICT' })
     expect(listener).toHaveBeenCalledTimes(1)
@@ -162,16 +175,58 @@ describe('浏览器 dev-mock 直接契约', () => {
   it('画布命令解绑后递增 revision，并保持其他关联', async () => {
     await window.api.canvas.command({
       commandId: 'cmd-bind-2', expectedRevision: 0, type: 'assets.bind',
+      projectId: 'anni', pageId: 'page-1', canvasId: 'canvas-1',
       nodeId: 'n-shot-v001', assetIds: ['v1', 'm1'],
     })
     const result = await window.api.canvas.command({
       commandId: 'cmd-unbind-1', expectedRevision: 1, type: 'assets.unbind',
+      projectId: 'anni', pageId: 'page-1', canvasId: 'canvas-1',
       nodeId: 'n-shot-v001', assetIds: ['v1'],
     })
     expect(result.canvas.revision).toBe(2)
-    expect(result.canvas.nodes.find(node => node.id === 'n-shot-v001')?.assetIds).toEqual(['m1'])
+    expect(activeDocument(result.canvas).nodes.find(node => node.id === 'n-shot-v001')?.assetIds).toEqual(['m1'])
     expect(result.canvas.receipts.map(receipt => receipt.commandId)).toEqual([
       'cmd-bind-2', 'cmd-unbind-1',
     ])
   })
+
+  it('feature-822：资产列表与历史回放仅含安全 DTO，会话之间隔离且重复 ID 去重', async () => {
+    const assets = await window.api.asset.list()
+    expect(assets.map(asset => asset.kind)).toEqual([
+      'image', 'image', 'image', 'image', 'video', 'music', 'workflow',
+    ])
+    expect(assets.every(asset => !pathIsAbsolute(asset.path))).toBe(true)
+
+    const first = await window.api.runtime.createSession('资产会话')
+    const second = await window.api.runtime.createSession('纯文本会话')
+    await window.api.runtime.promptAsync({
+      sessionId: first.id, text: '参考资产',
+      assetRefs: [{ assetId: 'a1' }, { assetId: 'w1' }, { assetId: 'a1' }],
+    })
+    await window.api.runtime.prompt({ sessionId: second.id, text: '纯文本' })
+
+    const firstMessages = await window.api.runtime.sessionMessages(first.id)
+    expect(firstMessages).toHaveLength(1)
+    expect(firstMessages[0]!.parts).toEqual([
+      { type: 'text', text: '参考资产' },
+      { type: 'asset', text: '', asset: { assetId: 'a1', kind: 'image', path: '资产/anni-cast.png', name: 'anni-cast.png' } },
+      { type: 'asset', text: '', asset: { assetId: 'w1', kind: 'workflow', path: '资产/storyboard.json', name: 'storyboard.json' } },
+    ])
+    expect(JSON.stringify(firstMessages)).not.toContain('file://')
+    expect(JSON.stringify(firstMessages)).not.toContain('/demo/assets')
+    expect((await window.api.runtime.sessionMessages(second.id))[0]!.parts).toEqual([
+      { type: 'text', text: '纯文本' },
+    ])
+
+    firstMessages[0]!.parts[1] = { type: 'text', text: '篡改返回值' }
+    expect((await window.api.runtime.sessionMessages(first.id))[0]!.parts[1]!.type).toBe('asset')
+    await expect(window.api.runtime.promptAsync({
+      sessionId: first.id, text: '不存在', assetRefs: [{ assetId: 'other-project' }],
+    })).rejects.toMatchObject({ code: 'ASSET_REF_NOT_FOUND' })
+    expect(await window.api.runtime.sessionMessages(first.id)).toHaveLength(1)
+  })
 })
+
+function pathIsAbsolute(value: string): boolean {
+  return value.startsWith('/') || /^[A-Za-z]:[\\/]/.test(value) || value.startsWith('\\\\')
+}

@@ -14,6 +14,8 @@
 // - prompt body 支持 format:{type:'json_schema',schema,retryCount?}（SDK 1.18.34 TS 类型缺该字段，运行时支持）；
 // - GET /agent 在 SDK 运行时挂在 app.agents()（sdk.gen.d.ts：App.agents，T8 真机核实）。
 import crypto from 'node:crypto'
+import path from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createOpencodeClient } from '@opencode-ai/sdk/client'
 import type { Agent, AssistantMessage, Message, Part, Session } from '@opencode-ai/sdk/client'
 import {
@@ -28,10 +30,12 @@ import {
 import type { RuntimeConnection } from './manager.js'
 import type {
   RuntimeAgent,
+  RuntimeAssetRef,
   RuntimeErrorCode,
   RuntimeModelRef,
   RuntimePromptRequest,
   RuntimePromptResult,
+  RuntimeResolvedAsset,
   RuntimeSession,
   RuntimeSessionMessageRecord,
   RuntimeStructuredFormat,
@@ -45,14 +49,29 @@ interface SdkResult<T> {
   response?: Response
 }
 
+type PromptPart =
+  | { type: 'text'; text: string; synthetic?: boolean }
+  | { type: 'file'; mime: string; url: string; filename: string }
+
 interface PromptBody {
   messageID?: string
-  parts: Array<{ type: 'text'; text: string }>
+  parts: PromptPart[]
   agent?: string
   model?: RuntimeModelRef
   tools?: Record<string, boolean>
   format?: RuntimeStructuredFormat
   system?: string
+}
+
+const ASSET_REF_MANIFEST_KIND = 'shortdrama.asset-refs'
+const ASSET_REF_MANIFEST_VERSION = 1
+
+function makeAssetRefManifest(assets: RuntimeAssetRef[]): string {
+  return JSON.stringify({
+    kind: ASSET_REF_MANIFEST_KIND,
+    version: ASSET_REF_MANIFEST_VERSION,
+    assets,
+  })
 }
 
 export interface SdkHandle {
@@ -154,8 +173,11 @@ export class OpencodeRuntimeClient {
   // -- prompt ----------------------------------------------------------------
 
   /** 异步：立即返回 {accepted,messageId}；流式过程经 SSE 事件观察 */
-  async promptAsync(req: RuntimePromptRequest): Promise<{ accepted: true; messageId: string }> {
-    const body = this.buildPromptBody(req)
+  async promptAsync(
+    req: RuntimePromptRequest,
+    resolvedAssets: RuntimeResolvedAsset[] = [],
+  ): Promise<{ accepted: true; messageId: string }> {
+    const body = this.buildPromptBody(req, resolvedAssets)
     const sdk = this.ensureReady()
     const result = await sdk.session.promptAsync({ path: { id: body.sessionId }, body: body.body })
     if (result.error) throw mapHttpError(result, 'PROMPT_FAILED')
@@ -167,8 +189,11 @@ export class OpencodeRuntimeClient {
   }
 
   /** 同步等待完成：业务失败经 result.error 返回，不 reject */
-  async prompt(req: RuntimePromptRequest): Promise<RuntimePromptResult> {
-    const built = this.buildPromptBody(req)
+  async prompt(
+    req: RuntimePromptRequest,
+    resolvedAssets: RuntimeResolvedAsset[] = [],
+  ): Promise<RuntimePromptResult> {
+    const built = this.buildPromptBody(req, resolvedAssets)
     const sdk = this.ensureReady()
     const result = await sdk.session.prompt({ path: { id: built.sessionId }, body: built.body })
 
@@ -247,7 +272,10 @@ export class OpencodeRuntimeClient {
     this.cached = null
   }
 
-  private buildPromptBody(req: RuntimePromptRequest): {
+  private buildPromptBody(
+    req: RuntimePromptRequest,
+    resolvedAssets: RuntimeResolvedAsset[],
+  ): {
     sessionId: string
     body: PromptBody
   } {
@@ -344,11 +372,42 @@ export class OpencodeRuntimeClient {
       format = { type: 'json_schema', schema: f.schema, ...(f.retryCount !== undefined ? { retryCount: f.retryCount } : {}) }
     }
 
+    const parts: PromptPart[] = [{ type: 'text', text: req.text }]
+    if (req.assetRefs !== undefined) {
+      if (!Array.isArray(req.assetRefs)) {
+        throw makeError('ASSET_REF_INVALID', '资产引用格式不正确')
+      }
+      const requestedIds = [...new Set(req.assetRefs.map(ref => ref?.assetId))]
+      if (requestedIds.some(id => typeof id !== 'string' || id.length === 0)) {
+        throw makeError('ASSET_REF_INVALID', '资产引用仅允许有效的资产 ID')
+      }
+      if (
+        requestedIds.length !== resolvedAssets.length ||
+        requestedIds.some((id, index) => resolvedAssets[index]?.assetId !== id)
+      ) {
+        throw makeError('ASSET_REF_INVALID', '资产引用未经主进程当前项目复核')
+      }
+      if (resolvedAssets.length > 0) {
+        const safeAssets = resolvedAssets.map(({ assetId, kind, path: assetPath, name }) => ({
+          assetId, kind, path: assetPath, name,
+        }))
+        parts.push({ type: 'text', text: makeAssetRefManifest(safeAssets), synthetic: true })
+        for (const asset of resolvedAssets) {
+          parts.push({
+            type: 'file',
+            mime: asset.mime,
+            url: pathToFileURL(asset.absolutePath).href,
+            filename: asset.name,
+          })
+        }
+      }
+    }
+
     return {
       sessionId,
       body: {
         messageID: `msg_${crypto.randomUUID()}`,
-        parts: [{ type: 'text', text: req.text }],
+        parts,
         agent,
         ...(model ? { model } : {}),
         ...(tools ? { tools } : {}),
@@ -440,10 +499,149 @@ export function toolArgsPreview(tool: string, input: unknown): string {
   return ''
 }
 
+const REPLAY_ASSET_MIME: Record<RuntimeAssetRef['kind'], Record<string, string>> = {
+  image: { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' },
+  video: { '.mp4': 'video/mp4' },
+  music: { '.mp3': 'audio/mpeg', '.wav': 'audio/wav' },
+  workflow: { '.json': 'application/json' },
+}
+
+/** undefined=非清单；null=清单候选但结构非法；数组=结构合法，仍须匹配紧邻 file parts。 */
+function readAssetRefManifest(p: Part): RuntimeAssetRef[] | null | undefined {
+  if (p.type !== 'text' || p.synthetic !== true || typeof p.text !== 'string') return undefined
+  let value: unknown
+  try {
+    value = JSON.parse(p.text)
+  } catch {
+    return undefined
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const envelope = value as Record<string, unknown>
+  if (envelope.kind !== ASSET_REF_MANIFEST_KIND) return undefined
+  if (
+    Object.keys(envelope).sort().join(',') !== 'assets,kind,version' ||
+    envelope.version !== ASSET_REF_MANIFEST_VERSION || !Array.isArray(envelope.assets) ||
+    envelope.assets.length === 0
+  ) return null
+
+  const assets: RuntimeAssetRef[] = []
+  const seen = new Set<string>()
+  for (const candidate of envelope.assets) {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return null
+    const asset = candidate as Record<string, unknown>
+    if (Object.keys(asset).sort().join(',') !== 'assetId,kind,name,path') return null
+    const { assetId, kind, path: assetPath, name } = asset
+    const validKind = kind === 'image' || kind === 'video' || kind === 'music' || kind === 'workflow'
+    const validPath = typeof assetPath === 'string' && assetPath.length > 0 && assetPath.length <= 1024 &&
+      !path.isAbsolute(assetPath) && !/^[A-Za-z]:/.test(assetPath) &&
+      !assetPath.includes('\\') && !assetPath.includes('\0') &&
+      path.posix.normalize(assetPath) === assetPath &&
+      assetPath.split('/').every(segment => segment.length > 0 && segment !== '.' && segment !== '..')
+    const validName = typeof name === 'string' && name.trim().length > 0 && name.length <= 255 &&
+      path.basename(name) === name && !name.includes('/') && !name.includes('\\') && !name.includes('\0')
+    if (
+      typeof assetId !== 'string' || assetId.trim().length === 0 || assetId !== assetId.trim() ||
+      assetId.length > 256 || seen.has(assetId) || !validKind || !validPath || !validName ||
+      !REPLAY_ASSET_MIME[kind][path.posix.extname(assetPath).toLowerCase()]
+    ) return null
+    seen.add(assetId)
+    assets.push({ assetId, kind, path: assetPath, name })
+  }
+  return assets
+}
+
+const OPENCODE_READ_PREFIX = 'Called the Read tool with the following input: '
+
+function isOpencodeReadText(p: Part): boolean {
+  return p.type === 'text' && p.synthetic === true &&
+    typeof p.text === 'string' && p.text.startsWith(OPENCODE_READ_PREFIX)
+}
+
+function opencodeReadMatchesAsset(p: Part | undefined, asset: RuntimeAssetRef): boolean {
+  if (!p || !isOpencodeReadText(p)) return false
+  const text = (p as { text?: unknown }).text
+  if (typeof text !== 'string') return false
+  try {
+    const input: unknown = JSON.parse(text.slice(OPENCODE_READ_PREFIX.length))
+    if (!input || typeof input !== 'object' || Array.isArray(input) ||
+      Object.keys(input).join(',') !== 'filePath') return false
+    const realPath = (input as { filePath?: unknown }).filePath
+    const suffix = asset.path.split('/').join(path.sep)
+    return typeof realPath === 'string' && path.isAbsolute(realPath) &&
+      realPath.endsWith(`${path.sep}${suffix}`)
+  } catch {
+    return false
+  }
+}
+
+function filePartMatchesAsset(
+  p: Part | undefined,
+  asset: RuntimeAssetRef,
+  hasMatchingOpencodeRead = false,
+): boolean {
+  if (!p || p.type !== 'file') return false
+  const file = p as { mime?: unknown; url?: unknown }
+  const expectedMime = REPLAY_ASSET_MIME[asset.kind][path.posix.extname(asset.path).toLowerCase()]
+  if (typeof expectedMime !== 'string' || file.mime !== expectedMime || typeof file.url !== 'string') return false
+  // opencode 1.18.34 将图片文件改为 data URL，原始路径仅留在前置 synthetic Read 中。
+  if (file.url.startsWith(`data:${expectedMime};base64,`)) return hasMatchingOpencodeRead
+  try {
+    const realPath = fileURLToPath(file.url)
+    const suffix = asset.path.split('/').join(path.sep)
+    return realPath.endsWith(`${path.sep}${suffix}`)
+  } catch {
+    return false
+  }
+}
+
+function mapStandardMessagePart(p: Part): RuntimeSessionMessageRecord['parts'][number] | null {
+  if (p.type === 'tool') {
+    const part: {
+      type: 'tool'
+      text: ''
+      callId: string
+      tool: string
+      status: 'pending' | 'running' | 'completed' | 'error'
+      startedAt: number
+      endedAt?: number
+      error?: string
+      argsPreview?: string
+    } = {
+      type: 'tool',
+      text: '',
+      callId: p.callID,
+      tool: p.tool,
+      status: p.state.status,
+      startedAt: 'time' in p.state && typeof p.state.time.start === 'number' ? p.state.time.start : 0,
+    }
+    if ('time' in p.state && 'end' in p.state.time && typeof p.state.time.end === 'number') {
+      part.endedAt = p.state.time.end
+    }
+    if (p.state.status === 'error') part.error = p.state.error
+    const preview = toolArgsPreview(p.tool, (p.state as { input?: unknown }).input)
+    if (preview) part.argsPreview = preview
+    return part
+  }
+  if (p.type !== 'text' && p.type !== 'reasoning') return null
+  const part: {
+    type: 'text' | 'reasoning'
+    text: string
+    startedAt?: number
+    ignored?: boolean
+    synthetic?: boolean
+  } = { type: p.type, text: typeof p.text === 'string' ? p.text : '' }
+  if (typeof p.time?.start === 'number') part.startedAt = p.time.start
+  if (p.type === 'text') {
+    if (p.ignored === true) part.ignored = true
+    if (p.synthetic === true) part.synthetic = true
+  }
+  return part
+}
+
 /**
- * feature-808 · session.messages 回放映射：白名单 part（text/reasoning/tool）透传，其余丢弃。
- * D-012：tool part 附加白名单关键参数摘要 argsPreview（完整入参/结果仍不回放）。
- * 纯映射，不含 fs/网络；坏数据不抛错（契约 §5.2 规则 1–3）。
+ * feature-808 / feature-822：白名单正文、推理、工具与安全资产引用。
+ * 用户 synthetic 清单必须与紧邻、同序、同 MIME / 相对路径的原生 file parts 完全匹配；
+ * 清单与 file URL / source / 字节均不透传。普通用户文本即使内容相似也不会被吞掉。
  */
 export function toMessageRecord(raw: {
   info: Message
@@ -452,37 +650,36 @@ export function toMessageRecord(raw: {
   const role = raw.info.role === 'assistant' ? 'assistant' : 'user'
   const id = typeof raw.info.id === 'string' ? raw.info.id : ''
   const parts: RuntimeSessionMessageRecord['parts'] = []
-  for (const p of raw.parts) {
-    if (p.type === 'tool') {
-      const part: RuntimeSessionMessageRecord['parts'][number] = {
-        type: 'tool',
-        text: '',
-        callId: p.callID,
-        tool: p.tool,
-        status: p.state.status,
-        startedAt: 'time' in p.state && typeof p.state.time.start === 'number' ? p.state.time.start : 0,
+  for (let index = 0; index < raw.parts.length; index += 1) {
+    const p = raw.parts[index]
+    if (!p || typeof p !== 'object') continue
+    if (role === 'user') {
+      const manifest = readAssetRefManifest(p)
+      if (manifest !== undefined) {
+        if (manifest) {
+          let endIndex = index + 1
+          let matches = true
+          for (const asset of manifest) {
+            const hasOpencodeRead = opencodeReadMatchesAsset(raw.parts[endIndex], asset)
+            if (hasOpencodeRead) endIndex++
+            if (!filePartMatchesAsset(raw.parts[endIndex], asset, hasOpencodeRead)) {
+              matches = false
+              break
+            }
+            endIndex++
+          }
+          if (matches) {
+            for (const asset of manifest) parts.push({ type: 'asset', text: '', asset })
+            index = endIndex - 1
+          }
+        }
+        continue
       }
-      if ('time' in p.state && 'end' in p.state.time && typeof p.state.time.end === 'number') {
-        part.endedAt = p.state.time.end
-      }
-      if (p.state.status === 'error') part.error = p.state.error
-      // D-012：白名单关键参数摘要（空串不落 DTO）
-      const preview = toolArgsPreview(p.tool, (p.state as { input?: unknown }).input)
-      if (preview) part.argsPreview = preview
-      parts.push(part)
-      continue
+      // opencode 自动生成的 Read 辅助文本可能含绝对路径，不属于用户正文。
+      if (isOpencodeReadText(p)) continue
     }
-    if (p.type !== 'text' && p.type !== 'reasoning') continue
-    const part: RuntimeSessionMessageRecord['parts'][number] = {
-      type: p.type,
-      text: typeof p.text === 'string' ? p.text : '',
-    }
-    if (typeof p.time?.start === 'number') part.startedAt = p.time.start
-    if (p.type === 'text') {
-      if (p.ignored === true) part.ignored = true
-      if (p.synthetic === true) part.synthetic = true
-    }
-    parts.push(part)
+    const mapped = mapStandardMessagePart(p)
+    if (mapped) parts.push(mapped)
   }
   return { info: { id, role }, parts }
 }

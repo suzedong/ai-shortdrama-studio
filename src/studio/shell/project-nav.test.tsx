@@ -56,6 +56,26 @@ describe('ProjectNav · 当前项目选中态（B-18）', () => {
     expect(item.className).not.toContain('bg-violet-soft')
     expect(screen.queryByText(/编辑中/)).not.toBeInTheDocument()
   })
+
+  it('打开坏画布项目失败：错误可见，原项目选中态不变', async () => {
+    const openProject = vi.fn(async () => {
+      throw Object.assign(new Error('画布文件损坏，已停止加载；请修复或从归档恢复'), {
+        code: 'CANVAS_CORRUPT',
+      })
+    })
+    mount('project-p1', ['/ws/project-p1', '/ws/project-p2'], { openProject })
+    const active = await screen.findByRole('button', { name: /项目一/ })
+    const target = screen.getByRole('button', { name: /项目二/ })
+
+    fireEvent.click(target)
+
+    expect(await screen.findByText(/画布文件损坏，已停止加载/)).toBeInTheDocument()
+    expect(openProject).toHaveBeenCalledWith('/ws/project-p2')
+    expect(active).toBeDisabled()
+    expect(active.className).toContain('bg-violet-soft')
+    expect(target).toBeEnabled()
+    expect(screen.getByText(/编辑中/)).toBeInTheDocument()
+  })
 })
 
 describe('ProjectNav · 改名与删除（B-19）', () => {

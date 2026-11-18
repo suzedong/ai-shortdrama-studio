@@ -19,6 +19,7 @@ import { selectPremiseConfirmation } from './premise-facts'
 import { captureTopicLabel, selectCaptureGroups, type CaptureGroupItem } from './chain'
 import { driftDays, driftReminderLabel } from '../canvas/dirty-drift'
 import GateCardView from '../chat/GateCardView'
+import { activeCanvasDocument } from '../canvas/document'
 import type { BriefUpdatePayload } from '../impact/impact-select'
 
 /** 谱系风格引用：ID · 名称；未知/未来版本 ID 或空值原样返回（外层 || '—' 兜底） */
@@ -998,7 +999,7 @@ export default function Stage0View({ canvas, projectTitle, onBackToDag, entryQuo
   const state = useMemo(() => selectStage0State(canvas), [canvas])
   // feature-806 · B-46 漂移提醒：聚合态取各脏节点漂移天数 max（无 markedAt 按 0），超 30 天 DirtyBar 追加一行（不阻塞）
   const dirtyDriftLabel = driftReminderLabel(
-    canvas.nodes.reduce((m, n) => Math.max(m, n.dirty ? (driftDays(n.dirty.markedAt) ?? 0) : 0), 0),
+    activeCanvasDocument(canvas).nodes.reduce((m, n) => Math.max(m, n.dirty ? (driftDays(n.dirty.markedAt) ?? 0) : 0), 0),
   )
 
   if (state.phase === 'empty' || !state.briefNode) {

@@ -22,6 +22,7 @@ vi.mock('../../../electron/style/loader.js', async (importOriginal) => {
 
 import { runHarnessValidation } from '../../../electron/harness/validate'
 import type { BriefDraft, Canvas, CanvasGate, ProjectBrief, ProjectManifest } from '@shared/types'
+import { canvasV4 } from '../canvas-fixtures'
 
 const baseBrief: ProjectBrief = {
   schemaVersion: 2,
@@ -74,10 +75,10 @@ async function seed(opts: { withBrief?: boolean; manifest?: Partial<ProjectManif
   if (withBrief) {
     await fsp.writeFile(path.join(projDir, '立项单.v1.json'), JSON.stringify(baseBrief, null, 2), 'utf-8')
   }
-  const canvas: Canvas = {
-    schemaVersion: 3, projectId: 'project', title: '测试项目', revision: 0, receipts: [],
+  const canvas: Canvas = canvasV4({
+    projectId: 'project', title: '测试项目', revision: 0, receipts: [],
     nodes: [], edges: [], gates: opts.gates ?? [], updatedAt: now,
-  }
+  })
   await fsp.writeFile(path.join(projDir, 'canvas.json'), JSON.stringify(canvas, null, 2), 'utf-8')
 }
 

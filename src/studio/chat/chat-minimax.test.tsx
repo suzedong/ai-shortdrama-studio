@@ -1,16 +1,24 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { act, render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import type { ReactElement } from 'react'
+import type { AssetIndexItem } from '@shared/types'
 import type { StreamingTurn } from '../../lib/chat-runtime'
+import type { RuntimeAssetRef } from '../../lib/runtime-types'
 import ChatComposer, { parseChatOptions, type ChatItem } from './ChatComposer'
 
 afterEach(cleanup)
+
+type SendHandler = (
+  text: string,
+  assets?: RuntimeAssetRef[],
+) => void | boolean | Promise<void | boolean>
 
 function Harness({ onSend, onStop, ...props }: {
   items?: ChatItem[]
   stream?: StreamingTurn | null
   busy?: boolean
-  onSend: (text: string) => void
+  resetKey?: string
+  onSend: SendHandler
   onStop?: () => void
 }) {
   return (
@@ -21,6 +29,7 @@ function Harness({ onSend, onStop, ...props }: {
       deciding={false}
       sending={props.busy ?? false}
       error={null}
+      resetKey={props.resetKey}
       modelOptions={[{ providerID: 'ark', modelID: 'test-model' }]}
       selectedModel={{ providerID: 'ark', modelID: 'test-model' }}
       onModelChange={vi.fn()}
@@ -34,6 +43,39 @@ function Harness({ onSend, onStop, ...props }: {
 const ITEM: ChatItem & { text: string } = {
   id: 'a1', role: 'agent',
   text: '想以哪一种题材创作？\n【选项】\n步骤：1/3\n1. 都市逆袭【推荐】\n2. 都市甜宠\n3. 悬疑推理\n【/选项】',
+}
+
+const ASSETS: AssetIndexItem[] = [
+  {
+    id: 'a1', kind: 'image', path: 'assets/images/cover.png', createdAt: '2026-01-01',
+    meta: { originalName: '封面.png' },
+  },
+  {
+    id: 'v1', kind: 'video', path: 'assets/video/opening.mp4', createdAt: '2026-01-01',
+    meta: { originalName: '开场.mp4' },
+  },
+  {
+    id: 'm1', kind: 'music', path: 'assets/audio/theme.mp3', createdAt: '2026-01-01',
+    meta: { originalName: '主题配乐.mp3' },
+  },
+  {
+    id: 'w1', kind: 'workflow', path: 'assets/workflow/shot.json', createdAt: '2026-01-01',
+    meta: { originalName: '分镜工作流' },
+  },
+]
+
+function installAssetApi(
+  assets: AssetIndexItem[] = ASSETS,
+  list?: ReturnType<typeof vi.fn>,
+) {
+  const assetList = list ?? vi.fn(async () => assets)
+  const thumbnail = vi.fn(async (assetId: string) => ({
+    dataUrl: assetId === 'a1' ? 'data:image/webp;base64,QUJD' : null,
+  }))
+  window.api = {
+    asset: { list: assetList, thumbnail },
+  } as unknown as Window['api']
+  return { list: assetList, thumbnail }
 }
 
 function renderWith(ui: ReactElement) {
@@ -202,5 +244,107 @@ describe('feature-817 · 真实任务详情', () => {
     )
     expect(screen.getByTestId('chat-tool-trace').getAttribute('data-status')).toBe('error')
     expect(screen.getByTestId('chat-tool-trace').textContent).toContain('执行失败')
+  })
+})
+
+describe('feature-822 · 对话资产 chip', () => {
+  it('四类资产可检索选择，重复选择去重，删除后按选择顺序发送安全 DTO', async () => {
+    installAssetApi()
+    const onSend = vi.fn()
+    renderWith(<Harness onSend={onSend} />)
+
+    fireEvent.click(screen.getByTestId('asset-picker-toggle'))
+    expect(await screen.findByTestId('asset-option-w1')).toBeInTheDocument()
+    expect(screen.getByTestId('asset-option-v1')).toBeInTheDocument()
+    expect(screen.getByTestId('asset-option-m1')).toBeInTheDocument()
+    expect(screen.getByTestId('asset-option-a1').querySelector('img'))
+      .toHaveAttribute('src', 'data:image/webp;base64,QUJD')
+
+    fireEvent.change(screen.getByPlaceholderText('搜索资产名称或项目相对路径'), {
+      target: { value: '配乐' },
+    })
+    expect(screen.queryByTestId('asset-option-a1')).toBeNull()
+    fireEvent.click(screen.getByTestId('asset-option-m1'))
+
+    for (const id of ['a1', 'v1', 'a1']) {
+      fireEvent.click(screen.getByTestId('asset-picker-toggle'))
+      fireEvent.click(await screen.findByTestId(`asset-option-${id}`))
+    }
+    const selected = screen.getByTestId('selected-asset-chips')
+    expect(within(selected).getAllByRole('button', { name: /移除/ })).toHaveLength(3)
+    expect(selected.textContent?.replace(/×/g, '')).toBe('@音乐主题配乐.mp3@图片封面.png@视频开场.mp4')
+
+    fireEvent.click(within(selected).getByRole('button', { name: '移除资产 封面.png' }))
+    fireEvent.change(screen.getByPlaceholderText(/描述创作目标/), {
+      target: { value: '按这些资产续写' },
+    })
+    fireEvent.click(screen.getByTestId('chat-send'))
+
+    await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1))
+    expect(onSend).toHaveBeenCalledWith('按这些资产续写', [
+      { assetId: 'm1', kind: 'music', path: 'assets/audio/theme.mp3', name: '主题配乐.mp3' },
+      { assetId: 'v1', kind: 'video', path: 'assets/video/opening.mp4', name: '开场.mp4' },
+    ])
+    expect(screen.queryByTestId('selected-asset-chips')).toBeNull()
+  })
+
+  it('发送被拒绝时恢复正文和 chip 顺序，项目切换立即清空选择', async () => {
+    installAssetApi()
+    const onSend = vi.fn(async () => false)
+    const { rerender } = renderWith(<Harness onSend={onSend} resetKey="project-a" />)
+
+    for (const id of ['a1', 'v1']) {
+      fireEvent.click(screen.getByTestId('asset-picker-toggle'))
+      fireEvent.click(await screen.findByTestId(`asset-option-${id}`))
+    }
+    fireEvent.change(screen.getByPlaceholderText(/描述创作目标/), {
+      target: { value: '保留这份草稿' },
+    })
+    fireEvent.click(screen.getByTestId('chat-send'))
+
+    await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1))
+    expect(screen.getByPlaceholderText(/描述创作目标/)).toHaveValue('保留这份草稿')
+    expect(screen.getByTestId('selected-asset-chips').textContent?.replace(/×/g, '')).toBe('@图片封面.png@视频开场.mp4')
+
+    rerender(<Harness onSend={onSend} resetKey="project-b" />)
+    expect(screen.queryByTestId('selected-asset-chips')).toBeNull()
+    expect(screen.queryByTestId('asset-picker')).toBeNull()
+  })
+
+  it('项目切换后丢弃迟到的旧资产列表，不覆盖新项目结果', async () => {
+    let resolveOld!: (assets: AssetIndexItem[]) => void
+    const oldList = new Promise<AssetIndexItem[]>(resolve => { resolveOld = resolve })
+    const list = vi.fn()
+      .mockImplementationOnce(() => oldList)
+      .mockResolvedValueOnce([ASSETS[1]])
+    installAssetApi(ASSETS, list)
+    const { rerender } = renderWith(<Harness onSend={vi.fn()} resetKey="project-a" />)
+
+    fireEvent.click(screen.getByTestId('asset-picker-toggle'))
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(1))
+    rerender(<Harness onSend={vi.fn()} resetKey="project-b" />)
+    fireEvent.click(screen.getByTestId('asset-picker-toggle'))
+    expect(await screen.findByTestId('asset-option-v1')).toBeInTheDocument()
+
+    await act(async () => { resolveOld([ASSETS[0]]); await oldList })
+    expect(screen.queryByTestId('asset-option-a1')).toBeNull()
+    expect(screen.getByTestId('asset-option-v1')).toBeInTheDocument()
+  })
+
+  it('历史资产只在当前索引确认缺失后降级，历史 chip 不可删除', async () => {
+    installAssetApi([ASSETS[0]])
+    const items: ChatItem[] = [{
+      id: 'history-assets', role: 'user', text: '历史引用',
+      assets: [
+        { assetId: 'a1', kind: 'image', path: 'assets/images/cover.png', name: '封面.png' },
+        { assetId: 'gone', kind: 'video', path: 'assets/video/gone.mp4', name: '已删除.mp4' },
+      ],
+    }]
+    renderWith(<Harness items={items} onSend={vi.fn()} />)
+
+    expect(await screen.findByText(/资产不可用/)).toBeInTheDocument()
+    expect(screen.getByTestId('asset-chip-a1')).not.toHaveTextContent('资产不可用')
+    expect(screen.queryByRole('button', { name: '移除资产 已删除.mp4' })).toBeNull()
+    expect(screen.getByText('历史引用')).toBeInTheDocument()
   })
 })

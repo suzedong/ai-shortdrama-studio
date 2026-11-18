@@ -19,6 +19,7 @@ import { writeSessionState } from '../../../electron/project/library'
 import { canvasStore } from '../../../electron/canvas/store'
 import { MANIFEST_FILE } from '../../../electron/project/manifest'
 import type { Canvas, ProjectBrief, ProjectManifest } from '@shared/types'
+import { canvasV4 } from '../canvas-fixtures'
 
 const REAL_MD = path.join(process.cwd(), 'resources', 'H3-Style', 'AI短剧制作视觉风格谱系.md')
 
@@ -72,8 +73,7 @@ async function seedProject(style: ProjectBrief['style']): Promise<void> {
     briefVersion: 1,
   }
   await fsp.writeFile(path.join(projDir, MANIFEST_FILE), JSON.stringify(manifest, null, 2), 'utf-8')
-  const canvas: Canvas = {
-    schemaVersion: 3,
+  const canvas: Canvas = canvasV4({
     revision: 0,
     receipts: [],
     projectId: 'project',
@@ -93,7 +93,7 @@ async function seedProject(style: ProjectBrief['style']): Promise<void> {
     edges: [],
     gates: [],
     updatedAt: now,
-  }
+  })
   await fsp.writeFile(path.join(projDir, 'canvas.json'), JSON.stringify(canvas, null, 2), 'utf-8')
   writeSessionState({ currentDir: projDir })
   canvasStore.reset()

@@ -17,6 +17,13 @@ export type RuntimeErrorCode =
   | 'UPSTREAM_AUTH_MISSING'
   | 'RUNTIME_UPSTREAM_ERROR'
   | 'PATH_ESCAPE_DENIED'
+  | 'NO_ACTIVE_PROJECT'
+  | 'PROJECT_CHANGED'
+  | 'ASSET_REF_INVALID'
+  | 'ASSET_REF_NOT_FOUND'
+  | 'ASSET_REF_NOT_REGULAR_FILE'
+  | 'ASSET_REF_UNSUPPORTED'
+  | 'ASSET_INDEX_CORRUPT'
   | 'GATE_TIMEOUT'
   | 'INTERNAL'
 
@@ -43,8 +50,29 @@ export interface RuntimeSession {
   createdAt: string
 }
 
-/** session.messages 回放记录（正文 + 推理 + 工具状态；D-012 起仅含白名单关键参数摘要，完整入参/结果仍不含） */
-export interface RuntimeSessionMessagePart {
+export type RuntimeAssetKind = 'image' | 'video' | 'music' | 'workflow'
+
+/** renderer 仅提交稳定资产 ID；其余可信元数据由 main 从当前项目索引重取。 */
+export interface RuntimePromptAssetRef {
+  assetId: string
+}
+
+/** 可安全跨 IPC 的项目相对资产快照；不含绝对路径、文件 URL 或媒体字节。 */
+export interface RuntimeAssetRef {
+  assetId: string
+  kind: RuntimeAssetKind
+  path: string
+  name: string
+}
+
+/** main 内部受信解析结果，不属于 preload / renderer DTO。 */
+export interface RuntimeResolvedAsset extends RuntimeAssetRef {
+  absolutePath: string
+  mime: string
+}
+
+/** session.messages 回放记录（正文 + 推理 + 工具状态 + 安全资产引用） */
+interface RuntimeSessionMessageStandardPart {
   type: 'text' | 'reasoning' | 'tool'
   text: string
   /** assistant part 的 time.start（ms）；user text 无，pending tool 缺省为 0 */
@@ -59,6 +87,14 @@ export interface RuntimeSessionMessagePart {
   /** D-012：白名单关键参数摘要（主进程按 ARG_PREVIEW_KEYS 提取，已截断；非白名单工具缺省） */
   argsPreview?: string
 }
+export interface RuntimeSessionMessageAssetPart {
+  type: 'asset'
+  text: ''
+  asset: RuntimeAssetRef
+}
+export type RuntimeSessionMessagePart =
+  | RuntimeSessionMessageStandardPart
+  | RuntimeSessionMessageAssetPart
 export interface RuntimeSessionMessageRecord {
   info: { id: string; role: 'user' | 'assistant' }
   parts: RuntimeSessionMessagePart[]
@@ -85,6 +121,8 @@ export interface RuntimePromptRequest {
   format?: RuntimeStructuredFormat
   /** 白名单覆盖：只能取所选用 profile 已声明工具集合的子集 */
   tools?: string[]
+  /** 仅资产 ID；main 复核后构造原生 file parts。undefined / [] 走旧纯文本路径。 */
+  assetRefs?: RuntimePromptAssetRef[]
 }
 
 export interface RuntimePromptResult {

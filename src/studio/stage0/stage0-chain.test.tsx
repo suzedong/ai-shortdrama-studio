@@ -19,6 +19,7 @@ import {
 } from './chain'
 import type { Stage0State } from './select'
 import { _setStyleCatalogSnapshotForTest } from '../style/style-catalog-store'
+import { canvasV4, type CanvasFixtureOverrides } from '../../test/canvas-fixtures'
 
 /* ── 选择器（querySelector 取首个匹配，兼容 brief-error 嵌套双链态条）── */
 
@@ -77,9 +78,8 @@ function gate(partial: Partial<CanvasGate> & { status: CanvasGate['status'] }): 
   return { gateId: '0-final', question: '是否批准立项？', options: ['批准', '驳回'], ...partial }
 }
 
-function canvas(over: Partial<Canvas> = {}): Canvas {
-  return {
-    schemaVersion: 3,
+function canvas(over: CanvasFixtureOverrides = {}): Canvas {
+  return canvasV4({
     revision: 0,
     receipts: [],
     projectId: 'p1',
@@ -89,7 +89,7 @@ function canvas(over: Partial<Canvas> = {}): Canvas {
     gates: [],
     updatedAt: '2026-10-15T00:00:00.000Z',
     ...over,
-  }
+  })
 }
 
 const BRIEF_PATH = '立项单.v1.json'

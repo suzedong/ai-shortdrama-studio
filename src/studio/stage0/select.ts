@@ -1,6 +1,7 @@
 // feature-003 · STAGE 0 立项视图模型（纯函数层）
 // 只投影 canvas 已落盘事实；禁止 fs / window.api / Date / 随机（契约 §2 规则 6）。
 import type { Canvas, CanvasGate, CanvasNode, ProjectBrief } from '../../../shared/types'
+import { activeCanvasDocument } from '../canvas/document'
 
 export type Stage0Phase = 'empty' | 'published'
 
@@ -25,7 +26,8 @@ export interface Stage0State {
 export const BRIEF_NODE_ID = 'step-0-brief'
 
 export function selectStage0State(canvas: Canvas): Stage0State {
-  const briefNode = canvas.nodes.find(n => n.id === BRIEF_NODE_ID && n.status === 'done') ?? null
+  const nodes = activeCanvasDocument(canvas).nodes
+  const briefNode = nodes.find(n => n.id === BRIEF_NODE_ID && n.status === 'done') ?? null
 
   let gate0: CanvasGate | null = null
   for (let i = canvas.gates.length - 1; i >= 0; i--) {
@@ -37,7 +39,7 @@ export function selectStage0State(canvas: Canvas): Stage0State {
 
   const dirtyFields: string[] = []
   let dirtyCount = 0
-  for (const node of canvas.nodes) {
+  for (const node of nodes) {
     if (!node.dirty) continue
     dirtyCount += 1
     for (const f of node.dirty.fields) {

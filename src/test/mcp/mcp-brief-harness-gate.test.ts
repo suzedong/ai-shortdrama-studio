@@ -16,6 +16,7 @@ import { writeSessionState } from '../../../electron/project/library'
 import { canvasStore } from '../../../electron/canvas/store'
 import { MANIFEST_FILE } from '../../../electron/project/manifest'
 import type { BriefDraft, CanvasGate, ProjectManifest } from '@shared/types'
+import { activeDocument } from '../canvas-fixtures'
 
 // 信封 findings 形状（与 electron/harness/types.ts HarnessFinding 同形；本地声明免跨层引用）
 interface Finding {
@@ -132,7 +133,7 @@ describe('feature-806 brief.publish harness 前置拦截（契约 §2.2）', () 
     // 零写盘：不落 v2，v1 节点不动
     expect((await briefFiles(dir)).sort()).toEqual(['立项单.v1.json', '立项单.v1.md'])
     const after = await canvasStore.get()
-    expect(after.nodes).toHaveLength(1)
+    expect(activeDocument(after).nodes).toHaveLength(1)
     // 不改门态：status 仍 approved、version 键保留；摘要经既有 gate 通道回流（契约 §2.3/D7）
     expect(after.gates).toHaveLength(1)
     expect(after.gates[0]!.status).toBe('approved')
@@ -157,7 +158,7 @@ describe('feature-806 brief.publish harness 前置拦截（契约 §2.2）', () 
     // 零写盘；无门 → 不产生任何 gate 记录
     expect(await briefFiles(dir)).toEqual([])
     const after = await canvasStore.get()
-    expect(after.nodes).toEqual([])
+    expect(activeDocument(after).nodes).toEqual([])
     expect(after.gates).toEqual([])
   })
 
@@ -176,7 +177,7 @@ describe('feature-806 brief.publish harness 前置拦截（契约 §2.2）', () 
     expect(hit?.severity).toBe('blocker')
 
     expect(await briefFiles(dir)).toEqual([])
-    expect((await canvasStore.get()).nodes).toEqual([])
+    expect(activeDocument(await canvasStore.get()).nodes).toEqual([])
   })
 
   it('全过且门 payload 挂陈旧摘要 → 发布成功并剥离摘要，version 键原样保留', async () => {

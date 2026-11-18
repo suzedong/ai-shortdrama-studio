@@ -91,7 +91,9 @@ export function assessImpact(
   const level = classifyChanges(changes)
   const items: ImpactItem[] = []
 
-  for (const n of canvas.nodes) {
+  const activePage = canvas.pages.find(page => page.id === canvas.activePageId)
+  const activeDocument = activePage?.canvases.find(document => document.id === activePage.activeCanvasId)
+  for (const n of activeDocument?.nodes ?? []) {
     if (n.status !== 'done') continue
     const ref = n.parentReference
     if (!ref || ref.briefVersion !== fromVersion) continue

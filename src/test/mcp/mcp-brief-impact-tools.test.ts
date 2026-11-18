@@ -16,6 +16,7 @@ import { writeSessionState } from '../../../electron/project/library'
 import { canvasStore } from '../../../electron/canvas/store'
 import { MANIFEST_FILE } from '../../../electron/project/manifest'
 import type { BriefDraft, Canvas, ProjectManifest } from '@shared/types'
+import { activeDocument, canvasV4 } from '../canvas-fixtures'
 
 type Handler = (args: Record<string, unknown>) => Promise<{
   content: { text: string }[]
@@ -182,7 +183,7 @@ describe('feature-002 立项后变更 MCP 工具（契约 §4/§9.2）', () => {
     expect(r.counts).toEqual({ high: 0, medium: 1, total: 1 })
     expect(typeof r.latestPublishedAt).toBe('string')
     await expect(fsp.readdir(projDir)).resolves.toEqual(before)
-    const node = (await canvasStore.get()).nodes.find(n => n.id === 'step-1-scenes')
+    const node = activeDocument(await canvasStore.get()).nodes.find(n => n.id === 'step-1-scenes')
     expect(node?.dirty).toBeUndefined()
   })
 
@@ -336,7 +337,7 @@ describe('feature-002 立项后变更 MCP 工具（契约 §4/§9.2）', () => {
 
     // 节点脏态五字段 + markedAt（feature-806 B-46）+ status 保持 done；未命中节点无脏
     const canvas = await canvasStore.get()
-    const scenes = canvas.nodes.find(n => n.id === 'step-1-scenes')!
+    const scenes = activeDocument(canvas).nodes.find(n => n.id === 'step-1-scenes')!
     expect(scenes.status).toBe('done')
     expect(scenes.dirty).toMatchObject({
       sinceBriefVersion: 1,
@@ -351,16 +352,16 @@ describe('feature-002 立项后变更 MCP 工具（契约 §4/§9.2）', () => {
       briefVersion: 1,
       fields: ['premise.leads', 'fiveElements.episodeCount', 'fiveElements.genre'],
     })
-    expect(canvas.nodes.find(n => n.id === 'step-1-profiles')?.dirty).toBeUndefined()
+    expect(activeDocument(canvas).nodes.find(n => n.id === 'step-1-profiles')?.dirty).toBeUndefined()
     // brief 节点同 id 覆盖指向 v2
-    const briefNode = canvas.nodes.find(n => n.id === 'step-0-brief')!
+    const briefNode = activeDocument(canvas).nodes.find(n => n.id === 'step-0-brief')!
     expect(briefNode).toMatchObject({ status: 'done', meta: { version: 'v2' } })
   })
 
   it('align 目标版本倒退（v1）→ INVALID_ARGUMENT，脏态保留', async () => {
     const r = await callFail(handlers, 'canvas.align', { nodeId: 'step-1-scenes', briefVersion: 1 })
     expect(r.error.code).toBe('INVALID_ARGUMENT')
-    const node = (await canvasStore.get()).nodes.find(n => n.id === 'step-1-scenes')
+    const node = activeDocument(await canvasStore.get()).nodes.find(n => n.id === 'step-1-scenes')
     expect(node?.dirty?.latestBriefVersion).toBe(2)
   })
 
@@ -375,7 +376,7 @@ describe('feature-002 立项后变更 MCP 工具（契约 §4/§9.2）', () => {
     )
     expect(r.ok).toBe(true)
     expect(r.briefVersion).toBe(2)
-    const node = (await canvasStore.get()).nodes.find(n => n.id === 'step-1-scenes')!
+    const node = activeDocument(await canvasStore.get()).nodes.find(n => n.id === 'step-1-scenes')!
     expect(node.dirty).toBeUndefined()
     expect(node.parentReference).toEqual({
       briefVersion: 2,
@@ -431,7 +432,7 @@ describe('feature-002 立项后变更 MCP 工具（契约 §4/§9.2）', () => {
     expect(r.regenerate).toHaveLength(1)
     expect(r.regenerate[0]).toMatchObject({ nodeId: 'step-2-dialogue', severity: 'high' })
     expect(r.impactReportPath).toBe('影响清单.v2-v3.json')
-    const node = (await canvasStore.get()).nodes.find(n => n.id === 'step-2-dialogue')!
+    const node = activeDocument(await canvasStore.get()).nodes.find(n => n.id === 'step-2-dialogue')!
     expect(node.status).toBe('done')
     expect(node.dirty).toMatchObject({
       sinceBriefVersion: 2, latestBriefVersion: 3,
@@ -455,7 +456,7 @@ describe('feature-002 立项后变更 MCP 工具（契约 §4/§9.2）', () => {
       }],
     })
     expect(r.ok).toBe(true)
-    const node = (await canvasStore.get()).nodes.find(n => n.id === 'step-1-noref')
+    const node = activeDocument(await canvasStore.get()).nodes.find(n => n.id === 'step-1-noref')
     expect(node?.dirty).toBeUndefined()
   })
 
@@ -506,8 +507,8 @@ describe('feature-002 立项后变更 MCP 工具（契约 §4/§9.2）', () => {
   it('feature-806 B-46 存量兼容：无 markedAt 的 dirty 读取不报错不臆造，align 清脏正常', async () => {
     // session 已在 legacyDir（上一用例切换）；造一个无 markedAt 的存量脏节点
     const legacyNow = new Date().toISOString()
-    const legacyCanvas: Canvas = {
-      schemaVersion: 3, projectId: 'project-legacy', title: '旧项目', revision: 0, receipts: [],
+    const legacyCanvas: Canvas = canvasV4({
+      projectId: 'project-legacy', title: '旧项目', revision: 0, receipts: [],
       nodes: [{
         id: 'step-1-outline', step: '1', kind: 'outline', title: '大纲', status: 'done',
         parentReference: { briefVersion: 1, fields: ['premise.leads'] },
@@ -518,12 +519,12 @@ describe('feature-002 立项后变更 MCP 工具（契约 §4/§9.2）', () => {
         updatedAt: legacyNow,
       }],
       edges: [], gates: [], updatedAt: legacyNow,
-    }
+    })
     await fsp.writeFile(path.join(legacyDir, 'canvas.json'), JSON.stringify(legacyCanvas, null, 2), 'utf-8')
     canvasStore.reset()
 
     const canvas = await canvasStore.get()
-    const node = canvas.nodes.find(n => n.id === 'step-1-outline')!
+    const node = activeDocument(canvas).nodes.find(n => n.id === 'step-1-outline')!
     expect(node.dirty).toBeDefined()
     expect(node.dirty!.markedAt).toBeUndefined() // 存量无字段：原样保留，不补写不臆造
 
@@ -534,7 +535,7 @@ describe('feature-002 立项后变更 MCP 工具（契约 §4/§9.2）', () => {
       legacyFake.handlers, 'canvas.align', { nodeId: 'step-1-outline', briefVersion: 2 },
     )
     expect(r.ok).toBe(true)
-    const aligned = (await canvasStore.get()).nodes.find(n => n.id === 'step-1-outline')!
+    const aligned = activeDocument(await canvasStore.get()).nodes.find(n => n.id === 'step-1-outline')!
     expect(aligned.dirty).toBeUndefined()
     expect(aligned.parentReference?.briefVersion).toBe(2)
   })

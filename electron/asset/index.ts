@@ -3,10 +3,15 @@ import path from 'node:path'
 import fsp from 'node:fs/promises'
 import crypto from 'node:crypto'
 import type { AssetIndexItem, AssetSourceSession } from '../../shared/types.js'
-import type { RuntimeEvent } from '../runtime/types.js'
+import type {
+  RuntimeAssetKind,
+  RuntimeEvent,
+  RuntimePromptAssetRef,
+  RuntimeResolvedAsset,
+} from '../runtime/types.js'
 import { getActiveProjectDir } from '../project/current.js'
 import { enqueue } from '../fs/write-queue.js'
-import { archiveExisting } from '../fs/archive.js'
+import { copyExistingToArchive } from '../fs/archive.js'
 import { resolveInside } from '../fs/sandbox.js'
 
 export type AssetKind = AssetIndexItem['kind']
@@ -16,7 +21,7 @@ function indexFile(projectDir = getActiveProjectDir()): string {
 }
 
 function errorWithCode(code: string, message: string, cause?: unknown): Error {
-  return Object.assign(new Error(message), { code, cause })
+  return Object.assign(new Error(message), { name: code, code, cause })
 }
 
 async function readIndex(projectDir = getActiveProjectDir()): Promise<AssetIndexItem[]> {
@@ -38,14 +43,124 @@ async function readIndex(projectDir = getActiveProjectDir()): Promise<AssetIndex
 
 async function writeIndex(items: AssetIndexItem[], projectDir = getActiveProjectDir()): Promise<void> {
   const file = indexFile(projectDir)
-  await archiveExisting(file, new Date())
   await fsp.mkdir(path.dirname(file), { recursive: true })
-  await fsp.writeFile(file, JSON.stringify(items, null, 2), 'utf-8')
+  const temp = path.join(
+    path.dirname(file),
+    `.asset-index.${process.pid}.${crypto.randomUUID()}.tmp`,
+  )
+  try {
+    const handle = await fsp.open(temp, 'wx')
+    try {
+      await handle.writeFile(JSON.stringify(items, null, 2), 'utf-8')
+      await handle.sync()
+    } finally {
+      await handle.close()
+    }
+    await copyExistingToArchive(file, new Date())
+    await fsp.rename(temp, file)
+  } catch (error) {
+    await fsp.rm(temp, { force: true }).catch(() => {})
+    throw error
+  }
 }
 
-export async function listAssets(kind?: AssetKind): Promise<AssetIndexItem[]> {
-  const items = await readIndex()
+export async function listAssets(kind?: AssetKind, projectDir = getActiveProjectDir()): Promise<AssetIndexItem[]> {
+  const items = await readIndex(projectDir)
   return kind ? items.filter(item => item.kind === kind) : items
+}
+
+const PROMPT_ASSET_MIME: Record<RuntimeAssetKind, Record<string, string>> = {
+  image: { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' },
+  video: { '.mp4': 'video/mp4' },
+  music: { '.mp3': 'audio/mpeg', '.wav': 'audio/wav' },
+  workflow: { '.json': 'application/json' },
+}
+
+function isRuntimeAssetKind(kind: AssetKind): kind is RuntimeAssetKind {
+  return kind === 'image' || kind === 'video' || kind === 'music' || kind === 'workflow'
+}
+
+function makeAssetRefError(code: string, message: string): Error {
+  return errorWithCode(code, message)
+}
+
+/**
+ * feature-822：renderer 只给 ID；main 从指定活动项目重取元数据并复核真实文件。
+ * 空引用必须在调用方短路，保证旧纯文本请求不读索引、不增加任何 part。
+ */
+export async function resolvePromptAssetRefs(
+  refs: RuntimePromptAssetRef[],
+  projectDir: string,
+): Promise<RuntimeResolvedAsset[]> {
+  if (!Array.isArray(refs)) {
+    throw makeAssetRefError('ASSET_REF_INVALID', '资产引用格式不正确')
+  }
+  const ids: string[] = []
+  const seen = new Set<string>()
+  for (const ref of refs) {
+    if (
+      !ref || typeof ref !== 'object' || Array.isArray(ref) ||
+      Object.keys(ref).some(key => key !== 'assetId') ||
+      typeof ref.assetId !== 'string' || ref.assetId.trim().length === 0 ||
+      ref.assetId !== ref.assetId.trim() || ref.assetId.length > 256
+    ) {
+      throw makeAssetRefError('ASSET_REF_INVALID', '资产引用仅允许有效的资产 ID')
+    }
+    if (!seen.has(ref.assetId)) {
+      seen.add(ref.assetId)
+      ids.push(ref.assetId)
+    }
+  }
+  if (ids.length === 0) return []
+
+  const items = await listAssets(undefined, projectDir)
+  const resolved: RuntimeResolvedAsset[] = []
+  for (const assetId of ids) {
+    const item = items.find(candidate => candidate.id === assetId)
+    if (!item) throw makeAssetRefError('ASSET_REF_NOT_FOUND', '当前项目中不存在所选资产')
+    if (!isRuntimeAssetKind(item.kind)) {
+      throw makeAssetRefError('ASSET_REF_UNSUPPORTED', '该资产类型不支持对话引用')
+    }
+    const mime = PROMPT_ASSET_MIME[item.kind][path.extname(item.path).toLowerCase()]
+    if (!mime) throw makeAssetRefError('ASSET_REF_UNSUPPORTED', '该资产文件格式不支持对话引用')
+
+    const requested = path.resolve(projectDir, item.path)
+    const lexicalRelative = path.relative(projectDir, requested)
+    if (lexicalRelative === '..' || lexicalRelative.startsWith(`..${path.sep}`) || path.isAbsolute(lexicalRelative)) {
+      throw makeAssetRefError('PATH_ESCAPE_DENIED', '资产路径超出当前项目范围')
+    }
+    let stat
+    try {
+      stat = await fsp.lstat(requested)
+    } catch {
+      throw makeAssetRefError('ASSET_REF_NOT_REGULAR_FILE', '所选资产文件已缺失或不可用')
+    }
+    if (stat.isSymbolicLink() || !stat.isFile()) {
+      throw makeAssetRefError('ASSET_REF_NOT_REGULAR_FILE', '所选资产必须是项目内的普通文件，不能是目录或符号链接')
+    }
+
+    let absolutePath: string
+    try {
+      resolveInside(projectDir, item.path)
+      absolutePath = await fsp.realpath(requested)
+      const rootReal = await fsp.realpath(projectDir)
+      const relativeReal = path.relative(rootReal, absolutePath)
+      if (relativeReal === '..' || relativeReal.startsWith(`..${path.sep}`) || path.isAbsolute(relativeReal)) {
+        throw new Error('real path escaped project')
+      }
+    } catch {
+      throw makeAssetRefError('PATH_ESCAPE_DENIED', '资产真实路径超出当前项目范围')
+    }
+
+    const originalName = item.meta?.originalName
+    const name = typeof originalName === 'string' && originalName.trim().length > 0 &&
+      originalName.length <= 255 && path.basename(originalName) === originalName &&
+      !originalName.includes('/') && !originalName.includes('\\')
+      ? originalName
+      : path.basename(item.path)
+    resolved.push({ assetId: item.id, kind: item.kind, path: item.path, name, absolutePath, mime })
+  }
+  return resolved
 }
 
 /** 登记资产（幂等：同 path+kind 复用 id）；省略的可选字段保留。 */

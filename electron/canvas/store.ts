@@ -1,25 +1,31 @@
-// feature-017 · CanvasStore：内存投影 + canvas.json 落盘 + upsert + 订阅广播
-// feature-814 · 统一命令 revision / 回执 / 原子替换
+import fsp from 'node:fs/promises'
 import path from 'node:path'
 import crypto from 'node:crypto'
-import fsp from 'node:fs/promises'
 import type {
   Canvas,
   CanvasCommandReceipt,
   CanvasCommandRequest,
   CanvasCommandResult,
+  CanvasDocument,
   CanvasEdge,
   CanvasGate,
+  CanvasNode,
+  CanvasPage,
+  CanvasPosition,
+  CanvasTarget,
+  CanvasViewStateRequest,
+  CanvasViewStateResult,
+  CanvasViewport,
 } from '../../shared/types.js'
+import { getActiveProjectDir } from '../project/current.js'
+import { deriveAutoEdges, type CanvasUpsertNode } from './edges.js'
 import { enqueue } from '../fs/write-queue.js'
 import { copyExistingToArchive } from '../fs/archive.js'
-import { getActiveProjectDir } from '../project/current.js'
 import { listAssets } from '../asset/index.js'
-import { deriveAutoEdges, type CanvasUpsertNode } from './edges.js'
 
 export interface CanvasUpdatePatch {
   nodes?: CanvasUpsertNode[]
-  /** 直接 upsert 边（手动 / 自动均可），按 from/to 去重 */
+  /** 直接 upsert 边（手动 / 自动均可），按 from/to 去重。 */
   edges?: { from: string; to: string; auto?: boolean }[]
   mode?: 'merge'
 }
@@ -29,21 +35,170 @@ export interface CanvasCommandOptions {
   expectedRevision?: number
 }
 
-export interface CanvasChangeListener {
-  (canvas: Canvas): void
+export interface CanvasTransactionResult extends CanvasCommandResult {
+  replayed: boolean
 }
+
+export interface CanvasContext {
+  projectDir: string
+  target: CanvasTarget
+  canvas: Canvas
+}
+
+type CanvasListener = (canvas: Canvas) => void
+type CanvasMutator = (canvas: Canvas, document: CanvasDocument) => void | Promise<void>
+
+const LEGACY_PAGE_ID = 'legacy-page'
+const LEGACY_CANVAS_ID = 'legacy-canvas'
+const MIN_ZOOM = 0.25
+const MAX_ZOOM = 1.6
 
 function errorWithCode(code: string, message: string, cause?: unknown): Error {
-  return Object.assign(new Error(message), { code, cause })
+  return Object.assign(new Error(message), { name: code, code, cause })
 }
 
-function emptyCanvas(root: string): Canvas {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function clone<T>(value: T): T {
+  return structuredClone(value)
+}
+
+function validRevision(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+}
+
+function validPosition(value: unknown): value is CanvasPosition {
+  return isRecord(value)
+    && typeof value.x === 'number' && Number.isFinite(value.x)
+    && typeof value.y === 'number' && Number.isFinite(value.y)
+}
+
+function validViewport(value: unknown): value is CanvasViewport {
+  return isRecord(value)
+    && typeof value.x === 'number' && Number.isFinite(value.x)
+    && typeof value.y === 'number' && Number.isFinite(value.y)
+    && typeof value.zoom === 'number' && Number.isFinite(value.zoom)
+    && value.zoom >= MIN_ZOOM && value.zoom <= MAX_ZOOM
+}
+
+function validTitle(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length >= 1 && value.trim().length <= 80
+}
+
+function validateReceipts(value: unknown, revision: number): asserts value is CanvasCommandReceipt[] {
+  if (!Array.isArray(value)) throw errorWithCode('CANVAS_CORRUPT', '画布 receipts 结构损坏')
+  const ids = new Set<string>()
+  for (const receipt of value) {
+    if (
+      !isRecord(receipt)
+      || typeof receipt.commandId !== 'string' || receipt.commandId.length === 0
+      || typeof receipt.type !== 'string' || receipt.type.length === 0
+      || typeof receipt.requestHash !== 'string' || !/^[a-f0-9]{64}$/.test(receipt.requestHash)
+      || !validRevision(receipt.revision) || receipt.revision > revision
+      || typeof receipt.appliedAt !== 'string'
+      || ids.has(receipt.commandId)
+    ) {
+      throw errorWithCode('CANVAS_CORRUPT', '画布命令回执无效')
+    }
+    ids.add(receipt.commandId)
+  }
+}
+
+function validateDocument(document: unknown): asserts document is CanvasDocument {
+  if (
+    !isRecord(document)
+    || typeof document.id !== 'string' || document.id.length === 0
+    || !validTitle(document.title) || document.title !== document.title.trim()
+    || !Array.isArray(document.nodes)
+    || !Array.isArray(document.edges)
+    || !(document.viewport === null || validViewport(document.viewport))
+  ) {
+    throw errorWithCode('CANVAS_CORRUPT', '画布文档结构或 viewport 无效')
+  }
+  const nodeIds = new Set<string>()
+  for (const node of document.nodes) {
+    if (
+      !isRecord(node)
+      || typeof node.id !== 'string' || node.id.length === 0
+      || nodeIds.has(node.id)
+      || (node.position !== undefined && !validPosition(node.position))
+      || typeof node.updatedAt !== 'string'
+    ) {
+      throw errorWithCode('CANVAS_CORRUPT', '画布节点、重复 ID 或 position 无效')
+    }
+    nodeIds.add(node.id)
+  }
+  const edgeIds = new Set<string>()
+  for (const edge of document.edges) {
+    if (
+      !isRecord(edge)
+      || typeof edge.id !== 'string' || edge.id.length === 0
+      || typeof edge.from !== 'string' || typeof edge.to !== 'string'
+      || edgeIds.has(edge.id)
+    ) {
+      throw errorWithCode('CANVAS_CORRUPT', '画布边或重复 ID 无效')
+    }
+    edgeIds.add(edge.id)
+  }
+}
+
+function validateCanvas(canvas: Canvas): void {
+  if (
+    canvas.schemaVersion !== 4
+    || typeof canvas.projectId !== 'string' || canvas.projectId.length === 0
+    || typeof canvas.title !== 'string'
+    || (canvas.activeView !== 'canvas' && canvas.activeView !== 'stage0')
+    || !Array.isArray(canvas.pages) || canvas.pages.length === 0
+    || !Array.isArray(canvas.gates)
+    || !validRevision(canvas.revision)
+    || typeof canvas.updatedAt !== 'string'
+  ) {
+    throw errorWithCode('CANVAS_CORRUPT', '画布 v4 根结构无效')
+  }
+  validateReceipts(canvas.receipts, canvas.revision)
+  const pageIds = new Set<string>()
+  let activePage: CanvasPage | undefined
+  for (const page of canvas.pages) {
+    if (
+      !isRecord(page)
+      || typeof page.id !== 'string' || page.id.length === 0 || pageIds.has(page.id)
+      || !validTitle(page.title) || page.title !== page.title.trim()
+      || !Array.isArray(page.canvases) || page.canvases.length === 0
+    ) {
+      throw errorWithCode('CANVAS_CORRUPT', '创作页结构或重复 ID 无效')
+    }
+    pageIds.add(page.id)
+    if (page.id === canvas.activePageId) activePage = page
+    const canvasIds = new Set<string>()
+    let activeFound = false
+    for (const document of page.canvases) {
+      validateDocument(document)
+      if (canvasIds.has(document.id)) throw errorWithCode('CANVAS_CORRUPT', '同一创作页存在重复画布 ID')
+      canvasIds.add(document.id)
+      if (document.id === page.activeCanvasId) activeFound = true
+    }
+    if (!activeFound) throw errorWithCode('CANVAS_CORRUPT', '创作页 activeCanvasId 失配')
+  }
+  if (!activePage) throw errorWithCode('CANVAS_CORRUPT', 'activePageId 失配')
+}
+
+function emptyCanvas(projectId: string): Canvas {
+  const canvasId = `canvas-${crypto.randomUUID()}`
+  const pageId = `page-${crypto.randomUUID()}`
   return {
-    schemaVersion: 3,
-    projectId: path.basename(root),
+    schemaVersion: 4,
+    projectId,
     title: '新项目',
-    nodes: [],
-    edges: [],
+    activePageId: pageId,
+    activeView: 'stage0',
+    pages: [{
+      id: pageId,
+      title: '创作页 1',
+      activeCanvasId: canvasId,
+      canvases: [{ id: canvasId, title: '画布 1', nodes: [], edges: [], viewport: null }],
+    }],
     gates: [],
     revision: 0,
     receipts: [],
@@ -51,41 +206,112 @@ function emptyCanvas(root: string): Canvas {
   }
 }
 
-function migrateCanvas(value: unknown): Canvas {
-  if (typeof value !== 'object' || value === null) {
-    throw errorWithCode('CANVAS_CORRUPT', '画布文件不是有效对象')
-  }
-  const candidate = value as Omit<Partial<Canvas>, 'schemaVersion'> & { schemaVersion?: number }
+function migrateLegacy(raw: Record<string, unknown>): Canvas {
+  const version = raw.schemaVersion
   if (
-    (candidate.schemaVersion !== 2 && candidate.schemaVersion !== 3)
-    || typeof candidate.projectId !== 'string'
-    || typeof candidate.title !== 'string'
-    || !Array.isArray(candidate.nodes)
-    || !Array.isArray(candidate.edges)
-    || !Array.isArray(candidate.gates)
-    || typeof candidate.updatedAt !== 'string'
+    (version !== 2 && version !== 3)
+    || typeof raw.projectId !== 'string'
+    || typeof raw.title !== 'string'
+    || !Array.isArray(raw.nodes)
+    || !Array.isArray(raw.edges)
+    || !Array.isArray(raw.gates)
+    || typeof raw.updatedAt !== 'string'
   ) {
-    throw errorWithCode('CANVAS_CORRUPT', '画布文件结构或 schemaVersion 不受支持')
+    throw errorWithCode('CANVAS_CORRUPT', '旧画布文件结构或 schemaVersion 不受支持')
   }
-  if (candidate.schemaVersion === 2) {
-    return {
-      ...candidate,
-      schemaVersion: 3,
-      revision: 0,
-      receipts: [],
-    } as Canvas
+  const revision = version === 3 ? raw.revision : 0
+  const receipts = version === 3 ? raw.receipts : []
+  if (!validRevision(revision)) throw errorWithCode('CANVAS_CORRUPT', '旧画布 revision 无效')
+  validateReceipts(receipts, revision)
+  const nodes = clone(raw.nodes) as CanvasNode[]
+  for (const node of nodes) {
+    if (node.position !== undefined && !validPosition(node.position)) {
+      throw errorWithCode('CANVAS_CORRUPT', '旧画布节点 position 无效')
+    }
   }
-  if (!Number.isInteger(candidate.revision) || (candidate.revision ?? -1) < 0 || !Array.isArray(candidate.receipts)) {
-    throw errorWithCode('CANVAS_CORRUPT', '画布 revision 或 receipts 损坏')
+  return {
+    schemaVersion: 4,
+    projectId: raw.projectId,
+    title: raw.title,
+    activePageId: LEGACY_PAGE_ID,
+    activeView: nodes.length > 0 ? 'canvas' : 'stage0',
+    pages: [{
+      id: LEGACY_PAGE_ID,
+      title: '创作页 1',
+      activeCanvasId: LEGACY_CANVAS_ID,
+      canvases: [{
+        id: LEGACY_CANVAS_ID,
+        title: '画布 1',
+        nodes,
+        edges: clone(raw.edges) as CanvasEdge[],
+        viewport: null,
+      }],
+    }],
+    gates: clone(raw.gates) as CanvasGate[],
+    revision,
+    receipts: clone(receipts),
+    updatedAt: raw.updatedAt,
   }
-  return candidate as Canvas
+}
+
+function migrateCanvas(raw: unknown): Canvas {
+  if (!isRecord(raw)) throw errorWithCode('CANVAS_CORRUPT', '画布文件不是 JSON 对象')
+  if (raw.schemaVersion === 2 || raw.schemaVersion === 3) return migrateLegacy(raw)
+  if (raw.schemaVersion !== 4) throw errorWithCode('CANVAS_CORRUPT', '画布 schemaVersion 不受支持')
+  const canvas = clone(raw) as unknown as Canvas
+  validateCanvas(canvas)
+  return canvas
+}
+
+export function activeCanvasDocument(canvas: Canvas): CanvasDocument {
+  const page = canvas.pages.find(item => item.id === canvas.activePageId)
+  const document = page?.canvases.find(item => item.id === page.activeCanvasId)
+  if (!page || !document) throw errorWithCode('CANVAS_CORRUPT', '活动创作页或画布引用失配')
+  return document
+}
+
+function documentAt(canvas: Canvas, target: CanvasTarget): CanvasDocument {
+  const page = canvas.pages.find(item => item.id === target.pageId)
+  const document = page?.canvases.find(item => item.id === target.canvasId)
+  if (!page || !document) throw errorWithCode('CANVAS_TARGET_NOT_FOUND', '目标创作页或画布不存在')
+  return document
+}
+
+function targetOf(canvas: Canvas): CanvasTarget {
+  const page = canvas.pages.find(item => item.id === canvas.activePageId)
+  if (!page) throw errorWithCode('CANVAS_CORRUPT', 'activePageId 失配')
+  return { projectId: canvas.projectId, pageId: page.id, canvasId: page.activeCanvasId }
+}
+
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
+  if (isRecord(value)) {
+    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`
+  }
+  return JSON.stringify(value) ?? 'null'
+}
+
+function sortedAssetIds(ids: string[]): string[] {
+  return [...new Set(ids)].sort((a, b) => a.localeCompare(b))
+}
+
+function commandPayload(request: CanvasCommandRequest): Record<string, unknown> {
+  const { commandId: _commandId, expectedRevision: _expectedRevision, ...payload } = request
+  if (request.type === 'assets.bind' || request.type === 'assets.unbind') {
+    return { ...payload, assetIds: sortedAssetIds(request.assetIds) }
+  }
+  return payload
+}
+
+function requestHash(payload: Record<string, unknown>): string {
+  return crypto.createHash('sha256').update(stableStringify(payload)).digest('hex')
 }
 
 function stableValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stableValue)
-  if (typeof value === 'object' && value !== null) {
+  if (isRecord(value)) {
     return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
+      Object.entries(value)
         .filter(([, item]) => item !== undefined)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([key, item]) => [key, stableValue(item)]),
@@ -94,234 +320,521 @@ function stableValue(value: unknown): unknown {
   return value
 }
 
-function requestHash(type: string, payload: unknown): string {
+function transactionHash(type: string, payload: unknown): string {
   return crypto.createHash('sha256')
     .update(JSON.stringify(stableValue({ type, payload })))
     .digest('hex')
 }
 
-function commandId(): string {
-  return `canvas-${crypto.randomUUID()}`
+function legacyAssetHash(request: Extract<CanvasCommandRequest, { type: 'assets.bind' | 'assets.unbind' }>): string {
+  return transactionHash(request.type, {
+    nodeId: request.nodeId,
+    assetIds: [...new Set(request.assetIds)].sort(),
+  })
 }
 
-async function writeCanvasAtomically(file: string, canvas: Canvas, now: Date): Promise<void> {
-  const serialized = JSON.stringify(canvas, null, 2)
-  const temp = `${file}.${process.pid}.${crypto.randomUUID()}.tmp`
-  let handle: fsp.FileHandle | undefined
+function receiptTarget(receipt: CanvasCommandReceipt): CanvasTarget | null {
+  if (!isRecord(receipt.payload) || !isRecord(receipt.payload.target)) return null
+  const target = receipt.payload.target
+  if (
+    typeof target.projectId !== 'string'
+    || typeof target.pageId !== 'string'
+    || typeof target.canvasId !== 'string'
+  ) return null
+  return { projectId: target.projectId, pageId: target.pageId, canvasId: target.canvasId }
+}
+
+function requestTarget(
+  canvas: Canvas,
+  request: CanvasCommandRequest,
+  preparedTarget: CanvasTarget | null,
+): CanvasTarget {
+  if (preparedTarget) return preparedTarget
+  const projectId = canvas.projectId
+  if (request.type === 'page.rename' || request.type === 'page.delete') {
+    const page = canvas.pages.find(item => item.id === request.pageId)
+    if (!page) throw errorWithCode('CANVAS_TARGET_NOT_FOUND', '目标创作页不存在')
+    return { projectId, pageId: page.id, canvasId: page.activeCanvasId }
+  }
+  if (request.type === 'page.create' || request.type === 'canvas.create') {
+    throw errorWithCode('CANVAS_COMMAND_MUTATION', '新建命令回执缺少目标')
+  }
+  return { projectId, pageId: request.pageId, canvasId: request.canvasId }
+}
+
+function assertProject(request: { projectId: string }, projectDir: string): void {
+  if (request.projectId !== path.basename(projectDir)) {
+    throw errorWithCode('CANVAS_PROJECT_MISMATCH', '命令项目与当前项目不一致')
+  }
+}
+
+function normalizeTitle(title: string | undefined, existing: string[], prefix: string): string {
+  if (title !== undefined) {
+    if (!validTitle(title)) throw errorWithCode('CANVAS_INVALID_TITLE', '标题 trim 后须为 1–80 个字符')
+    return title.trim()
+  }
+  const used = new Set(existing)
+  for (let index = 1; ; index++) {
+    const candidate = `${prefix} ${index}`
+    if (!used.has(candidate)) return candidate
+  }
+}
+
+async function writeAtomic(file: string, canvas: Canvas): Promise<void> {
+  const temp = path.join(path.dirname(file), `.canvas.${process.pid}.${crypto.randomUUID()}.tmp`)
   try {
-    handle = await fsp.open(temp, 'wx', 0o600)
-    await handle.writeFile(serialized, 'utf-8')
-    await handle.sync()
-    await handle.close()
-    handle = undefined
-    await copyExistingToArchive(file, now)
+    const handle = await fsp.open(temp, 'wx')
+    try {
+      await handle.writeFile(JSON.stringify(canvas, null, 2), 'utf-8')
+      await handle.sync()
+    } finally {
+      await handle.close()
+    }
+    await copyExistingToArchive(file, new Date())
     await fsp.rename(temp, file)
   } catch (error) {
-    if (handle !== undefined) await handle.close().catch(() => undefined)
-    await fsp.rm(temp, { force: true }).catch(() => undefined)
-    throw error
+    await fsp.rm(temp, { force: true }).catch(() => {})
+    const detail = error instanceof Error ? error.message : String(error)
+    throw errorWithCode('CANVAS_COMMAND_MUTATION', `画布原子写失败，旧档与缓存保持不变：${detail}`, error)
   }
 }
 
 export class CanvasStore {
-  private cache: Canvas | null = null
-  private listeners = new Set<CanvasChangeListener>()
+  private cache = new Map<string, Canvas>()
+  private listeners = new Set<CanvasListener>()
 
-  private file(): string {
-    return path.join(getActiveProjectDir(), 'canvas.json')
+  subscribe(listener: CanvasListener): () => void {
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
   }
 
-  /** 懒加载：仅 ENOENT 初始化空图；已存在坏档必须显式报错。 */
-  async get(): Promise<Canvas> {
-    if (this.cache) return this.cache
-    const file = this.file()
-    let raw: string
+  reset(projectDir = getActiveProjectDir()): void {
+    this.cache.delete(path.resolve(projectDir))
+  }
+
+  private file(projectDir: string): string {
+    return path.join(projectDir, 'canvas.json')
+  }
+
+  private async readFromDisk(root: string): Promise<Canvas | null> {
+    let raw: string | null
     try {
-      raw = await fsp.readFile(file, 'utf-8')
+      raw = await fsp.readFile(this.file(root), 'utf-8')
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-      const init = emptyCanvas(path.dirname(file))
-      await writeCanvasAtomically(file, init, new Date())
-      this.cache = init
-      return init
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') raw = null
+      else throw error
     }
+    if (raw === null) return null
+    let canvas: Canvas
     try {
-      this.cache = migrateCanvas(JSON.parse(raw) as unknown)
+      canvas = migrateCanvas(JSON.parse(raw) as unknown)
     } catch (error) {
       if ((error as { code?: string }).code === 'CANVAS_CORRUPT') throw error
-      throw errorWithCode('CANVAS_CORRUPT', '画布文件 JSON 损坏', error)
+      throw errorWithCode('CANVAS_CORRUPT', '画布文件损坏，已停止加载；请修复或从归档恢复', error)
     }
-    return this.cache
-  }
-
-  /** 门按 gateId upsert（仅 gate 链路使用）；写盘后广播。 */
-  async upsertGate(gate: CanvasGate): Promise<Canvas> {
-    return enqueue(async () => {
-      const result = await this.commitInQueue('gate.upsert', undefined, {}, canvas => {
-        const idx = canvas.gates.findIndex(g => g.gateId === gate.gateId)
-        if (idx >= 0) canvas.gates[idx] = gate
-        else canvas.gates.push(gate)
-      })
-      return result.canvas
-    })
-  }
-
-  /** MCP 命令入口：保留旧 update 调用，同时可取得回执。 */
-  async updateWithCommand(
-    patch: CanvasUpdatePatch,
-    options: CanvasCommandOptions = {},
-  ): Promise<CanvasCommandResult> {
-    return enqueue(() => this.commitInQueue('canvas.update', patch, options, canvas => {
-      this.applyUpdate(canvas, patch)
-    }))
-  }
-
-  /** 幂等 upsert 节点 / 边（merge）。 */
-  async update(patch: CanvasUpdatePatch): Promise<Canvas> {
-    const result = await this.updateWithCommand(patch)
-    return result.canvas
-  }
-
-  private applyUpdate(canvas: Canvas, patch: CanvasUpdatePatch): void {
-    const upserts = patch.nodes ?? []
-    for (const n of upserts) {
-      const { linksTo: _linksTo, ...node } = n
-      node.updatedAt = new Date().toISOString()
-      if (node.assetIds !== undefined) node.assetIds = [...new Set(node.assetIds)]
-      const idx = canvas.nodes.findIndex(x => x.id === node.id)
-      if (idx >= 0) {
-        const old = canvas.nodes[idx]!
-        node.dirty = old.dirty
-        if (node.parentReference === undefined) node.parentReference = old.parentReference
-        if (node.assetIds === undefined) node.assetIds = old.assetIds
-        canvas.nodes[idx] = node
-      } else {
-        canvas.nodes.push(node)
-      }
+    if (canvas.projectId !== path.basename(root)) {
+      throw errorWithCode('CANVAS_PROJECT_MISMATCH', '画布 projectId 与项目目录不一致')
     }
-    if (upserts.length > 0) canvas.edges = deriveAutoEdges(canvas.edges, upserts)
-    for (const e of patch.edges ?? []) {
-      const idx = canvas.edges.findIndex(x => x.from === e.from && x.to === e.to)
-      const edge: CanvasEdge = {
-        id: `e-${e.from}--${e.to}`,
-        from: e.from,
-        to: e.to,
-        auto: e.auto ?? false,
-      }
-      if (idx >= 0) canvas.edges[idx] = edge
-      else canvas.edges.push(edge)
-    }
+    return canvas
   }
 
-  /** 系统直改：本批只开放节点资产绑定与解绑。 */
-  async command(request: CanvasCommandRequest): Promise<CanvasCommandResult> {
-    if (
-      typeof request.commandId !== 'string' || request.commandId.trim() === ''
-      || !Number.isInteger(request.expectedRevision) || request.expectedRevision < 0
-      || (request.type !== 'assets.bind' && request.type !== 'assets.unbind')
-      || typeof request.nodeId !== 'string' || request.nodeId.trim() === ''
-      || !Array.isArray(request.assetIds) || request.assetIds.length === 0
-      || request.assetIds.some(id => typeof id !== 'string' || id.trim() === '')
-    ) {
-      throw errorWithCode('INVALID_ARGUMENT', '画布命令参数无效')
-    }
-    const assetIds = [...new Set(request.assetIds)].sort()
-    return enqueue(() => this.commitInQueue(
-      request.type,
-      { nodeId: request.nodeId, assetIds },
-      { commandId: request.commandId, expectedRevision: request.expectedRevision },
-      async canvas => {
-        const node = canvas.nodes.find(item => item.id === request.nodeId)
-        if (!node) throw errorWithCode('CANVAS_NODE_NOT_FOUND', `画布节点不存在：${request.nodeId}`)
-        const assets = await listAssets()
-        const known = new Set(assets.map(asset => asset.id))
-        const missing = assetIds.filter(id => !known.has(id))
-        if (missing.length > 0) {
-          throw errorWithCode('ASSET_NOT_FOUND', `资产不存在：${missing.join(', ')}`)
-        }
-        const current = node.assetIds ?? []
-        node.assetIds = request.type === 'assets.bind'
-          ? [...new Set([...current, ...assetIds])]
-          : current.filter(id => !assetIds.includes(id))
-      },
-    ))
+  /** 打开项目前只读预检：不创建缺失画布、不信任或填充缓存。 */
+  async assertReadable(projectDir: string): Promise<void> {
+    await this.readFromDisk(path.resolve(projectDir))
   }
 
-  /** feature-002：同一次写盘内读-改-写，自开写队列。 */
-  async withCanvas(mutate: (canvas: Canvas) => void): Promise<Canvas> {
-    return enqueue(async () => {
-      const result = await this.commitInQueue('canvas.withCanvas', undefined, {}, mutate)
-      return result.canvas
-    })
+  private async getForRoot(projectDir: string): Promise<Canvas> {
+    const root = path.resolve(projectDir)
+    const cached = this.cache.get(root)
+    if (cached) return clone(cached)
+    const diskCanvas = await this.readFromDisk(root)
+    const canvas = diskCanvas ?? emptyCanvas(path.basename(root))
+    if (diskCanvas === null) await writeAtomic(this.file(root), canvas)
+    this.cache.set(root, clone(canvas))
+    return clone(canvas)
   }
 
-  /** 调用方必须已处于 enqueue 任务内，禁止嵌套入队。 */
-  async persistInQueue(mutate: (canvas: Canvas) => void): Promise<Canvas> {
-    const result = await this.commitInQueue('canvas.withCanvas', undefined, {}, mutate)
-    return result.canvas
+  async capture(): Promise<CanvasContext> {
+    const projectDir = path.resolve(getActiveProjectDir())
+    const canvas = await this.getForRoot(projectDir)
+    return { projectDir, target: targetOf(canvas), canvas }
+  }
+
+  async get(): Promise<Canvas> {
+    return (await this.capture()).canvas
   }
 
   private async commitInQueue(
+    context: CanvasContext,
     type: string,
     payload: unknown,
     options: CanvasCommandOptions,
-    mutate: (canvas: Canvas) => void | Promise<void>,
-  ): Promise<CanvasCommandResult> {
-    const current = await this.get()
-    const id = options.commandId ?? commandId()
-    if (id.trim() === '') throw errorWithCode('INVALID_ARGUMENT', 'commandId 不能为空')
-    if (
-      options.expectedRevision !== undefined
-      && (!Number.isInteger(options.expectedRevision) || options.expectedRevision < 0)
-    ) {
-      throw errorWithCode('INVALID_ARGUMENT', 'expectedRevision 必须是不小于 0 的整数')
-    }
-    const hash = payload === undefined ? null : requestHash(type, payload)
-    if (hash !== null) {
-      const previous = current.receipts.find(receipt => receipt.commandId === id)
-      if (previous) {
-        if (previous.requestHash !== hash) {
-          throw errorWithCode('CANVAS_COMMAND_CONFLICT', `commandId 已用于其他请求：${id}`)
-        }
-        return { canvas: current, receipt: previous, replayed: true }
+    mutate: CanvasMutator,
+  ): Promise<CanvasTransactionResult> {
+    const baseline = await this.getForRoot(context.projectDir)
+    const commandId = options.commandId ?? crypto.randomUUID()
+    const requestHash = payload === undefined ? null : transactionHash(type, payload)
+    const receipt = [...baseline.receipts].reverse().find(item => item.commandId === commandId)
+    if (receipt) {
+      if (
+        options.expectedRevision !== undefined
+        && options.expectedRevision !== receipt.revision
+      ) {
+        throw errorWithCode('CANVAS_REVISION_CONFLICT', '重放时 expectedRevision 须等于原命令产生的 revision')
+      }
+      if (requestHash !== null && receipt.requestHash !== requestHash) {
+        throw errorWithCode('CANVAS_COMMAND_CONFLICT', 'commandId 已被不同 payload 使用')
+      }
+      return {
+        ok: true,
+        commandId,
+        revision: baseline.revision,
+        receipt: clone(receipt),
+        target: context.target,
+        canvas: clone(baseline),
+        replayed: true,
       }
     }
-    if (options.expectedRevision !== undefined && options.expectedRevision !== current.revision) {
+    if (options.expectedRevision !== undefined && baseline.revision !== options.expectedRevision) {
       throw errorWithCode(
         'CANVAS_REVISION_CONFLICT',
-        `画布 revision 冲突：expected=${options.expectedRevision}, current=${current.revision}`,
+        `画布版本冲突：期望 ${options.expectedRevision}，实际 ${baseline.revision}`,
       )
     }
-
-    const next = JSON.parse(JSON.stringify(current)) as Canvas
-    await mutate(next)
-    const finalHash = hash ?? requestHash(type, { before: current, after: next })
-    const now = new Date()
-    const revision = current.revision + 1
-    const receipt: CanvasCommandReceipt = {
-      commandId: id,
+    const next = clone(baseline)
+    const document = documentAt(next, context.target)
+    await mutate(next, document)
+    const nextReceipt: CanvasCommandReceipt = {
+      commandId,
       type,
-      requestHash: finalHash,
-      revision,
-      appliedAt: now.toISOString(),
+      requestHash: requestHash ?? transactionHash(type, next),
+      revision: next.revision + 1,
+      appliedAt: new Date().toISOString(),
     }
-    next.schemaVersion = 3
-    next.revision = revision
-    next.receipts = [...current.receipts, receipt].slice(-100)
-    next.updatedAt = now.toISOString()
-    await writeCanvasAtomically(this.file(), next, now)
-    this.cache = next
-    for (const fn of this.listeners) fn(next)
-    return { canvas: next, receipt, replayed: false }
+    next.revision = nextReceipt.revision
+    next.receipts = [...next.receipts, nextReceipt].slice(-100)
+    next.updatedAt = new Date().toISOString()
+    validateCanvas(next)
+    await writeAtomic(this.file(context.projectDir), next)
+    this.cache.set(context.projectDir, clone(next))
+    for (const listener of this.listeners) listener(clone(next))
+    return {
+      ok: true,
+      commandId,
+      revision: next.revision,
+      receipt: clone(nextReceipt),
+      target: context.target,
+      canvas: clone(next),
+      replayed: false,
+    }
   }
 
-  subscribe(fn: CanvasChangeListener): () => void {
-    this.listeners.add(fn)
-    return () => this.listeners.delete(fn)
+  /** MCP merge：只更新调用入口固定的活动文档，保留其余页/画布及根状态。 */
+  async update(patch: CanvasUpdatePatch): Promise<Canvas> {
+    return (await this.updateWithCommand(patch)).canvas
   }
 
-  reset(): void {
-    this.cache = null
+  /** MCP 既有乐观锁/幂等事务接口；读评估与写提交可共享同一 CanvasContext。 */
+  async updateWithCommand(
+    patch: CanvasUpdatePatch,
+    options: CanvasCommandOptions = {},
+  ): Promise<CanvasTransactionResult> {
+    const context = await this.capture()
+    return enqueue(() => this.commitInQueue(context, 'canvas.update', patch, options, (_canvas, document) => {
+      this.applyUpdate(document, patch)
+    }))
+  }
+
+  /** 同一次写盘内读-改-写；第二参数为入口固定的活动文档。 */
+  async withCanvas(mutate: CanvasMutator): Promise<Canvas> {
+    const context = await this.capture()
+    return enqueue(() => this.commitInQueue(context, 'canvas.withCanvas', undefined, {}, mutate))
+      .then(result => result.canvas)
+  }
+
+  /** 调用方必须已处于 enqueue 任务内；传入 capture() 可保证评估与写入同一目标。 */
+  async persistInQueue(mutate: CanvasMutator, captured?: CanvasContext): Promise<Canvas> {
+    const context = captured ?? await this.capture()
+    return (await this.commitInQueue(context, 'canvas.update', undefined, {}, mutate)).canvas
+  }
+
+  private applyUpdate(document: CanvasDocument, patch: CanvasUpdatePatch): void {
+    const upserts = patch.nodes ?? []
+    for (const input of upserts) {
+      const { linksTo: _linksTo, ...source } = input
+      const idx = document.nodes.findIndex(item => item.id === source.id)
+      const old = idx >= 0 ? document.nodes[idx] : undefined
+      if (source.position !== undefined && !validPosition(source.position)) {
+        throw errorWithCode('CANVAS_INVALID_POSITION', '节点 position 必须为有限世界坐标')
+      }
+      const node = {
+        ...source,
+        position: source.position === undefined ? old?.position : source.position,
+        updatedAt: new Date().toISOString(),
+      } as CanvasNode
+      if (node.assetIds !== undefined) node.assetIds = [...new Set(node.assetIds)]
+      if (old) {
+        node.dirty = old.dirty
+        if (node.parentReference === undefined) node.parentReference = old.parentReference
+        if (node.assetIds === undefined) node.assetIds = old.assetIds
+        document.nodes[idx] = node
+      } else {
+        if (node.position === undefined) delete node.position
+        document.nodes.push(node)
+      }
+    }
+    if (upserts.length > 0) document.edges = deriveAutoEdges(document.edges, upserts)
+    for (const input of patch.edges ?? []) {
+      const idx = document.edges.findIndex(item => item.from === input.from && item.to === input.to)
+      const edge: CanvasEdge = {
+        id: `e-${input.from}--${input.to}`,
+        from: input.from,
+        to: input.to,
+        auto: input.auto ?? false,
+      }
+      if (idx >= 0) document.edges[idx] = edge
+      else document.edges.push(edge)
+    }
+  }
+
+  /** 结构、节点移动与资产命令：revision + receipts + 原子写。 */
+  async command(request: CanvasCommandRequest): Promise<CanvasCommandResult> {
+    const context = await this.capture()
+    assertProject(request, context.projectDir)
+    if (typeof request.commandId !== 'string' || request.commandId.length === 0 || !validRevision(request.expectedRevision)) {
+      throw errorWithCode('CANVAS_COMMAND_MUTATION', '命令 commandId 或 expectedRevision 无效')
+    }
+    const payload = commandPayload(request)
+    const hash = requestHash(payload)
+    let preparedTarget: CanvasTarget | null = null
+    if (request.type === 'page.create') {
+      const pageId = `page-${crypto.randomUUID()}`
+      preparedTarget = { projectId: context.canvas.projectId, pageId, canvasId: `canvas-${crypto.randomUUID()}` }
+    } else if (request.type === 'canvas.create') {
+      preparedTarget = { projectId: context.canvas.projectId, pageId: request.pageId, canvasId: `canvas-${crypto.randomUUID()}` }
+    }
+
+    return enqueue(async () => {
+      const baseline = await this.getForRoot(context.projectDir)
+      const receipt = [...baseline.receipts].reverse().find(item => item.commandId === request.commandId)
+      if (receipt) {
+        const legacyMatch = !receiptTarget(receipt)
+          && (request.type === 'assets.bind' || request.type === 'assets.unbind')
+          && request.pageId === LEGACY_PAGE_ID && request.canvasId === LEGACY_CANVAS_ID
+          && receipt.requestHash === legacyAssetHash(request)
+        if (receipt.requestHash !== hash && !legacyMatch) {
+          throw errorWithCode('CANVAS_COMMAND_REPLAY', '同一 commandId 的请求内容已变化')
+        }
+        const target = receiptTarget(receipt) ?? requestTarget(baseline, request, preparedTarget)
+        return {
+          ok: true as const,
+          commandId: request.commandId,
+          revision: baseline.revision,
+          receipt: clone(receipt),
+          target,
+          canvas: clone(baseline),
+        }
+      }
+      if (baseline.revision !== request.expectedRevision) {
+        throw errorWithCode(
+          'CANVAS_REVISION_CONFLICT',
+          `画布版本冲突：期望 ${request.expectedRevision}，实际 ${baseline.revision}`,
+        )
+      }
+      const next = clone(baseline)
+      const target = await this.applyCommand(next, request, preparedTarget, context.projectDir)
+      const nextReceipt: CanvasCommandReceipt = {
+        commandId: request.commandId,
+        type: request.type,
+        requestHash: hash,
+        revision: next.revision + 1,
+        appliedAt: new Date().toISOString(),
+        payload: { request: payload, target },
+      }
+      next.revision = nextReceipt.revision
+      next.receipts = [...next.receipts, nextReceipt].slice(-100)
+      next.updatedAt = new Date().toISOString()
+      validateCanvas(next)
+      await writeAtomic(this.file(context.projectDir), next)
+      this.cache.set(context.projectDir, clone(next))
+      for (const listener of this.listeners) listener(clone(next))
+      return {
+        ok: true as const,
+        commandId: request.commandId,
+        revision: next.revision,
+        receipt: clone(nextReceipt),
+        target,
+        canvas: clone(next),
+      }
+    })
+  }
+
+  private async applyCommand(
+    canvas: Canvas,
+    request: CanvasCommandRequest,
+    preparedTarget: CanvasTarget | null,
+    projectDir: string,
+  ): Promise<CanvasTarget> {
+    const projectId = canvas.projectId
+    if (request.type === 'page.create') {
+      if (!preparedTarget) throw errorWithCode('CANVAS_COMMAND_MUTATION', '缺少新创作页目标')
+      const title = normalizeTitle(request.title, canvas.pages.map(page => page.title), '创作页')
+      const document: CanvasDocument = {
+        id: preparedTarget.canvasId,
+        title: '画布 1',
+        nodes: [],
+        edges: [],
+        viewport: null,
+      }
+      canvas.pages.push({ id: preparedTarget.pageId, title, activeCanvasId: document.id, canvases: [document] })
+      canvas.activePageId = preparedTarget.pageId
+      canvas.activeView = 'canvas'
+      return preparedTarget
+    }
+    if (request.type === 'page.rename') {
+      const page = canvas.pages.find(item => item.id === request.pageId)
+      if (!page) throw errorWithCode('CANVAS_TARGET_NOT_FOUND', '目标创作页不存在')
+      page.title = normalizeTitle(request.title, [], '创作页')
+      return { projectId, pageId: page.id, canvasId: page.activeCanvasId }
+    }
+    if (request.type === 'page.delete') {
+      if (canvas.pages.length === 1) throw errorWithCode('CANVAS_LAST_PAGE', '至少需要保留一个创作页')
+      const index = canvas.pages.findIndex(item => item.id === request.pageId)
+      if (index < 0) throw errorWithCode('CANVAS_TARGET_NOT_FOUND', '目标创作页不存在')
+      const page = canvas.pages[index]!
+      const target = { projectId, pageId: page.id, canvasId: page.activeCanvasId }
+      const nonEmpty = page.canvases.length > 1 || page.canvases.some(item => item.nodes.length > 0 || item.edges.length > 0)
+      if (nonEmpty && request.confirmNonEmpty !== true) {
+        throw errorWithCode('CANVAS_CONFIRM_REQUIRED', '删除非空创作页需要确认')
+      }
+      canvas.pages.splice(index, 1)
+      if (canvas.activePageId === page.id) {
+        canvas.activePageId = (canvas.pages[index] ?? canvas.pages[index - 1])!.id
+        canvas.activeView = 'canvas'
+      }
+      return target
+    }
+
+    const page = canvas.pages.find(item => item.id === request.pageId)
+    if (!page) throw errorWithCode('CANVAS_TARGET_NOT_FOUND', '目标创作页不存在')
+    if (request.type === 'canvas.create') {
+      if (!preparedTarget) throw errorWithCode('CANVAS_COMMAND_MUTATION', '缺少新画布目标')
+      const document: CanvasDocument = {
+        id: preparedTarget.canvasId,
+        title: normalizeTitle(request.title, page.canvases.map(item => item.title), '画布'),
+        nodes: [],
+        edges: [],
+        viewport: null,
+      }
+      page.canvases.push(document)
+      page.activeCanvasId = document.id
+      canvas.activePageId = page.id
+      canvas.activeView = 'canvas'
+      return preparedTarget
+    }
+    const documentIndex = page.canvases.findIndex(item => item.id === request.canvasId)
+    if (documentIndex < 0) throw errorWithCode('CANVAS_TARGET_NOT_FOUND', '目标画布不存在')
+    const document = page.canvases[documentIndex]!
+    const target = { projectId, pageId: page.id, canvasId: document.id }
+    if (request.type === 'canvas.rename') {
+      document.title = normalizeTitle(request.title, [], '画布')
+      return target
+    }
+    if (request.type === 'canvas.delete') {
+      if (page.canvases.length === 1) throw errorWithCode('CANVAS_LAST_CANVAS', '每个创作页至少需要保留一个画布')
+      if ((document.nodes.length > 0 || document.edges.length > 0) && request.confirmNonEmpty !== true) {
+        throw errorWithCode('CANVAS_CONFIRM_REQUIRED', '删除非空画布需要确认')
+      }
+      page.canvases.splice(documentIndex, 1)
+      if (page.activeCanvasId === document.id) {
+        page.activeCanvasId = (page.canvases[documentIndex] ?? page.canvases[documentIndex - 1])!.id
+        if (canvas.activePageId === page.id) canvas.activeView = 'canvas'
+      }
+      return target
+    }
+    if (request.type === 'node.move') {
+      if (!validPosition(request.position)) {
+        throw errorWithCode('CANVAS_INVALID_POSITION', '节点 position 必须为有限世界坐标')
+      }
+      const node = document.nodes.find(item => item.id === request.nodeId)
+      if (!node) throw errorWithCode('CANVAS_NOT_FOUND', '目标节点不存在')
+      node.position = { ...request.position }
+      node.updatedAt = new Date().toISOString()
+      return target
+    }
+
+    const node = document.nodes.find(item => item.id === request.nodeId)
+    if (!node) throw errorWithCode('CANVAS_NOT_FOUND', '目标节点不存在')
+    const assetIds = sortedAssetIds(request.assetIds)
+    const assets = await listAssets(undefined, projectDir)
+    const known = new Set(assets.map(asset => asset.id))
+    const missing = assetIds.filter(id => !known.has(id))
+    if (missing.length > 0) {
+      throw errorWithCode('ASSET_NOT_FOUND', `资产不存在：${missing.join('、')}`)
+    }
+    node.assetIds = request.type === 'assets.bind'
+      ? sortedAssetIds([...(node.assetIds ?? []), ...assetIds])
+      : (node.assetIds ?? []).filter(id => !assetIds.includes(id))
+    node.updatedAt = new Date().toISOString()
+    return target
+  }
+
+  /** 活动目标与逐画布 viewport：不增加 revision，不写 receipts。 */
+  async viewState(request: CanvasViewStateRequest): Promise<CanvasViewStateResult> {
+    const context = await this.capture()
+    assertProject(request, context.projectDir)
+    if (request.type === 'viewport.set' && !validViewport(request.viewport)) {
+      throw errorWithCode('CANVAS_INVALID_VIEWPORT', `viewport 必须有限且 zoom 位于 ${MIN_ZOOM}–${MAX_ZOOM}`)
+    }
+    if (request.type === 'active.set' && request.canvasId !== undefined && request.pageId === undefined) {
+      throw errorWithCode('CANVAS_TARGET_NOT_FOUND', '指定 canvasId 时必须同时指定 pageId')
+    }
+    if (request.type === 'active.set' && request.activeView !== undefined
+      && request.activeView !== 'canvas' && request.activeView !== 'stage0') {
+      throw errorWithCode('CANVAS_CORRUPT', 'activeView 无效')
+    }
+
+    return enqueue(async () => {
+      const baseline = await this.getForRoot(context.projectDir)
+      const next = clone(baseline)
+      let target = targetOf(next)
+      if (request.type === 'active.set') {
+        const page = request.pageId === undefined
+          ? next.pages.find(item => item.id === next.activePageId)
+          : next.pages.find(item => item.id === request.pageId)
+        if (!page) throw errorWithCode('CANVAS_TARGET_NOT_FOUND', '目标创作页不存在')
+        if (request.canvasId !== undefined) {
+          const document = page.canvases.find(item => item.id === request.canvasId)
+          if (!document) throw errorWithCode('CANVAS_TARGET_NOT_FOUND', '目标画布不存在')
+          page.activeCanvasId = document.id
+        }
+        if (request.pageId !== undefined) next.activePageId = page.id
+        if (request.activeView !== undefined) next.activeView = request.activeView
+        target = { projectId: next.projectId, pageId: page.id, canvasId: page.activeCanvasId }
+      } else {
+        target = { projectId: next.projectId, pageId: request.pageId, canvasId: request.canvasId }
+        documentAt(next, target).viewport = { ...request.viewport }
+      }
+
+      if (stableStringify(next) === stableStringify(baseline)) {
+        return { ok: true as const, target, canvas: clone(baseline) }
+      }
+      next.updatedAt = new Date().toISOString()
+      validateCanvas(next)
+      await writeAtomic(this.file(context.projectDir), next)
+      this.cache.set(context.projectDir, clone(next))
+      for (const listener of this.listeners) listener(clone(next))
+      return { ok: true as const, target, canvas: clone(next) }
+    })
+  }
+
+  async upsertGate(gate: CanvasGate): Promise<void> {
+    const context = await this.capture()
+    await enqueue(() => this.commitInQueue(context, 'gate.upsert', undefined, {}, canvas => {
+      const index = canvas.gates.findIndex(item => item.gateId === gate.gateId)
+      if (index >= 0) canvas.gates[index] = gate
+      else canvas.gates.push(gate)
+    }))
   }
 }
 

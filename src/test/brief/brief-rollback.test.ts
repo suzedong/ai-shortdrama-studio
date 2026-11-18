@@ -19,6 +19,7 @@ import { writeSessionState } from '../../../electron/project/library'
 import { canvasStore } from '../../../electron/canvas/store'
 import { MANIFEST_FILE } from '../../../electron/project/manifest'
 import type { Canvas, ProjectBrief, ProjectManifest } from '@shared/types'
+import { activeDocument, canvasV4 } from '../canvas-fixtures'
 
 const v1: ProjectBrief = {
   schemaVersion: 2,
@@ -86,8 +87,7 @@ async function seed(): Promise<void> {
   for (const b of [v1, v2, v3]) {
     await fsp.writeFile(path.join(projDir, `立项单.v${b.version}.json`), JSON.stringify(b, null, 2), 'utf-8')
   }
-  const canvas: Canvas = {
-    schemaVersion: 3,
+  const canvas: Canvas = canvasV4({
     revision: 0,
     receipts: [],
     projectId: 'project',
@@ -107,7 +107,7 @@ async function seed(): Promise<void> {
     edges: [],
     gates: [],
     updatedAt: now,
-  }
+  })
   await fsp.writeFile(path.join(projDir, 'canvas.json'), JSON.stringify(canvas, null, 2), 'utf-8')
   writeSessionState({ currentDir: projDir })
   canvasStore.reset()
@@ -231,17 +231,17 @@ describe('feature-004 立项单回滚（rollbackBriefToVersion）', () => {
 
     // AC4：画布 brief 节点 ref 指向 v4、meta.version 更新；下游节点不挂脏（回滚不做影响评估）
     const canvas = await canvasStore.get()
-    const briefNode = canvas.nodes.find(n => n.id === 'step-0-brief')!
+    const briefNode = activeDocument(canvas).nodes.find(n => n.id === 'step-0-brief')!
     expect(briefNode).toMatchObject({
       status: 'done', ref: { path: '立项单.v4.json', format: 'json' }, meta: { version: 'v4' },
     })
-    const scenes = canvas.nodes.find(n => n.id === 'step-1-scenes')!
+    const scenes = activeDocument(canvas).nodes.find(n => n.id === 'step-1-scenes')!
     expect(scenes.dirty).toBeUndefined()
     expect(scenes.parentReference).toEqual({ briefVersion: 3, fields: ['fiveElements.episodeCount', 'fiveElements.genre'] })
 
     // persistInQueue → 自动广播（renderer 经 canvas:changed 重读新版）
     expect(broadcasts.length).toBeGreaterThan(0)
-    expect(broadcasts[broadcasts.length - 1]!.nodes.find(n => n.id === 'step-0-brief')?.meta?.version).toBe('v4')
+    expect(activeDocument(broadcasts[broadcasts.length - 1]!).nodes.find(n => n.id === 'step-0-brief')?.meta?.version).toBe('v4')
     unsubscribe()
   })
 

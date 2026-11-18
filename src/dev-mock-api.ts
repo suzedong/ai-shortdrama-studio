@@ -1,12 +1,81 @@
 // 浏览器预览用 mock：当 Electron preload 未注入 window.api 时，提供空态实现，
 // 方便脱离 Electron 直接在浏览器迭代 UI。生产 Electron 环境下 preload 会覆盖此 mock。
 import type {
-  Canvas, CanvasCommandRequest, CanvasCommandResult,
+  AssetIndexItem, Canvas, CanvasCommandReceipt, CanvasCommandRequest, CanvasCommandResult,
+  CanvasDocument, CanvasPage, CanvasTarget, CanvasViewStateRequest, CanvasViewStateResult, CanvasViewport,
   ProjectBrief, CaptureFile, CapturedFact,
 } from '../shared/types'
-import type { RuntimeStatus } from './lib/runtime-types'
+import type {
+  RuntimeAssetRef,
+  RuntimePromptRequest,
+  RuntimeSessionMessageRecord,
+  RuntimeStatus,
+} from './lib/runtime-types'
 // feature-004：复用主进程 diff 纯函数（type-only 依赖、零 node API，契约 §1 复用表），保证 mock 与真实语义一致
 import { diffBrief } from '../electron/brief/diff'
+
+// 仅用于浏览器交互演示的安全相对路径元数据；不对应真实文件，也不伪造媒体理解。
+const demoAssets: AssetIndexItem[] = [
+  ...['anni', 'linyu', 'xiaotang', 'sumin'].map((name, index): AssetIndexItem => ({
+    id: `a${index + 1}`, kind: 'image', path: `资产/${name}-cast.png`,
+    meta: { originalName: `${name}-cast.png` },
+    createdAt: '2026-09-28T10:00:00.000Z',
+  })),
+  {
+    id: 'v1', kind: 'video', path: '资产/V001.mp4',
+    meta: { originalName: 'V001.mp4' },
+    createdAt: '2026-09-28T10:05:00.000Z',
+  },
+  {
+    id: 'm1', kind: 'music', path: '资产/theme.mp3',
+    meta: { originalName: 'theme.mp3' },
+    createdAt: '2026-09-28T10:06:00.000Z',
+  },
+  {
+    id: 'w1', kind: 'workflow', path: '资产/storyboard.json',
+    meta: { originalName: 'storyboard.json' },
+    createdAt: '2026-09-28T10:07:00.000Z',
+  },
+]
+
+function demoAssetRef(item: AssetIndexItem): RuntimeAssetRef {
+  const originalName = item.meta?.originalName
+  return {
+    assetId: item.id,
+    kind: item.kind,
+    path: item.path,
+    name: typeof originalName === 'string' && originalName.trim()
+      ? originalName
+      : item.path.split('/').pop() ?? item.id,
+  }
+}
+
+function emptyDemoCanvas(projectId: string, title: string): Canvas {
+  const document: CanvasDocument = {
+    id: 'canvas-1',
+    title: '画布 1',
+    nodes: [],
+    edges: [],
+    viewport: null,
+  }
+  return {
+    schemaVersion: 4,
+    projectId,
+    title,
+    activePageId: 'page-1',
+    activeView: 'stage0',
+    pages: [{
+      id: 'page-1',
+      title: '创作页 1',
+      activeCanvasId: document.id,
+      canvases: [document],
+    }],
+    gates: [],
+    revision: 0,
+    receipts: [],
+    updatedAt: new Date().toISOString(),
+  }
+}
 
 // 浏览器预览用 DAG 演示数据：跨 0 立项 → 5 后期六个步骤，
 // 节点无坐标，由 CanvasBoard 按 step 自动分列布局。
@@ -40,17 +109,13 @@ function demoCanvas(): Canvas {
     { id: 'e9', from: 'n-shot-v001', to: 'n-edit', auto: true },
     { id: 'e10', from: 'n-edit', to: 'n-final', auto: true },
   ]
-  return {
-    schemaVersion: 3,
-    projectId: 'anni',
-    title: '安妮的夏天',
-    nodes: nodes as Canvas['nodes'],
-    edges,
-    gates: [],
-    revision: 0,
-    receipts: [],
-    updatedAt: now,
-  }
+  const canvas = emptyDemoCanvas('anni', '安妮的夏天')
+  const document = canvas.pages[0]!.canvases[0]!
+  document.nodes = nodes as CanvasDocument['nodes']
+  document.edges = edges
+  canvas.activeView = 'canvas'
+  canvas.updatedAt = now
+  return canvas
 }
 
 // dev-mock 画布单例 + 订阅广播（模拟主进程 canvasStore 的 canvas:changed）
@@ -63,6 +128,66 @@ function getDemoCanvas(): Canvas {
 }
 
 const DEMO_ASSET_IDS = new Set(['a1', 'a2', 'a3', 'a4', 'v1', 'm1'])
+const DEMO_MIN_ZOOM = 0.25
+const DEMO_MAX_ZOOM = 1.6
+
+function demoCanvasError(code: string, message: string): Error {
+  return Object.assign(new Error(message), { name: code, code })
+}
+
+function activeDemoPage(canvas: Canvas): CanvasPage {
+  const page = canvas.pages.find(item => item.id === canvas.activePageId)
+  if (!page) throw demoCanvasError('CANVAS_TARGET_NOT_FOUND', '活动创作页不存在')
+  return page
+}
+
+function activeDemoDocument(canvas: Canvas): CanvasDocument {
+  const page = activeDemoPage(canvas)
+  const document = page.canvases.find(item => item.id === page.activeCanvasId)
+  if (!document) throw demoCanvasError('CANVAS_TARGET_NOT_FOUND', '活动画布不存在')
+  return document
+}
+
+function assertDemoCanvasProject(request: { projectId: string }, canvas: Canvas): void {
+  if (request.projectId !== canvas.projectId) {
+    throw demoCanvasError('CANVAS_PROJECT_MISMATCH', '画布项目与当前项目不一致')
+  }
+}
+
+function sortedDemoAssetIds(ids: string[]): string[] {
+  return [...new Set(ids)].sort((a, b) => a.localeCompare(b))
+}
+
+function normalizeDemoTitle(title: string | undefined, existing: string[], prefix: '创作页' | '画布'): string {
+  if (title !== undefined) {
+    const normalized = typeof title === 'string' ? title.trim() : ''
+    if (!normalized || normalized.length > 80) {
+      throw demoCanvasError('CANVAS_INVALID_TITLE', '标题 trim 后须为 1–80 个字符')
+    }
+    return normalized
+  }
+  const used = new Set(existing)
+  for (let index = 1; ; index += 1) {
+    const candidate = `${prefix} ${index}`
+    if (!used.has(candidate)) return candidate
+  }
+}
+
+function validDemoPosition(value: unknown): value is { x: number; y: number } {
+  if (typeof value !== 'object' || value === null) return false
+  const position = value as Record<string, unknown>
+  return typeof position.x === 'number' && Number.isFinite(position.x)
+    && typeof position.y === 'number' && Number.isFinite(position.y)
+}
+
+function validDemoViewport(value: unknown): value is CanvasViewport {
+  if (typeof value !== 'object' || value === null) return false
+  const viewport = value as Record<string, unknown>
+  return typeof viewport.x === 'number' && Number.isFinite(viewport.x)
+    && typeof viewport.y === 'number' && Number.isFinite(viewport.y)
+    && typeof viewport.zoom === 'number' && Number.isFinite(viewport.zoom)
+    && viewport.zoom >= DEMO_MIN_ZOOM && viewport.zoom <= DEMO_MAX_ZOOM
+}
 
 function stableValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stableValue)
@@ -77,58 +202,265 @@ function stableValue(value: unknown): unknown {
   return value
 }
 
-async function commandHash(type: string, payload: unknown): Promise<string> {
-  const input = new TextEncoder().encode(JSON.stringify(stableValue({ type, payload })))
+function demoCommandPayload(request: CanvasCommandRequest): Record<string, unknown> {
+  const { commandId: _commandId, expectedRevision: _expectedRevision, ...payload } = request
+  if (request.type === 'assets.bind' || request.type === 'assets.unbind') {
+    return { ...payload, assetIds: sortedDemoAssetIds(request.assetIds) }
+  }
+  return payload
+}
+
+async function commandHash(payload: unknown): Promise<string> {
+  const input = new TextEncoder().encode(JSON.stringify(stableValue(payload)))
   const digest = await globalThis.crypto.subtle.digest('SHA-256', input)
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
-async function executeDemoCanvasCommand(request: CanvasCommandRequest): Promise<CanvasCommandResult> {
-  if (
-    !request.commandId || !Number.isInteger(request.expectedRevision) || request.expectedRevision < 0
-    || !request.nodeId || !Array.isArray(request.assetIds) || request.assetIds.length === 0
-    || request.assetIds.some(id => !id)
-    || (request.type !== 'assets.bind' && request.type !== 'assets.unbind')
-  ) {
-    throw Object.assign(new Error('画布命令参数无效'), { code: 'INVALID_ARGUMENT' })
+function demoReceiptTarget(receipt: CanvasCommandReceipt): CanvasTarget {
+  return structuredClone((receipt.payload as { target: CanvasTarget }).target)
+}
+
+function applyDemoCanvasCommand(canvas: Canvas, request: CanvasCommandRequest, appliedAt: string): CanvasTarget {
+  const projectId = canvas.projectId
+  if (request.type === 'page.create') {
+    const document: CanvasDocument = {
+      id: `canvas-${crypto.randomUUID()}`,
+      title: '画布 1',
+      nodes: [],
+      edges: [],
+      viewport: null,
+    }
+    const page: CanvasPage = {
+      id: `page-${crypto.randomUUID()}`,
+      title: normalizeDemoTitle(request.title, canvas.pages.map(item => item.title), '创作页'),
+      activeCanvasId: document.id,
+      canvases: [document],
+    }
+    canvas.pages.push(page)
+    canvas.activePageId = page.id
+    canvas.activeView = 'canvas'
+    return { projectId, pageId: page.id, canvasId: document.id }
   }
+  if (request.type === 'page.rename') {
+    const page = canvas.pages.find(item => item.id === request.pageId)
+    if (!page) throw demoCanvasError('CANVAS_TARGET_NOT_FOUND', '目标创作页不存在')
+    page.title = normalizeDemoTitle(request.title, [], '创作页')
+    return { projectId, pageId: page.id, canvasId: page.activeCanvasId }
+  }
+  if (request.type === 'page.delete') {
+    if (canvas.pages.length === 1) {
+      throw demoCanvasError('CANVAS_LAST_PAGE', '至少需要保留一个创作页')
+    }
+    const index = canvas.pages.findIndex(item => item.id === request.pageId)
+    if (index < 0) throw demoCanvasError('CANVAS_TARGET_NOT_FOUND', '目标创作页不存在')
+    const page = canvas.pages[index]!
+    const target = { projectId, pageId: page.id, canvasId: page.activeCanvasId }
+    const nonEmpty = page.canvases.length > 1
+      || page.canvases.some(item => item.nodes.length > 0 || item.edges.length > 0)
+    if (nonEmpty && request.confirmNonEmpty !== true) {
+      throw demoCanvasError('CANVAS_CONFIRM_REQUIRED', '删除非空创作页需要确认')
+    }
+    canvas.pages.splice(index, 1)
+    if (canvas.activePageId === page.id) {
+      canvas.activePageId = (canvas.pages[index] ?? canvas.pages[index - 1])!.id
+      canvas.activeView = 'canvas'
+    }
+    return target
+  }
+
+  const page = canvas.pages.find(item => item.id === request.pageId)
+  if (!page) throw demoCanvasError('CANVAS_TARGET_NOT_FOUND', '目标创作页不存在')
+  if (request.type === 'canvas.create') {
+    const document: CanvasDocument = {
+      id: `canvas-${crypto.randomUUID()}`,
+      title: normalizeDemoTitle(request.title, page.canvases.map(item => item.title), '画布'),
+      nodes: [],
+      edges: [],
+      viewport: null,
+    }
+    page.canvases.push(document)
+    page.activeCanvasId = document.id
+    canvas.activePageId = page.id
+    canvas.activeView = 'canvas'
+    return { projectId, pageId: page.id, canvasId: document.id }
+  }
+
+  const documentIndex = page.canvases.findIndex(item => item.id === request.canvasId)
+  if (documentIndex < 0) throw demoCanvasError('CANVAS_TARGET_NOT_FOUND', '目标画布不存在')
+  const document = page.canvases[documentIndex]!
+  const target = { projectId, pageId: page.id, canvasId: document.id }
+  if (request.type === 'canvas.rename') {
+    document.title = normalizeDemoTitle(request.title, [], '画布')
+    return target
+  }
+  if (request.type === 'canvas.delete') {
+    if (page.canvases.length === 1) {
+      throw demoCanvasError('CANVAS_LAST_CANVAS', '每个创作页至少需要保留一个画布')
+    }
+    if ((document.nodes.length > 0 || document.edges.length > 0) && request.confirmNonEmpty !== true) {
+      throw demoCanvasError('CANVAS_CONFIRM_REQUIRED', '删除非空画布需要确认')
+    }
+    page.canvases.splice(documentIndex, 1)
+    if (page.activeCanvasId === document.id) {
+      page.activeCanvasId = (page.canvases[documentIndex] ?? page.canvases[documentIndex - 1])!.id
+      if (canvas.activePageId === page.id) canvas.activeView = 'canvas'
+    }
+    return target
+  }
+  if (request.type === 'node.move') {
+    if (!validDemoPosition(request.position)) {
+      throw demoCanvasError('CANVAS_INVALID_POSITION', '节点 position 必须为有限世界坐标')
+    }
+    const node = document.nodes.find(item => item.id === request.nodeId)
+    if (!node) throw demoCanvasError('CANVAS_NOT_FOUND', '目标节点不存在')
+    node.position = { ...request.position }
+    node.updatedAt = appliedAt
+    return target
+  }
+
+  const node = document.nodes.find(item => item.id === request.nodeId)
+  if (!node) throw demoCanvasError('CANVAS_NODE_NOT_FOUND', '画布节点不存在')
+  const assetIds = sortedDemoAssetIds(request.assetIds)
+  if (assetIds.some(id => !DEMO_ASSET_IDS.has(id))) {
+    throw demoCanvasError('ASSET_NOT_FOUND', '资产不存在')
+  }
+  node.assetIds = request.type === 'assets.bind'
+    ? sortedDemoAssetIds([...(node.assetIds ?? []), ...assetIds])
+    : (node.assetIds ?? []).filter(id => !assetIds.includes(id))
+  node.updatedAt = appliedAt
+  return target
+}
+
+async function executeDemoCanvasCommand(request: CanvasCommandRequest): Promise<CanvasCommandResult> {
+  assertDemoCanvasProject(request, getDemoCanvas())
+  if (
+    typeof request.commandId !== 'string' || request.commandId.length === 0
+    || !Number.isSafeInteger(request.expectedRevision) || request.expectedRevision < 0
+  ) {
+    throw demoCanvasError('CANVAS_COMMAND_MUTATION', '命令 commandId 或 expectedRevision 无效')
+  }
+  if (
+    (request.type === 'assets.bind' || request.type === 'assets.unbind')
+    && (!request.nodeId || !Array.isArray(request.assetIds) || request.assetIds.length === 0
+      || request.assetIds.some(id => typeof id !== 'string' || !id))
+  ) {
+    throw demoCanvasError('INVALID_ARGUMENT', '画布资产命令参数无效')
+  }
+  const payload = demoCommandPayload(request)
+  const hash = await commandHash(payload)
   const current = getDemoCanvas()
-  const assetIds = [...new Set(request.assetIds)].sort()
-  const hash = await commandHash(request.type, { nodeId: request.nodeId, assetIds })
-  const previous = current.receipts.find(receipt => receipt.commandId === request.commandId)
+  const previous = [...current.receipts].reverse().find(receipt => receipt.commandId === request.commandId)
   if (previous) {
     if (previous.requestHash !== hash) {
-      throw Object.assign(new Error(`commandId 已用于其他请求：${request.commandId}`), { code: 'CANVAS_COMMAND_CONFLICT' })
+      throw demoCanvasError('CANVAS_COMMAND_REPLAY', `同一 commandId 的请求内容已变化：${request.commandId}`)
     }
-    return { canvas: current, receipt: previous, replayed: true }
+    return {
+      ok: true,
+      commandId: request.commandId,
+      revision: current.revision,
+      receipt: structuredClone(previous),
+      target: demoReceiptTarget(previous),
+      canvas: current,
+    }
   }
   if (request.expectedRevision !== current.revision) {
-    throw Object.assign(new Error('画布 revision 冲突'), { code: 'CANVAS_REVISION_CONFLICT' })
+    throw demoCanvasError(
+      'CANVAS_REVISION_CONFLICT',
+      `画布版本冲突：期望 ${request.expectedRevision}，实际 ${current.revision}`,
+    )
   }
+
   const next = structuredClone(current)
-  const node = next.nodes.find(item => item.id === request.nodeId)
-  if (!node) throw Object.assign(new Error('画布节点不存在'), { code: 'CANVAS_NODE_NOT_FOUND' })
-  if (assetIds.some(id => !DEMO_ASSET_IDS.has(id))) {
-    throw Object.assign(new Error('资产不存在'), { code: 'ASSET_NOT_FOUND' })
-  }
-  const bound = node.assetIds ?? []
-  node.assetIds = request.type === 'assets.bind'
-    ? [...new Set([...bound, ...assetIds])]
-    : bound.filter(id => !assetIds.includes(id))
   const appliedAt = new Date().toISOString()
-  const receipt = {
+  const target = applyDemoCanvasCommand(next, request, appliedAt)
+  const receipt: CanvasCommandReceipt = {
     commandId: request.commandId,
     type: request.type,
     requestHash: hash,
     revision: current.revision + 1,
     appliedAt,
+    payload: { request: payload, target },
   }
   next.revision = receipt.revision
   next.receipts = [...current.receipts, receipt].slice(-100)
   next.updatedAt = appliedAt
   demoState = next
   for (const listener of demoCanvasListeners) listener(structuredClone(next))
-  return { canvas: structuredClone(next), receipt, replayed: false }
+  return {
+    ok: true,
+    commandId: request.commandId,
+    revision: next.revision,
+    receipt: structuredClone(receipt),
+    target: structuredClone(target),
+    canvas: structuredClone(next),
+  }
+}
+
+async function executeDemoCanvasViewState(request: CanvasViewStateRequest): Promise<CanvasViewStateResult> {
+  const current = getDemoCanvas()
+  assertDemoCanvasProject(request, current)
+  if (request.type === 'viewport.set' && !validDemoViewport(request.viewport)) {
+    throw demoCanvasError(
+      'CANVAS_INVALID_VIEWPORT',
+      `viewport 必须有限且 zoom 位于 ${DEMO_MIN_ZOOM}–${DEMO_MAX_ZOOM}`,
+    )
+  }
+
+  let page: CanvasPage
+  let document: CanvasDocument
+  let activeView = current.activeView
+  if (request.type === 'active.set') {
+    if (request.canvasId !== undefined && request.pageId === undefined) {
+      throw demoCanvasError('CANVAS_TARGET_NOT_FOUND', '指定画布时必须同时指定所属创作页')
+    }
+    page = request.pageId === undefined
+      ? activeDemoPage(current)
+      : current.pages.find(item => item.id === request.pageId)
+        ?? (() => { throw demoCanvasError('CANVAS_TARGET_NOT_FOUND', '目标创作页不存在') })()
+    document = request.canvasId === undefined
+      ? page.canvases.find(item => item.id === page.activeCanvasId)
+        ?? (() => { throw demoCanvasError('CANVAS_TARGET_NOT_FOUND', '目标画布不存在') })()
+      : page.canvases.find(item => item.id === request.canvasId)
+        ?? (() => { throw demoCanvasError('CANVAS_TARGET_NOT_FOUND', '目标画布不存在') })()
+    activeView = request.activeView ?? current.activeView
+  } else {
+    page = current.pages.find(item => item.id === request.pageId)
+      ?? (() => { throw demoCanvasError('CANVAS_TARGET_NOT_FOUND', '目标创作页不存在') })()
+    document = page.canvases.find(item => item.id === request.canvasId)
+      ?? (() => { throw demoCanvasError('CANVAS_TARGET_NOT_FOUND', '目标画布不存在') })()
+  }
+
+  const target = { projectId: current.projectId, pageId: page.id, canvasId: document.id }
+  if (request.type === 'active.set') {
+    if (
+      current.activePageId === page.id && page.activeCanvasId === document.id
+      && current.activeView === activeView
+    ) {
+      return { ok: true, target, canvas: current }
+    }
+  } else if (
+    document.viewport?.x === request.viewport.x
+    && document.viewport.y === request.viewport.y
+    && document.viewport.zoom === request.viewport.zoom
+  ) {
+    return { ok: true, target, canvas: current }
+  }
+
+  const next = structuredClone(current)
+  if (request.type === 'active.set') {
+    const nextPage = next.pages.find(item => item.id === page.id)!
+    nextPage.activeCanvasId = document.id
+    next.activePageId = page.id
+    next.activeView = activeView
+  } else {
+    const nextPage = next.pages.find(item => item.id === page.id)!
+    const nextDocument = nextPage.canvases.find(item => item.id === document.id)!
+    nextDocument.viewport = { ...request.viewport }
+  }
+  next.updatedAt = new Date().toISOString()
+  demoState = next
+  for (const listener of demoCanvasListeners) listener(structuredClone(next))
+  return { ok: true, target, canvas: structuredClone(next) }
 }
 
 // ── feature-005：「已捕获口径」演示库（内存单例 + capture:changed 广播，语义对齐主进程 store.ts U1–U5）──
@@ -661,6 +993,34 @@ export function installDevMockApi(): void {
   const resolve = <T,>(v: T) => Promise.resolve(v)
   let demoComfyInstances: ComfyInstanceConfig[] = []
   let demoComfySequence = 0
+  const demoSessionMessages = new Map<string, RuntimeSessionMessageRecord[]>()
+  let demoSessionSequence = 0
+  let demoMessageSequence = 0
+  const recordDemoPrompt = (req: RuntimePromptRequest): string => {
+    const seen = new Set<string>()
+    const assets: RuntimeAssetRef[] = []
+    for (const ref of req.assetRefs ?? []) {
+      if (seen.has(ref.assetId)) continue
+      seen.add(ref.assetId)
+      const item = demoAssets.find(asset => asset.id === ref.assetId)
+      if (!item) {
+        throw Object.assign(new Error('当前演示项目不存在该资产'), { code: 'ASSET_REF_NOT_FOUND' })
+      }
+      assets.push(demoAssetRef(item))
+    }
+    const messageId = demoMessageSequence === 0 ? 'm-demo' : `m-demo-${demoMessageSequence + 1}`
+    demoMessageSequence += 1
+    const messages = demoSessionMessages.get(req.sessionId) ?? []
+    messages.push({
+      info: { id: messageId, role: 'user' },
+      parts: [
+        { type: 'text', text: req.text },
+        ...assets.map(asset => ({ type: 'asset' as const, text: '' as const, asset })),
+      ],
+    })
+    demoSessionMessages.set(req.sessionId, messages)
+    return messageId
+  }
   const mockComfyError = (code: string, message: string) => Object.assign(new Error(message), { code })
   const normalizeMockComfyUrl = (input: string): string => {
     let url: URL
@@ -708,7 +1068,11 @@ export function installDevMockApi(): void {
       { dir: '/demo/anni', name: '安妮的夏天', updatedAt: new Date().toISOString() },
       { dir: '/demo/jiugang', name: '旧港往事', updatedAt: new Date().toISOString() },
     ]),
-    createProject: (name?: string) => resolve({ dir: `/demo/${name || 'untitled'}` }),
+    createProject: (name?: string) => {
+      const projectId = name || 'untitled'
+      demoState = emptyDemoCanvas(projectId, name?.trim() || '新项目')
+      return resolve({ dir: `/demo/${projectId}` })
+    },
     openProject: () => resolve({ ok: true as const, activeSessionId: null as string | null }),
     // B-19：改名/删除桩（mock 恒成功）
     renameProject: (_dir: string, title: string) => resolve({ ok: true as const, title }),
@@ -836,7 +1200,7 @@ export function installDevMockApi(): void {
       lib.push(next)
       // 画布 n-brief 节点指向新版并广播（对齐主进程 canvasStore.persistInQueue upsert）
       if (demoState) {
-        const n = demoState.nodes.find(nd => nd.id === 'n-brief')
+        const n = activeDemoDocument(demoState).nodes.find(nd => nd.id === 'n-brief')
         if (n) {
           n.ref = { path: `/demo/anni/立项单.v${next.version}.json`, format: 'json' }
           n.meta = { ...n.meta, version: `v${next.version}` }
@@ -909,13 +1273,25 @@ export function installDevMockApi(): void {
       start: () => resolve(stoppedStatus()),
       stop: () => resolve(stoppedStatus()),
       status: () => resolve(stoppedStatus()),
-      createSession: () => resolve({ id: 'sess-demo', title: null, createdAt: new Date().toISOString() }),
+      createSession: (title?: string) => {
+        const id = demoSessionSequence === 0 ? 'sess-demo' : `sess-demo-${demoSessionSequence + 1}`
+        demoSessionSequence += 1
+        demoSessionMessages.set(id, [])
+        return resolve({ id, title: title ?? null, createdAt: new Date().toISOString() })
+      },
       listSessions: () => resolve([]),
-      sessionMessages: () => resolve([]),
+      sessionMessages: (sessionId: string) => resolve(structuredClone(demoSessionMessages.get(sessionId) ?? [])),
       abortSession: () => resolve({ ok: true as const }),
-      deleteSession: () => resolve({ ok: true as const }),
-      prompt: () => resolve({ messageId: 'm-demo', accepted: true as const }),
-      promptAsync: () => resolve({ accepted: true as const, messageId: 'm-demo' }),
+      deleteSession: (sessionId: string) => {
+        demoSessionMessages.delete(sessionId)
+        return resolve({ ok: true as const })
+      },
+      prompt: (req: RuntimePromptRequest) => Promise.resolve().then(() => ({
+        messageId: recordDemoPrompt(req), text: '', structured: null, error: null,
+      })),
+      promptAsync: (req: RuntimePromptRequest) => Promise.resolve().then(() => ({
+        accepted: true as const, messageId: recordDemoPrompt(req),
+      })),
       subscribe: () => resolve({ ok: true as const }),
       unsubscribe: () => resolve({ ok: true as const }),
       listAgents: () => resolve([]),
@@ -926,6 +1302,7 @@ export function installDevMockApi(): void {
     canvas: {
       get: () => resolve(getDemoCanvas()),
       command: (request: CanvasCommandRequest) => executeDemoCanvasCommand(request),
+      viewState: (request: CanvasViewStateRequest) => executeDemoCanvasViewState(request),
       subscribe: () => resolve({ ok: true as const }),
       unsubscribe: () => resolve({ ok: true as const }),
       onChange: (cb: (c: Canvas) => void) => {
@@ -940,16 +1317,14 @@ export function installDevMockApi(): void {
     },
 
     asset: {
-      list: (kind?: string) => resolve(
-        [
-          { id: 'a1', kind: 'image', path: '/demo/assets/anni-cast.png', createdAt: new Date().toISOString() },
-          { id: 'a2', kind: 'image', path: '/demo/assets/linyu-cast.png', createdAt: new Date().toISOString() },
-          { id: 'a3', kind: 'image', path: '/demo/assets/xiaotang-cast.png', createdAt: new Date().toISOString() },
-          { id: 'a4', kind: 'image', path: '/demo/assets/sumin-cast.png', createdAt: new Date().toISOString() },
-          { id: 'v1', kind: 'video', path: '/demo/assets/V001.mp4', createdAt: new Date().toISOString() },
-          { id: 'm1', kind: 'music', path: '/demo/assets/theme.mp3', createdAt: new Date().toISOString() },
-        ].filter(a => !kind || a.kind === kind)
+      list: (kind?: AssetIndexItem['kind']) => resolve(
+        structuredClone(demoAssets.filter(asset => !kind || asset.kind === kind)),
       ),
+      import: () => Promise.reject(Object.assign(
+        new Error('浏览器开发环境不支持真实图片上传，请在 Electron 中操作。'),
+        { code: 'ASSET_IMPORT_UNAVAILABLE' },
+      )),
+      thumbnail: () => resolve({ dataUrl: null }),
     },
 
     fileRead: ({ path }: { path: string }) => {

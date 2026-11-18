@@ -6,12 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Canvas, CanvasNode } from '@shared/types'
 import StudioApp from './StudioApp'
+import { activeDocument, canvasV4 } from '../../test/canvas-fixtures'
 
 function emptyCanvas(): Canvas {
-  return {
-    schemaVersion: 3, projectId: 'p1', title: '', nodes: [], edges: [], gates: [],
+  return canvasV4({
+    projectId: 'p1', title: '', nodes: [], edges: [], gates: [],
     revision: 0, receipts: [], updatedAt: new Date().toISOString(),
-  }
+  })
 }
 
 function canvasNode(partial: Partial<CanvasNode> & Pick<CanvasNode, 'id' | 'step' | 'kind' | 'title' | 'status'>): CanvasNode {
@@ -133,7 +134,7 @@ describe('feature-013 · StudioApp STAGE 0 tooltip', () => {
 
   it('已发布 + 有脏：立项 vN · X 产物已对齐 · Y 待处理（vN 取 brief 与 dirty 较大值）', async () => {
     const c = emptyCanvas()
-    c.nodes = [
+    activeDocument(c).nodes = [
       canvasNode({ id: 'step-0-brief', step: '0', kind: 'brief', title: '立项单', status: 'done', meta: { version: 'v3' } }),
       canvasNode({
         id: 'step-1-outline', step: '1', kind: 'outline', title: '大纲', status: 'done',

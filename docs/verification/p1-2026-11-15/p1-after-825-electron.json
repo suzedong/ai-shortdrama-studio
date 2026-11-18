@@ -1,0 +1,186 @@
+{
+  "feature": "feature-825",
+  "upstream": {
+    "feature": "feature-824",
+    "defect": "F824-01",
+    "deviation": "B-71",
+    "ac": "AC-F10"
+  },
+  "schema": "sdg-p1-electron-acceptance/v1",
+  "startedAt": "2026-11-18T06:37:48.992Z",
+  "runCompleted": true,
+  "ok": true,
+  "environment": {
+    "mode": "recompiled production main + production Renderer assets via Vite preview + real Electron CDP",
+    "electron": "33.4.11",
+    "app": "0.1.0",
+    "codeBaseline": "b617772f18155ac00cf9214fc2a1dd839721db79 + working tree（含 feature-825 修复及既有修改）",
+    "root": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.JVwJyu",
+    "workspace": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.JVwJyu/workspace",
+    "userData": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.JVwJyu/user-data",
+    "fixtures": {
+      "A": "project-f825-a-current",
+      "B": "project-f825-b-normal",
+      "G": "project-f825-g-bad-canvas",
+      "X": "project-f825-x-mismatch",
+      "M": "project-f825-m-no-manifest"
+    }
+  },
+  "isolation": {
+    "cwd": "/Users/szd/Documents/Code/ai-shortdrama-studio",
+    "home": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.JVwJyu/home",
+    "tmp": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.JVwJyu/tmp",
+    "npmCache": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.JVwJyu/npm-cache",
+    "realUserProjectDirsOpened": false,
+    "f824EvidenceTouched": false,
+    "harnessActions": {
+      "explicitAgentStarts": 0,
+      "agentPromptRequests": 0,
+      "generationRequests": 0,
+      "mediaRequests": 0
+    }
+  },
+  "checks": {
+    "AC-825-1": {
+      "status": "pass",
+      "actual": {
+        "visibleCanvasError": true,
+        "currentDir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.JVwJyu/workspace/project-f825-a-current",
+        "sessionStateUnchanged": true,
+        "aSessionUnchanged": true,
+        "gSessionUnchanged": true,
+        "canvasGet": {
+          "projectId": "project-f825-a-current",
+          "title": "F825 项目 A 原项目"
+        },
+        "badCanvasUnchanged": true
+      }
+    },
+    "AC-825-2": {
+      "status": "pass",
+      "actual": {
+        "targetBroadcastCount": 0,
+        "events": [],
+        "selectedA": {
+          "present": true,
+          "disabled": true,
+          "classes": "mb-[3px] flex w-full items-center gap-2.5 rounded-[10px] border p-2 text-left transition disabled:opacity-100 border-violet/30 bg-violet-soft"
+        },
+        "selectedG": {
+          "present": true,
+          "disabled": false,
+          "classes": "mb-[3px] flex w-full items-center gap-2.5 rounded-[10px] border p-2 text-left transition disabled:opacity-100 border-transparent hover:bg-canvas"
+        },
+        "screenshot": "p1-after-825-bad-canvas.png"
+      }
+    },
+    "AC-825-4": {
+      "status": "pass",
+      "actual": {
+        "outsideResult": {
+          "ok": false,
+          "error": {
+            "name": "Error",
+            "message": "Error invoking remote method 'project:open': Error: 非法的项目目录",
+            "code": "",
+            "stack": "Error: Error invoking remote method 'project:open': Error: 非法的项目目录"
+          }
+        },
+        "missingManifestResult": {
+          "ok": false,
+          "error": {
+            "name": "Error",
+            "message": "Error invoking remote method 'project:open': Error: 项目目录已损坏或不存在",
+            "code": "",
+            "stack": "Error: Error invoking remote method 'project:open': Error: 项目目录已损坏或不存在"
+          }
+        },
+        "mismatchResult": {
+          "ok": false,
+          "error": {
+            "name": "Error",
+            "message": "Error invoking remote method 'project:open': CANVAS_PROJECT_MISMATCH: 画布 projectId 与项目目录不一致",
+            "code": "",
+            "stack": "Error: Error invoking remote method 'project:open': CANVAS_PROJECT_MISMATCH: 画布 projectId 与项目目录不一致"
+          }
+        },
+        "currentDir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.JVwJyu/workspace/project-f825-a-current",
+        "canvasProjectId": "project-f825-a-current",
+        "sessionsUnchanged": true
+      }
+    },
+    "AC-825-3": {
+      "status": "pass",
+      "actual": {
+        "currentDir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.JVwJyu/workspace/project-f825-b-normal",
+        "canvas": {
+          "projectId": "project-f825-b-normal",
+          "title": "F825 项目 B 正常"
+        },
+        "renderer": {
+          "topTitle": "短剧 Agent · F825 项目 B 正常",
+          "stage0Title": "F825 项目 B 正常"
+        },
+        "session": {
+          "activeSessionId": "session-f825-b",
+          "lastOpenedAtChanged": true
+        },
+        "selectedB": {
+          "present": true,
+          "disabled": true,
+          "classes": "mb-[3px] flex w-full items-center gap-2.5 rounded-[10px] border p-2 text-left transition disabled:opacity-100 border-violet/30 bg-violet-soft"
+        },
+        "screenshot": "p1-after-825-normal-open.png"
+      }
+    },
+    "AC-825-5": {
+      "status": "pass",
+      "actual": {
+        "badFailureRemainedA": true,
+        "normalOpenSwitchedB": true,
+        "domAndMainProcessConsistent": true,
+        "screenshots": [
+          "p1-after-825-bad-canvas.png",
+          "p1-after-825-normal-open.png"
+        ]
+      }
+    }
+  },
+  "rendererExceptions": [],
+  "consoleErrors": [],
+  "hashes": {
+    "gValidBeforeInjection": "ad4f83618d967526f9ccb7c28befd3fb1f5f307daeeadfe08bd4fda04384ab6e",
+    "gBadInjected": "edaea98cc9a35bccec717f391e849237c6b5c1fb21783efc4396bf0a124712ec",
+    "gBadAfterOpen": "edaea98cc9a35bccec717f391e849237c6b5c1fb21783efc4396bf0a124712ec",
+    "gRestoredAfterEvidence": "ad4f83618d967526f9ccb7c28befd3fb1f5f307daeeadfe08bd4fda04384ab6e"
+  },
+  "logs": [
+    "[2026-11-18T06:37:49.247Z] [vite] \u001b[32m➜\u001b[39m  \u001b[1mLocal\u001b[22m:   \u001b[36mhttp://127.0.0.1:\u001b[1m50053\u001b[22m/\u001b[39m",
+    "[2026-11-18T06:37:49.507Z] vite preview ready 50053",
+    "[2026-11-18T06:37:49.508Z] electron spawned {\"cdp\":50052,\"userData\":\"/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.JVwJyu/user-data\"}",
+    "[2026-11-18T06:37:50.067Z] [electron:err] DevTools listening on ws://127.0.0.1:50052/devtools/browser/a88f7499-7d1b-4820-ac55-0e67a23f433e",
+    "[2026-11-18T06:37:50.166Z] [electron:err] [60823:1118/143750.165710:WARNING:viz_main_impl.cc(85)] VizNullHypothesis is disabled (not a warning)",
+    "[2026-11-18T06:37:50.449Z] [electron:err] [60818:1118/143750.449135:INFO:CONSOLE(2)] \"%cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security\n  Policy set or a policy with \"unsafe-eval\" enabled. This exposes users of\n  this app to unnecessary security risks.\n\nFor more information and help, consult\nhttps://electronjs.org/docs/tutorial/security.\nThis warning will not show up\nonce the app is packaged.\", source: node:electron/js2c/sandbox_bundle (2)",
+    "[2026-11-18T06:37:50.458Z] [electron:err] Error occurred in handler for 'style:catalog': Error: 视觉风格谱系 md 读取失败（/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/electron@33.4.11/node_modules/electron/dist/Electron.app/Contents/Resources/H3-Style/AI短剧制作视觉风格谱系.md）：ENOENT: no such file or directory, open '/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/electron@33.4.11/node_modules/electron/dist/Electron.app/Contents/Resources/H3-Style/AI短剧制作视觉风格谱系.md'\n    at styleError (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/style/loader.js:16:26)\n    at loadStyleCatalog (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/style/loader.js:89:15)\n    at async file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/main.js:384:21\n    at async WebContents.<anonymous> (node:electron/js2c/browser_init:2:87023) {\n  code: 'STYLE_CATALOG_MISSING'\n}",
+    "[2026-11-18T06:37:50.552Z] [electron:err] [60818:1118/143750.552123:ERROR:CONSOLE(1)] \"Unknown VE context: language-mismatch    at new He (devtools://devtools/bundled/ui/legacy/legacy.js:1:98356)\n    at devtools://devtools/bundled/ui/legacy/legacy.js:1:191793\n    at new oi (devtools://devtools/bundled/ui/legacy/legacy.js:1:192189)\n    at oi.instance (devtools://devtools/bundled/ui/legacy/legacy.js:1:192311)\n    at H.presentUI (devtools://devtools/bundled/entrypoints/main/main.js:1:27708)\n    at #I (devtools://devtools/bundled/entrypoints/main/main.js:1:17314)\n    at #x (devtools://devtools/bundled/entrypoints/main/main.js:1:17109)\", source: devtools://devtools/bundled/ui/visual_logging/visual_logging.js (1)",
+    "[2026-11-18T06:37:50.755Z] [electron:err] [60818:1118/143750.751611:ERROR:CONSOLE(1)] \"Request Autofill.enable failed. {\"code\":-32601,\"message\":\"'Autofill.enable' wasn't found\"}\", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)\n[60818:1118/143750.751659:ERROR:CONSOLE(1)] \"Request Autofill.setAddresses failed. {\"code\":-32601,\"message\":\"'Autofill.setAddresses' wasn't found\"}\", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)",
+    "[2026-11-18T06:37:50.839Z] [electron:err] [60818:1118/143750.838241:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)\n[60818:1118/143750.838340:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)",
+    "[2026-11-18T06:37:50.840Z] [electron:err] [60818:1118/143750.840046:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)\n[60818:1118/143750.840072:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)\n[60818:1118/143750.840081:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)\n[60818:1118/143750.840102:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)",
+    "[2026-11-18T06:37:50.847Z] [electron:err] [60818:1118/143750.840110:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)\n[60818:1118/143750.840122:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)\n[60818:1118/143750.840130:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)\n[60818:1118/143750.840138:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)\n[60818:1118/143750.840146:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)\n[60818:1118/143750.840153:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)\n[60818:1118/143750.840161:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)\n[60818:1118/143750.840168:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)\n[60818:1118/143750.840175:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)\n[60818:1118/143750.840183:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)\n[60818:1118/143750.840190:WARNING:CONSOLE(1)] \"The 'inset-area' property has been deprecated, and will be removed from this browser very soon. Please use the 'position-area' property instead.\", source: devtools://devtools/bundled/core/sdk/sdk.js (1)",
+    "[2026-11-18T06:37:50.856Z] CDP ready {\"cdp\":50052}",
+    "[2026-11-18T06:37:50.932Z] [electron:err] Error occurred in handler for 'project:open': CANVAS_CORRUPT: 画布文件损坏，已停止加载；请修复或从归档恢复\n    at errorWithCode (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/canvas/store.js:14:26)\n    at CanvasStore.readFromDisk (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/canvas/store.js:367:19)\n    at async CanvasStore.assertReadable (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/canvas/store.js:376:9)\n    at async file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/project/library.js:134:9 {\n  code: 'CANVAS_CORRUPT',\n  cause: SyntaxError: Unexpected end of JSON input\n      at JSON.parse (<anonymous>)\n      at CanvasStore.readFromDisk (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/canvas/store.js:362:41)\n      at async CanvasStore.assertReadable (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/canvas/store.js:376:9)\n      at async file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/project/library.js:134:9\n}",
+    "[2026-11-18T06:37:51.559Z] [electron:err] Error occurred in handler for 'project:open': Error: 非法的项目目录\n    at assertProjectDir (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/project/library.js:39:21)\n    at openProject (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/project/library.js:124:22)\n    at file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/main.js:139:12\n    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87039)\n    at WebContents.emit (node:events:518:28) {\n  code: 'INVALID_PROJECT_DIR'\n}",
+    "[2026-11-18T06:37:51.560Z] [electron:err] Error occurred in handler for 'project:open': Error: 项目目录已损坏或不存在\n    at openProject (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/project/library.js:129:21)\n    at async WebContents.<anonymous> (node:electron/js2c/browser_init:2:87023) {\n  code: 'PROJECT_NOT_FOUND'\n}",
+    "[2026-11-18T06:37:51.562Z] [electron:err] Error occurred in handler for 'project:open': CANVAS_PROJECT_MISMATCH: 画布 projectId 与项目目录不一致\n    at errorWithCode (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/canvas/store.js:14:26)\n    at CanvasStore.readFromDisk (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/canvas/store.js:370:19)\n    at async CanvasStore.assertReadable (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/canvas/store.js:376:9)\n    at async file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/project/library.js:134:9 {\n  code: 'CANVAS_PROJECT_MISMATCH',\n  cause: undefined\n}",
+    "[2026-11-18T06:37:52.051Z] [electron:err] Error occurred in handler for 'runtime:session:messages': SESSION_NOT_FOUND: 会话不存在或已删除\n    at makeError (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/runtime/client.js:599:17)\n    at mapHttpError (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/runtime/client.js:574:16)\n    at OpencodeRuntimeClient.getSessionMessages (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/runtime/client.js:86:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async withRuntime (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/main.js:532:16)\n    at async WebContents.<anonymous> (node:electron/js2c/browser_init:2:87023)",
+    "[2026-11-18T06:37:52.052Z] [electron:err] Error occurred in handler for 'runtime:session:messages': SESSION_NOT_FOUND: 会话不存在或已删除\n    at makeError (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/runtime/client.js:599:17)\n    at mapHttpError (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/runtime/client.js:574:16)\n    at OpencodeRuntimeClient.getSessionMessages (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/runtime/client.js:86:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async withRuntime (file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/main.js:532:16)\n    at async WebContents.<anonymous> (node:electron/js2c/browser_init:2:87023)",
+    "[2026-11-18T06:37:52.485Z] [electron exit] {\"code\":0,\"signal\":null}"
+  ],
+  "observedExistingFlows": {
+    "runtimeSessionNotFound": 2,
+    "styleCatalogMissing": 1,
+    "note": "既有项目切换后的历史会话恢复可能惰性启动本地 runtime；本 harness 未发送 prompt、生成或媒体请求。"
+  },
+  "gRestored": true,
+  "finishedAt": "2026-11-18T06:37:52.787Z"
+}

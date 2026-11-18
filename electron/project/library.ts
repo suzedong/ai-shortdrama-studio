@@ -135,6 +135,7 @@ export async function createProject(name?: string): Promise<{ dir: string }> {
 // feature-808：旧四字段文件打开后定型为五字段（activeSessionId 读出保留，无则 null）
 export async function openProject(
   dir: string,
+  beforeCommit?: (resolvedDir: string) => Promise<void>,
 ): Promise<{ ok: true; activeSessionId: string | null }> {
   const resolved = assertProjectDir(dir)
   try {
@@ -145,6 +146,7 @@ export async function openProject(
     throw err
   }
   return enqueue(async () => {
+    await beforeCommit?.(resolved)
     const nowIso = new Date().toISOString()
     let info: Partial<ProjectSession> = {}
     try {

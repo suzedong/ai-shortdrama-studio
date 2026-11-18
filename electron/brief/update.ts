@@ -158,8 +158,8 @@ export async function updateBriefFields(
     }
 
     // 复算影响（纯函数，不信任任何传入清单）→ decisions 恒全 'mark'（D-017：仅挂脏）
-    const canvas0 = await canvasStore.get()
-    const assessment = assessImpact(changes, canvas0, fromVersion)
+    const canvasContext = await canvasStore.capture()
+    const assessment = assessImpact(changes, canvasContext.canvas, fromVersion)
 
     // 写前固定目标槽位并记录原态：publishBriefFiles 内部 JSON 成功、MD 失败时，
     // 外层尚未取得返回值，仍须能补偿已经发生的半写。
@@ -217,12 +217,12 @@ export async function updateBriefFields(
       const markedDirty = assessment.items.map(i => i.nodeId)
       // feature-806 B-46：挂脏写入 markedAt（整批同一时间戳；重复挂脏整体覆盖即刷新）
       const markedAt = new Date().toISOString()
-      await canvasStore.persistInQueue(c => {
+      await canvasStore.persistInQueue((_c, document) => {
         for (const item of assessment.items) {
-          const idx = c.nodes.findIndex(x => x.id === item.nodeId)
+          const idx = document.nodes.findIndex(x => x.id === item.nodeId)
           if (idx < 0) continue // assess 候选来自当前画布，理论必在
-          const old = c.nodes[idx]!
-          c.nodes[idx] = {
+          const old = document.nodes[idx]!
+          document.nodes[idx] = {
             ...old,
             dirty: {
               sinceBriefVersion: fromVersion,
@@ -234,11 +234,11 @@ export async function updateBriefFields(
             },
           }
         }
-        const bIdx = c.nodes.findIndex(x => x.id === written.briefNode.id)
+        const bIdx = document.nodes.findIndex(x => x.id === written.briefNode.id)
         const { linksTo: _links, ...briefNode } = written.briefNode
-        if (bIdx >= 0) c.nodes[bIdx] = briefNode
-        else c.nodes.push(briefNode)
-      })
+        if (bIdx >= 0) document.nodes[bIdx] = briefNode
+        else document.nodes.push(briefNode)
+      }, canvasContext)
 
       return {
         version: toVersion,

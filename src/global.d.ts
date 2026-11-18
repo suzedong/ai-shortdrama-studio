@@ -2,6 +2,7 @@
 // 渲染进程全局类型声明 —— 对应 electron/preload.ts 暴露的 API
 import type {
   Canvas, CanvasGate, CanvasCommandRequest, CanvasCommandResult,
+  CanvasViewStateRequest, CanvasViewStateResult,
   ComfyInstance, AssetIndexItem, BriefChange, ProjectBrief, ProjectKind,
   CaptureFile, CapturedFact,
 } from '../shared/types'
@@ -272,6 +273,7 @@ declare global {
       canvas: {
         get(): Promise<Canvas | null>
         command(request: CanvasCommandRequest): Promise<CanvasCommandResult>
+        viewState(request: CanvasViewStateRequest): Promise<CanvasViewStateResult>
         subscribe(): Promise<{ ok: true }>
         unsubscribe(): Promise<{ ok: true }>
         onChange(cb: (canvas: Canvas) => void): () => void
@@ -291,6 +293,11 @@ declare global {
       }
       asset: {
         list(kind?: AssetIndexItem['kind']): Promise<AssetIndexItem[]>
+        import(): Promise<
+          | { status: 'imported'; asset: AssetIndexItem }
+          | { status: 'cancelled' }
+        >
+        thumbnail(assetId: string): Promise<{ dataUrl: string | null }>
       }
       // 只读产物查看
       fileRead(arg: { path: string }): Promise<

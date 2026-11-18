@@ -9,7 +9,8 @@ vi.mock('electron', () => ({ app: { getPath: () => holder.userData } }))
 import { CanvasStore } from '../../../electron/canvas/store'
 import { registerAsset } from '../../../electron/asset/index'
 import { writeSessionState } from '../../../electron/project/library'
-import type { CanvasNode } from '@shared/types'
+import type { Canvas, CanvasNode } from '@shared/types'
+import { activeDocument } from '../canvas-fixtures'
 
 let tmpRoot = ''
 let projDir = ''
@@ -37,6 +38,15 @@ function canvasFile(): string {
   return path.join(projDir, 'canvas.json')
 }
 
+async function scopeFor(store: CanvasStore) {
+  const canvas = await store.get()
+  return {
+    projectId: canvas.projectId,
+    pageId: canvas.activePageId,
+    canvasId: activeDocument(canvas).id,
+  }
+}
+
 describe('feature-814 · 命令 revision / 回执 / 迁移', () => {
   it('同一 commandId + 同一请求返回原回执，零写盘零广播', async () => {
     const store = new CanvasStore()
@@ -46,7 +56,9 @@ describe('feature-814 · 命令 revision / 回执 / 迁移', () => {
     store.subscribe(canvas => seen.push(canvas.revision))
     const rename = vi.spyOn(fsp, 'rename')
 
-    const replay = await store.updateWithCommand(request, { commandId: 'cmd-1', expectedRevision: 0 })
+    const replay = await store.updateWithCommand(request, {
+      commandId: 'cmd-1', expectedRevision: first.receipt.revision,
+    })
 
     expect(replay.replayed).toBe(true)
     expect(replay.receipt).toEqual(first.receipt)
@@ -73,10 +85,10 @@ describe('feature-814 · 命令 revision / 回执 / 迁移', () => {
     expect(listener).not.toHaveBeenCalled()
   })
 
-  it('v2 旧档读入迁移，首次成功命令落 v3 且保留业务字段', async () => {
+  it('v2 旧档读入懒迁移为 v4，首次成功命令保留业务字段', async () => {
     const old = {
       schemaVersion: 2,
-      projectId: 'legacy',
+      projectId: path.basename(projDir),
       title: '旧项目',
       nodes: [node('legacy')],
       edges: [],
@@ -87,11 +99,12 @@ describe('feature-814 · 命令 revision / 回执 / 迁移', () => {
     const store = new CanvasStore()
 
     const loaded = await store.get()
-    expect(loaded).toMatchObject({ schemaVersion: 3, revision: 0, receipts: [], title: '旧项目' })
+    expect(loaded).toMatchObject({ schemaVersion: 4, revision: 0, receipts: [], title: '旧项目' })
+    expect(activeDocument(loaded).nodes.map(item => item.id)).toEqual(['legacy'])
     await store.updateWithCommand({ nodes: [node('next')] }, { commandId: 'migrate-1' })
-    const disk = JSON.parse(await fsp.readFile(canvasFile(), 'utf-8'))
-    expect(disk).toMatchObject({ schemaVersion: 3, revision: 1 })
-    expect(disk.nodes.map((item: CanvasNode) => item.id)).toEqual(['legacy', 'next'])
+    const disk = JSON.parse(await fsp.readFile(canvasFile(), 'utf-8')) as Canvas
+    expect(disk).toMatchObject({ schemaVersion: 4, revision: 1 })
+    expect(activeDocument(disk).nodes.map(item => item.id)).toEqual(['legacy', 'next'])
   })
 
   it('坏 JSON 抛 CANVAS_CORRUPT，磁盘原文不被空画布覆盖', async () => {
@@ -123,36 +136,44 @@ describe('feature-814 · 节点资产关联', () => {
   it('绑定去重、重放、解绑，普通 update 省略 assetIds 时保留', async () => {
     const store = new CanvasStore()
     await store.update({ nodes: [node('a')] })
+    const scope = await scopeFor(store)
     const { assetId } = await registerAsset({ kind: 'image', path: '资产/参考/a.png', sourceJobId: 'job-1' })
     let canvas = await store.get()
 
     const bound = await store.command({
+      ...scope,
       commandId: 'bind-1', expectedRevision: canvas.revision, type: 'assets.bind',
       nodeId: 'a', assetIds: [assetId, assetId],
     })
-    expect(bound.canvas.nodes[0]?.assetIds).toEqual([assetId])
+    expect(activeDocument(bound.canvas).nodes[0]?.assetIds).toEqual([assetId])
     const replay = await store.command({
-      commandId: 'bind-1', expectedRevision: 0, type: 'assets.bind',
+      ...scope,
+      commandId: 'bind-1', expectedRevision: bound.receipt.revision, type: 'assets.bind',
       nodeId: 'a', assetIds: [assetId],
     })
-    expect(replay.replayed).toBe(true)
+    expect(replay).not.toHaveProperty('replayed')
+    expect(replay.receipt).toEqual(bound.receipt)
 
     canvas = await store.update({ nodes: [node('a', 'renamed')] })
-    expect(canvas.nodes[0]).toMatchObject({ title: 'renamed', assetIds: [assetId] })
+    expect(activeDocument(canvas).nodes[0]).toMatchObject({ title: 'renamed', assetIds: [assetId] })
     const unbound = await store.command({
+      ...scope,
       commandId: 'unbind-1', expectedRevision: canvas.revision, type: 'assets.unbind',
       nodeId: 'a', assetIds: [assetId],
     })
-    expect(unbound.canvas.nodes[0]?.assetIds).toEqual([])
+    expect(activeDocument(unbound.canvas).nodes[0]?.assetIds).toEqual([])
   })
 
   it('未知节点和资产在校验阶段失败', async () => {
     const store = new CanvasStore()
     await store.update({ nodes: [node('a')] })
+    const scope = await scopeFor(store)
     await expect(store.command({
+      ...scope,
       commandId: 'bad-node', expectedRevision: 1, type: 'assets.bind', nodeId: 'missing', assetIds: ['x'],
-    })).rejects.toMatchObject({ code: 'CANVAS_NODE_NOT_FOUND' })
+    })).rejects.toMatchObject({ code: 'CANVAS_NOT_FOUND' })
     await expect(store.command({
+      ...scope,
       commandId: 'bad-asset', expectedRevision: 1, type: 'assets.bind', nodeId: 'a', assetIds: ['x'],
     })).rejects.toMatchObject({ code: 'ASSET_NOT_FOUND' })
     expect((await store.get()).revision).toBe(1)

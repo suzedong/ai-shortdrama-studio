@@ -4,22 +4,28 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { Canvas } from '@shared/types'
+import type { AssetIndexItem, Canvas } from '@shared/types'
 import type { ReplayMessageRecord } from '../../lib/history-replay'
 import type { RuntimeEvent } from '../../lib/runtime-types'
 import StudioApp from './StudioApp'
+import { canvasV4 } from '../../test/canvas-fixtures'
 
 function canvasOf(projectId: string, title = ''): Canvas {
-  return {
-    schemaVersion: 3, projectId, title, nodes: [], edges: [], gates: [],
+  return canvasV4({
+    projectId, title, nodes: [], edges: [], gates: [],
     revision: 0, receipts: [], updatedAt: new Date().toISOString(),
-  }
+  })
 }
 
 const RUNNING = {
   state: 'running' as const, port: 0, version: '1.18.34', healthy: true,
   startedAt: null, error: null,
 }
+
+const PROMPT_ASSETS: AssetIndexItem[] = [{
+  id: 'a1', kind: 'image', path: 'assets/images/cover.png', createdAt: '2026-01-01',
+  meta: { originalName: '封面.png' },
+}]
 
 interface Deferred<T> { promise: Promise<T>; resolve: (v: T) => void }
 function defer<T>(): Deferred<T> {
@@ -40,11 +46,15 @@ interface Harness {
   unsubscribe: ReturnType<typeof vi.fn>
   abortSession: ReturnType<typeof vi.fn>
   promptAsync: ReturnType<typeof vi.fn>
+  assets: AssetIndexItem[]
+  assetList: ReturnType<typeof vi.fn>
+  assetThumbnail: ReturnType<typeof vi.fn>
   // D-013：健康探测可配置（默认 RUNNING healthy）
   status: ReturnType<typeof vi.fn>
   start: ReturnType<typeof vi.fn>
   emitRuntime: (e: RuntimeEvent) => void
   emitCanvas: (c: Canvas) => void
+  get: ReturnType<typeof vi.fn>
 }
 
 function installApi(
@@ -78,10 +88,16 @@ function installApi(
     unsubscribe: vi.fn(async () => ({ ok: true as const })),
     abortSession: vi.fn(async () => ({ ok: true as const })),
     promptAsync: vi.fn(async () => ({ accepted: true as const, messageId: 'msg-1' })),
+    assets: PROMPT_ASSETS.map(item => ({ ...item })),
+    assetList: vi.fn(() => Promise.resolve(h.assets.map(item => ({ ...item })))),
+    assetThumbnail: vi.fn(async (assetId: string) => ({
+      dataUrl: assetId === 'a1' ? 'data:image/webp;base64,QUJD' : null,
+    })),
     status: vi.fn(async () => RUNNING),
     start: vi.fn(async () => RUNNING),
     emitRuntime: e => act(() => runtimeCbs.forEach(cb => cb(e))),
     emitCanvas: c => act(() => canvasCbs.forEach(cb => cb(c))),
+    get: vi.fn(async () => initial),
   }
 
   window.api = {
@@ -97,10 +113,14 @@ function installApi(
       onEvent: vi.fn(cb => { runtimeCbs.add(cb); return () => runtimeCbs.delete(cb) }),
     },
     canvas: {
-      get: vi.fn(async () => initial),
+      get: h.get,
       subscribe: vi.fn(async () => ({ ok: true as const })),
       unsubscribe: vi.fn(async () => ({ ok: true as const })),
       onChange: vi.fn(cb => { canvasCbs.add(cb); return () => canvasCbs.delete(cb) }),
+    },
+    asset: {
+      list: h.assetList,
+      thumbnail: h.assetThumbnail,
     },
     gate: {
       decide: vi.fn(async () => ({ ok: true as const })),
@@ -401,9 +421,11 @@ describe('feature-808 · 会话续聊（契约 §6.3）', () => {
     // 切到项目 B
     h.records.set('sess-B', recordsB)
     h.binding.sessionId = 'sess-B'
-    h.emitCanvas(canvasOf('pB'))
+    const next = canvasOf('pB')
+    h.get.mockResolvedValue(next)
+    h.emitCanvas(next)
     expect(screen.getByTestId('chat-history-loading')).toBeInTheDocument()
-    expect(screen.queryByText('A 流式回复')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('A 流式回复')).not.toBeInTheDocument())
 
     expect(await screen.findByText('B 历史提问')).toBeInTheDocument()
     expect(screen.getByText('B 历史回复')).toBeInTheDocument()
@@ -509,5 +531,118 @@ describe('feature-808 · 会话续聊（契约 §6.3）', () => {
       expect(await screen.findByTestId('chat-ai-down'))
         .toHaveTextContent('AI 服务调用失败：方舟余额不足')
     })
+  })
+})
+
+describe('feature-822 · 对话资产引用集成', () => {
+  async function selectAsset(assetId = 'a1') {
+    await user.click(screen.getByTestId('asset-picker-toggle'))
+    await user.click(await screen.findByTestId(`asset-option-${assetId}`))
+  }
+
+  it('发送只提交 assetId，乐观气泡保留安全 chip 快照', async () => {
+    const h = installApi(canvasOf('pA'))
+    h.binding.sessionId = 'sess-A'
+    h.records.set('sess-A', [])
+    render(<StudioApp />)
+    await waitFor(() => expect(h.sessionMessages).toHaveBeenCalledWith('sess-A'))
+
+    await selectAsset()
+    await user.type(screen.getByPlaceholderText(/描述创作目标/), '参考封面续写')
+    await user.click(screen.getByTestId('chat-send'))
+
+    await waitFor(() => expect(h.promptAsync).toHaveBeenCalledTimes(1))
+    expect(h.promptAsync).toHaveBeenCalledWith({
+      sessionId: 'sess-A',
+      text: '参考封面续写',
+      agent: 'showrunner',
+      model: { providerID: 'ark', modelID: 'doubao-pro-32k' },
+      assetRefs: [{ assetId: 'a1' }],
+    })
+    const request = h.promptAsync.mock.calls[0][0]
+    expect(JSON.stringify(request)).not.toContain('assets/images')
+    expect(JSON.stringify(request)).not.toContain('封面.png')
+    expect(screen.getByTestId('asset-chip-a1')).toHaveTextContent('@图片封面.png')
+    expect(screen.queryByTestId('selected-asset-chips')).not.toBeInTheDocument()
+  })
+
+  it('重开会话恢复历史 chip，当前索引缺失项显示不可用且不伪造删除', async () => {
+    const h = installApi(canvasOf('pA'))
+    h.binding.sessionId = 'sess-A'
+    h.records.set('sess-A', [{
+      info: { id: 'u-assets', role: 'user' },
+      parts: [
+        { type: 'text', text: '历史资产提问' },
+        {
+          type: 'asset', text: '',
+          asset: { assetId: 'a1', kind: 'image', path: 'assets/images/cover.png', name: '封面.png' },
+        },
+        {
+          type: 'asset', text: '',
+          asset: { assetId: 'gone', kind: 'video', path: 'assets/video/gone.mp4', name: '已删除.mp4' },
+        },
+      ],
+    }])
+    render(<StudioApp />)
+
+    expect(await screen.findByText('历史资产提问')).toBeInTheDocument()
+    expect(await screen.findByText(/资产不可用/)).toBeInTheDocument()
+    expect(screen.getByTestId('asset-chip-a1')).not.toHaveTextContent('资产不可用')
+    expect(screen.queryByRole('button', { name: '移除资产 已删除.mp4' })).not.toBeInTheDocument()
+    expect(document.body.textContent).not.toContain('file://')
+  })
+
+  it('资产请求失败时移除乐观气泡、恢复草稿，且 IPC 包装与路径不进入错误展示', async () => {
+    const h = installApi(canvasOf('pA'))
+    h.binding.sessionId = 'sess-A'
+    h.records.set('sess-A', [])
+    h.promptAsync.mockRejectedValueOnce(new Error(
+      "Error invoking remote method 'runtime:prompt:async': Error: open '/private/f822-secret/cover.png' file:///private/f822-secret/cover.png",
+    ))
+    render(<StudioApp />)
+    await waitFor(() => expect(h.sessionMessages).toHaveBeenCalledWith('sess-A'))
+
+    await selectAsset()
+    await user.type(screen.getByPlaceholderText(/描述创作目标/), '失败后可重试')
+    await user.click(screen.getByTestId('chat-send'))
+
+    expect(await screen.findByText('资产引用发送失败，请检查资产或模型文件输入支持后重试。')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/描述创作目标/)).toHaveValue('失败后可重试')
+    expect(screen.getByTestId('selected-asset-chips')).toHaveTextContent('@图片封面.png')
+    expect(screen.getByTestId('chat-scroll-view')).not.toHaveTextContent('失败后可重试')
+    expect(document.body.textContent).not.toContain('Error invoking remote method')
+    expect(document.body.textContent).not.toContain('/private/f822-secret')
+    expect(document.body.textContent).not.toContain('file://')
+  })
+
+  it('请求在途切换项目后，旧发送完成不得恢复草稿或污染新项目', async () => {
+    const h = installApi(canvasOf('pA'))
+    h.binding.sessionId = 'sess-A'
+    h.records.set('sess-A', [])
+    h.records.set('sess-B', recordsB)
+    const pendingPrompt = defer<{ accepted: true; messageId: string }>()
+    h.promptAsync.mockReturnValueOnce(pendingPrompt.promise)
+    render(<StudioApp />)
+    await waitFor(() => expect(h.sessionMessages).toHaveBeenCalledWith('sess-A'))
+
+    await selectAsset()
+    await user.type(screen.getByPlaceholderText(/描述创作目标/), 'A 项目资产请求')
+    await user.click(screen.getByTestId('chat-send'))
+    await waitFor(() => expect(h.promptAsync).toHaveBeenCalledTimes(1))
+
+    h.binding.sessionId = 'sess-B'
+    const next = canvasOf('pB')
+    h.get.mockResolvedValue(next)
+    h.emitCanvas(next)
+    expect(await screen.findByText('B 历史提问')).toBeInTheDocument()
+    await act(async () => {
+      pendingPrompt.resolve({ accepted: true, messageId: 'msg-a-late' })
+      await pendingPrompt.promise
+    })
+
+    expect(screen.queryByText('A 项目资产请求')).not.toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/描述创作目标/)).toHaveValue('')
+    expect(screen.queryByTestId('selected-asset-chips')).not.toBeInTheDocument()
+    expect(screen.getByText('B 历史回复')).toBeInTheDocument()
   })
 })

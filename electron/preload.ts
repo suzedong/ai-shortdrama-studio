@@ -107,6 +107,7 @@ contextBridge.exposeInMainWorld('api', {
   canvas: {
     get: () => ipcRenderer.invoke('canvas:get'),
     command: (request: unknown) => ipcRenderer.invoke('canvas:command', request),
+    viewState: (request: unknown) => ipcRenderer.invoke('canvas:view-state', request),
     subscribe: () => ipcRenderer.invoke('canvas:subscribe'),
     unsubscribe: () => ipcRenderer.invoke('canvas:unsubscribe'),
     onChange: (cb: (canvas: unknown) => void): (() => void) => {
@@ -126,6 +127,8 @@ contextBridge.exposeInMainWorld('api', {
   asset: {
     list: (kind?: string) =>
       ipcRenderer.invoke('asset:list', kind === undefined ? undefined : { kind }),
+    import: () => ipcRenderer.invoke('asset:import'),
+    thumbnail: (assetId: string) => ipcRenderer.invoke('asset:thumbnail', { assetId }),
   },
   // 只读产物查看
   fileRead: (arg: { path: string }) => ipcRenderer.invoke('file:read', arg),

@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { Canvas, CanvasNode } from '@shared/types'
 import CanvasBoard from './CanvasBoard'
+import { canvasV4 } from '../../test/canvas-fixtures'
 
 function canvasWithNodes(): Canvas {
   const n = (id: string, step: CanvasNode['step'], title: string, status: CanvasNode['status']): CanvasNode => ({
@@ -14,8 +15,8 @@ function canvasWithNodes(): Canvas {
     ref: { path: `${id}.json`, format: 'json' },
     updatedAt: new Date().toISOString(),
   })
-  return {
-    schemaVersion: 3, projectId: 'p1', title: '缩放测试', revision: 0, receipts: [],
+  return canvasV4({
+    projectId: 'p1', title: '缩放测试', revision: 0, receipts: [],
     nodes: [
       n('step-0-brief', '0', '立项单', 'done'),
       n('step-1-outline', '1', '故事大纲', 'active'),
@@ -23,7 +24,7 @@ function canvasWithNodes(): Canvas {
     edges: [{ id: 'e1', from: 'step-0-brief', to: 'step-1-outline', auto: true }],
     gates: [],
     updatedAt: new Date().toISOString(),
-  }
+  })
 }
 
 // 从世界层 transform 解析 pan/zoom：translate(xpx, ypx) scale(z)

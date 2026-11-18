@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Canvas, CanvasGate, CanvasNode, ProjectBrief, StepId } from '@shared/types'
 import Stage0View from './Stage0View'
 import { _setStyleCatalogSnapshotForTest } from '../style/style-catalog-store'
+import { canvasV4, type CanvasFixtureOverrides } from '../../test/canvas-fixtures'
 
 const BRIEF_PATH = '立项单.v3.json'
 const BG_PATH = '故事背景档案.md'
@@ -66,12 +67,12 @@ function gate(status: CanvasGate['status'], payload?: unknown): CanvasGate {
   return { gateId: '0-final', status, question: '是否发布立项 v3？', options: ['发布', '再改改'], payload }
 }
 
-function canvas(over: Partial<Canvas> = {}): Canvas {
-  return {
-    schemaVersion: 3, projectId: 'p1', title: '测试项目',
+function canvas(over: CanvasFixtureOverrides = {}): Canvas {
+  return canvasV4({
+    projectId: 'p1', title: '测试项目',
     nodes: [], edges: [], gates: [], revision: 0, receipts: [], updatedAt: '2026-10-28T08:00:00.000Z',
     ...over,
-  }
+  })
 }
 
 function installApi() {

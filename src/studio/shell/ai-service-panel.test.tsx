@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Canvas } from '@shared/types'
 import AiServicePanel from './AiServicePanel'
 import StudioApp from './StudioApp'
+import { canvasV4 } from '../../test/canvas-fixtures'
 
 function makeView(over?: {
   activeProvider?: AiProviderId
@@ -305,8 +306,7 @@ describe('AiServicePanel', () => {
 // ── StudioApp 级：系统菜单入口开合（契约 §6.7 菜单开合） ──
 
 function emptyStudioCanvas(): Canvas {
-  return {
-    schemaVersion: 3,
+  return canvasV4({
     revision: 0,
     receipts: [],
     projectId: 'p1',
@@ -315,7 +315,7 @@ function emptyStudioCanvas(): Canvas {
     edges: [],
     gates: [],
     updatedAt: new Date().toISOString(),
-  }
+  })
 }
 
 function installStudioApi(view: AiServiceSettingsView) {

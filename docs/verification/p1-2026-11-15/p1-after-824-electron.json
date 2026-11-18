@@ -1,0 +1,419 @@
+{
+  "feature": "feature-824",
+  "schema": "sdg-p1-project-library-acceptance/v1",
+  "runCompleted": true,
+  "ok": false,
+  "environment": {
+    "mode": "production Electron + Vite preview + CDP",
+    "head": "b617772f18155ac00cf9214fc2a1dd839721db79",
+    "userData": "/tmp/ai-shortdrama-f824.1OsFCc/user-data",
+    "workspace": "/tmp/ai-shortdrama-f824.1OsFCc/workspace",
+    "isolatedHome": "/tmp/ai-shortdrama-f824.1OsFCc/home",
+    "isolatedTmp": "/tmp/ai-shortdrama-f824.1OsFCc/tmp",
+    "backup": "/tmp/ai-shortdrama-f824.1OsFCc/backups",
+    "fixtures": {
+      "A": "project-f824-a-current",
+      "B": "project-f824-b-restore",
+      "C": "project-f824-c-escape"
+    },
+    "fixtureHashes": {
+      "project-f824-a-current": {
+        "manifest": "6f583bbcb775ef46ba0e7e78b4494ad228aeeb05c5a3f73ccf021b06496d3a5e",
+        "session": "8c78851232433c72eee2ffdafdffb21167937f20167d84e1ec5b6b750a207f1f",
+        "canvas": "c40c015065ec2f8acb9d34ef7e35ddb7cfd2f4a627514fa36f29438b1fcd496e"
+      },
+      "project-f824-b-restore": {
+        "manifest": "ecd5641384c11becc3aafe2f1d92fc61b77654bab2b2d4a08369f866657d7d56",
+        "session": "ff6d6723245602d3d61b4073b4f0b18d4324ae9cd5ed4d09360c8fde5bbdd544",
+        "canvas": "ee8f12a92630234c91389b02dd8becff03efca5f1986d7f52b9630d1c2287b99"
+      },
+      "project-f824-c-escape": {
+        "manifest": "ecd5641384c11becc3aafe2f1d92fc61b77654bab2b2d4a08369f866657d7d56",
+        "session": "bb0271a5dd36b0c07417d30ae4fe61bb5875595b39b3fcf82f19cfb5bddf7e12",
+        "canvas": "677a62fba1b193b7a6e1a30d072fa38097a7ee992e4db3011e0c334cecd06e02"
+      }
+    },
+    "workspaceIpc": {
+      "root": "/tmp/ai-shortdrama-f824.1OsFCc/workspace",
+      "defaultRoot": "/Users/szd/Documents/ai-shortdrama-studio",
+      "source": "store",
+      "updatedAt": "2026-11-17T23:45:38.292Z"
+    },
+    "workspaceDisk": {
+      "version": 1,
+      "rootDir": "/tmp/ai-shortdrama-f824.1OsFCc/workspace",
+      "updatedAt": "2026-11-17T23:45:38.292Z"
+    },
+    "cdp": 58898,
+    "vite": 5186,
+    "trashPath": "/Users/szd/.Trash/project-f824-b-restore"
+  },
+  "checks": {
+    "AC-F1": {
+      "status": "pass",
+      "actual": "当前项目行内 Enter 改名已同步列表、顶栏、立项单与 canvas.title；物理目录和 manifest 未变。 完整退出 Electron 进程并重启后仍保持。",
+      "evidence": [
+        {
+          "screenshot": "/Users/szd/Documents/Code/ai-shortdrama-studio/docs/verification/p1-2026-11-15/p1-after-824-current-rename.png"
+        },
+        {
+          "session": {
+            "dir": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-a-current",
+            "title": "F824 项目 A 终验",
+            "createdAt": "2026-11-17T23:45:38.281Z",
+            "lastOpenedAt": "2026-11-17T23:45:38.281Z",
+            "activeSessionId": null
+          }
+        },
+        {
+          "canvasTitle": "F824 项目 A 终验"
+        },
+        {
+          "renderer": {
+            "topTitle": "短剧 Agent · F824 项目 A 终验",
+            "stage0Title": "F824 项目 A 终验"
+          }
+        },
+        {
+          "screenshot": "/Users/szd/Documents/Code/ai-shortdrama-studio/docs/verification/p1-2026-11-15/p1-after-824-restart.png"
+        },
+        {
+          "restart": {
+            "projectId": "project-f824-a-current",
+            "title": "F824 项目 A 终验",
+            "currentDir": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-a-current"
+          }
+        }
+      ]
+    },
+    "AC-F2": {
+      "status": "pass",
+      "actual": "非当前项目 B 改名成功且当前 A 不变；C 编辑后 Esc 零写盘。 完整重启后 B/C 标题仍正确。",
+      "evidence": [
+        {
+          "bSession": {
+            "dir": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-b-restore",
+            "title": "F824 项目 B 已改名",
+            "createdAt": "2026-11-17T23:45:38.284Z",
+            "lastOpenedAt": "2026-11-17T23:45:38.284Z",
+            "activeSessionId": null
+          }
+        },
+        {
+          "currentProject": "project-f824-a-current"
+        },
+        {
+          "cSession": {
+            "dir": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-c-escape",
+            "title": "F824 项目 C 原始",
+            "createdAt": "2026-11-17T23:45:38.284Z",
+            "lastOpenedAt": "2026-11-17T23:45:38.284Z",
+            "activeSessionId": null
+          }
+        },
+        {
+          "cSessionSha256Before": "bb0271a5dd36b0c07417d30ae4fe61bb5875595b39b3fcf82f19cfb5bddf7e12",
+          "cSessionSha256After": "bb0271a5dd36b0c07417d30ae4fe61bb5875595b39b3fcf82f19cfb5bddf7e12"
+        },
+        {
+          "restartedList": [
+            {
+              "dir": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-a-current",
+              "name": "F824 项目 A 终验",
+              "createdAt": "2026-11-17T23:45:38.281Z",
+              "updatedAt": "2026-11-17T23:51:00.862Z"
+            },
+            {
+              "dir": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-c-escape",
+              "name": "F824 项目 C 原始",
+              "createdAt": "2026-11-17T23:45:38.284Z",
+              "updatedAt": "2026-11-17T23:45:38.285Z"
+            },
+            {
+              "dir": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-b-restore",
+              "name": "F824 项目 B 已改名",
+              "createdAt": "2026-11-17T23:45:38.284Z",
+              "updatedAt": "2026-11-17T23:45:38.284Z"
+            }
+          ]
+        }
+      ]
+    },
+    "AC-F3": {
+      "status": "pass",
+      "actual": "非当前项目删除可取消；当前项目 UI 删除项 disabled，IPC 返回 PROJECT_ACTIVE 文案且目录保留。",
+      "evidence": [
+        {
+          "currentDeleteDisabled": true
+        },
+        {
+          "activeDelete": {
+            "ok": false,
+            "error": {
+              "name": "Error",
+              "message": "Error invoking remote method 'project:delete': Error: 不能删除当前打开的项目，请先切换到其他项目",
+              "code": "",
+              "stack": "Error: Error invoking remote method 'project:delete': Error: 不能删除当前打开的项目，请先切换到其他项目"
+            }
+          }
+        },
+        {
+          "currentProject": "project-f824-a-current"
+        }
+      ]
+    },
+    "AC-F4": {
+      "status": "pass",
+      "actual": "非当前项目 B 确认删除后原目录消失、项目列表移除，目录真实进入 macOS 系统废纸篓。",
+      "evidence": [
+        {
+          "screenshot": "/Users/szd/Documents/Code/ai-shortdrama-studio/docs/verification/p1-2026-11-15/p1-after-824-delete-confirm.png"
+        },
+        {
+          "original": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-b-restore",
+          "originalExists": false
+        },
+        {
+          "trashPath": "/Users/szd/.Trash/project-f824-b-restore"
+        },
+        {
+          "listAfterDelete": [
+            "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-a-current",
+            "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-c-escape"
+          ]
+        }
+      ]
+    },
+    "AC-F5": {
+      "status": "pass",
+      "actual": "通过 Finder「文件 > 放回原处」恢复 B；原路径重建、废纸篓项目消失、列表出现恢复标题，并可打开且 Renderer/currentDir/canvas 均为 B。",
+      "evidence": [
+        {
+          "operation": "Finder > 文件 > 放回原处",
+          "restoredFrom": "/Users/szd/.Trash/project-f824-b-restore",
+          "restoredTo": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-b-restore",
+          "originalExists": true,
+          "trashExists": false
+        },
+        {
+          "restoredItem": {
+            "dir": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-b-restore",
+            "name": "F824 项目 B 已改名",
+            "createdAt": "2026-11-17T23:45:38.284Z",
+            "updatedAt": "2026-11-17T23:55:40.572Z"
+          }
+        },
+        {
+          "currentDir": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-b-restore",
+          "canvasProjectId": "project-f824-b-restore",
+          "renderer": {
+            "topTitle": "短剧 Agent · F824 项目 B 已改名",
+            "stage0Title": "F824 项目 B 已改名"
+          }
+        },
+        {
+          "screenshot": "/Users/szd/Documents/Code/ai-shortdrama-studio/docs/verification/p1-2026-11-15/p1-after-824-restored.png"
+        }
+      ]
+    },
+    "AC-F6": {
+      "status": "pass",
+      "actual": "缺 manifest 项目以 session 标题进入列表；打开明确失败，主进程与 Renderer 均保持 A，未伪造 manifest。",
+      "evidence": [
+        {
+          "backup": "/tmp/ai-shortdrama-f824.1OsFCc/backups/f824-d-missing-manifest-before-injection"
+        },
+        {
+          "listed": {
+            "dir": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-d-missing-manifest",
+            "name": "F824 缺 manifest",
+            "createdAt": "2026-11-17T23:57:08.134Z",
+            "updatedAt": "2026-11-17T23:57:08.139Z"
+          }
+        },
+        {
+          "error": "项目目录已损坏或不存在"
+        },
+        {
+          "currentDir": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-a-current",
+          "canvasProjectId": "project-f824-a-current",
+          "stage0Title": "F824 项目 A 终验"
+        },
+        {
+          "manifestExists": false
+        }
+      ]
+    },
+    "AC-F7": {
+      "status": "pass",
+      "actual": "实测通过。",
+      "evidence": [
+        {
+          "coldStart": true,
+          "listed": true,
+          "opened": true,
+          "title": "F824 坏 manifest",
+          "manifestUnchanged": true,
+          "diagnosis": "前次运行中注入后的导航未刷新；停进程注入并冷启动后 IPC 与 Renderer 均正常。"
+        }
+      ]
+    },
+    "AC-F8": {
+      "status": "pass",
+      "actual": "实测通过。",
+      "evidence": [
+        {
+          "coldStart": true,
+          "listed": true,
+          "listFallbackTitle": "新项目",
+          "listDidNotRewrite": true,
+          "openRebuiltSession": true,
+          "rebuiltTitle": "新项目",
+          "backup": "/tmp/ai-shortdrama-f824.1OsFCc/backups/f-bad-session"
+        }
+      ]
+    },
+    "AC-F9": {
+      "status": "pass",
+      "actual": "非项目目录与 project-* 普通文件均被过滤且直接 IPC 拒开；EACCES 目录以“新项目”列出，打开显示明确错误，主进程与 Renderer 均保持 A。",
+      "evidence": [
+        {
+          "coldStart": true,
+          "nonProjectFiltered": true,
+          "ordinaryFileFiltered": true,
+          "nonProjectOpen": {
+            "ok": false,
+            "error": {
+              "name": "Error",
+              "message": "Error invoking remote method 'project:open': Error: 非法的项目目录",
+              "code": "",
+              "stack": "Error: Error invoking remote method 'project:open': Error: 非法的项目目录"
+            }
+          },
+          "fileOpen": {
+            "ok": false,
+            "error": {
+              "name": "Error",
+              "message": "Error invoking remote method 'project:open': Error: 项目目录已损坏或不存在",
+              "code": "",
+              "stack": "Error: Error invoking remote method 'project:open': Error: 项目目录已损坏或不存在"
+            }
+          },
+          "eaccesListed": true,
+          "eaccesFallbackTitle": "新项目",
+          "openFailedVisibly": true,
+          "currentRemainedA": true,
+          "canvasProjectId": "project-f824-a-current"
+        }
+      ]
+    },
+    "AC-F10": {
+      "status": "defect",
+      "actual": "坏 canvas 打开后主进程 currentDir 与 Renderer 项目不一致",
+      "evidence": [
+        {
+          "id": "F824-01",
+          "ac": "AC-F10",
+          "severity": "high",
+          "title": "坏 canvas 打开后主进程 currentDir 与 Renderer 项目不一致",
+          "expected": "坏画布必须给出明确错误，且不得主进程切换 G 而 Renderer 保留 A。",
+          "actual": {
+            "currentDir": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-g-bad-canvas",
+            "rendererVisibleProjectId": "project-f824-a-current",
+            "renderer": {
+              "title": "短剧 Agent 平台",
+              "body": "剧\n短剧 Agent · F824 项目 A 终验\n0\n·\n1\n·\n2\n·\n3\n·\n4\n·\n5\n·\n6\n·\n7\n🎨\n视觉风格谱系\nv1.46\n项目\nSkill\n资产\n插件\n本地模型\nAI\n立项视图\n资源库\n流程导航\nError invoking remote method 'project:open': CANVAS_CORRUPT: 画布文件损坏，已停止加载；请修复或从归档恢复\nF\nF824 项目 G 坏画布\n刚刚\n···\nF\nF824 项目 H 权限拒绝\n3 分钟前\n···\n新\n新项目\n3 分钟前\n···\nF\nF824 坏 manifest\n20 分钟前\n···\nF\nF824 缺 manifest\n20 分钟前\n···\nF\nF824 项目 B 已改名\n21 分钟前\n···\nF\nF824 项目 A 终验\n26 分钟前 · 编辑中\n···\nF\nF824 项目 C 原始\n31 分钟前\n···\n＋ 新建项目\n立项视图\nF824 项目 A 终验\n← 返回画布\n立项过程\n①\n选题诊断\n未开始\n→\n②\n故事前提\n未开始\n→\n🚪\n定案卡\n未就绪\n0\n立项尚未定案\n\n立项是一段对话：在右侧对话中回答主控 Agent 的反问（商业/纪念、六要素、故事前提、风格引用），全部就绪后由定案门拍板发布立项单。\n\n← 返回画布\n🎨\n视觉风格谱系\n谱系不可用\n×\n全部\nA 写实影像\nB 青春治愈\nC 动画插画\nD 类型氛围\nE 材质工艺\n谱系不可用\n数据源：md 唯一源（AI 通道读结构化）/ html 派生镜像（人读预览墙）· 平台只消费不私改 · 改源走对话（AI 改 md → 同步 html → 升版 → 提示差异）\n已捕获口径\n· 0 条\n展开 ▾\n从第一句话起持续累积——对话中提取的题材、平台、集数等口径会实时列在这里，可随时直改。\n主控 Agent\n导演 · 任务调度与确认门\n主\n编\n美\n镜\n声\n输入一句灵感（如「重生复仇都市女频」），主控 Agent 会理解拆解，并按当前阶段依次请你裁决确认门。\n火山方舟 · ark-code-latest\nH3 自动选配\n文本 · 火山方舟\nark-code-latest\n运行时 · 运行中\nComfyUI 未配置\n画布更新于 07:51",
+              "topTitle": "短剧 Agent · F824 项目 A 终验",
+              "stage0Title": "F824 项目 A 终验",
+              "error": null
+            },
+            "visibleCanvasError": true,
+            "visibleCanvasErrorText": "Error invoking remote method 'project:open': CANVAS_CORRUPT: 画布文件损坏，已停止加载；请修复或从归档恢复",
+            "canvasGet": {
+              "ok": false,
+              "error": {
+                "name": "Error",
+                "message": "Error invoking remote method 'canvas:get': CANVAS_CORRUPT: 画布文件损坏，已停止加载；请修复或从归档恢复",
+                "code": "",
+                "stack": "Error: Error invoking remote method 'canvas:get': CANVAS_CORRUPT: 画布文件损坏，已停止加载；请修复或从归档恢复"
+              }
+            },
+            "events": []
+          },
+          "minimalReproduction": [
+            "Electron 停止时复制有效 G fixture，并保留注入前独立备份。",
+            "仅将 G/canvas.json 注入截断 JSON，session/manifest 保持有效。",
+            "以 A 为当前项目冷启动隔离 Electron，经项目导航点击 G。",
+            "核对 userData/session-state.json、canvas.get、Renderer 顶栏/立项视图与 canvas.onChange 事件。"
+          ],
+          "hashes": {
+            "before": "91f247a57feef16fa6e86981c44fb04ab4ab60af1cdeb78324f2bdd3b30d0bd3",
+            "after": "edaea98cc9a35bccec717f391e849237c6b5c1fb21783efc4396bf0a124712ec",
+            "unchangedAfterOpen": true
+          },
+          "backup": "/tmp/ai-shortdrama-f824.1OsFCc/backups/g-bad-canvas",
+          "screenshot": "p1-after-824-bad-canvas.png",
+          "action": "仅记录；本切片不修产品代码，另待授权。"
+        }
+      ]
+    }
+  },
+  "defects": [
+    {
+      "id": "F824-01",
+      "ac": "AC-F10",
+      "severity": "high",
+      "title": "坏 canvas 打开后主进程 currentDir 与 Renderer 项目不一致",
+      "expected": "坏画布必须给出明确错误，且不得主进程切换 G 而 Renderer 保留 A。",
+      "actual": {
+        "currentDir": "/tmp/ai-shortdrama-f824.1OsFCc/workspace/project-f824-g-bad-canvas",
+        "rendererVisibleProjectId": "project-f824-a-current",
+        "renderer": {
+          "title": "短剧 Agent 平台",
+          "body": "剧\n短剧 Agent · F824 项目 A 终验\n0\n·\n1\n·\n2\n·\n3\n·\n4\n·\n5\n·\n6\n·\n7\n🎨\n视觉风格谱系\nv1.46\n项目\nSkill\n资产\n插件\n本地模型\nAI\n立项视图\n资源库\n流程导航\nError invoking remote method 'project:open': CANVAS_CORRUPT: 画布文件损坏，已停止加载；请修复或从归档恢复\nF\nF824 项目 G 坏画布\n刚刚\n···\nF\nF824 项目 H 权限拒绝\n3 分钟前\n···\n新\n新项目\n3 分钟前\n···\nF\nF824 坏 manifest\n20 分钟前\n···\nF\nF824 缺 manifest\n20 分钟前\n···\nF\nF824 项目 B 已改名\n21 分钟前\n···\nF\nF824 项目 A 终验\n26 分钟前 · 编辑中\n···\nF\nF824 项目 C 原始\n31 分钟前\n···\n＋ 新建项目\n立项视图\nF824 项目 A 终验\n← 返回画布\n立项过程\n①\n选题诊断\n未开始\n→\n②\n故事前提\n未开始\n→\n🚪\n定案卡\n未就绪\n0\n立项尚未定案\n\n立项是一段对话：在右侧对话中回答主控 Agent 的反问（商业/纪念、六要素、故事前提、风格引用），全部就绪后由定案门拍板发布立项单。\n\n← 返回画布\n🎨\n视觉风格谱系\n谱系不可用\n×\n全部\nA 写实影像\nB 青春治愈\nC 动画插画\nD 类型氛围\nE 材质工艺\n谱系不可用\n数据源：md 唯一源（AI 通道读结构化）/ html 派生镜像（人读预览墙）· 平台只消费不私改 · 改源走对话（AI 改 md → 同步 html → 升版 → 提示差异）\n已捕获口径\n· 0 条\n展开 ▾\n从第一句话起持续累积——对话中提取的题材、平台、集数等口径会实时列在这里，可随时直改。\n主控 Agent\n导演 · 任务调度与确认门\n主\n编\n美\n镜\n声\n输入一句灵感（如「重生复仇都市女频」），主控 Agent 会理解拆解，并按当前阶段依次请你裁决确认门。\n火山方舟 · ark-code-latest\nH3 自动选配\n文本 · 火山方舟\nark-code-latest\n运行时 · 运行中\nComfyUI 未配置\n画布更新于 07:51",
+          "topTitle": "短剧 Agent · F824 项目 A 终验",
+          "stage0Title": "F824 项目 A 终验",
+          "error": null
+        },
+        "visibleCanvasError": true,
+        "visibleCanvasErrorText": "Error invoking remote method 'project:open': CANVAS_CORRUPT: 画布文件损坏，已停止加载；请修复或从归档恢复",
+        "canvasGet": {
+          "ok": false,
+          "error": {
+            "name": "Error",
+            "message": "Error invoking remote method 'canvas:get': CANVAS_CORRUPT: 画布文件损坏，已停止加载；请修复或从归档恢复",
+            "code": "",
+            "stack": "Error: Error invoking remote method 'canvas:get': CANVAS_CORRUPT: 画布文件损坏，已停止加载；请修复或从归档恢复"
+          }
+        },
+        "events": []
+      },
+      "minimalReproduction": [
+        "Electron 停止时复制有效 G fixture，并保留注入前独立备份。",
+        "仅将 G/canvas.json 注入截断 JSON，session/manifest 保持有效。",
+        "以 A 为当前项目冷启动隔离 Electron，经项目导航点击 G。",
+        "核对 userData/session-state.json、canvas.get、Renderer 顶栏/立项视图与 canvas.onChange 事件。"
+      ],
+      "hashes": {
+        "before": "91f247a57feef16fa6e86981c44fb04ab4ab60af1cdeb78324f2bdd3b30d0bd3",
+        "after": "edaea98cc9a35bccec717f391e849237c6b5c1fb21783efc4396bf0a124712ec",
+        "unchangedAfterOpen": true
+      },
+      "backup": "/tmp/ai-shortdrama-f824.1OsFCc/backups/g-bad-canvas",
+      "screenshot": "p1-after-824-bad-canvas.png",
+      "action": "仅记录；本切片不修产品代码，另待授权。"
+    }
+  ],
+  "limitations": [],
+  "rendererExceptions": [],
+  "consoleErrors": [],
+  "hashes": {
+    "badManifestBefore": "14fafc3addf718beb352977dcb45f846505624883402c9e9bd9e402a3cb6bd5d",
+    "badManifestAfter": "b7c2a6387e30e486e9ad0ccc16bb6bfc48c2bfda6aec5ad49f9d3bb3ba746436",
+    "badSessionBefore": "6320487e27d1a01f4f75d40b0ca104f20d273479f780dfeb109db6a2614f631e",
+    "badSessionAfter": "8ce2cc840ee054e3c92d9cfab8c782f6a6b11f53f77eebffbbf8b8b139bfdb12",
+    "badCanvasBefore": "91f247a57feef16fa6e86981c44fb04ab4ab60af1cdeb78324f2bdd3b30d0bd3",
+    "badCanvasAfter": "edaea98cc9a35bccec717f391e849237c6b5c1fb21783efc4396bf0a124712ec"
+  },
+  "stopReason": "AC-F10 发现主进程 currentDir 指向 G、Renderer 保留 A；按批准计划停止回切及后续真机操作。"
+}

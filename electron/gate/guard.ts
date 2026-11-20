@@ -1,5 +1,5 @@
-// feature-807 · 立项发布门态防护（纯函数，不碰文件系统 / electron 运行时）
-// 依据：docs/features/feature-807-确认门口头拍板约束与门态防护/SDG-RE-契约.md §2
+// feature-801 · 门态防护（纯函数，不碰文件系统 / electron 运行时；历史来源 feature-807）
+// 依据：docs/features/feature-801-manifest状态机推进/SDG-RE-契约.md（原 feature-807 契约 §2）
 import type { CanvasGate } from '../../shared/types.js'
 
 export type GateGuardCode =

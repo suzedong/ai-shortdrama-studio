@@ -59,9 +59,9 @@
 ### R-003 · brief 工具族被 feature-002 扩展（2026-10-14，feature-002 联动）
 
 - 原文口径：本包 D-003 立项工具族为 `brief.plan/publish/list` 三件，showrunner 物理 ID 白名单 9 个。
-- [feature-002](../feature-002-立项后变更与影响评估/) 联动修订：新增 `shortdrama_brief.impact.assess` / `shortdrama_brief.impact.commit` 两工具（再版 diff + 影响评估 + 影响清单落盘），showrunner 白名单 9→17 物理名（全仓 22 工具）；`publish.ts` 在再版链路上增补 ENOENT 容错（读旧版缺失场景），publish 版本化双写、永不覆盖的工具边界逐字不变。
+- feature-002（Git 历史） 联动修订：新增 `shortdrama_brief.impact.assess` / `shortdrama_brief.impact.commit` 两工具（再版 diff + 影响评估 + 影响清单落盘），showrunner 白名单 9→17 物理名（全仓 22 工具）；`publish.ts` 在再版链路上增补 ENOENT 容错（读旧版缺失场景），publish 版本化双写、永不覆盖的工具边界逐字不变。
 - 本包 D-001 批准范围第 1 条的 `ProjectBrief` v2 schema 未被修改；feature-002 的 K1 只新增 `ProjectManifest.briefVersion` 与 canvas 侧 `CanvasParentReference/CanvasDirty`，未动 Brief 类型。
-- 交叉指针：[feature-002 变更记录](../feature-002-立项后变更与影响评估/SDG-AI-变更记录.md)、[偏差清单 B-03](../../设计现状与偏差清单.md)。
+- 交叉指针：feature-002 变更记录（Git 历史）、[偏差清单 B-03](../../设计现状与偏差清单.md)。
 
 ### R-004 · showrunner 职责纪律新增第 9 条「气泡标签前缀约定」（2026-10-17，B-34 联动）
 
@@ -95,9 +95,9 @@
 ### R-008 · showrunner 脏读纪律新增第三条「单产物重对齐承接」（2026-10-21，feature-007 / B-42 联动）
 
 - 原文口径：本包 T5 重写的 [showrunner.md](../../../resources/opencode/agents/showrunner.md) 脏读纪律段（L168-171）仅两条——①打开 / 引用 / 汇报脏节点时复读警告；②委派下游交接物写明脏态。「立项后变更（再版）剧本」第 6 步虽含串行委派 + align 清脏纪律，但那是**再版全量影响清单驱动**的路径；用户经界面三选一确认、点名重对齐**单个脏产物**的入口（【产物重新对齐】前缀模板消息）无专条承接。
-- 联动修订：[feature-007](../feature-007-产物重开对齐二次确认/) 需求规格 §3.5——脏读纪律段追加第三条：用户经界面确认发来【产物重新对齐】前缀消息时，先 `shortdrama_canvas_get` 核实该节点脏态（无脏 → 告知已对齐，不动作）；核实后按再版剧本第 6 步同款纪律串行委派专职 agent 重生成（提示词 base 用最新立项单 vM，交接物写明旧产物基于 vN 与命中字段）；重生成定稿后调 `shortdrama_canvas.align({ nodeId })` 清脏并推进血缘；用户选「保持现状」时不做任何动作。
+- 联动修订：feature-007（Git 历史） 需求规格 §3.5——脏读纪律段追加第三条：用户经界面确认发来【产物重新对齐】前缀消息时，先 `shortdrama_canvas_get` 核实该节点脏态（无脏 → 告知已对齐，不动作）；核实后按再版剧本第 6 步同款纪律串行委派专职 agent 重生成（提示词 base 用最新立项单 vM，交接物写明旧产物基于 vN 与命中字段）；重生成定稿后调 `shortdrama_canvas.align({ nodeId })` 清脏并推进血缘；用户选「保持现状」时不做任何动作。
 - 边界注明：新增条仅承接 renderer 三选一确认注入的模板消息（feature-007，UI 不直调 align，D-016 / K8 零）；既有两条脏读纪律与再版六步剧本逐字不变；showrunner frontmatter tools 白名单零新增（`canvas.align` 为 feature-002 既有工具）。
-- 交叉指针：[feature-007 需求规格 §3.5](../feature-007-产物重开对齐二次确认/SDG-RE-需求规格.md)、[feature-007 变更记录](../feature-007-产物重开对齐二次确认/SDG-AI-变更记录.md)、[偏差清单 B-42](../../设计现状与偏差清单.md)、[showrunner.md](../../../resources/opencode/agents/showrunner.md) 脏读纪律段。
+- 交叉指针：feature-007 需求规格 §3.5（Git 历史）、feature-007 变更记录（Git 历史）、[偏差清单 B-42](../../设计现状与偏差清单.md)、[showrunner.md](../../../resources/opencode/agents/showrunner.md) 脏读纪律段。
 
 ### R-009 · B-57 showrunner 提示词中文化 + 配置清残留 + 授权收/补（2026-11-01，B-57 联动）
 
@@ -117,7 +117,7 @@
 - 原文口径：本包契约 §7 与 R-001 描述「`gate.request` 阻塞至 approved → Agent 调 `brief.publish` → 首版再显式 advance」。
 - 联动修订：`gate.request` 只落盘 pending 并立即返回；新 `0-final` 门必须在 `payload.draft` 携带完整结构化草案。**首版 v1** 点通过后由主进程直接双写立项单、upsert `step-0-brief` 并推进 `brief-published`，Agent 不重复 publish / advance；**再版 v2+** 点通过只确认草案与版本，不发布、不推进 manifest，Agent 下一轮呈报三选一后由 `impact.commit` 唯一发布。
 - 保留边界：verbal 首版仍由 Agent `brief.publish(by:'verbal')` 后自行推进 `brief-published`；历史无草案门的 `brief.publish(by:'gate')` 兜底仅限首版，再版不得走该兜底。工具总数 29、shared 类型均不变。
-- 交叉指针：[feature-015 契约](../feature-015-确认门非阻塞化与系统直做后置/SDG-RE-契约.md) §2–§6、feature-015 D-015-5。
+- 交叉指针：feature-015 契约（Git 历史） §2–§6、feature-015 D-015-5。
 
 ### X-D037 文档归并（2026-11-19，文档 Change，跨组补全）
 

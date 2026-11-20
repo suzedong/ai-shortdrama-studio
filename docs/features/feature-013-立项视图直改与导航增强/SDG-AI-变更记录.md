@@ -14,7 +14,7 @@
 - [history.ts](../../../electron/brief/history.ts)：BriefHistoryItem L9-17（version/path/publishedAt/kind/approveBy/changeCount/note）；readBriefHistory L26-45；preload L21-29 / global.d.ts L76/L98/L111/L115 / dev-mock L573/L592 三端桥已备；
 - [StageNavPanel.tsx](../../../src/studio/canvas/StageNavPanel.tsx)：briefVersion 派生 L45-49（brief 节点 meta.version 与 dirty latestBriefVersion 取大）；徽标 L120-123（`✓ vN`/`vN ⚠k`）；title 仅 dirty 文案 L116-118，无 hover 历史；
 - [StudioApp.tsx](../../../src/studio/shell/StudioApp.tsx)：stage-track L508；点击 STAGE 0 切 stage0 视图 L514-516；L529 `title={\`STAGE ${s.step} · ${STEP_LABELS[s.step]}\`}` 无统计；
-- [feature-002 需求规格](../feature-002-立项后变更与影响评估/SDG-RE-需求规格.md)：L42 Δ 命名空间；L46-47 分级表；**L48**「低（不入清单）：仅元数据。现状立项单模型无 L0 字段……本包低级别无字段可命中，分级表保留级别定义备未来 L0 落地」；
+- feature-002 需求规格（Git 历史）：L42 Δ 命名空间；L46-47 分级表；**L48**「低（不入清单）：仅元数据。现状立项单模型无 L0 字段……本包低级别无字段可命中，分级表保留级别定义备未来 L0 落地」；
 - 计数基线（承 806 T7 同日实测，T1 须复核）：全量 66 文件 761 passed / 0 failed / 1 skipped；tsc 恰 3 条（scripts/electron-smoke.mjs 1 + Stage3AssetHub 2）；MCP 工具 28（[tools.ts](../../../electron/mcp/tools.ts) 注册计数）；showrunner 白名单 23（[showrunner.md](../../../resources/opencode/agents/showrunner.md) L16-38 恰 23 键）；feature-012 不存在、013 包号空闲。
 
 **设计抉择（随包呈报，批准即生效）**：

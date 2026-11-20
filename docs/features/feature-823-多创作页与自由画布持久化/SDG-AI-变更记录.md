@@ -80,7 +80,7 @@
 ## 2026-11-19 · D-037 文档归并：接收 Canvas 命令与资产绑定
 
 - 分类：任务包归属治理 / 文档修订；不新增接口、共享类型、依赖或验收授权。
-- 来源：[feature-814](../feature-814-画布命令底座与资产关联/SDG-AI-变更记录.md) §2—§5、§8 的 Canvas 命令底座、assetIds、原子 JSON、坏档保护和 AssetsPanel / CanvasBoard 交互。
+- 来源：feature-814（Git 历史） §2—§5、§8 的 Canvas 命令底座、assetIds、原子 JSON、坏档保护和 AssetsPanel / CanvasBoard 交互。
 - 目标章节：需求 §8、契约 §8、设计 §8；任务清单追加 T8 与 D-037 AC。814 §6 / §7 的可信资产来源由 821 接收，未混入本包。
 - 冲突处理：814 根级 nodes/edges 的 Canvas v3 已被本包 v4 页—画布树取代，只保留历史与懒迁移输入；assets.bind / unbind 以完整 pageId / canvasId 目标收编，不恢复旧形状。revision / receipts / hash / 原子写 / 坏档保护为已存在能力，标记归并而非新开发。
 - 边界：821 上传仍系统直做且不自动绑节点；822 对话资产引用独立。本包不接 Agent 自报 sourceSession，不新增 MCP canvas.write，不把来源失败或安全 chip 降级变成 SSE 阻断。
@@ -90,7 +90,7 @@
 ## 2026-11-19 · D-037 跨组文档归并：接收 Canvas 只读预检
 
 - 分类：任务包归属治理 / 文档修订；补齐归档时只登记去向、尚未实际接收的缺口，不新增接口、共享类型、依赖或验收授权。
-- 来源：[feature-825](../feature-825-坏画布打开事务修复/SDG-AI-变更记录.md) 需求 §2、AC-825-1、AC-825-3 的 Canvas 部分，契约 §2 的 `assertReadable` 部分，以及设计 §2 的共用只读解析路径。
+- 来源：feature-825（Git 历史） 需求 §2、AC-825-1、AC-825-3 的 Canvas 部分，契约 §2 的 `assertReadable` 部分，以及设计 §2 的共用只读解析路径。
 - 目标章节：需求 §9（共用判据、零副作用与职责边界）、契约 §9（`readFromDisk` / `assertReadable`、错误与接缝）、设计 §9（只读步骤和两种调用路径）；任务清单追加 T9 与 D-037-AC4—AC6。
 - 冲突处理：预检与正式加载必须共用解析 / 迁移 / 结构 / projectId 校验，但预检绕过缓存并丢弃结果；ENOENT 可由正式加载创建，预检本身不创建。坏 JSON、非法结构和项目失配继续按原错误 fail closed，旧档懒迁移不成为预检写盘理由。
 - 职责裁决：827 接收 `openProject beforeCommit` guard、session / currentDir 和项目写队列；828 接收完整打开提交及提交后清门、reset / recover、标题和广播。823 不接管路径 / manifest 错误优先级，不扩成跨文件事务、通用回滚或任意后置 I/O 故障保证。

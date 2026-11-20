@@ -12,7 +12,7 @@
   2026-10-27 再核（v1.14 反向同步）：磁盘实况更新为 27 个纯 MCP 工具 / 10 族、4 个 Agent profile（showrunner 单 primary）、20 个现行 feature 包（19 落地 / 201 部分）；测试基线 722 通过 / 0 失败 / 1 跳过（61 文件），typecheck 恰 3 条历史基线。
   2026-11-02 再核（v1.17 反向同步）：28 个纯 MCP 工具 / 11 族、showrunner 23 白名单且独占 task、27 个现行 feature 包；当时测试与类型基线见下方历史实测卡。
   2026-11-03 再核（v1.18 反向同步）：feature-813 工作目录更换落地（根目录可更换，单一全局根，IPC 47 通道）· 28 个现行 feature 包；当时测试基线 1029 通过 / 1 跳过 / 0 失败（82 文件）。
-  D-005：立项模型重建已落地；任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段）。2026-11-19 D-037 当前镜像按 24 个现行负责包 + 22 个历史归档包展示，46 个目录原位保留，早期数量仅为历史再核。
+  D-005：立项模型重建已落地；任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段）。2026-11-20 D-039 当前镜像按 24 个现行负责包 + 1 个历史归档包展示，共 25 个目录；保留 feature-826，其余 21 个被删目录仅从 Git 历史追溯，早期数量仅为历史再核。
 -->
 <style>
 :root{
@@ -199,14 +199,14 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <header class="hero" id="top">
   <div class="kicker">PROGRESS · ROADMAP</div>
   <h1>进度<em>看板</em>与路线图</h1>
-  <p class="lede">面向不读规格的人：<b>当前 24 个现行负责包 + 22 个历史归档包、八步闭环覆盖、真实回归边界与 P0—P7 交付门</b>，一眼看全局。P0 已完成，P1 仍未通过；现行负责入口以 Feature 索引为准，旧 36 包网格、旧数字与旧三期路线仅保留为历史。</p>
+  <p class="lede">面向不读规格的人：<b>当前 24 个现行负责包 + 1 个历史归档包、八步闭环覆盖、真实回归边界与 P0—P7 交付门</b>，一眼看全局。P0 已完成，P1 仍未通过；现行负责入口以 Feature 索引为准，旧 36 包网格、旧数字与旧三期路线仅保留为历史。</p>
   <div class="verline">
-    <span class="chip">设计基准 <b>设计 v1.26 · 总规划 v0.14</b></span>
-    <span class="chip">现行负责 / 历史归档 <b>24 + 22</b></span>
+    <span class="chip">设计基准 <b>设计 v1.27 · 总规划 v0.15</b></span>
+    <span class="chip">现行负责 / 历史归档 <b>24 + 1 / 25 目录</b></span>
     <span class="chip">当前阶段 <b>P1 进行中 · 未通过</b></span>
-    <span class="chip">D-037 镜像同步 <b>2026-11-19</b></span>
+    <span class="chip">D-039 镜像同步 <b>2026-11-20</b></span>
   </div>
-  <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-11-19 当前视图（D-037）：<b>24 个现行负责包 + 22 个历史归档包，46 个目录原位保留；P0 已完成，P1 未通过</b>。运行时数据与回放、项目库、通用测试门禁分别归 feature-808 / 828 / 830，feature-829 继续实施中。归档不删除目录、不改写历史证据，也不使 Parity、产品能力或真机验收通过。现行路线与阶段门以 <a href="../research/MiniMax%20Design全面复刻开发计划.md">总规划 v0.14</a> 为准。</div>
+  <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-11-20 当前视图（D-039）：<b>24 个现行负责包 + 1 个历史归档包，共 25 个目录；P0 已完成，P1 未通过</b>。保留 feature-826-谱系测试基线收口，其余 21 个被删目录的原始文档仅从 Git 历史追溯；D-037 归属规则不变。运行时数据与回放、项目库、通用测试门禁分别归 feature-808 / 828 / 830，feature-829 继续实施中。目录清理不改写历史证据，也不使 Parity、产品能力或真机验收通过。现行路线与阶段门以 <a href="../research/MiniMax%20Design全面复刻开发计划.md">总规划 v0.15</a> 为准。</div>
   <div class="snapshot">历史快照：2026-10-09 复核 · npm run test:run（197 通过 / 1 跳过）/ typecheck（0 错误），与 10-08 首测一致</div>
   <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-10-14 再核（v1.12）：磁盘实况已演进为 <b>22 个纯 MCP 工具 / 8 族 · 4 个 Agent profile（director 退役，showrunner 唯一 primary）· 5 个现行 feature 包</b>；当时测试基线 <b>369 通过 / 0 失败 / 1 跳过（35 文件，同日存量清零）</b>；typecheck 双 tsconfig + tsc -b 全绿。</div>
   <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-11-02 再核（v1.17）：<b>28 个纯 MCP 工具 / 11 族 · showrunner 23 白名单且独占 task · 27 个现行 feature 包</b>；当时测试基线见下方历史实测卡，renderer typecheck 保留 3 条现存测试夹具基线。</div>
@@ -217,7 +217,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   </div>
 
   <div class="stats rv">
-    <div class="stat"><div class="num"><span data-to="24">0</span><small> 个现行负责包</small></div><div class="lbl">另有 22 个历史归档包，共 46 个目录；29 个 MCP 工具 = 28 个业务工具 / 11 族 + tool.search</div></div>
+    <div class="stat"><div class="num"><span data-to="24">0</span><small> + 1 / 25 目录</small></div><div class="lbl">24 个现行负责包，保留历史归档 feature-826；其余 21 个仅从 Git 历史追溯；29 个 MCP 工具 = 28 个业务工具 / 11 族 + tool.search</div></div>
     <div class="stat"><div class="num"><span data-to="81">0</span><small> /93 文件</small></div><div class="lbl">2026-11-16 历史回归快照：81 文件通过、12 文件失败；1,111 用例通过、85 失败、1 跳过</div></div>
     <div class="stat"><div class="num">P1<small> 当前阶段</small></div><div class="lbl">进行中 · 未通过；feature-829 继续实施，包级专项完成不替代整门验收</div></div>
     <div class="stat"><div class="num"><span data-to="0">0</span><small> 个类型错误</small></div><div class="lbl">2026-11-16 历史快照：typecheck 通过；architecture + studio-flow 专项 29 / 29</div></div>
@@ -227,7 +227,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 01 Feature 看板 ══════ -->
 <section id="features">
   <div class="sec-head rv"><span class="sec-no">01</span><h2>任务包看板</h2></div>
-  <p class="sec-sub rv"><a href="../features/README.md">Feature 索引</a>现行口径为 <b>24 个负责包 + 22 个历史归档包</b>，46 个目录原位保留。以下是 <b>2026-11-16 历史看板</b>：保留当时 36 包网格、名称、状态与旧编号，不作为现行负责入口；当前状态与开放边界以索引及各现行任务清单为准。单包完成不等于 P0—P7 阶段门通过。</p>
+  <p class="sec-sub rv"><a href="../features/README.md">Feature 索引</a>现行口径为 <b>24 个负责包 + 1 个历史归档包</b>，共 25 个目录；保留 feature-826，其余 21 个被删目录仅从 Git 历史追溯。以下是 <b>2026-11-16 历史看板</b>：保留当时 36 包网格、名称、状态与旧编号，不作为现行负责入口；当前状态与开放边界以索引及各现行任务清单为准。单包完成不等于 P0—P7 阶段门通过。</p>
 
   <div class="kanban">
     <div class="fcard done rv">
@@ -555,7 +555,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 03 质量实况 ══════ -->
 <section id="quality">
   <div class="sec-head rv"><span class="sec-no">03</span><h2>质量实况（历史基线）</h2></div>
-  <p class="sec-sub rv">本页不因 D-037 文档归并改写成新的测试结论：<b>2026-11-16 的 81 / 93 文件结果是历史回归快照</b>；P0 的 93 文件 / 1,198 用例是 2026-11-15 历史基线。当前验收状态以 Feature 索引及现行任务包为准，旧测试卡保留原始数字。</p>
+  <p class="sec-sub rv">本页不因 D-037 文档归并或 D-039 目录清理改写成新的测试结论：<b>2026-11-16 的 81 / 93 文件结果是历史回归快照</b>；P0 的 93 文件 / 1,198 用例是 2026-11-15 历史基线。当前验收状态以 Feature 索引及现行任务包为准，旧测试卡保留原始数字。</p>
 
   <div class="alerts rv">
     <div class="alert">
@@ -627,12 +627,12 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 04 P0—P7 路线 ══════ -->
 <section id="roadmap">
   <div class="sec-head rv"><span class="sec-no">04</span><h2>P0—P7 交付门</h2></div>
-  <p class="sec-sub rv">唯一跨阶段路线为 <a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划 v0.14</a>。当前 P0 已完成、P1 未通过；P2—P7 未到验收，不得按模块存在、单包完成或 D-037 归属归并提前宣称阶段通过。</p>
+  <p class="sec-sub rv">唯一跨阶段路线为 <a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划 v0.15</a>。当前 P0 已完成、P1 未通过；P2—P7 未到验收，不得按模块存在、单包完成、D-037 归属归并或 D-039 目录清理提前宣称阶段通过。</p>
 
   <div class="phases rv">
     <div class="phase p1">
       <div class="ph-head"><div class="ph-name">P0 · 已完成</div><h4>基线收口</h4><span class="ph-state">2026-11-15 完成</span></div>
-      <ul><li class="done">设计 v1.24 / D-034 定位（P0 历史基线）</li><li class="done">现行索引：24 个负责包 + 22 个归档包</li><li>93 文件 / 1,198 用例仅作历史基线</li></ul>
+      <ul><li class="done">设计 v1.24 / D-034 定位（P0 历史基线）</li><li class="done">现行索引：24 个负责包 + 1 个归档包（826）/ 25 个目录</li><li>93 文件 / 1,198 用例仅作历史基线</li></ul>
     </div>
     <div class="phase p1">
       <div class="ph-head"><div class="ph-name">P1 · 当前</div><h4>桌面工作台</h4><span class="ph-state">进行中 · 未通过</span></div>
@@ -731,15 +731,15 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="src-grid">
       <div class="src-row">
         <span class="si-base">A · 规划</span>
-        <div><div class="si-ti">短剧Agent平台设计.md（v1.26）+ MiniMax Design 全面复刻开发计划（v0.14）</div><div class="si-sub">D-034 全面复刻定位 · D-037 现行负责入口与历史归档分离 · §4 多 Agent 架构 · §5 runtime 单轨与 28 个业务工具 / 11 族（另有 tool.search） · §7.1 数据血缘 · §8 媒体通道 · §11 P0—P7 路线</div></div>
+        <div><div class="si-ti">短剧Agent平台设计.md（v1.27）+ MiniMax Design 全面复刻开发计划（v0.15）</div><div class="si-sub">D-034 全面复刻定位 · D-037 归属规则与 D-039 历史目录清理 · §4 多 Agent 架构 · §5 runtime 单轨与 28 个业务工具 / 11 族（另有 tool.search） · §7.1 数据血缘 · §8 媒体通道 · §11 P0—P7 路线</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 决策</span>
-        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-012 / D-021 / D-022 / D-023 / D-033 / D-034）</div><div class="si-sub">runtime 单轨；文本服务二选一；Agent 调度权限；媒体固定 H3 Image / H3 / Music3 并经 ComfyUI；D-034 全面复刻 MiniMax Design、短剧生产闭环优先</div></div>
+        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-012 / D-021 / D-022 / D-023 / D-033 / D-034 / D-037 / D-039）</div><div class="si-sub">runtime 单轨；文本服务二选一；Agent 调度权限；媒体固定 H3 Image / H3 / Music3 并经 ComfyUI；D-034 全面复刻定位；D-037 负责归属与 D-039 历史目录清理分别生效</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 新包</span>
-        <div><div class="si-ti">docs/features/（24 个现行负责包 + 22 个历史归档包 · 2026-11-19）</div><div class="si-sub">46 个目录原位保留；现行负责入口、历史来源、开放状态与代码入口以 Feature 索引为准，逐包验收以各任务清单为准</div></div>
+        <div><div class="si-ti">docs/features/（24 个现行负责包 + 1 个历史归档包 · 2026-11-20）</div><div class="si-sub">共 25 个目录；保留 feature-826，其余 21 个被删目录仅从 Git 历史追溯；现行负责入口、开放状态与代码入口以 Feature 索引为准，逐包验收以各任务清单为准</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">实测</span>
@@ -759,13 +759,13 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </div>
       <div class="src-row">
         <span class="si-base">A · 治理</span>
-        <div><div class="si-ti">AGENTS.md（v1.7）+ docs/governance/AI-SDG-AI工具执行指令.md</div><div class="si-sub">三层文档模型；铁律 3 反向同步；L1/L2/L3 裁决；全面复刻定位与媒体 / 局域网硬边界</div></div>
+        <div><div class="si-ti">AGENTS.md（v1.8）+ docs/governance/AI-SDG-AI工具执行指令.md</div><div class="si-sub">三层文档模型；铁律 3 反向同步；L1/L2/L3 裁决；全面复刻定位与媒体 / 局域网硬边界</div></div>
       </div>
     </div>
   </div>
 </details>
 
-<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准 · 2026-11-19 D-037 镜像同步：设计 v1.26 / 总规划 v0.14 / 24 个现行负责包 + 22 个历史归档包，46 个目录原位保留。当前 P0 已完成、P1 未通过；2026-11-16 的 81 / 93 文件回归与旧 36 包网格仅作历史快照，归并不构成验收。</div>
+<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准 · 2026-11-20 D-039 镜像同步：设计 v1.27 / 总规划 v0.15 / 24 个现行负责包 + 1 个历史归档包（feature-826），共 25 个目录；其余 21 个仅从 Git 历史追溯。D-037 归属规则不变；当前 P0 已完成、P1 未通过，feature-829 继续实施中；2026-11-16 的 81 / 93 文件回归与旧 36 包网格仅作历史快照，归并或清理均不构成验收。</div>
 </main>
 </div>
 

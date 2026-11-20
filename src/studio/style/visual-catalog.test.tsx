@@ -1,5 +1,5 @@
-// feature-810 T5 · AC5：VisualCatalog 谱系升级差异工作流 renderer 单测
-// 契约：docs/features/feature-810-谱系升级差异工作流/SDG-RE-契约.md §4（V1–V6 渲染 + 采纳/忽略闭环）
+// feature-802 · VisualCatalog 谱系升级差异工作流 renderer 单测（历史来源 feature-810 T5 / AC5）
+// 契约：docs/features/feature-802-视觉风格谱系接入/SDG-RE-契约.md（原 feature-810 契约 §4：V1–V6 渲染 + 采纳/忽略闭环）
 // 通道 mock：组件仅经 window.api 四桥（styleCatalog / styleUpgradeDiff / stylePreviewMetadata / updateBrief）——本文件全量 mock，不触主进程
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'

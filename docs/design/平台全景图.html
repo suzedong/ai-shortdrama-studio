@@ -290,17 +290,17 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
   <h1>一块画布 = 一条生产线<br><em>一个指令</em> = 一支摄制组</h1>
   <p class="lede">这是一个 Agent 驱动的短剧内容生产桌面应用：<b>全面复刻 MiniMax Design，短剧生产闭环优先（D-034）</b>。系统承载确定性操作，主控 Agent 负责文本生成与开放式语义理解；本地 / 局域网 ComfyUI 与完整八步生产体系是两类核心差异，产物全程本地文件可追溯。</p>
   <div class="verline">
-    <span class="chip">设计 <b>v1.26</b> · 总规划 <b>v0.14</b></span>
+    <span class="chip">设计 <b>v1.27</b> · 总规划 <b>v0.15</b></span>
     <span class="chip">Electron + React 18 + TS</span>
     <span class="chip">opencode-ai <b>1.18.34</b></span>
     <span class="chip">纯 JSON 持久化 · 无数据库</span>
-    <span class="chip">D-037 镜像同步 2026-11-19</span>
+    <span class="chip">D-039 镜像同步 2026-11-20</span>
     <span class="chip">现行路线 <b><a href="../research/MiniMax%20Design全面复刻开发计划.md" style="color:inherit;border-bottom:1px dotted currentColor;text-decoration:none">P0—P7 总计划</a></b></span>
   </div>
-  <div style="margin:10px 0 0;padding:10px 14px;border:1px solid var(--amber, #d9a441);border-radius:10px;font-size:13px;line-height:1.6;opacity:.92"><b>2026-11-19 当前阶段：P0 已完成，P1 进行中且尚未通过。</b>D-037 后共 24 个现行负责包 + 22 个历史归档包，46 个目录原位保留。运行时数据与回放、一级入口、资产上传 / 引用、画布持久化、写安全、项目库与测试门禁分别由 feature-808 / 820 / 821 / 822 / 823 / 827 / 828 / 830 负责，feature-829 继续实施中；归档包仅保留血缘与历史证据。归并不使 P1、Parity、产品能力或真机验收通过。现行阶段门以 <a href="../research/MiniMax%20Design全面复刻开发计划.md">总规划 v0.14</a> 为准，旧测试数字只保留为历史快照。</div>
+  <div style="margin:10px 0 0;padding:10px 14px;border:1px solid var(--amber, #d9a441);border-radius:10px;font-size:13px;line-height:1.6;opacity:.92"><b>2026-11-20 当前阶段：P0 已完成，P1 进行中且尚未通过。</b>D-039 后共 24 个现行负责包 + 1 个历史归档包（feature-826），25 个目录；其余 21 个被删目录仅从 Git 历史追溯。运行时数据与回放、一级入口、资产上传 / 引用、画布持久化、写安全、项目库与测试门禁分别由 feature-808 / 820 / 821 / 822 / 823 / 827 / 828 / 830 负责，feature-829 继续实施中。D-037 归属规则不变，目录清理不使 P1、Parity、产品能力或真机验收通过。现行阶段门以 <a href="../research/MiniMax%20Design全面复刻开发计划.md">总规划 v0.15</a> 为准，旧测试数字只保留为历史快照。</div>
 
   <div class="stats">
-    <div class="stat"><div class="num">24<small> 个现行负责包</small></div><div class="lbl">另有 22 个历史归档包，共 46 个目录原位保留；逐包状态以任务清单与 AC 为准，路线映射不等于验收通过</div></div>
+    <div class="stat"><div class="num">24 + 1<small> / 25 目录</small></div><div class="lbl">24 个现行负责包，保留历史归档 feature-826；其余 21 个被删目录仅从 Git 历史追溯，路线映射不等于验收通过</div></div>
     <div class="stat"><div class="num" data-to="29">0</div><div class="lbl">MCP 工具 = 28 个业务工具 / 11 族 + tool.search；showrunner 持其中 23 个业务工具白名单并独占 task</div></div>
     <div class="stat"><div class="num">P1<small> / P0—P7</small></div><div class="lbl">P0 基线已完成；P1 当前未通过；P2—P7 未到对应阶段门验收</div></div>
     <div class="stat"><div class="num">81<small>/93 文件</small></div><div class="lbl">2026-11-16 历史回归快照：81 通过、12 失败；1,111 用例通过、85 失败、1 跳过，详见 B-70，不宣称全绿</div></div>
@@ -353,19 +353,19 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
         <span class="sr-files">
           <a href="../../AGENTS.md">AGENTS.md §1·§4</a><span class="sep">·</span>
           <a href="../governance/AI-SDG-AI工具执行指令.md">AI-SDG 执行指令.md</a><span class="sep">·</span>
-          <a href="../governance/SDG-AI-决策台账.md">决策台账（D-001~D-034）</a>
+          <a href="../governance/SDG-AI-决策台账.md">决策台账（D-001~D-039）</a>
         </span>
-        <span class="sr-cap">AGENTS.md v1.7 项目特化条款 / 通用三铁律 / K1–K10 / P0—P7 路线</span>
+        <span class="sr-cap">AGENTS.md v1.8 项目特化条款 / 通用三铁律 / K1–K10 / P0—P7 路线</span>
       </div>
 
       <div class="src-row">
         <span class="sr-ch">04 进度</span>
         <span class="sr-files">
-          <a href="../features/README.md">docs/features/README.md（24 个现行负责包 + 22 个历史归档包 · 2026-11-19）</a><span class="sep">·</span>
-          <a href="../research/MiniMax%20Design全面复刻开发计划.md">总规划 v0.14</a><span class="sep">·</span>
+          <a href="../features/README.md">docs/features/README.md（24 个现行负责包 + 1 个历史归档包 · 2026-11-20）</a><span class="sep">·</span>
+          <a href="../research/MiniMax%20Design全面复刻开发计划.md">总规划 v0.15</a><span class="sep">·</span>
           <a href="../verification/p1-2026-11-15/P1调查记录.md">P1 调查记录</a>
         </span>
-        <span class="sr-cap">46 个目录原位保留；现行负责入口、历史血缘、路线与真机证据分别查阅</span>
+        <span class="sr-cap">25 个目录：24 个现行负责包 + 保留归档 feature-826；其余 21 个被删目录仅从 Git 历史追溯</span>
       </div>
 
       <div class="src-row">
@@ -385,8 +385,8 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
       ·
       <a href="file:///Users/szd/Documents/WPS/Vibe%20Coding/AI-SDG-Trae-Vibe-Coding-%E5%9B%A2%E9%98%9F%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%B5%81%E7%A8%8B%E6%96%B9%E6%A1%88.md">团队架构与流程方案.md</a>
       （目录：/Users/szd/Documents/WPS/Vibe Coding，2026-10-05 v1.4）。项目内副本见
-      <a href="../governance/AI-SDG-AI工具执行指令.md">docs/governance/AI-SDG-AI工具执行指令.md</a>，AGENTS.md 在其基础上补充了本项目上下文；本页为 B 类可视化文档（v1.3 三层模型），v1.4 起按项目画像（本项目 <b>P2</b>）配置、Feature 闭环后直接重渲染；全局决策见 <a href="../governance/SDG-AI-决策台账.md">台账 D-001 ~ D-034</a>。<br>
-      <b>规格文件命名约定（每个 Feature 任务包）：</b>SDG-RE-需求规格.md（为什么做）· SDG-RE-契约.md（接口/字段/IPC）· SDG-RE-任务清单.md（原子任务与 AC）· SDG-OD-设计说明.md（视觉验收）· SDG-AI-变更记录.md（K1–K10 决策留痕）。目录：<a href="../features/README.md">docs/features/</a>（2026-11-19：24 个现行负责包 + 22 个历史归档包，46 个目录原位保留）
+      <a href="../governance/AI-SDG-AI工具执行指令.md">docs/governance/AI-SDG-AI工具执行指令.md</a>，AGENTS.md 在其基础上补充了本项目上下文；本页为 B 类可视化文档（v1.3 三层模型），v1.4 起按项目画像（本项目 <b>P2</b>）配置、Feature 闭环后直接重渲染；全局决策见 <a href="../governance/SDG-AI-决策台账.md">台账 D-001 ~ D-039</a>。<br>
+      <b>规格文件命名约定（每个 Feature 任务包）：</b>SDG-RE-需求规格.md（为什么做）· SDG-RE-契约.md（接口/字段/IPC）· SDG-RE-任务清单.md（原子任务与 AC）· SDG-OD-设计说明.md（视觉验收）· SDG-AI-变更记录.md（K1–K10 决策留痕）。目录：<a href="../features/README.md">docs/features/</a>（2026-11-20：24 个现行负责包 + 1 个历史归档包 feature-826，共 25 个目录；其余 21 个仅从 Git 历史追溯）
     </div>
   </div>
 </details>
@@ -421,7 +421,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
   <p class="sec-sub">四层关键设计：技术架构 → 八步生产闭环 → 多 Agent 摄制组 → 数据模型与血缘。</p>
 
   <h3>2.1 技术架构（磁盘实况 · runtime 单轨，D-012 定稿终态）</h3>
-  <p class="mut" style="font-size:13px">实线/绿色 = 现存代码已建成；琥珀色 = 规划中（媒体侧）；对话通道已按 D-012 定稿 runtime 单轨终态（不回退、不重建旧 IPC/工具）；业务层按设计 v1.26、D-037 与现行任务包契约口径认定。</p>
+  <p class="mut" style="font-size:13px">实线/绿色 = 现存代码已建成；琥珀色 = 规划中（媒体侧）；对话通道已按 D-012 定稿 runtime 单轨终态（不回退、不重建旧 IPC/工具）；业务层按设计 v1.27、D-037 归属规则、D-039 清理边界与现行任务包契约口径认定。</p>
   <div class="grid g4 rv" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">
     <div class="card"><h4>渲染进程</h4><p>项目库 / 中央画布（10 节点 Stage）/ ChatPanel / 流式 UI；经 contextBridge 安全桥走 IPC，不直连外部服务。</p></div>
     <div class="card"><h4>主进程（信任边界）</h4><p>JSON 会话持久化（单写队列）、RuntimeManager（opencode 端口 4096 · 随机口令）、MCP 工具服务（29 纯工具 / 11 族）、AI 服务配置（火山方舟 / LM Studio 内置服务商可切换，Key 经 safeStorage 加密落盘）。</p></div>
@@ -544,7 +544,7 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
   </div>
   <p class="mut" style="font-size:13px;margin-top:12px">终态约束（D-012）：runtime 单轨不回退、不重建 <code>agent:*</code> 旧 IPC 与 <code>shortdrama_*</code> 生成工具；旧通道快照已并入设计 §5.1。</p>
 
-  <h3>3.3 P0—P7 交付门 <span class="src n">总规划 v0.14 · 当前 P1</span></h3>
+  <h3>3.3 P0—P7 交付门 <span class="src n">总规划 v0.15 · 当前 P1</span></h3>
   <div class="grid g3 rv">
     <div class="card" style="border-color:var(--green)">
       <h4>P0 · 基线收口 <span class="src n">已完成</span></h4>
@@ -572,17 +572,18 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
     <div class="tl"><div class="date">2026-11-03 · 历史</div><div class="tt">设计升 v1.18（feature-813）：工作区根目录可更换</div><div class="td">单一全局根，设置面板「工作目录」入口系统直做（D-016）；旧根 project-* 整体搬移、失败回滚零半搬态；session-state 同步重映射；跨盘（EXDEV）不支持。当日快照：IPC 47 通道 · 28 个 Feature 包 · 82 文件 1029 通过 / 1 跳过。</div></div>
     <div class="tl"><div class="date">2026-11-14 / 11-15</div><div class="tt">D-032 / D-033 / D-034：媒体红线与全面复刻定位收口</div><div class="td">图像固定 H3 Image、视频固定 H3、音乐固定 Music3，全部经本地 / 局域网 ComfyUI；项目定位升级为全面复刻 MiniMax Design、短剧生产闭环优先。P0 基线报告完成。</div></div>
     <div class="tl"><div class="date">2026-11-16 · 历史</div><div class="tt">feature-818—820：类型基线、真实运行时与一级入口</div><div class="td">Renderer typecheck 修复；开发态运行时模板路径修复并完成真实 AI 对话往返；底栏真实状态与 Skill / 插件 / 本地模型入口收口。当时 36 个现行包，P1 仍未通过；全量回归 81 / 93 文件通过，12 个失败文件按 B-70 跟踪。</div></div>
-    <div class="tl cur"><div class="date">2026-11-19 · 当前</div><div class="tt">D-037：现行负责入口与历史归档分离</div><div class="td">24 个现行负责包 + 22 个历史归档包，46 个目录原位保留；运行时数据、项目库和测试门禁的现行入口分别为 feature-808 / 828 / 830，feature-829 继续实施中。P1 仍未通过，归并不构成 Parity、产品能力或真机验收。</div></div>
+    <div class="tl"><div class="date">2026-11-19 · 历史</div><div class="tt">D-037：现行负责入口与历史归档分离</div><div class="td">24 个现行负责包 + 22 个历史归档包，46 个目录原位保留；运行时数据、项目库和测试门禁的现行入口分别为 feature-808 / 828 / 830，feature-829 继续实施中。P1 仍未通过，归并不构成 Parity、产品能力或真机验收。</div></div>
+    <div class="tl cur"><div class="date">2026-11-20 · 当前</div><div class="tt">D-039：历史归档目录清理</div><div class="td">删除 002 / 003 / 007 / 008 / 009 / 010 / 011 / 012 / 015 / 804 / 807 / 809 / 810 / 811 / 812 / 814 / 815 / 818 / 819 / 824 / 825 共 21 个历史归档目录，保留 feature-826-谱系测试基线收口；被删原始文档仅从 Git 历史追溯。当前为 24 个现行负责包 + 1 个历史归档包，共 25 个目录；D-037 归属规则不变，产品能力与验收结论不变，P0 已完成、P1 未通过，feature-829 继续实施中。</div></div>
   </div>
 </section>
 
 <!-- ══════════ PROGRESS ══════════ -->
 <section id="progress">
   <div class="sec-head"><span class="sec-no">04</span><h2>现在做到了哪一步</h2></div>
-  <p class="sec-sub">截至 2026-11-19 共 <b>24 个现行负责包 + 22 个历史归档包</b>，46 个目录原位保留。P0 基线已完成，P1 仍未通过；包“已完成”只代表该包 AC 闭环，不等于八步生产链或 P1 整门通过。</p>
+  <p class="sec-sub">截至 2026-11-20 共 <b>24 个现行负责包 + 1 个历史归档包</b>，25 个目录；保留 feature-826，其余 21 个被删目录仅从 Git 历史追溯。P0 基线已完成，P1 仍未通过；包“已完成”只代表该包 AC 闭环，不等于八步生产链或 P1 整门通过。</p>
 
   <div class="grid g3 rv" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
-    <div class="card"><h4>P1 现行负责入口</h4><p>项目空态与项目库归 feature-828，运行时数据与历史回放归 808，一级入口与窗口外壳归 820。历史包中的原始证据继续保留，但不作为新 Change 入口。</p></div>
+    <div class="card"><h4>P1 现行负责入口</h4><p>项目空态与项目库归 feature-828，运行时数据与历史回放归 808，一级入口与窗口外壳归 820。保留的 feature-826 与其余 21 个被删目录的 Git 历史仅作证据追溯，不作为新 Change 入口。</p></div>
     <div class="card"><h4>核心生产链现状</h4><p>STAGE 0—2 核心文本链已有任务包；H3 Image 文生图链已由 feature-816 验收。H3 视频、Music3 与完整后期 / 发布仍须按 P2—P4 推进，不能把单链通过写成八步全通。</p></div>
     <div class="card"><h4>后续开放边界</h4><p>资产上传 / 引用、画布持久化与写安全分别归 feature-821 / 822 / 823 / 827，通用测试门禁归 830；feature-829 继续实施中。任何包级专项通过都不替代 P1 整门验收。</p></div>
   </div>
@@ -630,8 +631,8 @@ footer{margin-top:90px;border-top:1px solid var(--line);padding-top:26px;display
 </section>
 
 <footer>
-  <span>短剧 Agent 平台 · 全景图 · D-037 镜像同步 2026-11-19 · B 类人读文档</span>
-  <span>规范源：设计 v1.26 / 决策台账 · 实施源：总规划 v0.14 / 24 个现行负责包 + 22 个历史归档包 · 2026-11-16 历史回归：81 / 93 文件通过</span>
+  <span>短剧 Agent 平台 · 全景图 · D-039 镜像同步 2026-11-20 · B 类人读文档</span>
+  <span>规范源：设计 v1.27 / 决策台账 · 实施源：总规划 v0.15 / 24 个现行负责包 + 1 个历史归档包（826）/ 25 个目录 · 其余 21 个仅从 Git 历史追溯 · 2026-11-16 历史回归：81 / 93 文件通过</span>
 </footer>
 
 </main>

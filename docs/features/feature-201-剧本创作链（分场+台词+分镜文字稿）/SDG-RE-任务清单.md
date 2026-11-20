@@ -17,7 +17,7 @@
 - [x] [electron/fs/archive.ts](../../../electron/fs/archive.ts)、[electron/project/manifest.ts](../../../electron/project/manifest.ts) L24–50、[electron/mcp/tools.ts](../../../electron/mcp/tools.ts)
 - [x] [script-orchestration.test.ts](../../../src/studio/contracts/script-orchestration.test.ts) 全文（实施前 11 it）
 - [x] [StudioViewer.tsx](../../../src/studio/viewer/StudioViewer.tsx) ScenesView / DialogueView / StoryboardView
-- [x] [feature-015 契约](../feature-015-确认门非阻塞化与系统直做后置/SDG-RE-契约.md)、[execute.ts](../../../electron/gate/execute.ts)、[gate-execute.test.ts](../../../src/test/gate/gate-execute.test.ts)
+- [x] feature-015 契约（Git 历史；现行归 feature-801）、[execute.ts](../../../electron/gate/execute.ts)、[gate-execute.test.ts](../../../src/test/gate/gate-execute.test.ts)
 
 本次围栏内改动仅：writer.md、showrunner.md、execute.ts、上述两组测试与本包/索引文档。shared、preload、IPC、UI 与其他 STAGE 均不改。
 

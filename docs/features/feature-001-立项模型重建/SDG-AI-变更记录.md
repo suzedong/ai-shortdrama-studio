@@ -118,3 +118,12 @@
 - 联动修订：`gate.request` 只落盘 pending 并立即返回；新 `0-final` 门必须在 `payload.draft` 携带完整结构化草案。**首版 v1** 点通过后由主进程直接双写立项单、upsert `step-0-brief` 并推进 `brief-published`，Agent 不重复 publish / advance；**再版 v2+** 点通过只确认草案与版本，不发布、不推进 manifest，Agent 下一轮呈报三选一后由 `impact.commit` 唯一发布。
 - 保留边界：verbal 首版仍由 Agent `brief.publish(by:'verbal')` 后自行推进 `brief-published`；历史无草案门的 `brief.publish(by:'gate')` 兜底仅限首版，再版不得走该兜底。工具总数 29、shared 类型均不变。
 - 交叉指针：[feature-015 契约](../feature-015-确认门非阻塞化与系统直做后置/SDG-RE-契约.md) §2–§6、feature-015 D-015-5。
+
+### X-D037 文档归并（2026-11-19，文档 Change，跨组补全）
+
+- **来源**：feature-002 的影响评估与 dirty 数据；feature-007 的 realign 定稿前提与 Agent 协议；feature-010 需求 §3 / §4、契约 §2–§3、设计 D1–D4 / D7 及 X-002 的追问块、quote / capture、定案卡正文和 verbal 约束；feature-012 需求 §3 / §4、契约 §1–§4、设计 D1–D3 的完整门字段、引用与 impactSummary；feature-015 需求 §3 / §4、契约 §1 / §4–§6、设计 D1–D5 的 draft、非阻塞及首版 / 再版 Agent 分工。本轮已逐份复核相关原文。
+- **目标章节**：002 / 007 → 需求 §7.1–§7.2、契约 §10.1–§10.2；010 → 需求 §7.3、契约 §10.4；012 → 需求 §7.4、契约 §10.5；015 → 需求 §7.5、契约 §10.6；共同边界 → 需求 §7.6、契约 §10.7、设计 §4 第 4–8 项及任务清单 D037-T3–T5。仅迁入有效规则，未复制历史测试日志。
+- **冲突处理**：002 / 007 早期“无影响面板”排除已由 011 翻案并归 013；010 的末尾锚定由 X-002 非锚定解析取代，但 AC4「编号混入整块不识别」与 R3「编号字样仍按原文收录」继续标为**未裁决**。来源包没有 `runId` / `changelogDecision` 字段定义，本轮不新增；现有 capture、changesFromPrevious / changeLog、decision、draft 与 impactSummary 保持原形状。
+- **职责边界**：001 / 005 独立，capture 匹配与 canonical 不归 001；010 / 012 的 UI 归 013、视觉归 817；015 的门态 / execution 主归 801，Harness findings 与校验归 806。001 只接收立项数据、定案和 Agent 协议，没有新增 IPC / MCP / shared 写权。
+- **开放状态**：007 的 dev-mock 浏览器目验历史结论保留；011 / 013 的 Electron 沙箱目验与 015 真机交互验收仍待用户执行。本次不改写任何历史 PASS / FAIL、测试计数或历史任务勾选，文档 Change 的 D037 项仅表示归并完成。
+- **验证**：逐文件自审来源映射、目标章节、接口形状、冲突和开放状态；未运行产品测试（纯文档 Change），未改产品代码、shared/types.ts、依赖或真实项目数据。**自审 + 无第二人复核**。

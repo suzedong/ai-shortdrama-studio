@@ -90,3 +90,88 @@ electron/style/loader.ts ── parse-md.ts（纯解析）── ParsedStyleEntr
 
 - 无视觉回归项；不新增渲染测试依赖。
 - 回归红线：typecheck / tsc -b（node）/ tsc -p（preload）零新增错误；全量测试失败数不扩大（基线 264 passed / 7 skipped / 12 failed，2026-10-13）；新增测试只许增加 passed 数。
+
+## 9. D-037 现行归并设计（2026-11-19）
+
+本节统一归档包 810 / 811 / 815 的现行设计归属，不表示本轮重新实施或验收。
+
+### 9.1 单一目录事实与升级读链
+
+```text
+谱系 md（当前 v1.47）
+  ├─ J.0/J.2 → loader + registry → style:catalog → 全量真实 Store / 面板
+  └─ J.3 谱系变更记录 → 独立容错解析 ─┐
+当前项目 Brief 主辅引用 → 当前条目现况 / removed ─┴→ style:upgrade-diff
+用户采纳前重取 style:catalog 核版 → brief:update({style:{catalogVersion}})
+```
+
+版本只做逐字比较。旧版 md 不在仓时，面板组合“引用条目现况 + 变更记录”，不反推逐字段旧值。J.3 失败只影响 changelogUnavailable，不拖垮目录。removed 与 noBrief 阻断采纳；忽略不落持久状态。写路径复用 updateBriefFields，不另建 brief 写接口。
+
+### 9.2 Store 与面板组合
+
+`style-catalog-store.ts` 以 useSyncExternalStore 持全量十键条目和版本，ensure 单 flight 并支持 force；同步 getStyleEntry / getStyleName 供纯展示组件查询。VisualCatalog、ChatComposer、Stage0View、StudioViewer 消费同一快照，删除各自硬编码目录事实，未知 ID 仍纯文本回退。既有 testid 全部沿用，dev-mock 自具同 DTO 演示表，不能 import 已删除的组件表。
+
+原“无 renderer UI / IPC”设计只适用于 802 首次 MCP 落地阶段；现行仅限本节纳入的目录、升级与预览面板例外，其他 renderer 排除不变。
+
+### 9.3 双媒体与元数据解析
+
+```text
+VisualCatalog
+  ├─ {styleId, mediaKind:'image'} ─────────┐
+  └─ {styleId, mediaKind:'video', tier} ───┤
+                                          ▼
+                         style:preview-metadata（主进程白名单定位）
+                                          ├─ PNG tEXt prompt → API graph
+                                          └─ MP4 mdta prompt → API graph
+                                          ▼
+                  DTO ok/missing/no-metadata/unsupported/invalid
+```
+
+主进程按注册家族和固定文件名定位，执行 resolve / realpath containment、常规文件、上限与结构校验；renderer 永远不传路径。两个请求以序号和当前身份防 stale，切视频档只重置视频，切风格才重置双媒体。missing、无元数据、UI Format / 不支持 graph、坏档分别降级，互不遮蔽。
+
+graph 按 class_type / inputs 和连接解析，不执行节点、不读引用文件，不用谱系文本补参数。v1.47 的 Qwen 配方与样张均标历史研究，生产通道仍锁 H3 Image / H3 / Music3，经本地或局域网 ComfyUI。
+
+### 9.4 冲突与降级
+
+- 原 §1—§3 的“无 UI / 无 IPC / 不读预览媒体”是首次实施边界，现由 §9.2—§9.3 的有限例外取代；不开放谱系写入、HTML 解析、任意文件读取或媒体生成。
+- 目录不可用时纯文本回退，不伪造目录；项目无升级不制造差异；J.3 失败独立降级；媒体参数不可用不影响另一媒体和谱系文本。
+- 既有测试数字、真机记录和历史设计均为当时证据。本节只做现行设计归并，自审口径见变更记录，无第二人复核。
+
+## 10. 谱系事实源与业务校验保持设计
+
+本节接收 826 的谱系业务设计约束，与 §4—§6 的 loader / 校验器和 §9.1 的升级读链共同生效，不表示重新实施或运行历史测试。
+
+### 10.1 当前事实与真实记录分流
+
+```text
+当前正式 md
+  ├─ J.0 当前版本 + J.2 条目 → loader / registry 交叉核对 → 当前合法引用
+  └─ J.3 谱系变更记录
+       ├─ 真实资源：当前保留 v1.47、v1.46 两节 → 真实 changelog
+       └─ 独立升级输入：两个不同版本节 → 区间与降级业务验证
+```
+
+当前合法引用从 loader 快照取版本，不在草案、注册表或下游链路中另存“当前版本”常量。资源升级只改变当前事实，不把历史 v1.45→v1.46 采纳场景或故意错版输入改写为合法场景。真实 changelog 的版本节、条目与顺序来自正式资源；独立升级输入不得复制当前版本节造成重复版本，其测试数据管理由 830 负责。
+
+### 10.2 区间筛选与容错顺序
+
+1. 先按 `### vX.Y` 识别 J.3 版本节，再处理 `(fromVersion,toVersion]`：可解析时排除起点、包含终点并保留区间内的记录。
+2. 任一端点不可解析时跳过不可靠的区间裁剪，保留全部相关记录，以较多明细避免漏报；此分支不反向改变逐字不等驱动的 `hasUpgrade`，也不把故意错版变成合法引用。
+3. J.3 缺失、空段、读取或解析失败只令 changelog 通道不可用，目录 loader、注册交叉核对和引用现况不被拖垮。独立升级输入以固定 J.3 边界和两个不同版本节验证这些分支，而非在真实 v1.47 文本上隐式替换出重复节。
+4. 差异仍由“引用条目现况 + changelog”组成；`removed` / `noBrief` 阻断采纳。采纳前核版及 `brief:update` 仅写 `catalogVersion` 的链路保持 §9.1，不新增旁路。
+
+### 10.3 严格性保持矩阵
+
+| 场景 | 设计不变量 |
+| --- | --- |
+| 当前合法草案 | 使用当前 loader 版本，通过谱系校验后进入下游自身业务规则 |
+| 故意错版、未知 ID、辅助越域 | 分别保留 `STYLE_VERSION_MISMATCH`、`STYLE_ID_UNKNOWN`、`STYLE_AUX_NOT_CANDIDATE`，不随基线校准删除 |
+| 非法画幅、门 / Harness 草案版本失配 | 原负责链路和错误路径继续拒绝，802 不放宽也不接管其实现 |
+| 历史升级 / 采纳 | 固定版本区间和 diff / decision / mark 目的不变，不机械替换为当前版本 |
+| 当前真实 changelog | v1.47、v1.46 两节均可读取；新增当前节不覆盖历史节 |
+
+因此，826 所验证的不是“把版本号改绿”，而是当前合法路径与负向 / 历史路径各自保持不同语义。版本注册、真实 changelog、升级差异和采纳闭环任一缺失都视为业务回退。
+
+### 10.4 冲突与归属
+
+本节不把 826 的 Vitest / typecheck / build 门禁、临时目录或通用测试数据原则迁给 802；这些由 830 维护。Harness、发布、影响评估、门、画幅、故障注入及回滚补偿仍由各业务 Feature 所有，802 只维护谱系业务约束。本次仅文档归并，未形成新接口、新产品能力、自动化测试或真机验收结论。

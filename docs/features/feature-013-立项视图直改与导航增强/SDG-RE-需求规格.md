@@ -109,3 +109,60 @@
 | AC7 | 工具面：MCP 注册恰 28、showrunner 白名单恰 23 零 diff；零新 IPC/推送（Grep 静态验证）；零新依赖（package.json 零 diff） | 静态验证 + 单测 |
 | AC8 | 回归红线：`npx tsc --noEmit` 恰 3 条历史基线零新增；全量以 T1 实测基线（承 806 T7：66 文件 761 passed / 0 failed / 1 skipped）为准——passed 不减少、skip 不增、failed=0 | 全量回归 |
 | AC9 | 真机（Electron 实机 + computer-use UIA/CDP）：①立项视图分三类字段各直改一次（枚举/文本/长文）实证再版 +1、历史可查、挂脏 ⚠ 上屏；②L0 标签/备注编辑落盘读回；③左栏 hover 历史卡与 titlebar tooltip 统计上屏 | 真机 |
+
+---
+
+## 6. D-037 现行归并约束
+
+> 本节承接 feature-003 / 007 / 008 / 009 / 011 中仍有效的立项视图、链态、分色、影响面板与留存卡行为。来源包仅作历史追溯；本节不复制历史测试日志，也不表示本轮重新实施这些产品能力。
+
+### 6.1 来自 feature-003：单一数据源与全量立项阅读
+
+1. `Stage0View` 继续经 `useStage0Data` 统一取得 brief、captures、stages / logline 与 loading / error；链式阅读、全量立项单、DAG 投影和留存卡消费同一数据源，不各自重复订阅 capture / stage。
+2. 全量立项阅读保留未发布空态、已发布全字段分区、logline 独立展示与门只读镜像；门显示由 system / confirmed / rejected 派生待拍板 / 已确认 / 已驳回，不在 renderer 重算 publishGate 或再发送一次 stage:list。
+3. 003 的“字段不可直接编辑”是历史范围排除，已由本包全字段直改正式取代；其“不在视图内嵌会话、门由对话流承载、click 走导航而非新开 Agent”边界仍有效。003 各历史目验按其 T 节证据等级保留，只覆盖当时功能范围，不据此替代 011 / 013 后续新增交互的 Electron 验收。
+
+### 6.2 来自 feature-007：dirty 打开确认与查看器黄条
+
+1. 打开画布节点时仅在 `node.dirty` 非空显示重对齐确认：提供「按 vM 重新对齐」「保持现状查看」「取消」三动作；无 dirty 直接查看。保持现状进入查看器并显示版本对 / 命中字段黄条与「一键对齐」，取消不发消息、不清脏。
+2. 单产物重对齐只经既有 `handleSend(buildRealignPrompt(...))` 注入会话；固定 `【产物重新对齐】` 前缀、节点 / 标题 / 版本对 / 中文字段、串行委派与定稿后 `canvas.align` 纪律不变。字段中文只复用 `dirtyFieldLabel`，组件不得另建映射。
+3. renderer 不得直调 `canvas.align`，也不得把查看、关闭弹层或普通重生成解释成清脏；数据与 Agent 执行事实源归 001，本节只维护 UI 行为。
+
+### 6.3 来自 feature-008：链态、门摘要与口径留存卡
+
+1. 链态五节点保持 `style → six → premise → gate → all` 阅读顺序；six / premise 标签显示 x/6、x/5，无门时显示「门」、有门显示「门 N」。这些节点是阅读进度，不是八步 DAG；当前 DAG 全量投影 / 导航与链态阅读可共存，不互相改语义。
+2. 门摘要浮层由门键过滤而非 session step 推导，按确定、可选、反馈、五要素顺序列固定四项；待拍板黄、已确认绿、已驳回红，零门降级为空态。每条含键、中文标签、截断原文和状态徽标，hover / 点击展开、移出或再次点击收起；状态来源同本包既有门摘要，不另造第二份真值。
+3. 六要素 / 前提 / 其他口径卡及链态计数统一消费 005 的 canonical、匹配与分组事实源；同 canonical 取最新、unmatched 保持文件序，不在 Stage0 组件内复制词表。未捕获 / 历史无 captures 只降级显示，不伪填，也不静默改写口径。
+
+### 6.4 来自 feature-009：前提分色与徽标
+
+1. 前提五行仅在命中 canonical 且存在 `confirmed` 事实时显示绿色确认态与「不可篡改」徽标；已命中但仅为 AI 推断待确认时显示琥珀色与「AI 拟稿」徽标；未命中保持原色且无徽标。confirm_pending 不做第三种色。
+2. 背景档案卡保留独立绿色「不可篡改」徽标与展开 / 收起交互，其历史实现不随 bg.phase 改变；前提行徽标随字段整体确认状态出现 / 消失，六要素字段与行内编辑控件不套用该确认徽标。
+3. 后续全字段直改不等于把徽标改成“禁止人编辑”；其标识 AI 未确认态的语义和现有分色数据流保持不变。
+
+### 6.5 来自 feature-011：影响面板与批量重生成
+
+1. **双入口**：系统直改成功且 `items.length>0` 时消费 updateBrief 返回自动弹出；查看器 dirty.impactReport 非空时提供「查看影响评估」，经既有 fileRead 回读同一视图模型。items 空不自动弹；清单缺失 / 损坏 / 读取失败只在面板内降级提示，不阻断查看器。
+2. **面板行为**：changes 摘要与 high / medium 产物分组保持原序；defaultAction='regenerate' 预勾、'mark' 不勾，N 实时同步且 N=0 禁用。动作只有「一键重生成选中 (N)」「仅标记脏」；Esc / 显式关闭只退出，背景点击不关闭，均无撤销再版或清脏语义。
+3. **批量协议**：勾选即决策，以 `【产物重新对齐】` 前缀的单条聚合消息携带所选 nodeId / title / 版本对 / 字段，经 handleSend 走既有会话链；showrunner 逐产物串行重生成并逐一 canvas.align。勾选态只存 renderer 内存，decision 只读留痕、不回写；不新增 IPC / MCP 工具。
+4. 画布 banner 维持非阻断纯提醒，单产物 RealignConfirm 与 806 漂移提醒并存且不互相取代。
+
+### 6.6 来自 feature-010：追问 chips、拍板提示与定案卡阅读
+
+1. **解析现行口径**：`parseChatOptions` 继续输出纯文本 `chips`；完整 `【追问选项】` 块至少两行有效选项，流式缺闭标签时保持原文并等下一片。X-002 已取代“闭合块必须在消息末尾”：闭合块采用非锚定识别，块前后正文都保留，定稿与流式段级剥离避免块原文和按钮重复；同一 text 多个闭合块仍只处理首个，其余保留原文。
+2. **ChipRow 交互**：chip 单击复用既有 `onSend` 代发原文，不创建第二发送通道；下一条用户消息与 chip 原文 trim 相等时显示 picked，同组 consumed 后禁用，流式展示态不可点。横向胶囊、颜色和双主题形态归 817，本包只维护解析、挂载、点击和状态判定。
+3. **GateHint 挂载**：仅在 pending `0-final` 的两个既有 GateCardView 挂载点后显示固定拍板提示，提示真实口令「行，就按这版发布」及按钮 / 口头两条路径；非 0-final、非 pending 或 pending 缺失时不显示。提示不自动批准、发布或另发消息，verbal 数据与双前提归 001，pending / execution 归 801。
+4. **定案卡排版**：GateCardView 以 `splitGateQuestion` 将 question 拆为短标题和可滚动 Markdown 正文；多行卡去首行 `#` 作标题，旧单行密文按首个句读或 24 字兜底。业务字段完整性和 Markdown 提示词归 001，本包不重新生成定案内容。
+
+### 6.7 来自 feature-012：再版影响摘要与 approved 门卡留存
+
+1. **再版门影响区**：GateCardView 安全读取 `payload.impactSummary`，在改动区与 findings 区之间显示 high / medium 计数及逐项 label / severity / path / reason / defaultAction；high、medium 分组保持来源顺序，缺键、形状非法或空列表时不渲染该区。首版无键正常降级，再版有键必须在拍板前可见，不由 renderer 计算影响或补造空清单。
+2. **approved 留存**：Stage0View 的 EmptyStage0 与 PublishedBody 均从既有画布 `gates[]` 放行最新 approved `0-final`，复用 GateCardView 展示改动、影响摘要和 806 findings；不渲染裁决按钮，也不新增第二个 publishGate。pending / rejected 保持原镜像条与聊天输入区唯一 pending 裁决入口。
+3. **职责边界**：impactSummary 的生产与快照语义归 001，assess 归 002，findings 的内容和校验归 806，版本化重开、批准与 execution 归 801。本包只读取、降级和组合既有数据；聊天历史回放不因此新增门卡。
+
+### 6.8 冲突与仍开放验收
+
+- 013 需求 §4.2 与 002 / 007 的“无影响评估全量面板”排除已由 011 建包正式翻案；现行以本节 §6.5 为准。003 的只读排除由本包直改取代，009 的分色 / 徽标语义继续有效。
+- 010 的 AC4「编号混入整块不识别」与契约 R3「编号字样仍按原文收录」是**未裁决冲突**。X-002 只裁决块位置，不等于裁决编号行；本轮保留两种历史表述，不把任一解析分支写成新的统一验收口径。
+- 003 的历史真机 / 单测证据只覆盖当时范围，不追记为后续交互通过；011 T9、013 T8 的桌面端沙箱目验及后续 DAG 投影真机目验仍待用户执行，010 的 qh 历史 dev-mock 环境无真实 0-final 门，015 的真机交互验收也仍开放。本轮不改写历史 PASS / FAIL、测试计数或任务勾选。
+- 本轮只归并现行 UI 约束，无新 IPC、推送、MCP、shared 字段或产品实施放行。

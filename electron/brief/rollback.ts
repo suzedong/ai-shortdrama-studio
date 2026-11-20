@@ -6,7 +6,7 @@ import path from 'node:path'
 import fsp from 'node:fs/promises'
 import type { BriefChange, ProjectBrief } from '../../shared/types.js'
 import { enqueue } from '../fs/write-queue.js'
-import { MANIFEST_FILE, parseManifest, applyBriefVersion } from '../project/manifest.js'
+import { MANIFEST_FILE, parseManifest, applyBriefVersion, writeManifestFile } from '../project/manifest.js'
 import { canvasStore } from '../canvas/store.js'
 import { listBriefVersions } from './plan.js'
 import { publishBriefFiles, type ReadyBriefDraft } from './publish.js'
@@ -61,7 +61,7 @@ export async function rollbackBriefToVersion(
       new Date().toISOString(),
     )
     const nextManifest = applyBriefVersion(manifest, written.version, new Date().toISOString())
-    await fsp.writeFile(manifestAbs, JSON.stringify(nextManifest, null, 2), 'utf-8')
+    await writeManifestFile(projectDir, nextManifest)
 
     // R5-b：画布 brief 节点 upsert（persistInQueue 自动广播 canvas:changed）
     await canvasStore.persistInQueue((_c, document) => {

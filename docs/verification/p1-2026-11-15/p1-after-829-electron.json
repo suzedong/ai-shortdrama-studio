@@ -1,0 +1,121 @@
+{
+  "feature": 829,
+  "date": "2026-11-19",
+  "node": "v22.23.1",
+  "electron": "33.4.11",
+  "mode": "real-electron-cdp-independent-profile",
+  "checks": {
+    "navigation": {
+      "sequence": [
+        "page-a",
+        "page-b",
+        "page-a",
+        "page-b",
+        "page-a"
+      ],
+      "revisionBefore": 1,
+      "revisionAfter": 1
+    },
+    "referenceCreate": {
+      "nodeId": "06bde0b8-f10a-4823-b1ff-7ae9f491b095",
+      "reference": {
+        "artifactId": "step-0-brief",
+        "version": "v1",
+        "source": {
+          "projectId": "project-829-1954",
+          "pageId": "page-a",
+          "canvasId": "canvas-a1"
+        }
+      },
+      "revision": 2,
+      "receipt": {
+        "commandId": "7e2ba73b-f3b6-4a1f-8998-760b5522c3ba",
+        "type": "reference.create",
+        "requestHash": "31c0925f916ea2a216ae90c606502aa898811d212363f414cee60dc72b8f722e",
+        "revision": 2,
+        "appliedAt": "2026-11-19T03:08:39.406Z",
+        "payload": {
+          "request": {
+            "projectId": "project-829-1954",
+            "type": "reference.create",
+            "target": {
+              "projectId": "project-829-1954",
+              "pageId": "page-b",
+              "canvasId": "canvas-b1"
+            },
+            "source": {
+              "target": {
+                "projectId": "project-829-1954",
+                "pageId": "page-a",
+                "canvasId": "canvas-a1"
+              },
+              "nodeId": "step-0-brief"
+            },
+            "nodeId": "06bde0b8-f10a-4823-b1ff-7ae9f491b095",
+            "position": {
+              "x": 660,
+              "y": 543.8888888888889
+            }
+          },
+          "target": {
+            "projectId": "project-829-1954",
+            "pageId": "page-b",
+            "canvasId": "canvas-b1"
+          }
+        }
+      }
+    },
+    "republish": {
+      "briefVersion": 2,
+      "sourceVersion": "v2",
+      "reference": {
+        "artifactId": "step-0-brief",
+        "version": "v1",
+        "source": {
+          "projectId": "project-829-1954",
+          "pageId": "page-a",
+          "canvasId": "canvas-a1"
+        },
+        "latestVersion": "v2",
+        "markedAt": "2026-11-19T03:08:39.820Z"
+      },
+      "legacyDirty": null
+    },
+    "restart": {
+      "fullProcessRestart": true,
+      "activePageId": "page-b",
+      "activeCanvasId": "canvas-b1",
+      "backDisabled": true,
+      "forwardDisabled": true,
+      "reference": {
+        "artifactId": "step-0-brief",
+        "version": "v1",
+        "source": {
+          "projectId": "project-829-1954",
+          "pageId": "page-a",
+          "canvasId": "canvas-a1"
+        },
+        "latestVersion": "v2",
+        "markedAt": "2026-11-19T03:08:39.820Z"
+      }
+    },
+    "openSource": {
+      "activePageId": "page-a",
+      "sourceNodeId": "step-0-brief",
+      "sourceVersion": "v2",
+      "viewerOpened": true
+    },
+    "renderer": {
+      "pageErrors": [],
+      "exceptions": 0
+    }
+  },
+  "screenshots": [
+    "docs/verification/p1-2026-11-15/p1-after-829-reference.png",
+    "docs/verification/p1-2026-11-15/p1-after-829-reference-dirty.png",
+    "docs/verification/p1-2026-11-15/p1-after-829-restart.png",
+    "docs/verification/p1-2026-11-15/p1-after-829-open-source.png"
+  ],
+  "runtimeResourceShim": "temporary-md-only-removed-after-acceptance",
+  "pass": true
+}

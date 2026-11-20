@@ -82,3 +82,33 @@ idle → 选编号(selectedNum) / 输自定义(custom) → submitting → onSend
 - **折叠导致流式动画消失**：运行状态提升到 TaskDetails summary。
 - **协议假进度**：元数据可选且严格校验，showrunner 明确禁止臆造。
 - **既有 profile CRLF 失败**：作为基线隔离，不顺带修复。
+
+## D8 D-037 展示归并设计（2026-11-19）
+
+### D8.1 活跃与跟随滚动
+
+```text
+808 提供有序回放 / 流式数据（streaming / ToolView / turnSegments）
+  → 817 纯展示派生：thinking / tool / idle / error
+  → 阶段类：stream-thinking（绿） / stream-tool（紫）
+  → 非活跃 opacity .45；终态与恢复移除活跃类
+
+首条工具请求或任一段变化
+  → 检查贴底与“用户未接管”
+  → 向上平滑跟随，delta ≤120px
+  → 用户上滚 >2px：取消动画并交还滚动权
+```
+
+历史重载 `streaming=false`，只画真实记录，不运行活跃与自动跟随。动画不反写 808 数据，也不作为 Agent 运行成功证据。
+
+### D8.2 入场与芯片形态
+
+- 交错容器只读取真实有序段：外壳 320ms，内部最多 4 项、每项错开 40ms；减少动态偏好下直接呈现。禁止为凑动画缓存或重排工具段。
+- QH-C6 芯片视觉令牌复用 D2 色板：surface / line / ink / muted 与 tone 状态共同形成默认、hover、focus-visible、selected、disabled；单行 ellipsis 与 title 提示并存。
+- 视觉层不改 ChipRow 点击、013 立项视图行为、001 芯片数据、801 门态或 808 回放 DTO。
+
+### D8.3 冲突和验收边界
+
+- 809 的 48px 是历史快照，现行使用 120px + 用户接管；减少动态偏好的优先级高于所有入场 / 跟随动画。
+- 任务详情 spinner 只表示摘要运行态，阶段颜色必须来自真实 phase / ToolView，不能由本地计时器伪造。
+- 双主题现场通过保留；真实 AI runtime、OptionCard、真实任务详情与 Gate 现场仍未闭环。本 Change 无新接口，不新增实施或真机完成记录。

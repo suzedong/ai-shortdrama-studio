@@ -64,7 +64,7 @@ const draft: BriefDraft = {
     leads: '28 岁女白领 / 30 岁男医生', time: '2024 年', place: '上海',
     coreEvent: '医院重逢', seasonBoundary: '第一季只讲相识',
   },
-  style: { mainStyleId: 'A7', catalogVersion: 'v1.46' },
+  style: { mainStyleId: 'A7', catalogVersion: 'v1.47' },
   diagnosisSummary: '赛道可行',
 }
 

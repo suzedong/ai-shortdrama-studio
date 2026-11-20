@@ -91,3 +91,22 @@ initiating → story-outline → story-profiles
 - AC7：旧项目 manifest（含 12 字段骨架、`nodes` 10 态、`status:'initiating'`）可被 manifest.get 正常读出（旧字段原样保留在磁盘、读返回不丢失未知字段），非法/缺失 `status` 容错为 `initiating`；openProject 不报错。
 - AC8：生产代码与测试中不再 import 或出现 `Stage` 类型与 `StageCanvas`；`npm run typecheck`、`npx tsc -b tsconfig.node.json` 与本包相关测试全绿（不扩大当时 HEAD 既有 11 失败基线；该存量失败已于 2026-10-14 清零）。
 - AC9：showrunner.md 中 5 个已定稿点（publish 后 + 4 门后）均有 manifest.advance 动作与正确事件名；2-c 仅以「feature-201 预留」语境出现。
+
+## 6. D-037 现行归并约束（2026-11-19）
+
+本节自包含承接 feature-807、feature-015 以及 feature-010 / feature-012 中的**通用确认门与状态推进约束**，是当前负责入口；归档包只保留历史快照。此次仅归并规格，不新增产品能力。
+
+| 编号 | 现行有效需求 |
+| :-- | :-- |
+| R37-01 | **门态防绕过**：`brief.publish` 的口头 / 门卡发布仍受 807 四条防护约束——pending 不得绕过、rejected 不得直接发布、approved 门不得再用 verbal 凭证、门绑定版本与将发布版本必须一致，分别沿用 `BRIEF_GATE_PENDING` / `BRIEF_GATE_REJECTED` / `BRIEF_GATE_APPROVED_USE_GATE` / `BRIEF_GATE_VERSION_MISMATCH`。不得伪造用户原话、版本或授权范围。 |
+| R37-02 | **非阻塞请求**：`gate.request` 持久化 pending 门后立即返回 `{ ok:true, gateId, status:'pending', requestedAt, payload }`，不等待用户裁决，也不在返回体中伪装 approved / rejected、`decision` 或 `decidedAt`。同一 gateId 的 pending 门重复发门按 015 覆盖重开为 pending，并经既有 `gate:changed` 推送 `reopened:true`，不是新增 `GATE_ALREADY_PENDING` 拒绝分支。裁决前不得发布、推进或挂脏；项目切换 / 关窗只清 live 索引，不触发后置动作。 |
+| R37-03 | **裁决后系统直做**：既有链路为 `gate.decide → 写 approved/rejected + note + decidedAt → approved 时 applyGateDecision(gate)`，执行器位于 `electron/gate/execute.ts`；不存在本次新增的 `gate.execute` 接口。后置映射由主进程固定：0-final 首版执行草案 / 版本 / Harness 校验、发布、`step-0-brief` upsert 与 `brief-published`；再版仅确认草案与版本；1-a / 1-b / 2-a / 2-b 分别推进既有精确 manifest 事件。rejected 只写门态与 note，不执行后置动作。 |
+| R37-04 | **执行结果与失败分类**：execution 沿用既有 `gate:changed` 推送摘要 `{ ok:true, summary } | { ok:false, code, message }`，不另造 pending / approved / failed 三态、runId 或 `EXECUTION_FAILED`。草案缺字段、风格非法或版本不符时回退 pending；Harness blocker、磁盘异常、manifest bad-transition / terminal 时保持 approved 并推送失败摘要，不把门裁决回滚。历史无草案首版门以 `GATE_DRAFT_MISSING` 明确失败并走保留的 `brief.publish(by:'gate')` 兜底。已 approved / rejected 的门重复 decide 返回 ignored，不重复发布或推进；manifest `already-there` 视为幂等成功。 |
+| R37-05 | **重开边界**：rejected 可沿用同一 gateId 携带最新草案重开为 pending。approved 仅 0-final 允许版本化重开：新旧 `payload.version` 均可解析且新版本严格大于旧版本时覆盖为 pending；同版本、较低版本、版本不可解析均拒绝，其余门的 approved 仍为终态。不得以新 gateId 规避版本与历史门态约束。 |
+| R37-06 | **通用就绪提示边界**：feature-010 的“条件已齐可拍板 / 继续补”等提示只表达候选 readiness；达到条件后可携带既有事实形成门草案，但不得自动建门、自动批准或自动发布。立项数据、定案协议与门卡业务字段仍归 feature-001，本包只负责通用门态与推进。 |
+| R37-07 | **首版 / 再版与 verbal 分流**：0-final 首版按钮路径由系统直接发布、upsert 并推进 `brief-published`，Agent 不得重复 publish / advance；再版 v2+ 按钮只确认草案与版本，仍由 Agent 下一轮经三选一后调 `impact.commit` 唯一发布。1-a～2-b 按钮路径由系统推 manifest，产物正文、画布节点 done 与依赖边仍由 Agent 落盘。verbal 通道保留，`brief.publish(by:'verbal')` 后仍由 Agent 显式推进 manifest。 |
+| R37-08 | **职责边界**：本包与 feature-806 独立。本包负责 pending → decide / execute → execution 摘要 → reopen 及 manifest 精确事件推进；Harness 校验规则、findings、`harness.validate` 与写盘前校验拦截仍归 feature-806。本包只消费校验通过 / 失败结果，不吞并、复制或改写校验规则。 |
+
+**旧口径冲突处理**：本节生效后，§3 语义约定第 3 条及契约 §3.2 / §7 / §8 中“门机制与推进完全解耦、Agent 在 approved 后另行调用 advance”的旧编排，仅就由系统直做的按钮路径被 015 取代；verbal 与历史无草案首版兜底仍按保留通道由 Agent 调用。`manifest.advance` 的既有事件枚举、单格推进与幂等契约保留，但按钮路径不得由 Agent 再写一次。历史 AC 与当时验证证据不回改。
+
+**范围声明**：本 Change 无新接口、无新共享类型、无新事件，不将历史归并写成新功能实施或真机验收；既有未完成事项继续按原状态追踪。

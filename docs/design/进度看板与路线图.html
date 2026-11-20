@@ -12,7 +12,7 @@
   2026-10-27 再核（v1.14 反向同步）：磁盘实况更新为 27 个纯 MCP 工具 / 10 族、4 个 Agent profile（showrunner 单 primary）、20 个现行 feature 包（19 落地 / 201 部分）；测试基线 722 通过 / 0 失败 / 1 跳过（61 文件），typecheck 恰 3 条历史基线。
   2026-11-02 再核（v1.17 反向同步）：28 个纯 MCP 工具 / 11 族、showrunner 23 白名单且独占 task、27 个现行 feature 包；当时测试与类型基线见下方历史实测卡。
   2026-11-03 再核（v1.18 反向同步）：feature-813 工作目录更换落地（根目录可更换，单一全局根，IPC 47 通道）· 28 个现行 feature 包；当时测试基线 1029 通过 / 1 跳过 / 0 失败（82 文件）。
-  D-005：立项模型重建已落地；任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段）。2026-11-16 当前镜像按 36 个任务包展示，早期数量仅为历史再核。
+  D-005：立项模型重建已落地；任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段）。2026-11-19 D-037 当前镜像按 24 个现行负责包 + 22 个历史归档包展示，46 个目录原位保留，早期数量仅为历史再核。
 -->
 <style>
 :root{
@@ -199,14 +199,14 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <header class="hero" id="top">
   <div class="kicker">PROGRESS · ROADMAP</div>
   <h1>进度<em>看板</em>与路线图</h1>
-  <p class="lede">面向不读规格的人：<b>当前 36 个任务包、八步闭环覆盖、真实回归边界与 P0—P7 交付门</b>，一眼看全局。P0 基线收口完成；P1 已越过启动阻塞但仍未通过，下一入口为切片 C。旧数字与旧三期路线仅保留为页底历史。</p>
+  <p class="lede">面向不读规格的人：<b>当前 24 个现行负责包 + 22 个历史归档包、八步闭环覆盖、真实回归边界与 P0—P7 交付门</b>，一眼看全局。P0 已完成，P1 仍未通过；现行负责入口以 Feature 索引为准，旧 36 包网格、旧数字与旧三期路线仅保留为历史。</p>
   <div class="verline">
-    <span class="chip">设计基准 <b>设计 v1.24 · 总规划 v0.6</b></span>
-    <span class="chip">现行任务包 <b>36 个</b></span>
+    <span class="chip">设计基准 <b>设计 v1.26 · 总规划 v0.14</b></span>
+    <span class="chip">现行负责 / 历史归档 <b>24 + 22</b></span>
     <span class="chip">当前阶段 <b>P1 进行中 · 未通过</b></span>
-    <span class="chip">镜像同步 <b>2026-11-16</b></span>
+    <span class="chip">D-037 镜像同步 <b>2026-11-19</b></span>
   </div>
-  <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-11-16 当前视图（D-034）：<b>P0 基线收口完成，P1 已越过启动阻塞但未通过</b>。feature-818—820 已完成各自验收，真实 Electron 最小 AI 对话往返通过；上传、真实缩略图、对话侧资产引用、多画布 / 视口恢复与故障注入仍待后续切片。现行路线与阶段门以 <a href="../research/MiniMax%20Design全面复刻开发计划.md">总规划 v0.6</a> 为准。</div>
+  <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-11-19 当前视图（D-037）：<b>24 个现行负责包 + 22 个历史归档包，46 个目录原位保留；P0 已完成，P1 未通过</b>。运行时数据与回放、项目库、通用测试门禁分别归 feature-808 / 828 / 830，feature-829 继续实施中。归档不删除目录、不改写历史证据，也不使 Parity、产品能力或真机验收通过。现行路线与阶段门以 <a href="../research/MiniMax%20Design全面复刻开发计划.md">总规划 v0.14</a> 为准。</div>
   <div class="snapshot">历史快照：2026-10-09 复核 · npm run test:run（197 通过 / 1 跳过）/ typecheck（0 错误），与 10-08 首测一致</div>
   <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-10-14 再核（v1.12）：磁盘实况已演进为 <b>22 个纯 MCP 工具 / 8 族 · 4 个 Agent profile（director 退役，showrunner 唯一 primary）· 5 个现行 feature 包</b>；当时测试基线 <b>369 通过 / 0 失败 / 1 跳过（35 文件，同日存量清零）</b>；typecheck 双 tsconfig + tsc -b 全绿。</div>
   <div class="snapshot" style="margin-top:8px;border-color:var(--amber);color:var(--ink)">2026-11-02 再核（v1.17）：<b>28 个纯 MCP 工具 / 11 族 · showrunner 23 白名单且独占 task · 27 个现行 feature 包</b>；当时测试基线见下方历史实测卡，renderer typecheck 保留 3 条现存测试夹具基线。</div>
@@ -217,17 +217,17 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   </div>
 
   <div class="stats rv">
-    <div class="stat"><div class="num"><span data-to="36">0</span><small> 个现行包</small></div><div class="lbl">Feature 索引当前口径；29 个 MCP 工具 = 28 个业务工具 / 11 族 + tool.search</div></div>
-    <div class="stat"><div class="num"><span data-to="81">0</span><small> /93 文件</small></div><div class="lbl">当前回归：81 文件通过、12 文件失败；1,111 用例通过、85 失败、1 跳过</div></div>
-    <div class="stat"><div class="num">P1<small> 当前阶段</small></div><div class="lbl">进行中 · 未通过；真实对话已通，下一切片 C 为资产上传与真实缩略图</div></div>
-    <div class="stat"><div class="num"><span data-to="0">0</span><small> 个类型错误</small></div><div class="lbl">typecheck 通过；architecture + studio-flow 专项 29 / 29；B-70 仍未关闭</div></div>
+    <div class="stat"><div class="num"><span data-to="24">0</span><small> 个现行负责包</small></div><div class="lbl">另有 22 个历史归档包，共 46 个目录；29 个 MCP 工具 = 28 个业务工具 / 11 族 + tool.search</div></div>
+    <div class="stat"><div class="num"><span data-to="81">0</span><small> /93 文件</small></div><div class="lbl">2026-11-16 历史回归快照：81 文件通过、12 文件失败；1,111 用例通过、85 失败、1 跳过</div></div>
+    <div class="stat"><div class="num">P1<small> 当前阶段</small></div><div class="lbl">进行中 · 未通过；feature-829 继续实施，包级专项完成不替代整门验收</div></div>
+    <div class="stat"><div class="num"><span data-to="0">0</span><small> 个类型错误</small></div><div class="lbl">2026-11-16 历史快照：typecheck 通过；architecture + studio-flow 专项 29 / 29</div></div>
   </div>
 </header>
 
 <!-- ══════ 01 Feature 看板 ══════ -->
 <section id="features">
   <div class="sec-head rv"><span class="sec-no">01</span><h2>任务包看板</h2></div>
-  <p class="sec-sub rv"><a href="../features/README.md">Feature 索引</a>共 <b>36 个现行包</b>；3xx–7xx 为后续业务段，805 编号保留、不建包。单包完成不等于 P0—P7 阶段门通过；feature-818—820 的真实证据见 <a href="../verification/p1-2026-11-15/P1调查记录.md">P1 调查记录</a>。</p>
+  <p class="sec-sub rv"><a href="../features/README.md">Feature 索引</a>现行口径为 <b>24 个负责包 + 22 个历史归档包</b>，46 个目录原位保留。以下是 <b>2026-11-16 历史看板</b>：保留当时 36 包网格、名称、状态与旧编号，不作为现行负责入口；当前状态与开放边界以索引及各现行任务清单为准。单包完成不等于 P0—P7 阶段门通过。</p>
 
   <div class="kanban">
     <div class="fcard done rv">
@@ -554,19 +554,19 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 
 <!-- ══════ 03 质量实况 ══════ -->
 <section id="quality">
-  <div class="sec-head rv"><span class="sec-no">03</span><h2>质量实况（当前 + 历史基线）</h2></div>
-  <p class="sec-sub rv">现行状态与历史基线分开：<b>2026-11-16 当前回归并非全绿</b>；P0 的 93 文件 / 1,198 用例是 2026-11-15 历史基线，不得冒充当前结果。更早测试卡均保留为明确历史快照。</p>
+  <div class="sec-head rv"><span class="sec-no">03</span><h2>质量实况（历史基线）</h2></div>
+  <p class="sec-sub rv">本页不因 D-037 文档归并改写成新的测试结论：<b>2026-11-16 的 81 / 93 文件结果是历史回归快照</b>；P0 的 93 文件 / 1,198 用例是 2026-11-15 历史基线。当前验收状态以 Feature 索引及现行任务包为准，旧测试卡保留原始数字。</p>
 
   <div class="alerts rv">
     <div class="alert">
-      <span class="alvl al-warn">当前·11-16</span>
+      <span class="alvl al-warn">历史·11-16</span>
       <div>
         <h4>全量 Vitest：81 / 93 文件通过、12 文件失败</h4>
         <p>1,111 用例通过、85 失败、1 跳过。typecheck 通过；architecture + studio-flow 专项 29 / 29 通过。B-70 涉及谱系 v1.47 临时目验修改与 v1.46 测试夹具不一致，以及 Windows profile frontmatter 夹具问题；详见 <a href="../设计现状与偏差清单.md">设计现状与偏差清单</a>。</p>
       </div>
     </div>
     <div class="alert">
-      <span class="alvl al-ok">证据·11-16</span>
+      <span class="alvl al-ok">历史证据·11-16</span>
       <div>
         <h4>真实 Electron 最小 AI 对话往返通过</h4>
         <p>feature-819 修复开发态运行时模板路径；feature-820 收口底栏真实状态与 Skill / 插件 / 本地模型一级入口。P1 仍未通过，证据见 <a href="../verification/p1-2026-11-15/P1调查记录.md">P1 调查记录</a>。</p>
@@ -576,7 +576,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       <span class="alvl al-ok">历史·P0</span>
       <div>
         <h4>2026-11-15 P0 历史基线：93 文件 / 1,198 用例</h4>
-        <p>这是 P0 基线收口记录，不是 2026-11-16 当前全量回归结论。</p>
+        <p>这是 P0 基线收口记录，不是后续日期的当前全量回归结论。</p>
       </div>
     </div>
     <div class="alert">
@@ -604,14 +604,14 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       <span class="alvl al-ok">实测·11-03</span>
       <div>
         <h4>2026-11-03 历史基线：1029 通过 · 1 跳过 · 0 失败</h4>
-        <p>82 个测试文件通过（feature-813 工作目录更换落地，净增 28 例）；node / preload 类型检查通过，renderer typecheck 有 3 条现存测试夹具错误。此处仅描述当时基线，不改写历史快照；当前结果见上方 2026-11-16 实测卡。</p>
+        <p>82 个测试文件通过（feature-813 工作目录更换落地，净增 28 例）；node / preload 类型检查通过，renderer typecheck 有 3 条现存测试夹具错误。此处仅描述当时基线，不改写历史快照；较晚快照见上方 2026-11-16 历史实测卡。</p>
       </div>
     </div>
     <div class="alert">
       <span class="alvl al-ok">实测·11-02</span>
       <div>
         <h4>2026-11-02 基线：1001 通过 · 1 跳过 · 0 失败</h4>
-        <p>80 个测试文件通过；node / preload 类型检查通过，renderer typecheck 有 3 条现存测试夹具错误。此处仅描述当时基线，不改写历史快照；当前结果见上方 2026-11-16 实测卡。</p>
+        <p>80 个测试文件通过；node / preload 类型检查通过，renderer typecheck 有 3 条现存测试夹具错误。此处仅描述当时基线，不改写历史快照；较晚快照见上方 2026-11-16 历史实测卡。</p>
       </div>
     </div>
     <div class="alert">
@@ -627,16 +627,16 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 04 P0—P7 路线 ══════ -->
 <section id="roadmap">
   <div class="sec-head rv"><span class="sec-no">04</span><h2>P0—P7 交付门</h2></div>
-  <p class="sec-sub rv">唯一跨阶段路线为 <a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划 v0.6</a>。当前 P0 已完成、P1 未通过；P2—P7 未到验收，不得按模块存在或单包完成提前宣称阶段通过。</p>
+  <p class="sec-sub rv">唯一跨阶段路线为 <a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划 v0.14</a>。当前 P0 已完成、P1 未通过；P2—P7 未到验收，不得按模块存在、单包完成或 D-037 归属归并提前宣称阶段通过。</p>
 
   <div class="phases rv">
     <div class="phase p1">
       <div class="ph-head"><div class="ph-name">P0 · 已完成</div><h4>基线收口</h4><span class="ph-state">2026-11-15 完成</span></div>
-      <ul><li class="done">设计 v1.24 / D-034 定位</li><li class="done">36 包索引与 P0 基线证据</li><li>93 文件 / 1,198 用例仅作历史基线</li></ul>
+      <ul><li class="done">设计 v1.24 / D-034 定位（P0 历史基线）</li><li class="done">现行索引：24 个负责包 + 22 个归档包</li><li>93 文件 / 1,198 用例仅作历史基线</li></ul>
     </div>
     <div class="phase p1">
       <div class="ph-head"><div class="ph-name">P1 · 当前</div><h4>桌面工作台</h4><span class="ph-state">进行中 · 未通过</span></div>
-      <ul><li class="done">feature-818 项目库 / 类型基线</li><li class="done">feature-819 真实 Electron 最小对话往返</li><li class="done">feature-820 一级入口与真实状态</li><li class="doing">切片 C：资产上传与真实缩略图</li><li>切片 D：资产引用、多创作页 / 多画布、自由坐标与视口恢复</li><li>切片 E：revision 冲突、原子写与异常退出故障注入</li></ul>
+      <ul><li class="done">feature-828 项目库与打开事务（专项完成）</li><li class="done">feature-808 运行时数据与历史回放</li><li class="done">feature-820 一级入口与窗口外壳</li><li class="done">feature-821 / 822 / 823 / 827 资产与画布专项已验</li><li class="doing">feature-829 页历史与跨页正式引用（继续实施中）</li><li>P1 整门仍未通过；feature-830 负责通用测试门禁</li></ul>
     </div>
     <div class="phase p2">
       <div class="ph-head"><div class="ph-name">P2</div><h4>统一媒体引擎与任务中心</h4><span class="ph-state">未到验收</span></div>
@@ -731,7 +731,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="src-grid">
       <div class="src-row">
         <span class="si-base">A · 规划</span>
-        <div><div class="si-ti">短剧Agent平台设计.md（v1.24）+ MiniMax Design 全面复刻开发计划（v0.6）</div><div class="si-sub">D-034 全面复刻定位 · §4 多 Agent 架构 · §5 runtime 单轨与 28 个业务工具 / 11 族（另有 tool.search） · §7.1 数据血缘 · §8 媒体通道 · §11 P0—P7 路线</div></div>
+        <div><div class="si-ti">短剧Agent平台设计.md（v1.26）+ MiniMax Design 全面复刻开发计划（v0.14）</div><div class="si-sub">D-034 全面复刻定位 · D-037 现行负责入口与历史归档分离 · §4 多 Agent 架构 · §5 runtime 单轨与 28 个业务工具 / 11 族（另有 tool.search） · §7.1 数据血缘 · §8 媒体通道 · §11 P0—P7 路线</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 决策</span>
@@ -739,7 +739,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </div>
       <div class="src-row">
         <span class="si-base">A · 新包</span>
-        <div><div class="si-ti">docs/features/（36 个现行包 · 2026-11-16）</div><div class="si-sub">feature-001~015 / 101 / 201 / 801~820（不含 805）；逐包状态与验收口径以索引及各任务清单为准</div></div>
+        <div><div class="si-ti">docs/features/（24 个现行负责包 + 22 个历史归档包 · 2026-11-19）</div><div class="si-sub">46 个目录原位保留；现行负责入口、历史来源、开放状态与代码入口以 Feature 索引为准，逐包验收以各任务清单为准</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">实测</span>
@@ -755,7 +755,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </div>
       <div class="src-row">
         <span class="si-base">代码核对</span>
-        <div><div class="si-ti">当前代码与阶段证据（2026-11-16）</div><div class="si-sub"><code>electron/main.ts</code>（IPC 注册点，数量不沿用旧快照）· <code>electron/mcp/server.ts · tools.ts</code>（29 = 28 业务 + tool.search）· <code>resources/opencode/agents/</code>（showrunner 23 白名单且独占 task）· <a href="../verification/p1-2026-11-15/P1调查记录.md">P1 调查记录</a> · <a href="../verification/p1-2026-11-15/p1-after-820-full-vitest.log">当前全量 Vitest 日志</a></div></div>
+        <div><div class="si-ti">历史代码与阶段证据（2026-11-16）</div><div class="si-sub"><code>electron/main.ts</code>（IPC 注册点，数量不沿用旧快照）· <code>electron/mcp/server.ts · tools.ts</code>（29 = 28 业务 + tool.search）· <code>resources/opencode/agents/</code>（showrunner 23 白名单且独占 task）· <a href="../verification/p1-2026-11-15/P1调查记录.md">P1 调查记录</a> · <a href="../设计现状与偏差清单.md">2026-11-16 全量 Vitest 历史结果（B-70）</a></div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 治理</span>
@@ -765,7 +765,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   </div>
 </details>
 
-<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准 · 2026-11-16 镜像同步：设计 v1.24 / D-034 / 总规划 v0.6 / 36 个现行包。当前 P0 已完成、P1 未通过；全量回归 81 / 93 文件通过、12 文件失败。2026-10-09—11-15 的旧包数、旧三期路线与旧测试数字仅保留为历史编年史。</div>
+<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准 · 2026-11-19 D-037 镜像同步：设计 v1.26 / 总规划 v0.14 / 24 个现行负责包 + 22 个历史归档包，46 个目录原位保留。当前 P0 已完成、P1 未通过；2026-11-16 的 81 / 93 文件回归与旧 36 包网格仅作历史快照，归并不构成验收。</div>
 </main>
 </div>
 

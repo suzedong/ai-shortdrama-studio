@@ -40,6 +40,12 @@ describe('T8 mcp/tools.ts 静态护栏', () => {
     expect((toolsSrc.match(/server\.tool\(/g) ?? []).length).toBe(29)
   })
 
+  it('file.write 先复制归档再原子替换，避免 rename 失败只剩归档', () => {
+    expect(toolsSrc).toContain('copyExistingToArchive(abs, new Date())')
+    expect(toolsSrc).toContain('writeTextAtomic(abs, args.content)')
+    expect(toolsSrc).not.toContain('archiveExisting(abs, new Date())')
+  })
+
   it('统一 { ok } 结构：无旧信封字段', () => {
     expect(toolsSrc).not.toMatch(/ToolResultEnvelope|BusinessToolName|registerBusinessTools/)
   })

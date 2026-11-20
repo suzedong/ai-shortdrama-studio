@@ -1,6 +1,18 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
+import fs from 'node:fs'
+import path from 'node:path'
+
+// feature-830（契约 §1.1）：单测临时目录统一到仓库内 .test-tmp/。
+// Node 的 os.tmpdir() 在 POSIX 每次调用都读 process.env.TMPDIR，覆盖 env 即全局重定向，
+// 无需 mock node:os、无需改动任何 *.test.ts；spawn 的子进程也继承同一根。
+// ASD_TEST_TMP 可显式覆盖到任意绝对路径。
+const testTmpRoot = process.env.ASD_TEST_TMP
+  ? path.resolve(process.env.ASD_TEST_TMP)
+  : path.resolve(process.cwd(), '.test-tmp')
+fs.mkdirSync(testTmpRoot, { recursive: true })
+process.env.TMPDIR = testTmpRoot
 
 // RTL 在非 globals 显式引入的 vitest 下不自动卸载组件；统一 cleanup，
 // 避免跨用例残留实例继续订阅 window.api 事件而互相干扰。

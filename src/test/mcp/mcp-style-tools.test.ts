@@ -36,7 +36,7 @@ async function call<T = Record<string, unknown>>(name: string, args: Record<stri
   return JSON.parse(r.content[0]!.text)
 }
 
-// 与 mcp-brief-tools 同形的完整就绪草案（风格 A7@v1.46）
+// 与 mcp-brief-tools 同形的完整就绪草案（风格 A7@v1.47）
 const draft: BriefDraft = {
   kind: 'commercial',
   fiveElements: {
@@ -47,7 +47,7 @@ const draft: BriefDraft = {
     leads: '28 岁女白领 / 30 岁男医生', time: '2024 年', place: '上海',
     coreEvent: '医院重逢', seasonBoundary: '第一季只讲相识',
   },
-  style: { mainStyleId: 'A7', catalogVersion: 'v1.46' },
+  style: { mainStyleId: 'A7', catalogVersion: 'v1.47' },
   diagnosisSummary: '赛道可行',
 }
 
@@ -72,7 +72,7 @@ describe('feature-802 style.catalog（契约 §6.1）', () => {
   it('信封 ok/version/count/entries；条目 10 字段齐全', async () => {
     const r = await call<{ version: string; count: number; entries: Record<string, unknown>[] }>('style.catalog')
     expect(r.ok).toBe(true)
-    expect(r.version).toBe('v1.46')
+    expect(r.version).toBe('v1.47')
     expect(r.count).toBe(18)
     expect(r.entries).toHaveLength(18)
     for (const e of r.entries) {
@@ -110,9 +110,9 @@ describe('feature-802 style.get（契约 §6.2）', () => {
 })
 
 describe('feature-802 style.validate（契约 §6.3）', () => {
-  it('A7@v1.46 通过；空参 valid:true', async () => {
+  it('A7@v1.47 通过；空参 valid:true', async () => {
     const ok = await call<{ valid: boolean; issues: unknown[] }>(
-      'style.validate', { mainStyleId: 'A7', catalogVersion: 'v1.46' },
+      'style.validate', { mainStyleId: 'A7', catalogVersion: 'v1.47' },
     )
     expect(ok.ok).toBe(true)
     expect(ok.valid).toBe(true)
@@ -133,7 +133,7 @@ describe('feature-802 style.validate（契约 §6.3）', () => {
 
   it('未知主 ID → STYLE_ID_UNKNOWN', async () => {
     const r = await call<{ valid: boolean; issues: { code: string; field: string }[] }>(
-      'style.validate', { mainStyleId: 'ZZ9', catalogVersion: 'v1.46' },
+      'style.validate', { mainStyleId: 'ZZ9', catalogVersion: 'v1.47' },
     )
     expect(r.valid).toBe(false)
     expect(r.issues.map(i => i.code)).toContain('STYLE_ID_UNKNOWN')
@@ -141,13 +141,13 @@ describe('feature-802 style.validate（契约 §6.3）', () => {
 
   it('辅助 A1 → STYLE_AUX_NOT_CANDIDATE；辅助 D1 通过', async () => {
     const bad = await call<{ valid: boolean; issues: { code: string }[] }>(
-      'style.validate', { mainStyleId: 'A7', catalogVersion: 'v1.46', auxiliaryStyleId: 'A1' },
+      'style.validate', { mainStyleId: 'A7', catalogVersion: 'v1.47', auxiliaryStyleId: 'A1' },
     )
     expect(bad.valid).toBe(false)
     expect(bad.issues.map(i => i.code)).toContain('STYLE_AUX_NOT_CANDIDATE')
 
     const good = await call<{ valid: boolean; issues: unknown[] }>(
-      'style.validate', { mainStyleId: 'A7', catalogVersion: 'v1.46', auxiliaryStyleId: 'D1' },
+      'style.validate', { mainStyleId: 'A7', catalogVersion: 'v1.47', auxiliaryStyleId: 'D1' },
     )
     expect(good.valid).toBe(true)
     expect(good.issues).toEqual([])
@@ -155,7 +155,7 @@ describe('feature-802 style.validate（契约 §6.3）', () => {
 })
 
 describe('feature-802 brief.plan 谱系注入联动（契约 §6.4）', () => {
-  it('A7@v1.46 完整草案 ready:true、styleIssues=[]', async () => {
+  it('A7@v1.47 完整草案 ready:true、styleIssues=[]', async () => {
     const r = await call<{ plan: { ready: boolean; styleIssues: unknown[] } }>('brief.plan', { ...draft })
     expect(r.ok).toBe(true)
     expect(r.plan.ready).toBe(true)
@@ -164,7 +164,7 @@ describe('feature-802 brief.plan 谱系注入联动（契约 §6.4）', () => {
 
   it('ZZ9 → ready:false、styleIssues 含 STYLE_ID_UNKNOWN', async () => {
     const r = await call<{ plan: { ready: boolean; styleIssues: { code: string; field: string }[] } }>(
-      'brief.plan', { ...draft, style: { mainStyleId: 'ZZ9', catalogVersion: 'v1.46' } },
+      'brief.plan', { ...draft, style: { mainStyleId: 'ZZ9', catalogVersion: 'v1.47' } },
     )
     expect(r.plan.ready).toBe(false)
     expect(r.plan.styleIssues.map(i => i.code)).toContain('STYLE_ID_UNKNOWN')
@@ -180,7 +180,7 @@ describe('feature-802 brief.plan 谱系注入联动（契约 §6.4）', () => {
 
     const aux = await call<{ plan: { ready: boolean; styleIssues: { code: string }[] } }>(
       'brief.plan',
-      { ...draft, style: { mainStyleId: 'A7', catalogVersion: 'v1.46', auxiliaryStyleId: 'A1' } },
+      { ...draft, style: { mainStyleId: 'A7', catalogVersion: 'v1.47', auxiliaryStyleId: 'A1' } },
     )
     expect(aux.plan.ready).toBe(false)
     expect(aux.plan.styleIssues.map(i => i.code)).toContain('STYLE_AUX_NOT_CANDIDATE')

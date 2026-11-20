@@ -387,6 +387,7 @@ export interface CanvasNode {
   meta?: Record<string, unknown>
   /** 当前节点关联的资产索引 id；canvas.update 省略时保留（feature-814） */
   assetIds?: string[]
+  reference?: CanvasArtifactReference
   /** 产物血缘；showrunner 定稿挂 done 时由 canvas.update 写入；无立项前定稿不出现 */
   parentReference?: CanvasParentReference
   /** 脏态；仅 brief.impact.commit 可写、canvas.align 可清；canvas.update 入参不接收（feature-002） */
@@ -478,6 +479,7 @@ export type CanvasCommandType =
   | 'node.move'
   | 'assets.bind'
   | 'assets.unbind'
+  | 'reference.create'
 
 interface CanvasCommandBase {
   commandId: string
@@ -500,11 +502,26 @@ export type CanvasCommandRequest =
       nodeId: string
       assetIds: string[]
     })
+  | (CanvasCommandBase & {
+      type: 'reference.create'
+      target: CanvasTarget
+      source: { target: CanvasTarget; nodeId: string }
+      nodeId: string
+      position: CanvasPosition
+    })
 
 export interface CanvasTarget {
   projectId: string
   pageId: string
   canvasId: string
+}
+
+export interface CanvasArtifactReference {
+  artifactId: string
+  version: string
+  source: CanvasTarget
+  latestVersion?: string
+  markedAt?: string
 }
 
 export interface CanvasCommandResult {

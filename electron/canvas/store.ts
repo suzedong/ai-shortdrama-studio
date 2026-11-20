@@ -295,6 +295,36 @@ function sortedAssetIds(ids: string[]): string[] {
   return [...new Set(ids)].sort((a, b) => a.localeCompare(b))
 }
 
+function nodeVersion(node: CanvasNode | undefined): string | null {
+  const version = node?.meta?.version
+  return typeof version === 'string' && version.trim().length > 0 ? version : null
+}
+
+function scanRepublishedReferences(
+  canvas: Canvas,
+  source: CanvasTarget,
+  artifactId: string,
+  latestVersion: string,
+  markedAt: string,
+): void {
+  for (const page of canvas.pages) {
+    for (const document of page.canvases) {
+      for (const node of document.nodes) {
+        const reference = node.reference
+        if (
+          !reference || reference.artifactId !== artifactId
+          || reference.source.projectId !== source.projectId
+          || reference.source.pageId !== source.pageId
+          || reference.source.canvasId !== source.canvasId
+        ) continue
+        reference.latestVersion = latestVersion
+        if (reference.version === latestVersion) delete reference.markedAt
+        else reference.markedAt = markedAt
+      }
+    }
+  }
+}
+
 function commandPayload(request: CanvasCommandRequest): Record<string, unknown> {
   const { commandId: _commandId, expectedRevision: _expectedRevision, ...payload } = request
   if (request.type === 'assets.bind' || request.type === 'assets.unbind') {
@@ -359,6 +389,7 @@ function requestTarget(
   if (request.type === 'page.create' || request.type === 'canvas.create') {
     throw errorWithCode('CANVAS_COMMAND_MUTATION', '新建命令回执缺少目标')
   }
+  if (request.type === 'reference.create') return clone(request.target)
   return { projectId, pageId: request.pageId, canvasId: request.canvasId }
 }
 
@@ -416,7 +447,7 @@ export class CanvasStore {
     return path.join(projectDir, 'canvas.json')
   }
 
-  private async readFromDisk(root: string): Promise<Canvas | null> {
+  private async readFromDisk(root: string, expectedProjectId = path.basename(root)): Promise<Canvas | null> {
     let raw: string | null
     try {
       raw = await fsp.readFile(this.file(root), 'utf-8')
@@ -432,15 +463,15 @@ export class CanvasStore {
       if ((error as { code?: string }).code === 'CANVAS_CORRUPT') throw error
       throw errorWithCode('CANVAS_CORRUPT', '画布文件损坏，已停止加载；请修复或从归档恢复', error)
     }
-    if (canvas.projectId !== path.basename(root)) {
-      throw errorWithCode('CANVAS_PROJECT_MISMATCH', '画布 projectId 与项目目录不一致')
+    if (canvas.projectId !== expectedProjectId) {
+      throw errorWithCode('CANVAS_PROJECT_MISMATCH', '画布 projectId 与项目目录或包元数据不一致')
     }
     return canvas
   }
 
   /** 打开项目前只读预检：不创建缺失画布、不信任或填充缓存。 */
-  async assertReadable(projectDir: string): Promise<void> {
-    await this.readFromDisk(path.resolve(projectDir))
+  async assertReadable(projectDir: string, expectedProjectId = path.basename(path.resolve(projectDir))): Promise<void> {
+    await this.readFromDisk(path.resolve(projectDir), expectedProjectId)
   }
 
   private async getForRoot(projectDir: string): Promise<Canvas> {
@@ -501,9 +532,24 @@ export class CanvasStore {
         `画布版本冲突：期望 ${options.expectedRevision}，实际 ${baseline.revision}`,
       )
     }
+    const previousVersions = new Map(
+      documentAt(baseline, context.target).nodes.map(node => [node.id, nodeVersion(node)] as const),
+    )
     const next = clone(baseline)
     const document = documentAt(next, context.target)
     await mutate(next, document)
+    const sourcePage = next.pages.find(page => page.id === context.target.pageId)
+    const sourceDocument = sourcePage?.canvases.find(item => item.id === context.target.canvasId)
+    if (sourceDocument) {
+      const markedAt = new Date().toISOString()
+      for (const node of sourceDocument.nodes) {
+        const previousVersion = previousVersions.get(node.id)
+        const latestVersion = nodeVersion(node)
+        if (previousVersion !== null && previousVersion !== undefined && latestVersion !== null && previousVersion !== latestVersion) {
+          scanRepublishedReferences(next, context.target, node.id, latestVersion, markedAt)
+        }
+      }
+    }
     const nextReceipt: CanvasCommandReceipt = {
       commandId,
       type,
@@ -558,10 +604,13 @@ export class CanvasStore {
     return (await this.commitInQueue(context, 'canvas.update', undefined, {}, mutate)).canvas
   }
 
-  private applyUpdate(document: CanvasDocument, patch: CanvasUpdatePatch): void {
+  private applyUpdate(
+    document: CanvasDocument,
+    patch: CanvasUpdatePatch,
+  ): void {
     const upserts = patch.nodes ?? []
     for (const input of upserts) {
-      const { linksTo: _linksTo, ...source } = input
+      const { linksTo: _linksTo, reference: _reference, ...source } = input
       const idx = document.nodes.findIndex(item => item.id === source.id)
       const old = idx >= 0 ? document.nodes[idx] : undefined
       if (source.position !== undefined && !validPosition(source.position)) {
@@ -575,6 +624,7 @@ export class CanvasStore {
       if (node.assetIds !== undefined) node.assetIds = [...new Set(node.assetIds)]
       if (old) {
         node.dirty = old.dirty
+        if (old.reference !== undefined) node.reference = old.reference
         if (node.parentReference === undefined) node.parentReference = old.parentReference
         if (node.assetIds === undefined) node.assetIds = old.assetIds
         document.nodes[idx] = node
@@ -600,7 +650,16 @@ export class CanvasStore {
   /** 结构、节点移动与资产命令：revision + receipts + 原子写。 */
   async command(request: CanvasCommandRequest): Promise<CanvasCommandResult> {
     const context = await this.capture()
-    assertProject(request, context.projectDir)
+    if (request.type === 'reference.create') {
+      const projectId = path.basename(context.projectDir)
+      if (
+        request.projectId !== projectId
+        || request.target.projectId !== projectId
+        || request.source.target.projectId !== projectId
+      ) throw errorWithCode('PROJECT_MISMATCH', '引用目标、来源与命令项目必须属于当前项目')
+    } else {
+      assertProject(request, context.projectDir)
+    }
     if (typeof request.commandId !== 'string' || request.commandId.length === 0 || !validRevision(request.expectedRevision)) {
       throw errorWithCode('CANVAS_COMMAND_MUTATION', '命令 commandId 或 expectedRevision 无效')
     }
@@ -690,6 +749,50 @@ export class CanvasStore {
       canvas.activePageId = preparedTarget.pageId
       canvas.activeView = 'canvas'
       return preparedTarget
+    }
+    if (request.type === 'reference.create') {
+      const targetPage = canvas.pages.find(item => item.id === request.target.pageId)
+      const targetDocument = targetPage?.canvases.find(item => item.id === request.target.canvasId)
+      const sourcePage = canvas.pages.find(item => item.id === request.source.target.pageId)
+      const sourceDocument = sourcePage?.canvases.find(item => item.id === request.source.target.canvasId)
+      if (!targetPage || !targetDocument || !sourcePage || !sourceDocument) {
+        throw errorWithCode('CANVAS_TARGET_NOT_FOUND', '引用目标或来源画布不存在')
+      }
+      if (request.target.pageId === request.source.target.pageId) {
+        throw errorWithCode('CANVAS_REFERENCE_INVALID', '引用目标与来源必须位于不同创作页')
+      }
+      const sourceNode = sourceDocument.nodes.find(item => item.id === request.source.nodeId)
+      if (!sourceNode) throw errorWithCode('CANVAS_NODE_NOT_FOUND', '引用来源节点不存在')
+      const version = nodeVersion(sourceNode)
+      if (sourceNode.reference || !sourceNode.ref?.path?.trim() || version === null) {
+        throw errorWithCode('CANVAS_REFERENCE_INVALID', '引用来源必须是存在 ref.path 与非空 meta.version 的一次产物节点')
+      }
+      if (!validPosition(request.position)) {
+        throw errorWithCode('CANVAS_INVALID_POSITION', '节点 position 必须为有限世界坐标')
+      }
+      if (typeof request.nodeId !== 'string' || request.nodeId.length === 0) {
+        throw errorWithCode('CANVAS_REFERENCE_INVALID', '引用节点 ID 必须非空')
+      }
+      if (targetDocument.nodes.some(item => item.id === request.nodeId)) {
+        throw errorWithCode('CANVAS_NODE_EXISTS', '引用节点 ID 已存在')
+      }
+      targetDocument.nodes.push({
+        id: request.nodeId,
+        step: sourceNode.step,
+        kind: sourceNode.kind,
+        title: sourceNode.title,
+        status: sourceNode.status,
+        position: { x: request.position.x, y: request.position.y },
+        ...(sourceNode.ref ? { ref: clone(sourceNode.ref) } : {}),
+        ...(sourceNode.meta ? { meta: clone(sourceNode.meta) } : {}),
+        updatedAt: new Date().toISOString(),
+        reference: {
+          artifactId: sourceNode.id,
+          version,
+          source: clone(request.source.target),
+        },
+      })
+      return clone(request.target)
     }
     if (request.type === 'page.rename') {
       const page = canvas.pages.find(item => item.id === request.pageId)

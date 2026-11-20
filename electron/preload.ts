@@ -18,6 +18,10 @@ contextBridge.exposeInMainWorld('api', {
   // B-19：项目改名/删除（K8 已批）
   renameProject: (dir: string, title: string) => ipcRenderer.invoke('project:rename', { dir, title }),
   deleteProject: (dir: string) => ipcRenderer.invoke('project:delete', dir),
+  projectDetail: (dir: string) => ipcRenderer.invoke('project:detail', { dir }),
+  projectReveal: (dir: string) => ipcRenderer.invoke('project:reveal', { dir }),
+  projectImport: () => ipcRenderer.invoke('project:import'),
+  projectExport: (dir: string) => ipcRenderer.invoke('project:export', { dir }),
   // D-017：修改立项面板直写（K8 已批；feature-013 扩键：全字段 + L0）
   updateBrief: (patch: {
     kind?: 'commercial' | 'memorial'

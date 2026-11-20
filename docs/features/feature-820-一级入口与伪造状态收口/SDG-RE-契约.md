@@ -62,3 +62,30 @@ hasProject = canvasLoaded && canvas.projectId !== ''   // feature-812 既有权�
 - `shared/types.ts`、`electron/preload.ts`、`src/global.d.ts`、`package.json` 零 diff。
 - ChatComposer 的 dev-mock 演示消息注入逻辑不变。
 - 无项目态整块不渲染底栏、无 IPC 副作用（沿用 feature-812）。
+
+## D-037 现行归并约束：既有窗口外壳契约（2026-11-19）
+
+本契约接收 feature-804，**只登记既有能力，不新增 IPC**。
+
+### 1. 平台窗口与 preload
+
+- macOS：`{ titleBarStyle: 'hiddenInset' }`；Windows / Linux：`{ frame: false }`。
+- `preload.js` 源码/构建入口必须经构建配置生成 CommonJS `preload.cjs`；主进程加载产物、`global.d.ts` 暴露面与模块写权须指向同一条构建链。Renderer 只能通过既有桥接触发窗口操作，不取得 Node/Electron 原语。
+
+### 2. 通道与状态权威
+
+| 通道 | 方向/语义 | 现行约束 |
+| --- | --- | --- |
+| `window:minimize` | Renderer → Main | 最小化当前窗口 |
+| `window:toggle-maximize` | Renderer → Main | 在主进程切换最大化/还原 |
+| `window:is-maximized` | Renderer → Main 查询 | 返回主进程当前布尔状态 |
+| `window:close` | Renderer → Main | 关闭当前窗口 |
+| `window:maximize-changed` | Main → Renderer | 在实际最大化/还原后推送最新布尔状态 |
+
+`BrowserWindow` 最大化状态是唯一权威；控件 hover、禁用或本地乐观状态均不得覆盖该事实。Windows / Linux 控件命中区至少 46×32 px，关闭 hover 为 #C42B1C，交互元素为 `no-drag`。
+
+### 3. 冲突与开放项
+
+- `frame:false` 不自动保留 Windows 原生 Snap Layouts；等价恢复属于额外窗口工程，不在既有通道契约中伪造。
+- Windows ENV-02 的既有验收证据保留于 feature-804；macOS AC5 零变化回归仍挂起。
+- feature-804 的「不做深色」为历史范围，已被 feature-817 双主题取代；本包原「零新增 IPC / preload / global.d.ts」只限原 Change，不撤销以上既有契约。

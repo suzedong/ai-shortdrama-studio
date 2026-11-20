@@ -221,8 +221,8 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   <h1>架构与<em>模块关系图</em></h1>
   <p class="lede">一张图看清平台<b>四层运行边界、模块归属、runtime 单轨与数据血缘</b>：渲染层 → 主进程 → opencode 子进程 → 外部世界，媒体全部收敛于局域网 ComfyUI。</p>
   <div class="verline">
-    <span class="chip">设计基准 <b>设计 v1.24 · 总规划 v0.6</b></span>
-    <span class="chip">镜像同步 <b>2026-11-16</b>（36 个现行包 · 29 个 MCP 工具 / 11 个业务族）</span>
+    <span class="chip">设计基准 <b>设计 v1.26 · 总规划 v0.14</b></span>
+    <span class="chip">D-037 镜像同步 <b>2026-11-19</b>（24 个现行负责包 + 22 个历史归档包 · 29 个 MCP 工具 / 11 个业务族）</span>
     <span class="chip">技术栈 <b>Electron 33 · React 18 · TS 5.6 · Vite</b></span>
     <span class="chip">Agent 运行时 <b>opencode 1.18 + MCP</b></span>
     <span class="chip">画像 <b>P2</b>（多模块 · 长期演进）</span>
@@ -233,14 +233,14 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   </div>
   <div class="truth-banner" style="border-color:var(--amber)">
     <span class="tb-ic" style="border-color:var(--amber);color:var(--amber)">CURRENT</span>
-    <span><b>现行视图</b>：本页已按 2026-11-16 的设计 v1.24、总规划 v0.6 与 36 包索引同步。P0 基线收口完成，P1 仍未通过；当前回归为 <b>81 / 93 文件通过、12 文件失败</b>，不冒充全绿。IPC 按业务域展示，具体注册点以 <code>electron/main.ts</code> 为准；阶段门见 <a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划</a>。</span>
+    <span><b>现行归属（2026-11-19，D-037）</b>：24 个现行负责包 + 22 个历史归档包，46 个目录原位保留；P0 基线收口完成，P1 仍未通过，本轮归并不改变任何验收结论。2026-11-16 的回归快照 <b>81 / 93 文件通过、12 文件失败</b> 仅作历史记录。IPC 按业务域展示，具体注册点以 <code>electron/main.ts</code> 为准；阶段门见 <a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划</a>。</span>
   </div>
 </header>
 
 <!-- ══════ 01 四层架构 ══════ -->
 <section id="layers">
   <div class="sec-head rv"><span class="sec-no">01</span><h2>四层运行架构</h2></div>
-  <p class="sec-sub rv">信任从左到右逐级收窄：renderer 不直连任何外部服务与 ComfyUI；媒体调用一律收敛于主进程 / MCP 引擎工具。<b>下图为 2026-11-16 当前架构镜像</b>；对话通道遵循 D-012 runtime 单轨，业务与媒体边界按设计 v1.24 / D-034 展示。</p>
+  <p class="sec-sub rv">信任从左到右逐级收窄：renderer 不直连任何外部服务与 ComfyUI；媒体调用一律收敛于主进程 / MCP 引擎工具。<b>下图为 2026-11-19 当前架构镜像</b>；对话通道遵循 D-012 runtime 单轨，业务与媒体边界按设计 v1.26 / D-034 / D-037 展示。</p>
 
   <div class="diagram rv">
     <div class="legend">
@@ -330,7 +330,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 02 模块清单 ══════ -->
 <section id="modules">
   <div class="sec-head rv"><span class="sec-no">02</span><h2>模块清单与落地状态</h2></div>
-  <p class="sec-sub rv">模块按进程归属分组。<b>以下为 2026-11-16 当前架构镜像</b>（对话通道遵循 D-012 runtime 单轨；业务与媒体边界按设计 v1.24 / D-034）；模块存在不等于 P1 阶段门已通过。</p>
+  <p class="sec-sub rv">模块按进程归属分组。<b>以下为 2026-11-19 当前架构镜像</b>（对话通道遵循 D-012 runtime 单轨；业务与媒体边界按设计 v1.26 / D-034 / D-037）；模块存在不等于 P1 阶段门已通过。</p>
 
   <table class="mtab rv">
     <thead><tr><th>模块</th><th>职责</th><th>状态</th></tr></thead>
@@ -357,7 +357,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 
 <!-- ══════ 03 通道单轨 ══════ -->
 <section id="channels">
-  <div class="sec-head rv"><span class="sec-no">03</span><h2>IPC / MCP 通道（2026-11-16 当前镜像）</h2></div>
+  <div class="sec-head rv"><span class="sec-no">03</span><h2>IPC / MCP 通道（2026-11-19 当前镜像）</h2></div>
   <p class="sec-sub rv">对话统一走 runtime 单轨；旧 ark 直连对话 IPC 已删除。<b>以下按 main.ts 的业务域与 preload 白名单展示受控通道，不沿用旧快照总数；具体注册点以当前代码为准。</b></p>
 
   <div class="chgrid rv">
@@ -410,7 +410,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 04 数据血缘 ══════ -->
 <section id="data">
   <div class="sec-head rv"><span class="sec-no">04</span><h2>会话目录与数据血缘</h2></div>
-  <p class="sec-sub rv">纯 JSON / Markdown 文件持久化，无数据库。<b>下列目录树保留为 2026-10-09 历史结构样例</b>；工作区根目录可配置，现行血缘与版本规则以设计 v1.24 §7.1 及当前实现为准。</p>
+  <p class="sec-sub rv">纯 JSON / Markdown 文件持久化，无数据库。<b>下列目录树保留为 2026-10-09 历史结构样例</b>；工作区根目录可配置，现行血缘与版本规则以设计 v1.26 §7.1 及当前实现为准。</p>
 
   <div class="dltree rv"><span class="cmt"># 历史结构样例：项目工作区（2026-10-09 核对，非当前目验）</span>
 <span class="dir">~/Documents/ai-shortdrama-studio/</span>   <span class="cmt"># 默认根，可经设置面板更换（feature-813）</span>
@@ -446,7 +446,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 
   <div class="crew rv">
     <div class="director">
-      <div class="role">PRIMARY · 唯一主控（2026-11-16 当前口径）</div>
+      <div class="role">PRIMARY · 唯一主控（2026-11-19 当前口径）</div>
       <div class="rn">showrunner Agent</div>
       <div class="rd">理解意图 · 规划步骤 · 强制经 MCP 工具产出；独占 task 调度，持 28 个业务工具中的 23 个请求级白名单（asset/comfyui 5 个除外）。早期同名 director 已退役，主控统一为 showrunner</div>
     </div>
@@ -493,7 +493,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="tcard"><span class="state badge b-live">harness</span><h4><code>harness.validate</code></h4><p>产物基础质量校验</p></div>
     <div class="tcard"><span class="state badge b-live">server</span><h4><code>tool.search</code></h4><p>工具检索（server.ts 注册，不计入 28 个业务工具）</p></div>
   </div>
-  <p class="mut rv" style="margin-top:12px">物理工具 ID = <code>shortdrama_&lt;tool&gt;</code>（点号保留）。showrunner 请求级白名单放行其中 <b>23 个</b>（不含 asset 2 与 comfyui 3）；writer / media-director / comfyui-operator 三个 subagent 按最小集分别持有 5 / 9 / 9 个。立项 5 工具归属 feature-001/002，<code>canvas.align</code> 归属 feature-002，<code>manifest</code> 2 个归属 feature-801，<code>style</code> 3 个归属 feature-802，<code>capture</code> 3 个归属 feature-005，<code>web</code> 2 个归属 feature-006，<code>harness.validate</code> 归属 feature-806。</p>
+  <p class="mut rv" style="margin-top:12px">物理工具 ID = <code>shortdrama_&lt;tool&gt;</code>（点号保留）。showrunner 请求级白名单放行其中 <b>23 个</b>（不含 asset 2 与 comfyui 3）；writer / media-director / comfyui-operator 三个 subagent 按最小集分别持有 5 / 9 / 9 个。立项 5 工具与 <code>canvas.align</code> 现行归 feature-001，影响视图归 feature-013（feature-002 仅作历史血缘）；<code>manifest</code> 2 个归 feature-801，<code>style</code> 3 个归 feature-802，<code>capture</code> 3 个归 feature-005，<code>web</code> 2 个归 feature-006，<code>harness.validate</code> 归 feature-806。</p>
 </section>
 
 <!-- ══════ 06 引擎边界 ══════ -->
@@ -523,11 +523,11 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="src-grid">
       <div class="src-row">
         <span class="si-base">A · 架构</span>
-        <div><div class="si-ti">短剧Agent平台设计.md（v1.24）</div><div class="si-sub">D-034 全面复刻定位 · §4 多 Agent 架构 · §5 MCP 工具层与 runtime 单轨（28 个业务工具 / 11 族，另有 tool.search） · §7/§7.1 目录与实体 · §8 引擎通道 · §11 P0—P7 路线 · §13 版本记录</div></div>
+        <div><div class="si-ti">短剧Agent平台设计.md（v1.26）</div><div class="si-sub">D-034 全面复刻定位 · D-037 归属同步 · §4 多 Agent 架构 · §5 MCP 工具层与 runtime 单轨（28 个业务工具 / 11 族，另有 tool.search） · §7/§7.1 目录与实体 · §8 引擎通道 · §11 P0—P7 路线 · §13 版本记录</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 决策</span>
-        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-012 / D-021 / D-022 / D-023 / D-033 / D-034）</div><div class="si-sub">runtime 单轨；文本服务二选一；Agent 调度权限；媒体固定 H3 Image / H3 / Music3 并经 ComfyUI；D-034 全面复刻 MiniMax Design、短剧生产闭环优先</div></div>
+        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-012 / D-021 / D-022 / D-023 / D-033 / D-034 / D-037）</div><div class="si-sub">runtime 单轨；文本服务二选一；Agent 调度权限；媒体固定 H3 Image / H3 / Music3 并经 ComfyUI；D-034 全面复刻定位；D-037 现行负责入口与历史归档分离</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 治理</span>
@@ -535,7 +535,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </div>
       <div class="src-row">
         <span class="si-base">A · 新包</span>
-        <div><div class="si-ti">docs/features/（36 个现行包 · 2026-11-16）</div><div class="si-sub">feature-001~015 / 101 / 201 / 801~820（不含 805）；逐包状态与验收口径以索引及各任务清单为准</div></div>
+        <div><div class="si-ti">docs/features/（24 个现行负责包 + 22 个历史归档包 · 2026-11-19）</div><div class="si-sub">46 个目录原位保留；归档仅作历史追溯，逐包现行状态与验收口径以索引及各任务清单为准</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">代码核对</span>
@@ -545,7 +545,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   </div>
 </details>
 
-<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准 · 2026-11-16 镜像同步：设计 v1.24 / D-034 / 总规划 v0.6 / 36 个现行包 / 29 个 MCP 工具。当前 P0 已完成、P1 未通过；回归 81 / 93 文件通过。历史快照：2026-11-02—03 曾记录 27→28 包、28 个业务工具及 1029 用例通过，仅作编年史。</div>
+<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准 · 2026-11-19 D-037 归属同步：24 个现行负责包 + 22 个历史归档包（46 个目录原位保留）/ 29 个 MCP 工具。当前 P0 已完成、P1 未通过；2026-11-16 回归 81 / 93 文件通过仅作历史快照。历史快照：2026-11-02—03 曾记录 27→28 包、28 个业务工具及 1029 用例通过，仅作编年史。</div>
 </main>
 </div>
 

@@ -122,3 +122,41 @@ L73 纪律 2 末句与 L95 铁律收窄：「候选态不落盘」修订为—�
 | AC7 | 不建门不建画布节点：全链路后 canvas.json 无任何 capture 节点、无新增门；showrunner 修订文本落盘且 feature-001 R-006 回写 | 静态核查 |
 | AC8 | 回归红线：`npx tsc --noEmit` 仅 3 条历史基线零新增；全量 **51 文件 564 passed / 0 failed / 1 skipped** 起步，passed 不减少、skip 不增、测试文件净增恰 2 | 全量回归 |
 | AC9 | 真机目验：对话提取 → 常驻条累积（琥珀待确认）→ 面板直改 → 对话纠正 → 确认转态 → 重开项目恢复 | 真机 |
+
+---
+
+## 6. D-037 现行归并约束
+
+> 本节承接 feature-008 中 canonical topic、匹配与口径分组的事实源职责。005 保持独立包，不并入 013；013 只消费这些纯函数与数据结果进行链态、留存卡呈现。本节不复制 008 的历史测试日志。
+
+### 6.1 canonical topic 与匹配口径
+
+1. topic 先 `trim()`、英文部分转小写，再与下表逐字精确匹配；一条 fact 至多命中一个 canonical，同一 canonical 多条命中时进度只计 1。pending / confirmed 均计入“已捕获”进度，确认状态不改变分母。
+2. 未命中条目仍属有效口径：计入 `totalFacts` 与 `unmatchedCount`，但不计六要素 x/6 或前提 x/5；不得为凑进度模糊匹配、跨组匹配或静默改名。
+3. 008 基线的 11 个 canonical 与别名如下；词表只约束显示 / 分组，不把 capture 的开放 topic 改成闭集写入校验。
+
+| 分组 | canonical | 精确匹配词（含 canonical 本身） |
+| :-- | :-- | :-- |
+| 六要素 | `genre` | `genre`、`题材`、`题材赛道` |
+| 六要素 | `platforms` | `platforms`、`平台`、`目标平台` |
+| 六要素 | `episodeDuration` | `episodeduration`、`单集时长`、`时长` |
+| 六要素 | `episodeCount` | `episodecount`、`集数` |
+| 六要素 | `tone` | `tone`、`风格基调`、`基调` |
+| 六要素 | `aspectRatio` | `aspectratio`、`画幅` |
+| 前提 | `leads` | `leads`、`人物` |
+| 前提 | `time` | `time`、`时间` |
+| 前提 | `place` | `place`、`地点` |
+| 前提 | `coreEvent` | `coreevent`、`核心事件` |
+| 前提 | `seasonBoundary` | `seasonboundary`、`本季边界`、`季边界` |
+
+### 6.2 口径分组与后续扩展边界
+
+- `selectCaptureGroups(facts)` 继续复用同一匹配口径分 `six / premise / unmatched`；同 canonical 多条取文件序最后一条作为展示值，unmatched 保持文件原序。链态进度与中间区分组不得各维护一套别名或排序规则。
+- `captureTopicLabel` 与 `TOPIC_LABELS` 只负责中文显示，物理 topic 原键落盘并留在追溯提示中。005 后续登记的 `kind`、`style.mainStyleId`、`style.auxiliaryStyleId`、`style.catalogVersion` 是显示词表扩展，不自动扩张 008 的 x/6、x/5 进度分母。
+- `LEGACY_TOPIC_LABELS` 仅兼容既有 `revengeTarget → 复仇对象`、`audience → 目标受众`；未知键原样回退，不离线篡改真实项目数据，不臆造翻译。
+
+### 6.3 冲突与开放验收
+
+- 008 的链态节点、门摘要浮层及 Stage0 组件行为归 013；005 只保留 canonical / 匹配 / 分组与中文标签事实源。两包不因共用 `chain.ts` 而合并。
+- 历史 T7 的真机通过仅证明当时版本。X-001 的 topic 中文化 / 分组及 X-002 的批量落盘等后续修订虽有自动测试通过记录，**真机目验仍待用户执行**；本轮文档归并不将自动测试等同于真机通过，也不改写任何 X 条目的历史结论。
+- 本轮无产品能力实施、接口变更或真实项目数据迁移。

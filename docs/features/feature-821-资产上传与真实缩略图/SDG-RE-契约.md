@@ -84,3 +84,37 @@ window.api.asset.thumbnail(assetId: string): Promise<{
 - `meta.originalName` 为合法非空字符串时作为显示名，同时参与搜索；否则回退路径 basename。
 - 缩略图 `null`、请求失败、图片解码失败均回退首字母；非图片不请求缩略图。
 - 无项目禁用上传且不请求资产列表；项目切换使全部旧异步结果失效。
+
+## 6. D-037 现行归并契约：可信资产来源（2026-11-19）
+
+本节收编归档包 814 已存在的来源契约，不新增 IPC、MCP 工具或共享类型。`asset:import` / `asset:thumbnail`、上传 meta 与缩略图派生路径保持 §1—§5；上传路径本身不自动获得 Agent 会话来源。
+
+### 6.1 资产与作业来源
+
+```ts
+interface AssetSourceSession {
+  sessionId: string
+  messageId: string
+  callId: string
+}
+
+// AssetIndexItem 的可选扩展；历史记录无需回填
+sourceJobId?: string
+sourceSession?: AssetSourceSession
+
+// asset.register 仅追加的可选入参
+sourceJobId?: string
+```
+
+`sourceJobId` 只能取成功作业工具参数中的真实 `jobId`；Agent 不得通过 register 入参提交 sourceSession。`asset.register` 其余入参、返回与物理工具 ID 不变。重复 `path + kind` 登记保留首次 `createdAt` 与既有来源；请求省略 sourceJobId / meta / sourceSession 时不得清空旧值。
+
+### 6.2 运行时事件契约
+
+- 在调用过滤 / 分类前取得 `tool.call`，仅当 `event.name === 'shortdrama_asset_register'` 且其结果为成功 JSON 时继续。
+- 支持 `{ assetId, jobId }` 与 `{ text: '<json>' }` 两种 resultPreview；解析后必须存在真实资产 ID。任务来源取 `jobId`，会话来源取真实事件 `{ sessionId, messageId, callId }`。
+- 任一元组缺失、结果非 JSON、工具名不符或资产不存在时跳过；严禁以 `activeSessionId` 代替事件 sessionId，严禁创建空资产记录。
+- 主进程内部以既有资产 ID 调用 `updateAssetSource()`，在资产索引现有串行队列内完成读改写；坏索引 / 写入失败仅安全日志，不回滚媒体、不阻断 SSE。
+
+### 6.3 冲突与边界
+
+§1 的 K1/K8 零触发是 2026-11-16 上传切片当时范围；上述来源字段及 register 入参是 814 后续已批准并实施的契约，本次仅迁移负责包，不构成新的 K1/K8 授权。821 不拥有 `canvas.command`、CanvasNode.assetIds 或绑定 UI；823 不拥有资产来源事件判定；822 的对话引用 DTO 不并入本包。

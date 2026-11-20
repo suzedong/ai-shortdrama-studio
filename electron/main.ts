@@ -13,6 +13,13 @@ import {
   renameProject,
   deleteProject,
 } from './project/library.js'
+import {
+  getProjectDetail,
+  importProject,
+  exportProject,
+  recordSessionSource,
+  assertWorkspaceProject,
+} from './project/transfer.js'
 import { isConfigured } from './ark.js'
 import {
   getActiveProvider,
@@ -66,6 +73,14 @@ import type {
   RuntimeStatus,
 } from './runtime/types.js'
 import { windowChromeOptions, type WindowPlatform } from './window/chrome.js'
+
+// feature-830（契约 §2.1）：验收环境隔离 userData 的可选钩子。未设置 ASD_USER_DATA 时
+// 行为与生产完全一致；设置时 documents 仍为真实用户目录，故工作区根仍是
+// ~/Documents/ai-shortdrama-studio，配置 / 会话 / ComfyUI 实例则落到隔离目录。
+// 必须早于首次 app.getPath('userData')（本文件下方及 settings/* 内均为函数体调用）。
+if (process.env.ASD_USER_DATA) {
+  app.setPath('userData', path.resolve(process.env.ASD_USER_DATA))
+}
 
 /** process.platform 收窄到三分支：非 darwin/win32 的类 Unix 一律按 linux 自绘外壳处理 */
 const windowPlatform: WindowPlatform =
@@ -246,6 +261,48 @@ ipcMain.handle('project:delete', (_e, dir: unknown) => {
     throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为项目目录字符串')
   }
   return deleteProject(dir)
+})
+ipcMain.handle('project:detail', (_e, arg: unknown) => {
+  if (!isRecord(arg) || typeof arg.dir !== 'string') {
+    throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { dir: string }')
+  }
+  return getProjectDetail(arg.dir)
+})
+ipcMain.handle('project:reveal', async (_e, arg: unknown) => {
+  if (!isRecord(arg) || typeof arg.dir !== 'string') {
+    throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { dir: string }')
+  }
+  await assertWorkspaceProject(arg.dir)
+  shell.showItemInFolder(path.resolve(arg.dir))
+  return { ok: true as const }
+})
+ipcMain.handle('project:import', async () => {
+  const picked = await dialog.showOpenDialog({
+    title: '导入静态项目包',
+    buttonLabel: '导入',
+    properties: ['openDirectory'],
+  })
+  if (picked.canceled || picked.filePaths.length === 0) return { canceled: true as const }
+  const result = await importProject(picked.filePaths[0])
+  return { canceled: false as const, dir: result.dir }
+})
+ipcMain.handle('project:export', async (_e, arg: unknown) => {
+  if (!isRecord(arg) || typeof arg.dir !== 'string') {
+    throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { dir: string }')
+  }
+  const dir = arg.dir
+  await assertWorkspaceProject(dir)
+  const picked = await dialog.showSaveDialog({
+    title: '导出静态项目包',
+    buttonLabel: '导出',
+    defaultPath: path.join(app.getPath('documents'), `${path.basename(dir)}-导出`),
+    properties: ['createDirectory'],
+  })
+  if (picked.canceled || !picked.filePath) return { canceled: true as const }
+  const result = await exportProject(dir, picked.filePath, (sessionId) =>
+    withRuntime(() => runtimeClient.getSessionMessages(sessionId)),
+  )
+  return { canceled: false as const, ...result }
 })
 
 // D-017：修改立项面板直写（原则六 · 系统优先；K1 加 'ui' / K8 恰 1 IPC 已批）
@@ -449,7 +506,7 @@ ipcMain.handle('style:upgrade-diff', async () => {
 // feature-808：当前项目绑定会话的读/写双态（不经 withRuntime，绝不因读绑定拉起 opencode）
 // 无参 = 读态（无项目/无绑定 → { sessionId: null }，不抛错）；
 // { sessionId: string } = 绑定；{ sessionId: null } = 清空（写态无项目抛 INVALID_ARGUMENT）。
-ipcMain.handle('project:active-session', (_e, arg?: unknown) => {
+ipcMain.handle('project:active-session', async (_e, arg?: unknown) => {
   if (arg !== undefined) {
     if (
       !isRecord(arg) ||
@@ -459,7 +516,9 @@ ipcMain.handle('project:active-session', (_e, arg?: unknown) => {
       throw makeRuntimeError('INVALID_ARGUMENT', '参数必须为 { sessionId: string | null }')
     }
     const dir = getActiveProjectDir() // 无项目抛 INVALID_ARGUMENT，写态不吞
-    return setActiveSession(dir, arg.sessionId)
+    const result = await setActiveSession(dir, arg.sessionId)
+    if (arg.sessionId) await recordSessionSource(dir, arg.sessionId)
+    return result
   }
   let dir: string
   try {

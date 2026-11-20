@@ -279,3 +279,65 @@ ready:true → Agent: gate.request({
 - 旧 `立项/brief.json`（旧 prompt 产物）：平台不自动迁移；新工具不读该路径。若根目录无 `立项单.v*.json`，`latestVersion=null`，下一版即 v1。旧文件留存不删（磁盘实况原则）。
 - manifest.nodes 旧骨架（idea/diagnosis/brief/background…）原样保留，B-04 包清退；本包 publish 不写 manifest。
 - 画布旧 demo 节点（dev-mock-api 中 n-brief 等）随 mock 数据更新；不影响真实 canvas（canvas 以磁盘文件为准）。
+
+---
+
+## 10. D-037 归并契约（文档）
+
+> 沿用现有契约，无新增接口。本轮只把 feature-002 / 007 / 010 / 012 / 015 仍有效的立项数据与 Agent 行为约束登记到当前负责包，不改变接口形状、shared 类型、落盘格式或工具面。
+
+### 10.1 数据契约
+
+| 数据 | 现行约束 |
+| :-- | :-- |
+| `ImpactItem / ImpactAssessment / ImpactReportFile` | 继续携带 `label / path / severity / defaultAction / reason`、changes、影响项及版本对；high / medium 入清单，low 不标脏。Agent 通道的 `decision` 与系统直改恒 `'mark'` 语义不混用。 |
+| `CanvasDirty` | 继续以 dirty.fields / severity / 版本对 / impactReport 为唯一脏读与重对齐依据；新增字段不属于本轮文档归并。 |
+| brief 与影响清单 | 再版、Markdown、影响清单和 canvas dirty 更新沿用既有持久化流程；renderer 不自行拼装或回写 Agent 通道的 decision。 |
+
+### 10.2 接口与 Agent 行为契约
+
+| 既有入口 | 不变行为 |
+| :-- | :-- |
+| `brief.impact.assess` | 只读预评估，不落盘、不标脏。 |
+| `brief:update` / `updateBriefFields` | 系统直改完成评估、再版、清单与恒 mark；返回既有 changes / items / markedDirty 供 UI 消费。 |
+| `brief.impact.commit` | decisions 必须恰好覆盖全部影响项；三选一决策仅属 Agent 对话通道。沿用先落新版本、再重算并清脏的提交顺序；失败时恢复标记，已清 dirty 只允许减少、不得反向扩张。 |
+| `【产物重新对齐】` 消息 | 先以 `canvas_get` 核实 dirty，再串行委派生成；保持单产物协议与串行纪律，批量消息形状由 feature-013 承接 011，不新增编排工具。 |
+| `canvas.align` | 仅在产物已定稿后调用，使用既有 `nodeId / briefVersion`；成功后定稿新版本、清 dirty、补 parentReference 并推进血缘。 |
+
+### 10.3 边界
+
+影响面板、确认弹层和黄条按钮的 props / 回调由 feature-013 契约承载；本包不为其另设重复 IPC。历史契约中的最小 diff 白名单和测试计数仅约束当时实施，不构成本轮写权扩张。
+
+### 10.4 缺口追问与拍板 Agent 协议（来自 010）
+
+| 协议 | 现行约束 |
+|---|---|
+| 确定性缺口追问 | 正文后附独立 `【追问选项】…【/追问选项】` 块，逐非空行至少两条；开放式追问仍用 `【缺口追问】`，不伪造选项。 |
+| chip / 开放式回答 | chip 仅代发原文；Agent 收到后经既有 `capture.upsert` 落结构化事实，`source:'user'` 保留逐字 quote。capture 条目的 `id / topic / value / source / status / quote` 沿用既有形状，本包不新增持久化通道。 |
+| verbal | 必须同时有真实原话 quote 与既有完整定案卡；quote 不是批准口令。真实口令「行，就按这版发布」仍走既有原话提取与批准路径，不由提示或 GateHint 自动批准。 |
+| 定案卡正文 | question 用 `# / ## / - 字段：值` Markdown 组织；字段内容、标题拆题和 UI 渲染分别归本包与 013，不把 JSON / 英文键名当用户正文。 |
+
+### 10.5 定案门完整性与影响快照（来自 012）
+
+1. `payload.version / pendingMarks / changesFromPrevious` 保持既有键；question 的 `changeLog` 与门后续 `decision` 分别保留 from/to 和用户裁决，不合并成新字段。首版 changeLog 写「首版立项」，再版逐项 from → to。
+2. 六要素六项、前提五项、主风格 `ID@catalogVersion`、辅助风格 `ID@catalogVersion` 或「无」、待定点必须同卡齐全；再版另列影响产物。引用不使用裸名或项目文件路径。
+3. 再版 `payload.impactSummary?: { items, high, medium }` 实际必填，首版缺省；items 形状保持 `label / path / severity:'high'|'medium' / reason / defaultAction:'regenerate'|'mark'`，顺序来自 assess。缺键不伪造 `{items:[],high:0,medium:0}`。
+4. Agent 在再版发门前只读调用 `brief.impact.assess`，随后发门停轮；用户批准后的三选一与 `brief.impact.commit` 保持本包既有契约。Harness findings 由 806 注入，本包不把摘要路径当 findings。
+
+### 10.6 非阻塞门与 draft 数据 / Agent 边界（来自 015）
+
+| 场景 | 现行契约 |
+|---|---|
+| 发门 | `gate.request` 校验后只落 pending 并立即返回；Agent 不等待 approved。校验失败沿用 `INVALID_ARGUMENT`，不落半成品门。 |
+| 新 0-final 草案 | `payload.draft` 为完整 BriefDraft，含六要素、前提、风格与版本；执行时缺字段、版本不符或风格非法回退 pending，错误仍用 `INVALID_ARGUMENT`。 |
+| 首版按钮 | 系统直接双写 v1、upsert `step-0-brief`、推进 `brief-published`；Agent 禁止重复 publish / advance。 |
+| 再版按钮 | 只确认版本与草案，不发布、不推进；Agent 下一轮呈报三选一，由 `brief.impact.commit` 唯一发布。 |
+| verbal / 历史兼容 | verbal 首版由 Agent `brief.publish(by:'verbal')` 后推进；无 draft 的 `brief.publish(by:'gate')` 只兜底历史首版，再版无 draft 不沿用。 |
+
+门态、重复 decide、版本防护、execution 成功 / 失败摘要和 manifest 原子推进以 801 为唯一事实源；本包只承接立项数据与 Agent 职责，不新增 `gate.execute`、execution 三态或 execution runId。
+
+### 10.7 未裁决冲突与零扩面
+
+- 010 AC4「编号混入整块不识别」与 R3「编号字样仍按原文收录」尚未裁决；X-002 只将末尾锚定改为非锚定闭合块。本包不把任一冲突表述提升为新 Agent 输出规则，renderer 侧同一冲突由 013 明示。
+- 来源包未定义 `runId` 或 `changelogDecision` 字段，本次不新增；现有 capture、changesFromPrevious / changeLog、decision、draft 与 impactSummary 已覆盖对应追溯语义。
+- 本节无新 IPC / MCP / shared / preload 变更。ChipRow / GateHint / 留存卡的解析与 props 归 013，视觉归 817，Harness 归 806；历史文件白名单不因此扩权。

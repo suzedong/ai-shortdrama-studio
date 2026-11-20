@@ -5,11 +5,14 @@
 // 视觉：无外壳纯内容（外壳由 StudioApp 左栏提供），新建表单由底部按钮经 ref 触发。
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react'
 
+import ProjectDetailPanel from './ProjectDetailPanel'
+
 interface ProjectItem {
   dir: string
   name: string
   createdAt?: string
   updatedAt: string
+  lastOpenedAt: string
 }
 
 interface Props {
@@ -17,6 +20,7 @@ interface Props {
   activeProjectId: string
   /** 左栏搜索关键字（按项目名过滤） */
   query?: string
+  onNotice?: (message: string) => void
 }
 
 export interface ProjectNavHandle {
@@ -46,12 +50,13 @@ export function relativeTime(iso: string): string {
   return new Date(t).toLocaleDateString('zh-CN')
 }
 
-const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ activeProjectId, query = '' }, ref) {
+const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ activeProjectId, query = '', onNotice }, ref) {
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [detailDir, setDetailDir] = useState<string | null>(null)
   // B-19：菜单/改名/删除三态（同一行同一时刻只处其一）
   const [menuFor, setMenuFor] = useState<string | null>(null)
   const [renaming, setRenaming] = useState<{ dir: string; value: string } | null>(null)
@@ -105,6 +110,53 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
     }
   }
 
+  const importProject = async (): Promise<void> => {
+    if (busy) return
+    setError(null)
+    setBusy(true)
+    try {
+      const result = await window.api.projectImport()
+      if (!result.canceled) {
+        await window.api.openProject(result.dir)
+        await refresh()
+        onNotice?.('项目已导入并打开')
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '导入项目失败')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const reveal = async (dir: string): Promise<void> => {
+    if (busy) return
+    setError(null)
+    setMenuFor(null)
+    setBusy(true)
+    try {
+      await window.api.projectReveal(dir)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Finder 定位失败')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const exportProject = async (dir: string): Promise<void> => {
+    if (busy) return
+    setError(null)
+    setMenuFor(null)
+    setBusy(true)
+    try {
+      const result = await window.api.projectExport(dir)
+      if (!result.canceled) onNotice?.(`已导出：${result.exportDir}`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '项目导出失败')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   // B-19：改名提交（空名视为取消，不打 IPC）；当前项改名后主进程顺带同步 canvas.title
   const doRename = async (): Promise<void> => {
     if (busy || !renaming) return
@@ -150,10 +202,22 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
   return (
     <div className="flex h-full flex-col">
       {error && (
-        <div className="mb-2 rounded-lg border border-bad/30 bg-bad/10 px-2 py-1.5 text-[11px] leading-4 text-bad">
+        <div className="mb-2 rounded-lg border border-bad/30 bg-bad/10 px-2 py-1.5 text-[11px] leading-4 text-bad" role="alert">
           {error}
         </div>
       )}
+
+      <div className="mb-2 flex justify-end">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void importProject()}
+          className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[11px] font-medium text-muted hover:border-violet/40 hover:text-violet disabled:opacity-50"
+          data-project-import
+        >
+          {busy ? '处理中…' : '导入静态项目包'}
+        </button>
+      </div>
 
       {/* B-19：菜单打开时的全屏透明罩，点击任意处关闭 */}
       {menuFor && <div className="fixed inset-0 z-10" onClick={() => setMenuFor(null)} />}
@@ -252,7 +316,7 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
                       {p.name || '未命名项目'}
                     </span>
                     <span className="mt-0.5 block text-[10.5px] text-muted">
-                      {relativeTime(p.updatedAt)}
+                      {relativeTime(p.lastOpenedAt || p.updatedAt)}
                       {active ? ' · 编辑中' : ''}
                     </span>
                   </span>
@@ -272,8 +336,35 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
                 {menuFor === p.dir && (
                   <div
                     role="menu"
-                    className="absolute right-0 top-full z-20 mt-0.5 w-28 overflow-hidden rounded-lg border border-line bg-surface py-1 shadow-lg"
+                    className="absolute right-0 top-full z-20 mt-0.5 w-36 overflow-hidden rounded-lg border border-line bg-surface py-1 shadow-lg"
                   >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => { setMenuFor(null); setDetailDir(p.dir) }}
+                      className="block w-full px-3 py-1.5 text-left text-[12px] text-ink hover:bg-canvas"
+                      data-project-detail={p.dir}
+                    >
+                      项目详情
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => void reveal(p.dir)}
+                      className="block w-full px-3 py-1.5 text-left text-[12px] text-ink hover:bg-canvas"
+                      data-project-reveal={p.dir}
+                    >
+                      在 Finder 中显示
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => void exportProject(p.dir)}
+                      className="block w-full px-3 py-1.5 text-left text-[12px] text-ink hover:bg-canvas"
+                      data-project-export={p.dir}
+                    >
+                      导出静态项目包
+                    </button>
                     <button
                       type="button"
                       role="menuitem"
@@ -329,6 +420,14 @@ const ProjectNav = forwardRef<ProjectNavHandle, Props>(function ProjectNav({ act
             </button>
           </div>
         </div>
+      )}
+
+      {detailDir && (
+        <ProjectDetailPanel
+          dir={detailDir}
+          onClose={() => setDetailDir(null)}
+          onNotice={onNotice}
+        />
       )}
     </div>
   )

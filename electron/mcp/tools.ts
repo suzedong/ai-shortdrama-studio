@@ -17,7 +17,8 @@ import type {
   AssetIndexItem, BriefDraft, Canvas, ComfyInstance, ProjectBrief,
 } from '../../shared/types.js'
 import { enqueue } from '../fs/write-queue.js'
-import { archiveExisting } from '../fs/archive.js'
+import { copyExistingToArchive } from '../fs/archive.js'
+import { writeTextAtomic } from '../fs/atomic.js'
 import { resolveInside } from '../fs/sandbox.js'
 import { getActiveProjectDir } from '../project/current.js'
 import { canvasStore } from '../canvas/store.js'
@@ -33,7 +34,7 @@ import type { HarnessFinding } from '../harness/types.js'
 import { renderBriefMd } from '../brief/render-md.js'
 import { publishV1InQueue, publishBriefFiles, type ReadyBriefDraft } from '../brief/publish.js'
 import {
-  readManifest, advanceManifest, parseManifest, applyBriefVersion, MANIFEST_FILE,
+  readManifest, advanceManifest, parseManifest, applyBriefVersion, MANIFEST_FILE, writeManifestFile,
 } from '../project/manifest.js'
 import { assessImpact } from '../brief/impact.js'
 import type { ImpactDecision, ImpactReportFile } from '../brief/impact.js'
@@ -136,10 +137,10 @@ export function registerPureTools(server: McpServer): void {
       try {
         const abs = resolveInside(getActiveProjectDir(), args.path)
         const archived = await enqueue(async () => {
-          const moved = await archiveExisting(abs, new Date())
+          const copied = await copyExistingToArchive(abs, new Date())
           await fsp.mkdir(path.dirname(abs), { recursive: true })
-          await fsp.writeFile(abs, args.content, 'utf-8')
-          return moved
+          await writeTextAtomic(abs, args.content)
+          return copied
         })
         return respond<{ path: string; archived: string[] }>({ ok: true, path: args.path, archived })
       } catch (e) {
@@ -819,7 +820,7 @@ export function registerPureTools(server: McpServer): void {
           const rawManifest = JSON.parse(await fsp.readFile(manifestAbs, 'utf-8'))
           const manifest = parseManifest(rawManifest, new Date().toISOString())
           const nextManifest = applyBriefVersion(manifest, toVersion, new Date().toISOString())
-          await fsp.writeFile(manifestAbs, JSON.stringify(nextManifest, null, 2), 'utf-8')
+          await writeManifestFile(projectDir, nextManifest)
 
           // 画布单次写：全部 item 挂脏（regenerate/mark 同挂）+ brief 节点 upsert
           const markedDirty = assessment.items.map(i => i.nodeId)

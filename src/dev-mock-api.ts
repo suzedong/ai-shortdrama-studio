@@ -5,6 +5,7 @@ import type {
   CanvasDocument, CanvasPage, CanvasTarget, CanvasViewStateRequest, CanvasViewStateResult, CanvasViewport,
   ProjectBrief, CaptureFile, CapturedFact,
 } from '../shared/types'
+import type { CanvasUpsertNode } from '../electron/canvas/edges'
 import type {
   RuntimeAssetRef,
   RuntimePromptRequest,
@@ -141,11 +142,90 @@ function activeDemoPage(canvas: Canvas): CanvasPage {
   return page
 }
 
-function activeDemoDocument(canvas: Canvas): CanvasDocument {
-  const page = activeDemoPage(canvas)
-  const document = page.canvases.find(item => item.id === page.activeCanvasId)
-  if (!document) throw demoCanvasError('CANVAS_TARGET_NOT_FOUND', '活动画布不存在')
-  return document
+function demoNodeVersion(node: CanvasDocument['nodes'][number] | undefined): string | null {
+  const version = node?.meta?.version
+  return typeof version === 'string' && version.trim().length > 0 ? version : null
+}
+
+function scanDemoRepublishedReferences(
+  canvas: Canvas,
+  source: CanvasTarget,
+  artifactId: string,
+  latestVersion: string,
+  markedAt: string,
+): void {
+  for (const page of canvas.pages) {
+    for (const document of page.canvases) {
+      for (const node of document.nodes) {
+        const reference = node.reference
+        if (
+          !reference || reference.artifactId !== artifactId
+          || reference.source.projectId !== source.projectId
+          || reference.source.pageId !== source.pageId
+          || reference.source.canvasId !== source.canvasId
+        ) continue
+        reference.latestVersion = latestVersion
+        if (reference.version === latestVersion) delete reference.markedAt
+        else reference.markedAt = markedAt
+      }
+    }
+  }
+}
+
+function mergeDemoCanvasNodes(
+  canvas: Canvas,
+  target: CanvasTarget,
+  document: CanvasDocument,
+  inputs: CanvasUpsertNode[],
+  appliedAt: string,
+): void {
+  const previousVersions = new Map<string, string | null>()
+  for (const input of inputs) {
+    if (!previousVersions.has(input.id)) {
+      previousVersions.set(input.id, demoNodeVersion(document.nodes.find(node => node.id === input.id)))
+    }
+  }
+  for (const input of inputs) {
+    const { linksTo: _linksTo, reference: _reference, ...source } = input
+    const index = document.nodes.findIndex(node => node.id === input.id)
+    const old = index >= 0 ? document.nodes[index] : undefined
+    const node = { ...source, updatedAt: appliedAt } as CanvasDocument['nodes'][number]
+    if (old) {
+      node.dirty = old.dirty
+      if (old.reference !== undefined) node.reference = old.reference
+      if (node.parentReference === undefined) node.parentReference = old.parentReference
+      if (node.assetIds === undefined) node.assetIds = old.assetIds
+      document.nodes[index] = node
+    } else {
+      document.nodes.push(node)
+    }
+  }
+  for (const [artifactId, previousVersion] of previousVersions) {
+    const latestVersion = demoNodeVersion(document.nodes.find(node => node.id === artifactId))
+    if (previousVersion !== null && latestVersion !== null && previousVersion !== latestVersion) {
+      scanDemoRepublishedReferences(canvas, target, artifactId, latestVersion, appliedAt)
+    }
+  }
+}
+
+function syncDemoBriefCanvasVersion(canvas: Canvas, version: number, appliedAt: string): void {
+  for (const page of canvas.pages) {
+    for (const document of page.canvases) {
+      const source = document.nodes.find(node => node.id === 'n-brief')
+      if (!source) continue
+      mergeDemoCanvasNodes(canvas, {
+        projectId: canvas.projectId,
+        pageId: page.id,
+        canvasId: document.id,
+      }, document, [{
+        ...source,
+        ref: { path: `/demo/anni/立项单.v${version}.json`, format: 'json' },
+        meta: { ...source.meta, version: `v${version}` },
+        updatedAt: appliedAt,
+      }], appliedAt)
+      return
+    }
+  }
 }
 
 function assertDemoCanvasProject(request: { projectId: string }, canvas: Canvas): void {
@@ -222,6 +302,50 @@ function demoReceiptTarget(receipt: CanvasCommandReceipt): CanvasTarget {
 
 function applyDemoCanvasCommand(canvas: Canvas, request: CanvasCommandRequest, appliedAt: string): CanvasTarget {
   const projectId = canvas.projectId
+  if (request.type === 'reference.create') {
+    const targetPage = canvas.pages.find(item => item.id === request.target.pageId)
+    const targetDocument = targetPage?.canvases.find(item => item.id === request.target.canvasId)
+    const sourcePage = canvas.pages.find(item => item.id === request.source.target.pageId)
+    const sourceDocument = sourcePage?.canvases.find(item => item.id === request.source.target.canvasId)
+    if (!targetPage || !targetDocument || !sourcePage || !sourceDocument) {
+      throw demoCanvasError('CANVAS_TARGET_NOT_FOUND', '引用目标或来源画布不存在')
+    }
+    if (request.target.pageId === request.source.target.pageId) {
+      throw demoCanvasError('CANVAS_REFERENCE_INVALID', '引用目标与来源必须位于不同创作页')
+    }
+    const sourceNode = sourceDocument.nodes.find(item => item.id === request.source.nodeId)
+    if (!sourceNode) throw demoCanvasError('CANVAS_NODE_NOT_FOUND', '引用来源节点不存在')
+    const version = demoNodeVersion(sourceNode)
+    if (sourceNode.reference || !sourceNode.ref?.path?.trim() || version === null) {
+      throw demoCanvasError('CANVAS_REFERENCE_INVALID', '引用来源必须是存在 ref.path 与非空 meta.version 的一次产物节点')
+    }
+    if (!validDemoPosition(request.position)) {
+      throw demoCanvasError('CANVAS_INVALID_POSITION', '节点 position 必须为有限世界坐标')
+    }
+    if (typeof request.nodeId !== 'string' || request.nodeId.length === 0) {
+      throw demoCanvasError('CANVAS_REFERENCE_INVALID', '引用节点 ID 必须非空')
+    }
+    if (targetDocument.nodes.some(item => item.id === request.nodeId)) {
+      throw demoCanvasError('CANVAS_NODE_EXISTS', '引用节点 ID 已存在')
+    }
+    targetDocument.nodes.push({
+      id: request.nodeId,
+      step: sourceNode.step,
+      kind: sourceNode.kind,
+      title: sourceNode.title,
+      status: sourceNode.status,
+      position: { x: request.position.x, y: request.position.y },
+      ...(sourceNode.ref ? { ref: structuredClone(sourceNode.ref) } : {}),
+      ...(sourceNode.meta ? { meta: structuredClone(sourceNode.meta) } : {}),
+      updatedAt: appliedAt,
+      reference: {
+        artifactId: sourceNode.id,
+        version,
+        source: structuredClone(request.source.target),
+      },
+    })
+    return structuredClone(request.target)
+  }
   if (request.type === 'page.create') {
     const document: CanvasDocument = {
       id: `canvas-${crypto.randomUUID()}`,
@@ -332,7 +456,16 @@ function applyDemoCanvasCommand(canvas: Canvas, request: CanvasCommandRequest, a
 }
 
 async function executeDemoCanvasCommand(request: CanvasCommandRequest): Promise<CanvasCommandResult> {
-  assertDemoCanvasProject(request, getDemoCanvas())
+  const currentProject = getDemoCanvas()
+  if (request.type === 'reference.create') {
+    if (
+      request.projectId !== currentProject.projectId
+      || request.target.projectId !== currentProject.projectId
+      || request.source.target.projectId !== currentProject.projectId
+    ) throw demoCanvasError('PROJECT_MISMATCH', '引用目标、来源与命令项目必须属于当前项目')
+  } else {
+    assertDemoCanvasProject(request, currentProject)
+  }
   if (
     typeof request.commandId !== 'string' || request.commandId.length === 0
     || !Number.isSafeInteger(request.expectedRevision) || request.expectedRevision < 0
@@ -1065,9 +1198,23 @@ export function installDevMockApi(): void {
 
   const api = {
     listProjects: () => resolve([
-      { dir: '/demo/anni', name: '安妮的夏天', updatedAt: new Date().toISOString() },
-      { dir: '/demo/jiugang', name: '旧港往事', updatedAt: new Date().toISOString() },
+      { dir: '/demo/anni', name: '安妮的夏天', updatedAt: new Date().toISOString(), lastOpenedAt: new Date().toISOString() },
+      { dir: '/demo/jiugang', name: '旧港往事', updatedAt: new Date().toISOString(), lastOpenedAt: new Date(Date.now() - 1000).toISOString() },
     ]),
+    projectDetail: (dir: string) => resolve({
+      dir,
+      projectId: dir.split('/').pop() || 'demo',
+      title: dir.endsWith('jiugang') ? '旧港往事' : '安妮的夏天',
+      createdAt: demoState?.updatedAt || new Date().toISOString(),
+      updatedAt: demoState?.updatedAt || new Date().toISOString(),
+      lastOpenedAt: demoState?.updatedAt || new Date().toISOString(),
+      status: 'draft',
+      current: true,
+      snapshots: [],
+    }),
+    projectReveal: () => Promise.reject(new Error('浏览器 dev-mock 不支持 Finder 定位')),
+    projectImport: () => Promise.reject(new Error('浏览器 dev-mock 不支持目录导入')),
+    projectExport: () => Promise.reject(new Error('浏览器 dev-mock 不支持目录导出')),
     createProject: (name?: string) => {
       const projectId = name || 'untitled'
       demoState = emptyDemoCanvas(projectId, name?.trim() || '新项目')
@@ -1140,6 +1287,11 @@ export function installDevMockApi(): void {
       next.changesFromPrevious = changes
       next.publishedAt = now
       lib.push(next)
+      if (demoState) {
+        syncDemoBriefCanvasVersion(demoState, next.version, now)
+        demoState.updatedAt = now
+        for (const listener of demoCanvasListeners) listener(structuredClone(demoState))
+      }
 
       // feature-011：仅 L0 元数据（低级）改动 → 空影响清单（保存后静默，不弹面板）；
       // 其余字段改动 → 演示清单（自动弹出面板的四要素数据）
@@ -1200,12 +1352,7 @@ export function installDevMockApi(): void {
       lib.push(next)
       // 画布 n-brief 节点指向新版并广播（对齐主进程 canvasStore.persistInQueue upsert）
       if (demoState) {
-        const n = activeDemoDocument(demoState).nodes.find(nd => nd.id === 'n-brief')
-        if (n) {
-          n.ref = { path: `/demo/anni/立项单.v${next.version}.json`, format: 'json' }
-          n.meta = { ...n.meta, version: `v${next.version}` }
-          n.updatedAt = now
-        }
+        syncDemoBriefCanvasVersion(demoState, next.version, now)
         demoState.updatedAt = now
         const snapshot = structuredClone(demoState)
         demoCanvasListeners.forEach(cb => cb(snapshot))

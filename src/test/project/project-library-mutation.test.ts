@@ -79,6 +79,30 @@ describe('B-19 · renameProject 改名', () => {
     })
   })
 
+  it('原子 rename 失败保留旧 title 且不残留 temp', async () => {
+    const dir = await makeProject('project-rename-atomic-failure')
+    const sessionFile = path.join(dir, '.session.json')
+    await fsp.writeFile(sessionFile, JSON.stringify({ title: '旧名' }), 'utf-8')
+    const originalRename = fsp.rename.bind(fsp)
+    vi.spyOn(fsp, 'rename').mockImplementation(((
+      from: unknown, to: unknown
+    ) => {
+      if (path.resolve(String(to)) === sessionFile && String(from).endsWith('.tmp')) {
+        return Promise.reject(new Error('INJECT_SESSION_RENAME'))
+      }
+      return (originalRename as (...args: unknown[]) => Promise<unknown>)(from, to)
+    }) as unknown as typeof fsp.rename)
+
+    try {
+      await expect(renameProject(dir, '新名')).rejects.toThrow('INJECT_SESSION_RENAME')
+      const onDisk = JSON.parse(await fsp.readFile(sessionFile, 'utf-8'))
+      expect(onDisk.title).toBe('旧名')
+      expect((await fsp.readdir(dir)).filter(name => name.endsWith('.tmp'))).toEqual([])
+    } finally {
+      vi.restoreAllMocks()
+    }
+  })
+
   it('空标题 → INVALID_ARGUMENT 且零写盘', async () => {
     const dir = await makeProject('project-emptytitle')
     const sessionFile = path.join(dir, '.session.json')

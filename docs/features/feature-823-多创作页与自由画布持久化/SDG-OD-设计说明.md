@@ -165,3 +165,75 @@ active.set / viewport.set
 - node.move 冲突：恢复最新持久化坐标，不跨目标重放。
 - 非空删除未确认、最后项删除、坏档、资产缺失和项目不匹配均明确失败，无假 Toast。
 - 切片 D 的资产安全 DTO、上传/缩略图、会话和 Gate 通道不变。
+
+## 8. D-037 现行归并设计：命令与绑定 UI（2026-11-19）
+
+### 8.1 v4 命令链
+
+```text
+AssetsPanel / CanvasBoard
+  → 固定 projectRoot + pageId + canvasId + nodeId
+  → canvas:command {commandId, expectedRevision, assets.bind/unbind}
+  → 项目单队列：receipt hash 重放检查 → revision / 目标 / 资产校验
+  → 只改目标 CanvasNode.assetIds
+  → 同目录 tmp + archive + rename
+  → 新 revision / receipt → 当前项目广播 → renderer 刷新选择
+```
+
+814 的 revision、100 条 receipts、稳定 hash、原子写和坏档保护原义保留，但其根级 v3 路径与 nodes/edges 示例不作为现行输入。v4 页—画布树及完整目标是唯一写结构；旧档仅在既有懒迁移成功后升级。
+
+### 8.2 选择状态与竞态
+
+- Board 负责节点选择与 chip 展示，AssetsPanel 负责四类资产勾选及绑定动作；两者以完整目标和选择版本同步，不维护第二份画布事实。
+- 每个资产—节点请求独立 busy / 防重；切节点使旧目标回执失效，但保留其他仍有效选择。冲突、失败和广播均重读当前目标，不以本地猜测覆盖持久化结果。
+- 绑定只追加去重，解绑只移除，均不隐式改坐标、连边、来源或文件。上传完成不自动调用绑定命令。
+
+### 8.3 职责和冲突
+
+821 拥有上传、可信来源和缩略图；822 拥有对话资产引用；823 拥有 Canvas 绑定。安全 chip 缺索引 / 文件 / 合法相对路径时降级展示，不阻断历史消息；来源补写失败只由 821 记录日志，不进入 Canvas 事务。
+
+本次只迁移文档归属，不重放历史实施，不新增 IPC / MCP / 共享类型或产品验收结论。
+
+## 9. Canvas 只读预检与正式加载共用路径
+
+本节接收 825 设计 §2 的 Canvas 部分。目标是让显式根目录预检与正式加载共享唯一坏档判据，同时保持预检零副作用；项目打开提交与编排不在本设计中扩张。
+
+### 9.1 私有只读步骤
+
+```text
+readFromDisk(explicitProjectRoot)
+  → 读取该项目 canvas.json
+  → ENOENT：返回 null
+  → 既有文件：JSON.parse
+  → v2/v3 内存 migrate / v4 全量 validate
+  → 校验磁盘 projectId 对目录身份
+  → 返回有效 Canvas 投影
+```
+
+该步骤不读全局 currentDir / session-state，不查询或信任缓存，不写盘、不广播、不填缓存。坏 JSON、非法结构、未知 schemaVersion、活动引用或事务字段损坏统一保持 `CANVAS_CORRUPT`；`projectId` 失配保持 `CANVAS_PROJECT_MISMATCH`。任何失败均向上 reject，不能转成空画布成功。
+
+### 9.2 两条调用路径
+
+```text
+只读预检                         正式 getForRoot
+assertReadable(root)             → 可先读该项目缓存
+→ 绕过缓存                       → 未命中才 readFromDisk(root)
+→ readFromDisk(root)             → null：创建 emptyCanvas、原子写盘、填缓存
+→ 丢弃 Canvas / null             → 合法 v2/v3：返回迁移投影，读取零写
+→ resolve / 原错 reject            → 合法结果按既有规则填缓存并返回
+```
+
+因此，文件不存在只对预检表示“无需阻止后续正式加载”，不会在预检时建文件；正式加载的创建行为仍只发生在 `getForRoot`。两条路径使用同一个解析 / 迁移 / 结构 / 项目身份步骤，避免旧缓存掩盖坏档，也避免预检和正式加载对同一文件给出不同结论。v4 页—画布树仍是唯一现行结构，旧根级 nodes/edges 仅为迁移输入。
+
+### 9.3 失败与副作用隔离
+
+- 预检阶段只有磁盘读取和内存计算；有效返回值被丢弃，不进入 cache。
+- 预检不得创建 / 补建 session、清门或 recover、reset / 填缓存、同步标题或发送 `canvas:changed`，也不能因旧档迁移而写 v4。
+- 调用方收到 `CANVAS_CORRUPT` / `CANVAS_PROJECT_MISMATCH` 后必须 fail closed；823 保证错误不被 Canvas 预检吞掉，完整项目状态保持由原打开链路及其负责包保证。
+- 正式加载的缓存、缺文件创建和懒迁移行为不被预检取代；预检成功也不伪造项目打开成功。
+
+### 9.4 职责与非目标
+
+827 拥有 `openProject beforeCommit` guard、路径 / manifest 校验后的执行位置、session / currentDir 提交和项目写队列；828 拥有完整 `project:open` 提交与提交后清门、reset / recover、标题和广播顺序。823 只拥有上述 CanvasStore 共用读取与只读预检，不接管这些编排。
+
+本设计不新增跨文件事务、通用项目打开回滚或任意后置 I/O 故障保证，也不覆盖预检成功后的任意并发文件替换。本次仅文档归并，不重放 825 实施，不新增接口、测试通过或真机验收结论。

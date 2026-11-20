@@ -124,3 +124,26 @@ export interface CaptureFile {
 | 需要画布节点或门承载口径 | 违反 §2.6.8 → 停手呈报（现状评估：不做，用户裁决①已排除） |
 | 需要口径历史版本/回滚 | 设计演进项 → 停手呈报（现状评估：不做，草稿覆盖式） |
 | 需要新依赖 / 新动画 token | 触发 K9 或配置红线 → 停手呈报（现状评估：不需要） |
+
+---
+
+## 7. D-037 归并契约（文档）
+
+> 沿用现有契约，无新增接口。本节把 feature-008 已实施的纯函数与词表归属迁回 005，不改变函数签名、shared 类型、IPC / MCP 或落盘形状。
+
+### 7.1 纯函数事实源
+
+| 既有函数 | 不变契约 |
+| :-- | :-- |
+| `matchChainTopic(topic)` | trim + 英文小写化后精确命中需求 §6.1 词表，返回 `ChainTopicMatch` 或 `null`（group 仅 six / premise）；禁模糊匹配与跨组推断。 |
+| `selectChainProgress(facts)` | 按 canonical 去重返回 sixCovered / premiseCovered、unmatchedCount / totalFacts；pending / confirmed 均计入，未命中不计 covered。 |
+| `selectCaptureGroups(facts)` | 复用 matchChainTopic 分 six / premise / unmatched；同键展示取文件序最后一条，unmatched 保原序。 |
+| `captureTopicLabel(topic)` | canonical / 中文标签命中时返回显示名，未命中回原键；LEGACY 映射只做只读兼容，不回写事实文件。 |
+
+上述函数保持 renderer 纯函数约束：禁 fs、window.api、Date、随机与 import 副作用。`ChainTopicMatch / ChainProgress / CaptureGroups / CaptureGroupItem` 等形状继续留在既有 renderer 模块，不因文档归并进入 shared/types.ts。
+
+### 7.2 消费边界
+
+- 013 的链态条、六要素 / 前提 / 其他口径卡只消费上述结果；不得在组件内复制另一份 canonical 词表或分组算法。
+- capture:list / capture:changed 及 capture 写入通道签名零变化；008 历史契约中的 gate / canvas 状态选择器归 013，不在本包重复登记。
+- 词表或函数形状若需实际代码调整，仍须另行走本包 Change 与相应卡口；本轮仅文档。

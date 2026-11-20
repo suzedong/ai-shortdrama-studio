@@ -10,3 +10,4 @@ tsconfig.tsbuildinfo
 .trae/documents/
 .screenshot/
 .workbuddy/
+.test-tmp/

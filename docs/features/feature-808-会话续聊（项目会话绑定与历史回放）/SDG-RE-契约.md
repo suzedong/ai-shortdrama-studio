@@ -463,3 +463,29 @@ sessionMessages: (sessionId: string): Promise<RuntimeSessionMessageRecord[]> =>
 | Agent 纪律 | resources/opencode/** 零 diff | git diff 为空 |
 
 编码中若发现「两通道/单字段/不扩错误码」无法满足某 AC：**停手回本契约评审**，对应需求移出本包或走 K 变更，不得临场加通道/字段/错误码。
+
+## 9. D-037 现行归并契约（2026-11-19）
+
+### 9.1 运行时模板解析（承接 819）
+
+| 项 | 现行契约 |
+| :-- | :-- |
+| 函数 | `resolveAgentTemplatePath(file: string): Promise<string>`，签名不变。 |
+| 开发态 | `process.defaultApp` 为真时无论 `app.isPackaged` 为何值，均解析仓库 `<root>/resources/opencode/agents/<file>`。 |
+| 打包态 | 仅当 `app.isPackaged && !process.defaultApp` 为真，解析 `process.resourcesPath/opencode/agents/<file>`。 |
+| 失败 | 文件不存在沿用 ENOENT；必需占位符缺失沿用既有 INTERNAL 文案；不得读取残留旧副本兜底，不新增错误码。 |
+| 边界 | 不清理 Electron 生成目录，不改 shared/types.ts、IPC/MCP、SSE 或依赖；本 Change 只归并约束。 |
+
+### 9.2 历史回放数据（承接 010，受本包 H1–H6 约束）
+
+1. `RuntimeSessionMessageRecord.parts` 继续只含 user/assistant 的 text / reasoning / tool；过滤 system、tool-role 和其他 part，ignored / synthetic 文本不进入回放。
+2. 主进程映射与 renderer 归约必须保留同一轮的原始交错顺序：partId 标识推理/正文段，callId 标识工具段；同 callId 的后续状态原位更新，纯 reasoning / 纯工具轮允许无正文进入回放。
+3. 工具段字段以现行白名单 DTO 为准：`callId`、`tool`、`status`、`startedAt` / `endedAt`、`error` 与已实现的可选 `argsPreview`。完整 `input` / `output` / `metadata` / 附件 / 工具结果不透传；010 的 `resultSummary` 表述不自动构成新字段授权。
+4. 重载时 streaming 初值为 false，历史工具状态只按记录渲染；`argsPreview` 使用已存白名单摘要，不回放完整参数，也不根据未知结果臆造摘要。
+5. **无新接口**：沿用 `runtime:session:messages`、既有 DTO / 有序回放段与 runtime provider 内部函数；本节不新增 IPC、存储文件或共享类型。
+
+### 9.3 归属与冲突
+
+- 819 只改变路径判据，不改变模板内容、模型占位符和启动失败语义；其“真实 runtime 已可用”只保留为当时历史验证，不由本次文档归并重新确认。
+- 010 的“完整工具请求/结果”与 808 H6 冲突时，以**状态 + 错误 + 白名单参数摘要、不回放完整结果**为现行口径；归档包原契约不删改。
+- 数据归本包，视觉归 817；runtime 会话失败不得用视觉活跃态掩盖。

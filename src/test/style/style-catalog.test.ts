@@ -71,9 +71,9 @@ describe('feature-802 ID 注册表（契约 §2）', () => {
 })
 
 describe('feature-802 真实谱系 md 解析（契约 §3，AC7）', () => {
-  it('版本 v1.46、18 条、家族行数 6/1/5/5/1', () => {
+  it('版本 v1.47、18 条、家族行数 6/1/5/5/1', () => {
     const { version, entries } = parseStyleCatalogMd(realText)
-    expect(version).toBe('v1.46')
+    expect(version).toBe('v1.47')
     expect(entries).toHaveLength(18)
     const count = (c: string) => entries.filter(e => e.familyCode === c).length
     expect([count('A'), count('B'), count('C'), count('D'), count('E')]).toEqual([6, 1, 5, 5, 1])
@@ -144,7 +144,7 @@ describe('feature-802 loader 装载/缓存/异常（契约 §4）', () => {
     const p = await resolveStyleCatalogPath()
     expect(p).toBe(REAL_MD)
     const catalog = await loadStyleCatalog()
-    expect(catalog.version).toBe('v1.46')
+    expect(catalog.version).toBe('v1.47')
     expect(catalog.entries).toHaveLength(18)
     expect(catalog.sourcePath).toBe(REAL_MD)
     expect(catalog.entries.find(e => e.id === 'A7')!.anchorWords).toContain('realistic human-like anime')
@@ -191,9 +191,9 @@ describe('feature-802 validateStyleRefs（契约 §5.1）', () => {
     return loadStyleCatalog()
   }
 
-  it('合法 A7@v1.46 + 辅助 D1 无 issue；空参无 issue', async () => {
+  it('合法 A7@v1.47 + 辅助 D1 无 issue；空参无 issue', async () => {
     const catalog = await realCatalog()
-    expect(validateStyleRefs({ mainStyleId: 'A7', catalogVersion: 'v1.46', auxiliaryStyleId: 'D1' }, catalog)).toEqual([])
+    expect(validateStyleRefs({ mainStyleId: 'A7', catalogVersion: 'v1.47', auxiliaryStyleId: 'D1' }, catalog)).toEqual([])
     expect(validateStyleRefs({}, catalog)).toEqual([])
   })
 
@@ -210,8 +210,8 @@ describe('feature-802 validateStyleRefs（契约 §5.1）', () => {
 
   it('备风格可作主风格；主辅同 ID 不额外报错', async () => {
     const catalog = await realCatalog()
-    expect(validateStyleRefs({ mainStyleId: 'A5', catalogVersion: 'v1.46' }, catalog)).toEqual([])
-    expect(validateStyleRefs({ mainStyleId: 'D1', catalogVersion: 'v1.46', auxiliaryStyleId: 'D1' }, catalog)).toEqual([])
+    expect(validateStyleRefs({ mainStyleId: 'A5', catalogVersion: 'v1.47' }, catalog)).toEqual([])
+    expect(validateStyleRefs({ mainStyleId: 'D1', catalogVersion: 'v1.47', auxiliaryStyleId: 'D1' }, catalog)).toEqual([])
   })
 
   it('空白字段不校验（非空归 MAIN_STYLE_MISSING）', async () => {

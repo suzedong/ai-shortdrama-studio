@@ -1,3 +1,8 @@
+> **归档状态**：已归档（D-037，2026-11-19）。本包已退出当前负责入口，仅作历史追溯。
+> **当前负责包**：按本文件迁移覆盖表执行。
+> **迁移覆盖**：见本包《SDG-AI-变更记录》“D-037 归档与迁移覆盖”。
+> **历史边界**：以下正文为历史快照；原任务、AC、验证证据与决策记录均保留，不因归档改写其历史结论。
+
 # SDG-RE-契约 · feature-008 立项过程链式呈现
 
 > **卡口声明（置顶）**：**K1 零触发**——纯消费 `CapturedFact` / `CanvasGate` / `CanvasNode` / `Stage0State` 既有类型；`shared/types.ts` / `src/global.d.ts` / `electron/preload.ts` 零 diff。**K8 零触发**——`captureList` / `onCaptureChanged` 为 feature-005 既有桥（签名零变更）；零新 IPC / 零新 MCP / 零新推送 / 零白名单变更；链态条纯订阅零写入。**K9 零触发**——零新依赖、零配置变更、`package.json` 零 diff；`data-stage0-chain-*` 为 feature-003 既定组件凭据族（stage0-view.test.tsx L3 明示「组件凭据为 data-stage0-*（非 data-testid）」），非 K9 口径的依赖 / 版本变更。

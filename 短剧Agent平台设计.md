@@ -52,7 +52,7 @@
 
 > **执行语义（v1.21，D-031 / D-032）**：八步是**产物归属与汇总验收里程碑**，不是“完成一步才能开始下一步”的全局串行启动锁。具体任务按**最小产物依赖 DAG** 调度，STAGE 0–7 均按单产物定义启动、并行、试产、正式门控、两级验收与再版影响边界。后期和发布也按单集下沉，不以其他集完成作为本集合成或上线的前置。八步仍是**业务验收基线**，不允许在实现中合并或裁剪步骤（内部实现可复用同一组件，但用户可感知的阶段产物必须齐备）；某一步整体完成，仍要求该步应交付产物覆盖完整并通过验收（完整矩阵与图稿见 §2.1）。
 >
-> 现状（2026-11-14）：任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段），已建 30 个，0–2 步已落地（含 feature-201 的 2-c 分镜文字稿，自动化通过、未真机验收），3–7 步完整生产闭环待实施；现存代码与新设计存在偏差处按现行任务包对照本设计对齐重建。当前实现的线性状态与固定编排不视为目标全局锁，目标调度模型见 §2.1 / §7.1。
+> 现状（产品实现基线 2026-11-14；任务包入口更新 2026-11-19）：任务包按八步模块分段编号（0xx–7xx 业务段 + 8xx 平台基础段），现有 24 个现行负责包 + 22 个历史归档包，46 个目录原位保留；0–2 步已落地（含 feature-201 的 2-c 分镜文字稿，自动化通过、未真机验收），3–7 步完整生产闭环待实施。现存代码与新设计存在偏差处按现行任务包对照本设计对齐重建；归档包只作历史追溯。当前实现的线性状态与固定编排不视为目标全局锁，目标调度模型见 §2.1 / §7.1。
 
 **原则四 · 继承 + 扩展**：
 
@@ -400,7 +400,7 @@ Agent 的两种工作方式：
 
 #### 2.6.7 影响评估机制：追溯算法、面板与处理动作（v1.10 新增，v1.17 修订）
 
-> 本节细化 §2.6.6 提出的"影响必标记 + 决策归用户"，给出可执行算法与 UI 草图。数据模型与 Agent 提示词已随 feature-002 落地；系统直改再版与影响评估面板已随 feature-011 落地。保存成功后先完成再版与挂脏，再弹出面板（D-017）；面板关闭不撤销已落盘内容（D-024）。本节 `parentReference.briefVersion` 及按 `briefVersion == vN` 遍历的算法是**当前 brief 专用实现快照**，不是终态唯一血缘模型；目标通用版本 DAG 以真实字段引用及 `artifactId + version + requiredStatus` 为准（§2.1 / §7.1）。
+> 本节细化 §2.6.6 提出的"影响必标记 + 决策归用户"，给出可执行算法与 UI 草图。现行数据模型与 Agent 协议归 feature-001，系统直改再版与影响评估面板归 feature-013；feature-002 / 011 仅保留历史实施血缘。保存成功后先完成再版与挂脏，再弹出面板（D-017）；面板关闭不撤销已落盘内容（D-024）。本节 `parentReference.briefVersion` 及按 `briefVersion == vN` 遍历的算法是**当前 brief 专用实现快照**，不是终态唯一血缘模型；目标通用版本 DAG 以真实字段引用及 `artifactId + version + requiredStatus` 为准（§2.1 / §7.1）。
 
 **追溯算法**（用户在 v1.9 视图点「发布立项 v(N+1)」时触发）：
 
@@ -586,12 +586,12 @@ Agent 的两种工作方式：
 
 | 工具族 | 工具 | 说明 |
 |---|---|---|
-| 画布（3） | canvas.get / canvas.update / canvas.align | 画布节点与连线读写；align 为重生成定稿后清脏并推进血缘版本（feature-002） |
+| 画布（3） | canvas.get / canvas.update / canvas.align | 画布节点与连线读写；align 为重生成定稿后清脏并推进血缘版本（feature-001） |
 | 文件（3） | file.list / file.read / file.write | 项目内文本产物读写（路径白名单） |
 | 资产（2） | asset.list / asset.register | 资产索引检索与登记 |
 | ComfyUI（3） | comfyui.instances / comfyui.queue / comfyui.status | 引擎实例探活、队列、状态（renderer 不直连） |
 | 确认门（1） | gate.request | 确认门请求（放行 / 否决须确认令牌） |
-| 立项（5） | brief.plan / brief.publish / brief.list / brief.impact.assess / brief.impact.commit | 立项就绪校验 + diff、版本化发布、历史列出（feature-001）；再版影响评估与提交（feature-002） |
+| 立项（5） | brief.plan / brief.publish / brief.list / brief.impact.assess / brief.impact.commit | 立项就绪校验 + diff、版本化发布、历史列出及再版影响评估与提交（feature-001）；影响面板见 feature-013 |
 | 状态机（2） | manifest.get / manifest.advance | 阶段状态指针读取与定稿推进（feature-801） |
 | 视觉风格（3） | style.catalog / style.get / style.validate | 谱系 18 项读取、单条取明细、立项风格引用校验（feature-802，读 `resources/H3-Style/`） |
 | 已捕获口径（4） | capture.list / capture.upsert / capture.upsert_many / capture.remove | 立项对话事实库读写：来源 user/infer × 状态 confirmed/pending，常驻区行内编辑与对话纠正共用（feature-005） |
@@ -663,23 +663,34 @@ showrunner 请求级白名单放行其中 23 个；asset 2、comfyui 3 与 style
 
 > 本节区分**目标设计**与**当前实现**：v1.20 将八步阶段里程碑化，v1.21 进一步补齐 STAGE 0–7 的最小调度产物、真实硬依赖、可并行工作、双轨门控、两级验收与再版影响矩阵；目标调度采用最小产物依赖 DAG、双轨版本门控和阶段汇总状态。当前线性 `manifest.status` 与固定 Agent 编排保留为实现快照，不再解释为全项目串行锁，也不冒称 DAG、单集后期 / 发布或精准媒体版本血缘已落地。§7 上方的项目目录为终态目标布局；现有字段契约仍以 [shared/types.ts](./shared/types.ts) 为准，后续实现由对应 Feature 包对齐。确认门口径（2026-10-15 B-12 订正）：STAGE 0 旧 4 门 0-a~0-d 已随 D-005 退役（见 §2.6，现仅 `0-final` 一道立项定稿门）；STAGE 1/2 的 `1-a`（大纲）/`1-b`（小传）/`2-a`（分场）/`2-b`（台词）/`2-c`（分镜文字稿）**仍为现行确认门**（`GateId` 已定义，showrunner 编排持有门序；其中 2-c 已随 feature-201 于 2026-11-11 实施，产完整 ShotList 文字草案、refs 恒空，approved 后由系统推进 storyboard-finalized → storyboard-done），并非作废。
 
-会话数据目录（工作区根目录可更换，feature-813；默认 `~/Documents/ai-shortdrama-studio/project-*/`，纯文件持久化、无数据库）：
+会话数据目录（工作区根目录可更换，feature-813；默认 `~/Documents/ai-shortdrama-studio/project-*/`，纯文件持久化、无数据库）。下表为**磁盘实况快照**：前半是代码显式写入的文件；后半 `故事/ 剧本/ 分镜/` 及产物文件名是 Agent 提示词 + 通用 `file.write` 的约定路径，**不是代码常量**（zod 只校验 `{path, content}`，`fs/sandbox.ts` 只保证不越出项目目录）。带「按阶段」标注的文件在对应能力启用后才出现。
 
 ```
 project-*/
-├── manifest.json          # 当前实现线性状态指针 { status, createdAt, ... }（目标扩展见 §7.1）；读-改-写保留既有字段
-├── 立项单.vN.json         # 立项定稿版本（全量保留 v1..vN，不覆盖；旧 brief.json 由本文件取代）
-├── 故事背景档案.md         # 背景档案（§2.6.3 对话收敛产物）
-├── .session.json          # { title, createdAt, lastOpenedAt, activeSessionId }；activeSessionId 绑定 opencode 会话
-├── 故事/
-│   ├── 故事大纲.json/.md   # 大纲定稿
-│   └── 人物小传.json/.md   # 小传定稿（角色 id 诞生地）
-├── 剧本/
-│   ├── 分场.json/.md       # 分场定稿（sceneNo 场号主键诞生地）
-│   └── 台词.json/.md       # 台词定稿
-└── 分镜/
-    └── shotlist.json/.md   # 分镜定稿
+├── manifest.json              # 线性状态指针 { status, createdAt, ... }；读-改-写保留既有字段；永不归档
+├── 立项单.vN.json / .md        # 立项定稿（JSON 事实源 + MD 镜像；v1..vN 全量保留不覆盖）
+├── 影响清单.vN-v(N+1).json     # 立项再版的字段改动与受影响产物清单（feature-001，按阶段）
+├── 故事背景档案.md             # 人确认的原始事实（§2.6.3 收敛产物）
+├── .session.json              # { title, createdAt, lastOpenedAt, activeSessionId }；绑定 opencode 会话
+├── canvas.json                # 画布 v4：创作页 / 画布 / viewport / 节点命令持久化（feature-823）
+├── 已捕获口径.json            # 立项对话事实库（来源 user/infer × 状态 confirmed/pending）
+├── comfy-jobs.json            # ComfyUI 作业队列（媒体引擎启用后产生，STAGE 3+，按阶段）
+├── 资产/                      # 资产中心（feature-821，按阶段）
+│   ├── asset-index.json      # 资产索引
+│   ├── 上传/<sha256>.<ext>    # 导入原图
+│   └── 缩略图/<digest>.webp   # 派生缩略图
+├── 版本/                      # 写前归档：<被覆盖文件同目录>/版本/<basename>.<时间戳>[.N]<ext>
+├── 故事/                      # ┐ 以下目录名与产物文件名由 Agent 提示词约定
+│   ├── 故事大纲.json/.md      # │ 大纲定稿
+│   └── 人物小传.json/.md      # │ 小传定稿（角色 id 诞生地）
+├── 剧本/                      # │
+│   ├── 分场.json/.md          # │ 分场定稿（sceneNo 场号主键诞生地）
+│   └── 台词.json/.md          # │ 台词定稿
+└── 分镜/                      # ┘
+    └── shotlist.json/.md      # 分镜定稿
 ```
+
+补充口径：`版本/` 由 `archiveExisting` / `copyExistingToArchive` 在**被覆盖文件的同目录**下生成——根级文件（如 `canvas.json`）的归档落在项目根 `版本/`，子目录产物的归档落在 `子目录/版本/`；`manifest.json` 永不归档。`events.log` 已按 R-001 取消，消息历史由 opencode 会话库 + `.session.json.activeSessionId` 回放，详见下文「版本归档区」与 §7.2。
 
 三阶段数据血缘（实线=定稿流转，虚线=跨产物主键引用）。下图是**当前已落地 STAGE 0–2 定稿主链快照**，不是所有跨阶段任务的全局启动锁；跨分支并行、试产血缘与精准挂脏按 §2.1 及下文目标模型扩展：
 
@@ -707,7 +718,7 @@ initiating → story-outline → story-profiles
 2. **双轨版本血缘**：每次生成与锁定记录本任务轨道、产物版本及上游 `{ artifactId, version, requiredStatus }` 列表。草稿 / 打样轨可引用草稿或已确认版本，产物必须标记“试产”；正式生成 / 正式锁定只能引用已确认版本。试产产物转正式须基于已确认上游重新生成或重放校验并走确认门，不能只改标记。
 3. **逻辑引用与文件依赖分离**：分镜等规划产物可只引用角色 / 场景 / 道具的逻辑 ID 与引用需求；实际媒体生成任务必须进一步绑定所消费文件的精确版本。当前 2-c 的 `refs=[]` 是已落地文字草案快照，目标生产化引用由 feature-401 等后续任务包对齐。
 4. **精准影响传播**：上游再版后，系统比较版本引用并沿依赖边标记直接及传递受影响产物；未引用该版本的分支继续推进。影响评估、重生成与确认门均写入同一事件流，不把 STAGE 3–7 整体打回。
-5. **缺料与持久化**：缺料应指出具体产物、版本或确认状态，不用“上游阶段未完成”替代，也不静默降级（runtime 错误码见 §5.1）；文本产物一律 JSON 源 + MD 镜像双写。立项后变更按 §2.6.6 / §2.6.7 全字段可改 + 影响评估 + 用户决策（`manifest.briefVersion` + `parentReference` + `影响清单.vN-v(N+1).json`，feature-002 包落地），并在目标依赖图中纳入同样的精准传播。
+5. **缺料与持久化**：缺料应指出具体产物、版本或确认状态，不用“上游阶段未完成”替代，也不静默降级（runtime 错误码见 §5.1）；文本产物一律 JSON 源 + MD 镜像双写。立项后变更按 §2.6.6 / §2.6.7 全字段可改 + 影响评估 + 用户决策（`manifest.briefVersion` + `parentReference` + `影响清单.vN-v(N+1).json`）；现行数据与 Agent 协议归 feature-001，影响视图归 feature-013，feature-002 仅保留历史实施血缘，并在目标依赖图中纳入同样的精准传播。
 6. **单集末端与显式跨镜边**：后期按单集剪辑 / 合成 / 验收，发布按单集 / 单渠道 / 单物料组织；普通相邻镜头不建依赖边，只有 `continuation`、前段末帧 / 视频等显式引用才形成跨镜依赖。DAG 就绪状态与 ComfyUI 资源排队状态分别计算、分别展示。
 
 #### 版本归档区（持久化机制）
@@ -724,6 +735,22 @@ initiating → story-outline → story-profiles
 #### 术语对齐
 
 - 「立项五要素」统一更名为「**立项六要素**」（题材 / 平台 / 集数 / 单集时长 / 风格基调 / 画幅），画幅由 `deriveFiveElements` 按平台规则派生；`FiveElements.aspectRatio` 为必填字段，旧数据回退竖屏。
+
+### 7.2 数据落点：真机 / 单元测试 / 验收沙箱（事实对齐，2026-11-19；feature-830 落点统一）
+
+> 本节只描述「文件实际落在哪」，不改变数据模型与字段契约；字段形状仍以 [shared/types.ts](./shared/types.ts) 为准。**`~/Library/tmp` 不是本项目的设计路径**：macOS 上 `~/Library` 下只有应用级 userData 与 Chromium 缓存，系统临时目录是 `/var/folders/<hash>/T/`，`/tmp` 是 `/private/tmp` 的符号链接。下表路径以 macOS 为例，其他平台由 `app.getPath('userData')` / `app.getPath('documents')` 决定。
+
+| 环境 | 判定 / 入口 | 应用级配置（userData） | 项目数据（工作区） | 落盘 |
+| --- | --- | --- | --- | --- |
+| 真机 Electron（`npm run dev` / `npm start`） | preload 注入 `window.api` | `~/Library/Application Support/ai-shortdrama-studio/`：`ai-service.json`、`workspace.json`（换过根才有）、`session-state.json`、`comfyui/instances.json`、`opencode/`；Chromium `localStorage` 存主题 / 栏宽 | 默认 `~/Documents/ai-shortdrama-studio/project-*/`；`workspace.json.rootDir` 可改，`session-state.json.currentDir` 指向当前项目 | 是 |
+| 浏览器预览（`npm run dev:renderer`） | `window.api` 缺失 → `src/dev-mock-api.ts` 安装内存 mock | 无（内存） | 演示项目 `anni` 硬编码在内存 | 否 |
+| 单元测试（Vitest，feature-830 后） | `src/test/setup.ts` 覆盖 `process.env.TMPDIR` → `<repo>/.test-tmp/`（`ASD_TEST_TMP` 可覆盖）；Node `os.tmpdir()` 随之重定向，`vi.mock('electron')` 的 `getPath` 也指向同一根下的 `mkdtemp` 目录 | `<repo>/.test-tmp/asd-*/user-*`、`sdg-*` 等 | 同根内的 `project-*` 夹具（如 `canvas-v4.test.ts`） | 是（仓库内，`.gitignore` 忽略） |
+| P1 / P2 真机验收（现行，feature-830 后） | `scripts/acceptance-env.cjs --prepare` 先备份真实工作区；Electron 以 `ASD_USER_DATA` 隔离配置，`HOME` 保持真实 → `documents` 真实 | `ASD_USER_DATA` 指定的隔离目录（默认 `<tmp>/ai-shortdrama-accept-userdata-<ts>/`） | **真实 `~/Documents/ai-shortdrama-studio/`**，夹具统一 `project-accept-*` 前缀 | 是（真实路径 + 备份） |
+| P1 / P2 历史取证沙箱（2026-11-15~18） | 启动脚本显式覆写隔离 `HOME` / `userData` / `workspace` / `TMPDIR`，dev-mock 关闭 | `/tmp/ai-shortdrama-<feature>.<rand>/user-data`、`.../home` | 同沙箱 `workspace/project-f824-*` | 是（隔离沙箱，保留为历史证据） |
+
+**现行落点策略（2026-11-19 用户拍板，feature-830）**：除单元测试外，**真机与真机验收都使用真实工作区 `~/Documents/ai-shortdrama-studio/`**；单测临时目录收敛到仓库内 `.test-tmp/`，不再散落在系统临时目录。真机验收用 `ASD_USER_DATA` 只隔离应用级配置，`HOME` 保持真实，因此 `app.getPath('documents')` 仍指向真实用户目录、工作区根就是真实工作区。护栏：夹具必须匹配 `project-accept-*`（准备器对非前缀名直接抛错）、验收前由 `scripts/acceptance-env.cjs` 复制备份整个工作区、准备器**零删除**且不触碰任何非前缀项目（含现有 `project-20261104-092720-gv9u`）；夹具清理须人工逐项确认。
+
+旧的 `/tmp/ai-shortdrama-*` 沙箱依据 [P1 调查记录](./docs/verification/p1-2026-11-15/P1调查记录.md) §11.2 / §13「不触真实用户项目」，仍作为历史取证方式有效，本包**不翻案**其结论；其中 `project-f824-*` 均为验证夹具（含损坏档、越界路径用例），不是用户项目。单测 `afterAll` 仍清理各自 `mkdtemp` 子目录，中断残留统一留在 `.test-tmp/` 便于定位与人工清理；在 WorkBuddy 沙箱内代跑全量时，其批量删除守卫会拦截工作区内的递归删除，需按 [feature-830 契约 §1.3](./docs/features/feature-830-测试与验收数据落点统一/SDG-RE-契约.md) 用 `ASD_TEST_TMP` 覆盖到系统临时目录执行（普通终端无此限制）。真实项目由 `<userData>/session-state.json.currentDir` 唯一指向。项目目录内的文件清单见 §7.1 目录树；应用级配置统一由 `app.getPath('userData')` 收纳，与项目目录互不混放。
 
 ## 8. 引擎与生成通道
 
@@ -766,26 +793,32 @@ initiating → story-outline → story-profiles
 - **[Design 原有] 桌面应用**：本地优先的桌面工作台（macOS / Windows）；安装即用，不依赖 docker。
 - **[Design 原有] 内部架构**：本地 MCP 网关（仅 127.0.0.1）+ Agent 运行时 + 引擎适配器；前端为画布工作台。（对应 Design：opencode + localhost:8001 网关 + ComfyUI 插件。）
 - **[改编] 项目数据**：默认本地目录；支持经文件服务跨机访问；引擎地址可配置局域网实例。（Design 仅本地存储，本平台增跨机访问 + 局域网引擎。）
-- **[自研新增] 密钥**：云端 Key 经 Electron safeStorage 加密后存入 userData，不入库、不入文档；系统不可加密时拒绝保存，禁止使用 `.env` 等明文落盘。LM Studio 本地 / 局域网连接无需云端 Key（D-021 / D-022）。
+- **[自研新增] 密钥**：云端 Key 经 Electron safeStorage 加密后存入 userData，不入库、不入文档；系统不可加密时拒绝保存，**应用级配置禁止明文写回文件**。开发态环境变量回退按 [D-021](./docs/governance/SDG-AI-决策台账-2026.md) 第 6 条保留（store 字段缺席时回退 `process.env`、`dotenv` 不废弃），明文 Key 不出主进程内存，界面只暴露脱敏视图。LM Studio 本地 / 局域网连接无需云端 Key（D-021 / D-022）。
 
 ## 11. 落地路线 [自研新增]
 
 （实施计划为本平台规划，与 Design 发布节奏无关。P0—P7 是交付门，不是跳过 Feature 任务包和既有卡口的授权。）
 
-> **唯一总体开发计划**：[MiniMax Design全面复刻开发计划](./docs/research/MiniMax%20Design全面复刻开发计划.md)（P0—P7 阶段路线与当前阶段门的正文入口）。本节只定义交付门口径，不复制阶段视图。**当前阶段**：P0 基线收口完成；P1 处于准入调查，尚未通过退出门；P2—P7 未到对应阶段门验收。
+> **唯一总体开发计划**：[MiniMax Design全面复刻开发计划](./docs/research/MiniMax%20Design全面复刻开发计划.md)（P0—P7 阶段路线与当前阶段门的正文入口）。本节只定义交付门口径，不复制阶段视图。**当前阶段（2026-11-18，D-036）**：P0 基线收口完成；P1 采用“可信工作台闭环”口径，切片 A—F 已闭环，但包含恢复语义的扩展退出门尚未通过；P2—P7 未到对应阶段门验收。
 >
-> **基线补充（2026-11-15）**：P0 后已由 [feature-818](./docs/features/feature-818-Renderer基线类型修复/SDG-AI-变更记录.md) 修复 3 条 Renderer 测试类型错误，当前 `typecheck` 与完整 Renderer 构建通过；P0 报告与原始日志保持历史快照，全量测试与真机缺口按各自证据认定，不据此改写为全绿。
+> **基线补充（2026-11-15，历史）**：P0 后已由 [feature-818](./docs/features/feature-818-Renderer基线类型修复/SDG-AI-变更记录.md) 修复 3 条 Renderer 测试类型错误，当时 `typecheck` 与完整 Renderer 构建通过；P0 报告与原始日志保持历史快照，全量测试与真机缺口按各自证据认定，不据此改写为全绿。
+>
+> **当前回归边界（2026-11-19，D-037 仅同步归属）**：[feature-826](./docs/features/feature-826-谱系测试基线收口/SDG-AI-变更记录.md) 已登记全量 Vitest **96 个测试文件全过、1,276 通过、1 跳过**，`typecheck` 通过，B-70 闭环；feature-824 检出的 F824-01／B-71 已由 feature-825 修复并独立复验。上述 824 / 825 / 826 编号与测试数字仅作历史证据；现行项目库与打开事务归 feature-828，Canvas 恢复与写安全分别归 feature-823 / 827，谱系业务归 feature-802，通用测试门禁与数据落点归 feature-830。feature-817 的真实 Agent 运行时输入、OptionCard、Gate 及 Agent 模式现场验收仍未完成；D-035／D-036 扩展退出门须逐 Feature 建包取证。D-036 文档同步与本次 D-037 归属同步均未重跑产品测试，归并不构成 P1、Parity 或真机验收通过。
 
 | 交付门 | 目标 | 范围与完成口径 |
 |---|---|---|
 | **P0 · 基线裁决与现有任务包收口** | 规范、范围、实现与证据一致 | 登记 D-034，建立 Parity 影响矩阵，校准 201 / 803 / 815—817 等任务包，记录类型检查、测试、构建与环境基线；不自动批准后续 K1 / K8 / K9。 |
-| **P1 · 桌面工作台复刻** | 统一真实创作工作台 | 项目、创作页、多画布、自由布局、资产引用、结果定位、任务通知和状态恢复；不得以静态三栏壳或空按钮验收。 |
+| **P1 · 桌面工作台复刻** | 统一真实创作工作台 | **可信工作台闭环（D-035／D-036）**：项目、创作页、多画布、自由布局、资产引用、手动连线、自动整理与整体快照 undo/redo、定位＋高亮＋弱化、文本 Diff＋写入前确认、静态完整项目包、轻量通知与状态恢复；revision 冲突保留双版并经 Diff 由用户选择，异常退出恢复最后有效状态且运行中执行标为“已中断”，Agent 恢复消息／OptionCard／Gate／产物现场并由人工确认新运行。撤销历史不跨重启，导入会话只读，续聊新建并记录来源。页历史、跨页正式引用、完整快捷键／动画、完整媒体任务中心及归档／模板／迁移后置；不得以静态三栏壳或空按钮验收。 |
 | **P2 · 统一媒体引擎与任务中心** | 图像 / 视频共用的局域网执行层 | 复用 H3 Image 持久任务能力，接入 H3 视频，统一排队、进度、取消、局部重试、断点续查、收片、资产回写和追溯；逐实例验证真实 GPU 独占。 |
 | **P3 · 八步视觉生产链** | STAGE 2-c → 3 → 4 → 5 真实产物 | 角色 / 场景 / 道具、生产分镜、关键帧和逐镜视频，保留 `3-assets`、`4-final`、`5-all-shots` 门及版本血缘。 |
 | **P4 · 八步后期与发布** | 真实项目 0—7 闭环 | 声音、时间线、真实剪辑、成片、切片和发布包；语音通道未裁决不得假验收，音乐仅 Music3 + ComfyUI。 |
 | **P5 · Agent、Skill、插件与本地模型生态** | 可创建、配置、执行和追溯 | 真实 Agent 路由、Skill / 插件权限与执行、本地模型生命周期；在线社区等仅按已批准范围实施。 |
 | **P6 · 专业创作与完整产品面** | 逐包裁决后的扩展域 | 3D、浏览器、代码 / 网页、外部工具、存储恢复及在线服务候选项；每个域可复刻、改编或经决策不纳入。 |
 | **P7 · 全量 Parity 验收与发布** | 完整账本与可交付桌面产品 | 功能、0—7、局域网媒体、权限、安全、恢复、安装升级和证据链统一验收；每项只可为已复刻、改编通过或经决策不纳入。 |
+
+> **D-036 恢复口径**：revision 冲突禁止静默最后写入优先，保留磁盘版与待提交版并展示文本 Diff，由用户选择重载磁盘版、另存副本或显式覆盖；异常退出恢复最后有效项目、画布和已落盘产物，运行中执行标为“已中断”并保留日志，用户确认后才可重试，不自动重新提交；Agent 保留消息、OptionCard、Gate 和产物状态，未决 Gate 不代决、未提交选项不代选，重试创建带血缘的新运行记录，不伪装接续原 Token 流。
+>
+> **D-036 后置目标**：页历史仅做应用内轻量前进／后退并持久化最后位置，不跨重启保留完整浏览栈，不替代产物版本历史；跨页正式引用采用“产物 ID＋版本”，源产物再版只挂脏实际引用者；归档默认列表隐藏、完整保留、只读且可解除；模板只含结构、配置和说明并实例化新项目与新 ID；迁移基于静态完整项目包执行 schema 版本、缺失资产和兼容性预检，默认建副本，不静默原地升级。上述后置目标不构成当前 P1 退出门或实施授权。
 
 **DAG 实施次序（D-032，目标设计而非当前完成声明）**：① 先统一任务 / 产物 ID、逻辑引用、精确版本血缘与生产轨道，避免各 Agent 各自推断依赖；② 实现确定性依赖展开、双轨门控、单产物验收、阶段汇总和精准挂脏；③ 打通 STAGE 0–2 的按集 / 按角色 / 按场局部就绪；④ 打通 STAGE 3–5 的资产分支、按镜实引门与显式 `continuation` 边；⑤ 将 STAGE 6–7 按单集 / 单渠道下沉，避免末端全剧锁；⑥ 叠加 ComfyUI 多实例资源调度，资源并发不得反向改变依赖语义。P0—P7 决定交付顺序，DAG 决定产物可否启动，两者不得互相替代。
 
@@ -823,4 +856,6 @@ initiating → story-outline → story-profiles
 - v1.22（2026-11-14，D-033）修订（MiniMax H3 图像通道迁移）：原则五及现行引擎 / 工具 / 路线 / 风险口径由“图像仅 qwen-image”反转为“图像仅 MiniMax H3 Image”；Qwen 专用编辑、控制、分层、多角度与透明底能力停用归档，原始模板、历史资产与风格媒体证据保留。参考方案和现有文生图生产由 feature-816 同步迁移，生产只认 manifest；视频仍仅 H3、音乐仍仅独立 Music3，不把参考可用冒称生产已接入。历史版本条目和 feature-803 真机事实不改写。
 - v1.23（2026-11-15，D-034）修订（全面复刻定位与 P0—P7 路线）：项目必要性由“只补两类缺口 / 部分复刻”升级为“全面复刻 MiniMax Design、短剧生产闭环优先”；建立 Parity 影响矩阵和在线服务待决清单，完整产品面逐包裁决。§11 改为 P0—P7 交付门，语音现行口径统一为待定；纯 JSON、八步闭环、局域网 ComfyUI、H3 Image / H3 / Music3、固定双文本服务商和系统优先不变。同步 AGENTS v1.7、决策台账、编年、导航及 B 类镜像。
 - v1.24（2026-11-15，D-034 收口补充）补全（总计划入口与当前阶段）：§11 增加唯一总体开发计划《MiniMax Design全面复刻开发计划》入口及当前阶段口径——P0 基线收口完成，P1 处于准入调查且未通过退出门，P2—P7 未到对应阶段门验收。补充 P0 后由 feature-818 修复 3 条 Renderer 测试类型错误，当前 typecheck 与完整 Renderer 构建通过；P0 报告与原始日志保持历史快照，不全量改写为全绿。本次仅改文档，未改产品代码、共享类型、IPC/MCP 或依赖。
+- v1.25（2026-11-18，D-035）修订（P1 可信工作台闭环）：§11 明确 P1 扩展退出口径——手动连线、自动整理整体快照 undo/redo、定位＋高亮＋弱化、文本 Diff＋写入前确认、静态完整项目包及轻量通知纳入 P1；页历史、跨页正式引用、完整快捷键／动画及完整媒体任务中心后置。撤销历史不跨重启；项目包包含正式会话但导入后只读，续聊新建本地会话并记录来源。参考端差异逐项裁决，不设一律照抄或一律修正规则。本次仅改设计与治理文档，不直接授权 Feature 实施、共享类型、IPC/MCP 或依赖变更。
+- v1.26（2026-11-18，D-036）修订（P1 恢复语义与后置生命周期边界）：§11 将 revision 冲突阻止静默覆盖＋Diff 选择、异常状态恢复＋人工续跑、Agent 现场恢复＋关联新运行补入 P1 扩展退出门；明确轻量页历史、产物 ID＋版本跨页引用、只读可恢复归档、结构＋配置模板及项目包＋版本预检迁移的后置目标，不构成当前退出门。同步 feature-826 已登记的 B-70 闭环与全量回归证据。本次仅改设计与治理文档，不重跑产品测试，不直接授权 Feature 实施、共享类型、IPC/MCP 或依赖变更。
 - 镜像纪律：改本文 md 必须同步 docs/design/ 下同名 .html（人读镜像）；原型（docs/design/短剧Agent平台-原型.html）与本文同步迭代。

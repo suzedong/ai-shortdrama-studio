@@ -66,3 +66,52 @@
 - AC5：再次发布生成 `立项单.v2.json/.md`，v1 文件仍在且内容不变（绝不覆盖、不进 `版本/` 归档区）；定案记录含相对 v1 的字段 diff。
 - AC6：第 1/2 步 Agent 的必需输入解析到「最新版本立项单」，提示词中不再出现 `立项/brief.json`。
 - AC7：仓库生产代码与提示词中不再出现旧门 id `0-a/0-b/0-c/0-d`（`2-a/2-b/2-c/1-a/1-b` 保留）。
+
+---
+
+## 7. D-037 现行归并约束
+
+> 本节自 2026-11-19 起承接 feature-002 / 007 / 010 / 012 / 015 中仍有效的立项数据、定案与 Agent 协议约束。来源包保留历史快照，不再作为当前负责入口；本节只登记现行规则，不复制其历史测试日志。
+
+### 7.1 来自 feature-002：立项后变更与影响评估
+
+1. **评估先于落盘**：定案 brief 被修改或历史内容再发一版时，系统先比较 from/to、按 `brief.schema.json` 的消费图反查受影响节点并计算字段级别，再提交新版本。high / medium 进入影响清单并标脏，low 只记录变更、不标脏；不得升级为全量标脏。
+2. **两条变更通道保持分工**：系统直改由 `brief:update` / `updateBriefFields` 确定性完成再版、影响清单和 `decision='mark'`，不自动重生成；Agent 对话通道由 `brief.impact.commit` 接收恰好覆盖全部影响项的三选一决策。影响评估、清单生成和脏标记均零 AI，AI 只承担其后的开放式内容生成。
+3. **落盘与脏读沿用既有模型**：新版本、可读 Markdown 与项目根 `影响清单.vN-vM.json` 保持同事务语义；脏节点携带 `fields / severity / sinceBriefVersion / latestBriefVersion / impactReport`，`markedAt` 等既有扩展不变。影响清单文件名继续作为查看器回读钥匙。
+4. **后续口径**：002 中“不做影响评估面板”“画布只提示”等早期排除已被 011 正式翻案；现行面板与黄条交互归 feature-013。002 的影响计算、系统直改恒 mark、Agent 三选一及零 AI 评估边界不因此被替换。D-024 继续适用：关闭后续面板不撤销已落盘再版或脏标记。
+
+### 7.2 来自 feature-007：dirty realign 数据与 Agent 协议
+
+1. **只对既有 dirty 生效**：`node.dirty` 为空时不提供也不执行“重新对齐”；普通重生成不是清脏操作。再次改 brief 会按 002 规则重算 dirty，再次对齐则按当时脏字段重新评估。
+2. **固定协议不变**：单产物消息以 `【产物重新对齐】` 开头，携带 nodeId、标题、版本对和 dirty.fields；showrunner 识别后必须先经 `canvas_get` 核实脏态，按对应 Agent 串行委派重生成，产物定稿后才可调用 `canvas.align`。showrunner 的串行纪律同样适用于后续批量重生成；批量聚合消息形状与面板交互以 feature-013 承接的 011 现行契约为准，不在本包另造协议。
+3. **清脏即血缘推进**：`canvas.align` 仍使用既有参数 `nodeId / briefVersion`；成功后落新版本卡、清 dirty、补 parentReference 并推进血缘。未真正完成定稿不得仅因 Agent 宣称完成而清脏。
+4. **职责分界**：固定模板、弹层、黄条、批量勾选等 renderer 行为归 feature-013；本包只承接 canonical dirty 数据、定稿前提与 Agent 执行协议。007 的 dirty realign 不归 feature-004。
+
+### 7.3 来自 feature-010：缺口追问、拍板原文与 Agent 协议
+
+1. **结构化追问**：开放式追问只保留 `【缺口追问】`，不伪造选项；确定性枚举才由 showrunner 在正文后输出独立 `【追问选项】…【/追问选项】` 块，逐非空行形成至少两条 chips。块不是新消息或新工具，discipline 9 的标题标签与块命名空间继续分离。
+2. **原文拍板与留痕**：chip 单击代发文字原文，与手打消息走同一发送路径；Agent 按既有 `capture.upsert` 将用户原话落为 `source:'user'` 的结构化口径，保留逐字 `quote`，并沿用该条目的 `id / topic / value / status` 数据形状。开放式回答同样经提取和 capture 留痕，不能只在对话里宣称已拍板。
+3. **口头拍板双前提不变**：`verbal` 必须同时留存真实原话 quote，并已有完整定案卡供用户拍板；quote 不是批准口令本身。`0-final` pending 时可提示既有真实口令「行，就按这版发布」，但提示、GateHint 或 capture 均不自动批准门、发布立项或清缺缺口。
+4. **门卡业务正文**：定案卡 question 由 Agent 以 `# 标题`、`## 区块`、`- 字段：值` 的 Markdown 组织，禁止把 JSON / 英文键名塞入标题；具体拆题、滚动和渲染归 013。
+
+### 7.4 来自 feature-012：定案卡完整性与再版影响摘要
+
+1. **拍板前同列信息**：定案卡 question 必须完整包含六要素六项、前提五项、主风格 `ID@catalogVersion`、可选辅助风格 `ID@catalogVersion` 或「无」、待定点和相对上版改动；再版另含影响产物清单。风格引用不得退化为裸名，也不得以项目文件路径代替 ID / 版本引用。
+2. **变更与决策留痕**：`payload.version / pendingMarks / changesFromPrevious` 与 question 中的 `changeLog` 继续表达定案版本和 from/to 变更，后续 `decision` 表达用户裁决；三者不得合并或省略为一句“已拍板”。首版写「首版立项」，再版逐字段保留 from → to。
+3. **再版先评估后发门**：showrunner 先以 `brief.impact.assess` 只读预评估，再发 `0-final`；再版必须携带 `payload.impactSummary: { items, high, medium }`，items 逐项保留 `label / path / severity / reason / defaultAction`。首版不带该键；再版缺键属于协议遗漏，不由 Agent 或 UI 伪造空摘要。
+4. **再版纪律**：read → 改草案 → assess → 发门并停 → 用户拍板 / 三选一 → `impact.commit` 的顺序保持；影响快照只供拍板与留痕，assess 算法归 002，Harness findings 归 806，均不在本包重实现。
+
+### 7.5 来自 feature-015：非阻塞门、draft 失败边界与发布主体
+
+1. **发门即收尾**：`gate.request` 落盘 pending 后立即返回，showrunner 本轮结束等待用户，可继续聊无关话题；不得阻塞等待 decision，也不得在 `no_live` 时重发、自动批准或伪造 approved。按钮裁决后不由系统自动唤起 Agent，下一轮由用户消息触发。
+2. **结构化 draft**：新 `0-final` 门必须以 `payload.draft` 携带完整 BriefDraft，版本与门一致；缺字段、版本不符或风格非法属于草案问题，沿用 `INVALID_ARGUMENT` 与回退 pending 的既有边界，不得写入半成品立项单。Harness blocker、磁盘或 manifest 故障不是草案内容错误，其门态与 execution 推进规则归 801，不在本包另造错误码。
+3. **首版系统直做**：按钮批准 v1 后，由系统直接双写立项单、upsert `step-0-brief` 并推进 `brief-published`；Agent 不得再重复 `brief.publish` 或 `canvas.advance`。
+4. **再版 Agent 提交**：按钮批准 v2+ 只确认草案和版本，不发布、不推进 manifest；Agent 下一轮先呈报取消 / 仅标记 / 重生成三选一，再由 `brief.impact.commit` 唯一发布。首版按钮路径不得套用再版 commit，再版按钮路径也不得由系统与 Agent 双写。
+5. **兼容通道**：verbal 首版仍由 Agent 以真实 quote 调 `brief.publish(by:'verbal')` 并推进；历史无草案门的 `brief.publish(by:'gate')` 兜底仅限首版，再版无 draft 不得走该兜底。上述通道沿用既有四码防护，不新增门工具或共享字段。
+
+### 7.6 冲突、开放验收与本轮边界
+
+- 010 的“块必须在消息末尾”已由 X-002 的非锚定闭合块解析取代；块前后正文保留、段级剥离和单条 text 仅处理首个闭合块的限制由 013 承接。AC4「编号混入整块不识别」与契约 R3「编号字样仍按原文收录」仍是**未裁决冲突**，本轮不选择其一，也不改历史 AC。
+- 010 / 012 / 015 原文没有定义名为 `runId` 或 `changelogDecision` 的立项 / 门字段。本次只承接上述 capture、changesFromPrevious / changeLog、decision、draft 与 impactSummary 既有数据，不新增这两个字段，也不把 015 明确排除的 execution runId 模型复活。
+- 007 的 dev-mock 浏览器目验历史结论保留；011 / 013 的 Electron 沙箱目验开放状态由 feature-013 继续跟踪，015 的真机交互验收仍待用户执行。本包不把历史自动测试或浏览器目验改写为新真机通过。
+- 本轮为纯文档归并，不表示新增产品能力、IPC / MCP / shared 变更或接口放行。

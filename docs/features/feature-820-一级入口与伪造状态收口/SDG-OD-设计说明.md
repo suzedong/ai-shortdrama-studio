@@ -61,3 +61,31 @@ hasProject=true
 | 顶栏 / 图标轨（除新增 `local` 页签） | 不改 |
 | 底栏 | 全量重写为真实状态 |
 | `AiServicePanel` | 仅新增导出纯函数，不改渲染 |
+
+## D-037 现行归并设计：桌面窗口外壳（2026-11-19）
+
+### 1. 平台结构与事件流
+
+```text
+macOS:   hiddenInset + 原生交通灯 + 既有工作区
+Windows/Linux: frame:false + 46×32 px 自定义窗口控件 + no-drag 交互区
+
+Renderer 控件
+  → window:minimize / toggle-maximize / is-maximized / close
+  → Main 操作或读取 BrowserWindow
+  → window:maximize-changed(boolean)
+  → Renderer 同步权威最大化状态
+```
+
+关闭按钮 hover 固定为 #C42B1C。窗口拖拽区与按钮命中区分离，所有可交互子元素使用 `no-drag`，避免拖拽层吞掉点击。
+
+### 2. preload 构建链
+
+`preload.js` 源码/构建入口 → 构建配置输出 CommonJS `preload.cjs` → 主进程加载该产物；`global.d.ts` 与模块写权随同一链路核对。该链路是窗口桥接可运行的组成，不得以构建目录中存在源文件代替产物检查。
+
+### 3. 平台代价与冲突裁决
+
+- Windows `frame:false` 不自动等价原生 Snap Layouts；恢复需另做悬浮命中、DPI、多屏和最大化边界设计，本包不宣称已覆盖。
+- Windows ENV-02 已验收；macOS AC5 零变化回归继续挂起。
+- feature-804 的「不做深色」只保留为历史范围，现行主题由 feature-817 管理。
+- 本包原「零新增 IPC / 零 preload / 零 global.d.ts 变更」只限原入口 Change，不否定上述既有窗口外壳；D-037 不新增接口或产品验收声明。

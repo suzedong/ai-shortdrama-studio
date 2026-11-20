@@ -253,3 +253,34 @@ feature-001 契约 §3.2 第 7 条「**不**推进 `manifest.status`（B-04 排�
 > publish 工具自身仍不写 manifest（工具边界不变）；立项首版定稿后的状态推进由 showrunner 随后显式调用 `manifest.advance({event:'brief-published'})` 完成（feature-801）。
 
 该修订属「已落地包因后续包产生的契约补充」，记入本包变更记录修订区与 feature-001 变更记录三、修订记录（交叉指针），不回改 feature-001 已实施代码逻辑（publish 代码零改动）。
+
+## 12. D-037 现行归并契约（2026-11-19）
+
+本节承接 807 / 015 及 010 / 012 的通用门态与执行数据约束；**无新接口、无新共享类型、无新 IPC / MCP 工具**，仅把现行行为与既有字段集中到本包。
+
+### 12.1 请求、裁决、执行与重开
+
+| 环节 | 行为 / 数据契约 |
+| :-- | :-- |
+| `gate.request` | 入参与既有通道不变；0-final 必须携带 `payload.draft` 与匹配的 `payload.version`，再版继续携带 `impactSummary`。写入 pending 后立即返回 `{ ok:true, gateId, status:'pending', requestedAt, payload }`，不返回裁决终态。相同 gateId 的 pending 请求覆盖重开并推送 `reopened:true`；错误仅为既有 `INVALID_ARGUMENT` / `NO_PROJECT`。 |
+| `gate.decide` | 先写 approved / rejected、note 与 `decidedAt` 并推送门态；rejected 到此结束，approved 再调用 `applyGateDecision(gate)`。同一门已 approved / rejected 后再次 decide 返回 `{ ok:true, ignored:true }`，不重复执行。 |
+| 后置执行器 | 复用 015 既有 `electron/gate/execute.ts` 的 `applyGateDecision`，不是新 `gate.execute` 通道。映射表是主进程常量：0-final 首版直发并推进；再版只确认；1-a～2-b 只按固定事件推进 manifest。其他门无后置动作。 |
+| execution | 经既有 `gate:changed` 载荷携带 `{ ok:true; summary:string } | { ok:false; code:string; message:string }`。该摘要不进 shared，也不是新的三态持久化状态机。草案 / 风格 / 版本问题回退 pending；Harness、磁盘与 manifest 执行故障保持 approved 并报告原因。 |
+| reopen | pending / rejected 可按同 gateId 重发最新内容；approved 仅 0-final 在新旧 version 均可解析且新版本严格大于旧版本时覆盖重开为 pending，其余 approved 终态禁重开。重开不等于重复 decide，也不允许换 id 绕过防护。 |
+
+### 12.2 状态推进与副作用边界
+
+1. pending 阶段只写门快照；不得发布立项、推进 manifest、生成下游产物或挂脏。首版 pending 的 Harness findings / 影响摘要只是预览。
+2. 按钮裁决后的系统后置动作按固定顺序执行；门态先落盘，后置失败不回滚门态。磁盘异常沿用既有发布语义，不承诺跨文件事务回滚，也不得以 execution 摘要伪造完成。
+3. 0-final 首版与再版分流、verbal 例外及 `impact.commit` 唯一再版发布边界按需求 R37-07 执行；系统按钮路径与 Agent 兜底不得双写。1-a～2-b 的产物正文、节点 done 与依赖边仍归 Agent。
+4. feature-010 的 readiness 仅是提示数据，不是门态；通用“不自动建门 / 批准 / 发布”约束在本包生效，具体立项字段与 Agent 协议归 feature-001。
+5. feature-012 的 0-final 版本化重开与 015 的执行摘要语义由本包承接；其影响摘要业务数据归 001，门卡影响区与 approved 留存展示归 013。
+6. `runHarnessValidation`、checkId、findings 结构与 `harness.validate` 归 feature-806；本包只规定首版直发前消费校验结果及失败门态，不复制校验实现。
+7. 807 的四码防护继续作用于保留的 `brief.publish` 通道；`gate.request` 非阻塞化不删除这些业务错误码，也不新增 `GATE_ALREADY_PENDING`。
+
+### 12.3 冲突处理
+
+- 807 所沿用的早期“`gate.request` 阻塞至 approved / 超时重挂”口径被 015 的非阻塞契约取代，归档正文不改；当前以**立即返回 pending + decide 后系统直做**为准。
+- 本契约 §3.2 门后注释、§7 提示词动作和 §8 时序中“Agent 另行 advance”的旧编排，仅对系统直做的按钮路径失效；verbal 与历史无草案首版兜底继续有效。§1–§5 的事件、跃迁、容错与幂等规则继续有效。
+- 015 接管同 gateId 的覆盖重开机制；012 的 0-final approved 严格新版本重开是 approved 特例，其他 approved 门仍终态。execution 仅是成功 / 失败摘要，不改写成三态、runId 或新错误码模型。
+- 本 Change 不新增接口，不重跑产品测试，不把文档归并登记为功能或真机验收完成。

@@ -24,7 +24,8 @@ import { canvasV4 } from '../canvas-fixtures'
 const REAL_MD = path.join(process.cwd(), 'resources', 'H3-Style', 'AI短剧制作视觉风格谱系.md')
 
 let realText = ''
-/** 谱系 v1.47 模拟：真实 md 升版本行 + J.3 段内追写 v1.47 节（J.2 表不动 → DRIFT 交叉核对不触发） */
+/** 历史 v1.46 与合成 v1.46→v1.47 夹具：各只含一个当前版本节，J.2 表不动。 */
+let mockV146 = ''
 let mockV147 = ''
 let projDir = ''
 
@@ -104,8 +105,11 @@ beforeAll(async () => {
   holder.userData = path.join(tmpRoot, 'userdata')
   projDir = path.join(tmpRoot, 'project')
   realText = await fsp.readFile(REAL_MD, 'utf-8')
-  // 版本行升 v1.47 + 在「## J.3 立项选择规则」前插入 v1.47 变更节（^ 行首锚定，不依赖行尾 → CRLF/LF 均安全）
-  mockV147 = realText
+  // 显式构造历史当前版 v1.46，再单独构造 v1.46→v1.47；不在真实 v1.47 中重复插节。
+  mockV146 = realText
+    .replace(/本文版本：谱系\s*v1\.47/, '本文版本：谱系 v1.46')
+    .replace(/\n### v1\.47（2026-11-15）\n[\s\S]*?(?=\n### v1\.46（2026-10-08）)/, '')
+  mockV147 = mockV146
     .replace(/本文版本：谱系\s*v1\.46/, '本文版本：谱系 v1.47')
     .replace(
       /^## J\.3 立项选择规则/m,
@@ -121,8 +125,12 @@ beforeEach(async () => {
 })
 
 describe('feature-810 parseStyleChangelog（契约 §3，AC3）', () => {
-  it('真实谱系 md：解析出 v1.46 单节（重号段「J.3 立项选择规则」不误入）', () => {
+  it('真实谱系 md：解析出 v1.47 / v1.46 两节（重号段「J.3 立项选择规则」不误入）', () => {
     expect(parseStyleChangelog(realText)).toEqual([
+      {
+        version: 'v1.47', date: '2026-11-15',
+        items: [expect.stringContaining('新增「时效边界」'), expect.stringContaining('技术栈行区分')],
+      },
       { version: 'v1.46', date: '2026-10-08', items: ['（本版起设立变更记录段；此前版本无记录）'] },
     ])
   })
@@ -172,7 +180,7 @@ describe('feature-810 parseStyleChangelog（契约 §3，AC3）', () => {
 describe('feature-810 空态（契约 §1 规则表，AC1）', () => {
   const NO_BRIEF = {
     hasUpgrade: false,
-    currentVersion: 'v1.46',
+    currentVersion: 'v1.47',
     referenced: [],
     blocking: false,
     changelog: [],
@@ -205,11 +213,11 @@ describe('feature-810 空态（契约 §1 规则表，AC1）', () => {
 
 describe('feature-810 引用条目现况比对（契约 §1，AC2）', () => {
   it('版本一致（主 A7 + 辅 B1）→ 无升级，referenced 两条完整现况', async () => {
-    await seedProject({ mainStyleId: 'A7', auxiliaryStyleId: 'B1', catalogVersion: 'v1.46' })
+    await seedProject({ mainStyleId: 'A7', auxiliaryStyleId: 'B1', catalogVersion: 'v1.47' })
     const diff = await computeStyleUpgradeDiff(projDir)
     expect(diff).toEqual({
       hasUpgrade: false,
-      currentVersion: 'v1.46',
+      currentVersion: 'v1.47',
       referenced: [
         {
           id: 'A7', role: 'main', removed: false,
@@ -235,22 +243,23 @@ describe('feature-810 引用条目现况比对（契约 §1，AC2）', () => {
   })
 
   it('无辅助风格 → referenced 仅主一条', async () => {
-    await seedProject({ mainStyleId: 'A7', catalogVersion: 'v1.46' })
+    await seedProject({ mainStyleId: 'A7', catalogVersion: 'v1.47' })
     const diff = await computeStyleUpgradeDiff(projDir)
     expect(diff.referenced).toHaveLength(1)
     expect(diff.referenced[0]).toMatchObject({ id: 'A7', role: 'main', removed: false })
   })
 
-  it('引用版本落后（v1.45 < v1.46）→ hasUpgrade + registeredVersion + 区间 changelog 含 v1.46 节', async () => {
+  it('引用版本落后（v1.45 < v1.47）→ hasUpgrade + registeredVersion + 区间 changelog 含 v1.47/v1.46', async () => {
     await seedProject({ mainStyleId: 'A7', catalogVersion: 'v1.45' })
     const diff = await computeStyleUpgradeDiff(projDir)
     expect(diff.hasUpgrade).toBe(true)
     expect(diff.registeredVersion).toBe('v1.45')
-    expect(diff.currentVersion).toBe('v1.46')
+    expect(diff.currentVersion).toBe('v1.47')
     expect(diff.blocking).toBe(false)
-    expect(diff.changelog).toEqual([
+    expect(diff.changelog.map(e => e.version)).toEqual(['v1.47', 'v1.46'])
+    expect(diff.changelog[1]).toEqual(
       { version: 'v1.46', date: '2026-10-08', items: ['（本版起设立变更记录段；此前版本无记录）'] },
-    ])
+    )
     expect(diff.changelogUnavailable).toBe(false)
   })
 
@@ -262,7 +271,7 @@ describe('feature-810 引用条目现况比对（契约 §1，AC2）', () => {
       { id: 'YY', role: 'auxiliary', removed: true },
     ])
     expect(diff.blocking).toBe(true)
-    expect(diff.changelog.map(e => e.version)).toEqual(['v1.46'])
+    expect(diff.changelog.map(e => e.version)).toEqual(['v1.47', 'v1.46'])
   })
 })
 
@@ -299,7 +308,9 @@ describe('feature-810 changelog 区间/降级（契约 §1/§3，AC3/AC4）', ()
 
   it('J.3 空段（版本节标题层级坏，#### 不匹配）→ changelogUnavailable:true', async () => {
     await seedProject({ mainStyleId: 'A7', catalogVersion: 'v1.45' })
-    mockCatalogText(realText.replace('### v1.46（2026-10-08）', '#### v1.46（2026-10-08）'))
+    mockCatalogText(realText
+      .replace('### v1.47（2026-11-15）', '#### v1.47（2026-11-15）')
+      .replace('### v1.46（2026-10-08）', '#### v1.46（2026-10-08）'))
     const diff = await computeStyleUpgradeDiff(projDir)
     expect(diff.hasUpgrade).toBe(true)
     expect(diff.changelog).toEqual([])
@@ -332,7 +343,7 @@ describe('feature-810 style:catalog DTO 形状（契约 §2.1，AC1）', () => {
     const catalog = await loadStyleCatalog()
     // 与 electron/main.ts style:catalog handle 同形映射
     const dto = { version: catalog.version, count: catalog.entries.length, entries: catalog.entries }
-    expect(dto.version).toBe('v1.46')
+    expect(dto.version).toBe('v1.47')
     expect(dto.count).toBe(18)
     expect(dto.entries).toHaveLength(18)
     expect(Object.keys(dto.entries[0]!).sort()).toEqual([
@@ -346,6 +357,7 @@ describe('feature-810 style:catalog DTO 形状（契约 §2.1，AC1）', () => {
 describe('feature-810 style.catalogVersion 采纳闭环（契约 §2.3，AC6）', () => {
   it('采纳：升 catalogVersion → changes 记录 + 影响 high 恒 mark → 再 diff 转无升级', async () => {
     await seedProject({ mainStyleId: 'A7', catalogVersion: 'v1.45' })
+    mockCatalogText(mockV146)
     const before = await computeStyleUpgradeDiff(projDir)
     expect(before.hasUpgrade).toBe(true)
     expect(before.registeredVersion).toBe('v1.45')

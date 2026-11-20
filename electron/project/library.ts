@@ -6,6 +6,8 @@ import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import type { ProjectManifest, ProjectSession, SessionStateFile } from '../../shared/types.js'
 import { enqueue } from '../fs/write-queue.js'
+import { writeTextAtomic, writeTextAtomicSync } from '../fs/atomic.js'
+import { writeManifestFile } from './manifest.js'
 import { resolveWorkspaceRoot } from '../settings/workspace.js'
 
 function stateFilePath(): string {
@@ -29,7 +31,7 @@ export function readSessionState(): SessionStateFile {
 
 export function writeSessionState(state: SessionStateFile): void {
   fs.mkdirSync(path.dirname(stateFilePath()), { recursive: true })
-  fs.writeFileSync(stateFilePath(), JSON.stringify(state, null, 2), 'utf-8')
+  writeTextAtomicSync(stateFilePath(), JSON.stringify(state, null, 2))
 }
 
 // 平台工作区根目录（与 runtime cwd 同源）；feature-813：根目录可更换，取设置 store 生效值
@@ -54,6 +56,7 @@ export interface ProjectSummary {
   name: string
   createdAt?: string
   updatedAt: string
+  lastOpenedAt: string
 }
 
 // project:list：扫描工作区下 project-* 目录，读 manifest/.session.json；损坏单项跳过
@@ -73,6 +76,7 @@ export async function listProjects(): Promise<ProjectSummary[]> {
       const st = await fsp.stat(dir)
       let name = '新项目'
       let createdAt: string | undefined
+      let lastOpenedAt: string | undefined
       try {
         const manifest = JSON.parse(
           await fsp.readFile(path.join(dir, 'manifest.json'), 'utf-8'),
@@ -87,25 +91,49 @@ export async function listProjects(): Promise<ProjectSummary[]> {
         ) as Partial<ProjectSession>
         if (info.title) name = info.title
         if (!createdAt && typeof info.createdAt === 'string') createdAt = info.createdAt
+        if (typeof info.lastOpenedAt === 'string') lastOpenedAt = info.lastOpenedAt
       } catch {
         // .session.json 缺失：用默认名
       }
-      out.push({ dir, name, ...(createdAt ? { createdAt } : {}), updatedAt: st.mtime.toISOString() })
+      out.push({
+        dir,
+        name,
+        ...(createdAt ? { createdAt } : {}),
+        updatedAt: st.mtime.toISOString(),
+        lastOpenedAt: lastOpenedAt || createdAt || st.mtime.toISOString(),
+      })
     } catch {
       // stat 失败等：跳过该目录
     }
   }
-  // 最近修改在前
-  return out.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
+  // 最近打开在前；旧四字段项目回退到创建/修改时间。
+  return out.sort((a, b) => b.lastOpenedAt.localeCompare(a.lastOpenedAt) || a.name.localeCompare(b.name))
+}
+
+export async function allocateDir(now = new Date()): Promise<string> {
+  const root = workspaceRoot()
+  await fsp.mkdir(root, { recursive: true })
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}-${Math.random().toString(36).slice(2, 6)}`
+    const dir = path.join(root, `project-${stamp}`)
+    try {
+      await fsp.lstat(dir)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return dir
+      throw error
+    }
+  }
+  const err = new Error('无法分配唯一项目目录') as Error & { code: string }
+  err.code = 'PROJECT_DIR_ALLOCATION_FAILED'
+  throw err
 }
 
 // project:create：真实初始化会话目录 + manifest（7 态状态机初始态）+ .session.json，并切换为当前会话
 export async function createProject(name?: string): Promise<{ dir: string }> {
   return enqueue(async () => {
     const now = new Date()
-    const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}-${Math.random().toString(36).slice(2, 6)}`
-    const dir = path.join(workspaceRoot(), `project-${stamp}`)
-    await fsp.mkdir(dir, { recursive: true })
+    const dir = await allocateDir(now)
+    await fsp.mkdir(dir, { recursive: false })
 
     const title = typeof name === 'string' && name.trim() ? name.trim() : '新项目'
     const nowIso = now.toISOString()
@@ -117,7 +145,7 @@ export async function createProject(name?: string): Promise<{ dir: string }> {
       statusHistory: [],
       briefVersion: null,
     }
-    await fsp.writeFile(path.join(dir, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf-8')
+    await writeManifestFile(dir, manifest)
     const session: ProjectSession = {
       dir,
       title,
@@ -125,7 +153,7 @@ export async function createProject(name?: string): Promise<{ dir: string }> {
       lastOpenedAt: now.toISOString(),
       activeSessionId: null,
     }
-    await fsp.writeFile(sessionInfoFile(dir), JSON.stringify(session, null, 2), 'utf-8')
+    await writeTextAtomic(sessionInfoFile(dir), JSON.stringify(session, null, 2))
     writeSessionState({ currentDir: dir })
     return { dir }
   })
@@ -163,7 +191,7 @@ export async function openProject(
       lastOpenedAt: nowIso,
       activeSessionId,
     }
-    await fsp.writeFile(sessionInfoFile(resolved), JSON.stringify(session, null, 2), 'utf-8')
+    await writeTextAtomic(sessionInfoFile(resolved), JSON.stringify(session, null, 2))
     writeSessionState({ currentDir: resolved })
     return { ok: true as const, activeSessionId }
   })
@@ -220,7 +248,7 @@ export async function setActiveSession(
       lastOpenedAt: typeof info.lastOpenedAt === 'string' ? info.lastOpenedAt : nowIso,
       activeSessionId: sessionId,
     }
-    await fsp.writeFile(sessionInfoFile(resolved), JSON.stringify(session, null, 2), 'utf-8')
+    await writeTextAtomic(sessionInfoFile(resolved), JSON.stringify(session, null, 2))
     return { sessionId }
   })
 }
@@ -262,7 +290,7 @@ export async function renameProject(
       lastOpenedAt: typeof info.lastOpenedAt === 'string' ? info.lastOpenedAt : nowIso,
       activeSessionId: typeof info.activeSessionId === 'string' ? info.activeSessionId : null,
     }
-    await fsp.writeFile(sessionInfoFile(resolved), JSON.stringify(session, null, 2), 'utf-8')
+    await writeTextAtomic(sessionInfoFile(resolved), JSON.stringify(session, null, 2))
     return { ok: true as const, title: trimmed }
   })
 }

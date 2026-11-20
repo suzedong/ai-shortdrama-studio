@@ -6,6 +6,7 @@ import type {
   ManifestEvent, ManifestStatus, ManifestTick, ProjectManifest,
 } from '../../shared/types.js'
 import { enqueue } from '../fs/write-queue.js'
+import { writeTextAtomic } from '../fs/atomic.js'
 import { getActiveProjectDir } from './current.js'
 
 export const MANIFEST_FILE = 'manifest.json'
@@ -136,14 +137,17 @@ export async function readManifest(): Promise<ProjectManifest> {
   return manifest
 }
 
+/** 显式目录写：供既有多文件流程复用；队列由调用方负责。 */
+export async function writeManifestFile(projectDir: string, obj: ProjectManifest): Promise<void> {
+  await writeTextAtomic(path.join(projectDir, MANIFEST_FILE), JSON.stringify(obj, null, 2))
+}
+
 // 整文件写回（pretty JSON，2 空格）；不归档。调用方负责保留未知字段。
 export async function writeManifest(
   obj: ProjectManifest & Record<string, unknown>,
 ): Promise<void> {
   const dir = activeDir()
-  await enqueue(async () => {
-    await fsp.writeFile(path.join(dir, MANIFEST_FILE), JSON.stringify(obj, null, 2), 'utf-8')
-  })
+  await enqueue(() => writeManifestFile(dir, obj))
 }
 
 export interface AdvanceManifestResult {
@@ -179,7 +183,7 @@ export async function advanceManifest(event: ManifestEvent): Promise<AdvanceMani
         { event, from: manifest.status, to: outcome.next, at: now },
       ],
     }
-    await fsp.writeFile(path.join(dir, MANIFEST_FILE), JSON.stringify(next, null, 2), 'utf-8')
+    await writeManifestFile(dir, next)
     return { advanced: true, status: outcome.next, manifest: next }
   })
 }

@@ -36,7 +36,7 @@ const baseBrief: ProjectBrief = {
     leads: '28 岁女白领 / 30 岁男医生', time: '2024 年', place: '上海',
     coreEvent: '医院重逢', seasonBoundary: '第一季只讲相识',
   },
-  style: { mainStyleId: 'A7', catalogVersion: 'v1.46' },
+  style: { mainStyleId: 'A7', catalogVersion: 'v1.47' },
   approve: { at: '2026-10-16T08:00:00.000Z', by: 'gate' },
   changesFromPrevious: [],
   publishedAt: '2026-10-16T08:00:00.000Z',
@@ -52,7 +52,7 @@ const validSubject: BriefDraft = {
     leads: '28 岁女白领 / 30 岁男医生', time: '2024 年', place: '上海',
     coreEvent: '医院重逢', seasonBoundary: '第一季只讲相识',
   },
-  style: { mainStyleId: 'A7', catalogVersion: 'v1.46' },
+  style: { mainStyleId: 'A7', catalogVersion: 'v1.47' },
 }
 
 let projDir = ''

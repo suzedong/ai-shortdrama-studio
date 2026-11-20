@@ -55,3 +55,11 @@
 
 - 2026-10-13：feature-001 契约 §3.2 第 7 条 / D-003「publish 不推进 manifest.status」联动修订已按契约 §11 落定——publish 工具代码零改动，首版定稿推进由 showrunner 随后显式调 `manifest.advance({event:'brief-published'})` 完成（仅 v1）；交叉指针已记入 [feature-001 变更记录 R-001](../feature-001-立项模型重建/SDG-AI-变更记录.md)。
 - 2026-10-14（feature-002 联动）：本包 D-001 批准建立的 `ProjectManifest` 类型被 [feature-002](../feature-002-立项后变更与影响评估/) 经其 K1 追加**单字段** `briefVersion?: number`（最新已发布立项版本指针），§1 五字段形状、7 态跃迁表、读-改-写与 tick 机制零改动；再版（v2+）不触发 `brief-published` 的 D-003 口径由 feature-002 showrunner 再版六步剧本兑现。交叉指针：[feature-002 变更记录](../feature-002-立项后变更与影响评估/SDG-AI-变更记录.md)、[偏差清单 B-03](../../设计现状与偏差清单.md)。
+
+### R-001 · D-037 通用确认门与执行约束归并（2026-11-19，纯文档）
+
+- **来源 → 目标章节**：807 需求门态防护、契约 §1–§4 与 015 需求 §2–§5 / 契约 §1–§6 / 设计 §1–§3 → 本包需求 §6、契约 §12、设计 §5；010 的“就绪不自动建门 / 发布”与 012 需求 §6 D-e、契约 §1.3 及变更记录 2026-11-01 修订行的版本化重开 / execution 改口 → 同上。010/012 的立项数据、影响摘要业务字段、门卡影响区和 approved 留存展示不迁入本包。
+- **归并内容**：807 四码门态防绕过、015 非阻塞请求与 `gate.decide → applyGateDecision`、execution 成功 / 失败摘要及失败分类、重复 decide 忽略、首版 / 再版与 verbal 分流、010 readiness 边界，以及 012 的 rejected 重开和 0-final approved 严格新版本重开。
+- **冲突处理**：早期阻塞式 `gate.request` / 超时重挂口径由 015 的非阻塞协议取代；本包早期“Agent 在 approved 后另调 advance”的编排仅在系统直做按钮路径失效，verbal 与历史无草案首版兜底保留。015 接管同 id 覆盖重开机制，012 的 0-final approved 版本条件继续约束 approved 特例，其他 approved 门仍终态；未采用无来源的 `GATE_ALREADY_PENDING`、`gate.execute`、execution 三态、runId 或 `EXECUTION_FAILED`。归档包原正文、历史 AC 与验证结论不改。
+- **职责边界**：状态推进归 801；Harness 校验规则、findings 与 `harness.validate` 仍归 806。立项数据 / Agent 协议归 001，视觉留存与影响面板归 013，readiness 芯片视觉归 817。
+- **变更性质与验证**：无新接口、无代码 / 测试 / 依赖 / 真实项目数据改动，不登记新功能实施或真机验收；已做章节覆盖、链接归属与历史状态自审，**自审 + 无第二人复核**。

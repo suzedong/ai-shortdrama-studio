@@ -12,3 +12,18 @@
 | T6 | 新测试与受影响旧测试更新 | 本包历史记录 `chat-minimax.test.tsx` 18 项、`studio-theme.test.tsx` 3 项通过；2026-11-15 P0 复跑为 chat 12 项、theme 3 项通过，全量仍为 2 文件 10 例既有失败 | ✅ |
 | T7 | typecheck、全量测试、renderer/electron 构建 | 已执行：仅既有 3 条 typecheck 与 10 条 profile 失败；`build:electron`、独立 `vite build` 通过，`build:renderer` 被同 3 条类型错误阻断 | ⚠️ 已执行，未全绿 |
 | T8 | 双主题真实界面目验与治理收尾 | AC3 双主题 Electron 现场通过；AC12 完整构建未通过。真实 AI runtime 未连接，输入、OptionCard、真实任务详情与 Gate 现场仍无通过证据；变更记录与索引已回填 | 进行中（AI runtime 受阻） |
+
+## D-037 文档归并 Change（2026-11-19）
+
+### C-D037-01 · 对话活跃、滚动与视觉形态归并（纯文档）
+
+- [x] 将 809 需求 §3、契约 §1–§5、设计 §1–§4 及变更记录 T7–T12 / X-001 的活跃指示、48px→120px 滚动演变与交错内容约束写入需求 §4、契约 §7、设计 D8；320ms / 40ms / reduced-motion 采用本包现行展示规则。
+- [x] 将 010 需求 §3.1 / §4、契约 §3、设计 D1 / D4–D6 的 QH-C6 芯片视觉写入相同目标章节；点击与立项视图行为仍归 013，业务数据归 001。
+- [x] 明确与 808 的数据 / 视觉边界；保留 T8 进行中及真实 AI runtime、OptionCard、任务详情、Gate 现场未闭环状态。
+
+**文档 AC**：
+
+1. 现行规格自包含说明绿色 thinking、紫色 tool、非活跃 .45、120px 上限、上滚 >2px 接管、320ms / 40ms / 4 项交错和 reduced-motion。
+2. QH-C6 视觉状态与双主题令牌有归属，未改变 ChipRow 单击直发、OptionCard 或 GateCard 行为；无新接口。
+3. 809 的 48px 历史值与 120px 现行值冲突已显式处理，历史任务、AC、测试计数和 FAIL/PASS 未回改。
+4. 本项只完成文档归并，**自审 + 无第二人复核**；不宣称真实 AI runtime、OptionCard、任务详情或 Gate 现场验收完成。

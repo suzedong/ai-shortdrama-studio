@@ -1,3 +1,8 @@
+> **归档状态**：已归档（D-037，2026-11-19）。本包已退出当前负责入口，仅作历史追溯。
+> **当前负责包**：`feature-802-视觉风格谱系接入`。
+> **迁移覆盖**：见 [SDG-AI-变更记录.md](./SDG-AI-变更记录.md)「D-037 归档与迁移覆盖」。
+> **历史边界**：本包仅保留历史规格、实施与验收证据；现行职责以负责包为准，不据此新增开发或改写历史结论。
+
 # SDG-RE-契约 · feature-810 谱系升级差异工作流
 
 > **卡口声明（置顶）**：本包 **K1 零触发**（`StyleUpgradeDiff` 等 DTO 仅主进程/renderer 两端消费，定义于 `electron/style/types.ts` + `src/global.d.ts` 镜像，不进 `shared/types.ts`——同 feature-005 D5 反向适用：三端消费才进 shared）、**K8 触发**（§2：+2 IPC `style:catalog` / `style:upgrade-diff`；`brief:update` style 白名单 +1 键 `catalogVersion`）、**K9 零触发**（零新依赖）。实施中一旦发现必须越界，**立即停手**、回写变更记录并呈报用户裁决。

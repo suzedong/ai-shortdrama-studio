@@ -1192,7 +1192,7 @@ export default function StudioApp() {
           <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3.5">
             {leftView === 'resource' ? (
               <>
-                {panTab === 'projects' && <ProjectNav ref={projectNavRef} activeProjectId={canvas.projectId} query={leftQuery} />}
+                {panTab === 'projects' && <ProjectNav ref={projectNavRef} activeProjectId={canvas.projectId} query={leftQuery} onNotice={text => notify('ok', text)} />}
                 {panTab === 'skills'   && <SkillsPanel   query={leftQuery} />}
                 {panTab === 'assets' && (
                   <AssetsPanel
@@ -1251,7 +1251,7 @@ export default function StudioApp() {
             </div>
           ) : !hasProject ? (
             // feature-812（契约 §2.1）：无项目态中栏唯一入口，优先于 centerView
-            <WelcomeView onCreate={handleCreateProject} onOpen={handleOpenProject} />
+            <WelcomeView onCreate={handleCreateProject} onOpen={handleOpenProject} onNotice={text => notify('ok', text)} />
           ) : centerView === 'stage0' ? (
             <Stage0View
               canvas={canvas}

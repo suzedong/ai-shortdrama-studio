@@ -118,3 +118,68 @@
 - AC8：showrunner.md 第 0 步出现选型前调 `shortdrama_style.catalog`/`style.get` 的动作与谱系类 issue 处理纪律；provider 白名单含三个 `shortdrama_style.*` 且仅在 showrunner profile。
 - AC9：`npm run typecheck`、`npx tsc -b tsconfig.node.json`、`npx tsc -p tsconfig.preload.json` 不新增错误；本包相关测试全绿；全量回归失败数不扩大（基线：264 passed / 7 skipped / 12 failed，2026-10-13 feature-804 后）。
 - AC10：工具总数登记更新为 19（tools.ts 头注释、§7.1 设计书表述以代码为准——设计书 L596/L627「当前实现 electron/style-catalog.ts」随本包落地成为真实存在，路径以实际 `electron/style/` 模块为准，表述差异在变更记录列明，不逆行改设计书措辞为另一含义）。
+
+## 6. D-037 现行归并约束（2026-11-19）
+
+本节将归档包 810「谱系升级差异工作流」、811「谱系面板全量真实化」、815「风格预览媒体元数据」的现行职责并入本包；归档包只保留历史实施与验收证据。本次为文档归并，不新增接口或产品授权，不重述历史测试为本次通过。
+
+### 6.1 现行谱系与时效边界
+
+1. 唯一数据源仍为 `resources/H3-Style/AI短剧制作视觉风格谱系.md`，现行版本为 **v1.47**；画风仍为 **18 条**（主 11、备 7、辅助候选 6、家族 5），ID 与 §3 不变。前文的 v1.46 是建包与首次实施基线，不得据此拒绝后续合法版本。
+2. 版本号继续从 md J.0 读出，代码不硬编码。v1.47 只新增时效边界：Qwen-Image / Qwen-Image-2512 的配方、可行度和预览样张是历史风格研究与样张生成记录；现行图像 / 视频 / 音乐通道分别仅为 MiniMax H3 Image / H3 / Music3，并全部经本地或局域网 ComfyUI。不得把历史 Qwen 配方当作现行生产指令，也不重写或重生成历史预览资产。
+3. R7 的升级职责包含 md、注册表、变更记录与引用升级的协同；`style.catalog` 一次快照选型、必要时 `style.validate` 自检以及 R-002 收回 showrunner `style.get` 授权的现行约束不变。
+
+### 6.2 谱系升级与差异确认
+
+1. md 的 `## J.3 谱系变更记录` 是升级明细事实源，与另一 `## J.3 立项选择规则` 相互独立。每版本以 `### vX.Y（可选日期）` 分节，节内 `- ` 行为一条自由中文变更简述；按 `(项目引用版本, 当前版本]` 逐字版本区间取记录。
+2. 升级检测沿用逐字版本相等语义：`catalogVersion !== 当前 version` 即 `hasUpgrade:true`，不做语义化版本大小比较。旧版 md 已被覆盖时，差异由“当前项目引用条目的现况 + J.3 变更记录”组成，不伪造旧值→新值的逐字段 diff。
+3. 主、辅引用条目展示当前 role / auxiliaryCandidate / feasibility / anchorWords；已不在当前谱系的引用标 `removed` 并禁止采纳。未立项或无 style 时返回 `noBrief` 空态并禁用采纳。
+4. J.3 缺失或解析失败只令 `changelogUnavailable:true`，面板提示“谱系未提供变更明细”；不得影响 loader 的目录装载和 DRIFT 交叉核对。
+5. Renderer 通过 `style:catalog` 取得真实版本、通过 `style:upgrade-diff` 取得差异。采纳前重取目录并核对 `currentVersion`，不一致则要求刷新；可用时只经既有 `brief:update` 写入 `style.catalogVersion`，沿用 updateBriefFields 的追溯、立项单版本与 diff 机制。不得顺手改 mainStyleId / auxiliaryStyleId、自动重生成媒体或持久化“忽略”。
+
+### 6.3 全量真实 Store 与谱系面板
+
+1. `src/studio/style-catalog-store.ts` 是 renderer 全量谱系唯一快照，复用 `style:catalog` 既有十键 `StyleCatalogEntryDto`；VisualCatalog、ChatComposer、Stage0View、StudioViewer 不再各自维护 STYLES / FAMILIES / 版本常量。
+2. Store 状态为 `idle | loading | ok | failed | unavailable`：懒加载单 flight，成功后普通 ensure 不重取，force 可刷新；`window.api` 缺失为 unavailable，IPC reject 为 failed。同步 `getStyleEntry / getStyleName` 只读快照，未知 ID 保持纯文本回退。
+3. 面板家族、卡片、主备、可行度、锚点词、质感配方及对话版本号全部来自真实条目；视觉特质无既有 UI 槽位不上屏。沿用 `data-cat-* / data-preview-* / style-catalog-version / style-upgrade-*`，不新增凭据。
+4. dev-mock 自具同 DTO 的 18 条演示数据，不 import 已删除的组件硬编码表；它仍是明确的开发 mock，不冒充主进程真实文件读取。谱系重载以重启应用为前提，不新增推送或监听。
+
+### 6.4 真实预览媒体与内嵌参数
+
+1. 同一画风的 PNG 图片与所选 std / turbo / fast 视频双媒体同屏；每媒体 UI 状态为 `idle | loading | ready | error`，ready 内保留 DTO 五态。图片与视频分别加载、独立降级，任一失败不得清空另一媒体。
+2. 元数据 DTO 状态为 `ok | missing | no-metadata | unsupported | invalid`。参数只来自媒体内嵌 ComfyUI API graph 的 `prompt`：PNG 读取合法 tEXt 且 keyword 精确为 `prompt`；MP4 沿 `moov → udta → meta → keys/ilst` 读取 mdta.prompt。UI Format / workflow 不得替代 API graph。
+3. 请求只接受注册 `styleId` 与封闭 `mediaKind / tier`；renderer 不提交文件系统路径。主进程按注册家族目录和固定文件名映射定位，复核 resolve / realpath containment，只允许常规 PNG / MP4，并限制文件、box / chunk 和元数据大小。
+4. 提示词与实际参数按图片 / 视频各自文件提取，只展示确定值；数字须 finite，模型 / 首帧仅 basename，未记录字段不补默认值。谱系 J.2 / J.4 文本不冒充内嵌参数。DTO 不泄漏绝对路径、完整 graph、堆栈或任意文件内容。
+
+### 6.5 冲突裁决与历史边界
+
+- 原 §4.2 对“版本差异 UI / 旧项目升级”“renderer UI / IPC”“读取 `_style_preview/` 媒体”的排除，仅由本节已明确纳入的三项能力取代；谱系写回路、HTML 解析、提示词生成链接入、外部路径配置等其他排除继续有效。
+- 原 AC1—AC10 及任务清单中的 v1.46、工具数、测试计数和验收结果是首次实施基线，不改写。现行验收必须另以当前资源与当前实现取证；本次文档归并本身不构成产品能力、自动化测试或真机验收通过。
+- 归档包中的既有例外不得借归并重新开放：不伪造谱系或媒体参数、不恢复第二份全量 Store、不把 J.3 解析失败升级为目录装载失败、不自动重生成媒体。
+
+## 7. 谱系业务校验与升级基线
+
+本节接收归档包 826 中与谱系产品语义有关的现行约束；826 的通用测试门禁、测试数据分类和临时目录规则由 830 负责，不迁入本包。
+
+### 7.1 当前事实源与真实 changelog
+
+1. 代表“当前合法引用”的立项草案及后续发布、Harness、影响评估和门链路，必须读取 `loadStyleCatalog()` 从当前正式 md 的 J.0 得到的版本，不得永久锁死历史 v1.46，也不得把当前示例 v1.47 写成新的代码常量。注册表仍须与当前 md 的条目、名称、主备和可行度交叉核对；合法主 / 备引用、辅助候选和版本一致性校验不因资源升级而跳过。
+2. 当前真实 `## J.3 谱系变更记录` 同时保留 **v1.47、v1.46 两节**，各节条目及顺序以正式资源为准。升级展示读取这些真实记录，不用合成文本替代真实 changelog，也不因新增当前版本节而删除历史版本节。
+3. 后续正式资源再升级时，当前引用随事实源更新；v1.47 / v1.46 的上述表述是本次归并时的资源事实，历史 v1.46 实施证据及 v1.45→v1.46 采纳场景不机械改写。
+
+### 7.2 升级区间与独立升级输入
+
+1. changelog 继续按 **`(fromVersion,toVersion]`** 过滤：起点 `fromVersion` 排除，终点 `toVersion` 包含；两端均可解析时按版本区间取舍，不得以字符串逐字比较代替区间过滤。
+2. 任一端点不可解析时，不得据此丢空变更明细；对相关 changelog 记录采取“宁多勿缺”的放行策略。该降级只针对区间筛选，不改变 `catalogVersion !== 当前 version` 的升级检测和版本失配拒绝语义。
+3. 用于验证升级区间的独立合成谱系必须具有明确版本头、两个不同版本的 changelog 节和固定 J.3 边界，不能复制真实当前版本节制造重复版本。该合成输入只证明区间、J.3 降级和采纳业务语义；其测试数据分类与通用工程门禁归 830。
+4. J.3 缺失、空段、读取失败或解析失败仍只产生 `changelogUnavailable` 降级，不拖垮目录 loader；`removed`、`noBrief`、采纳前核版及仅写 `style.catalogVersion` 的约束不变。
+
+### 7.3 负向业务校验不得削弱
+
+1. 故意错误版本仍返回 `STYLE_VERSION_MISMATCH`；未知主 / 辅 ID 仍返回 `STYLE_ID_UNKNOWN`；已知但不属封闭候选域的辅助 ID 仍返回 `STYLE_AUX_NOT_CANDIDATE`。当前资源升级不得把这些负向引用一并改成合法值。
+2. 非法画幅及门 / Harness 草案的谱系版本失配仍沿原业务错误路径拒绝。正常当前引用应先通过谱系校验，使下游链路进入其自身规则；802 不因此接管画幅、Harness、发布、影响评估或门实现。
+3. 谱系版本注册、真实 changelog、升级差异和采纳闭环必须同时保留。历史升级、静态历史版本和既有采纳场景用于验证固定区间时，仍按原版本区间理解，不以“当前版本已变化”为由抹除其业务目的。
+
+### 7.4 归并边界
+
+826 的 Vitest / typecheck / build 通用门禁、测试数据通用原则、dev-mock 证据边界及临时目录规则均由 830 维护；具体故障注入、幂等、零写盘、错误优先级和回滚补偿仍归各业务 Feature。本节只承接上述谱系业务语义，不构成新产品实施、接口授权或测试通过结论。

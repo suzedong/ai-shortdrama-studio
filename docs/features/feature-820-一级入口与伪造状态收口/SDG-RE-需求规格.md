@@ -47,3 +47,15 @@ P1 调查确认工作台存在三类「可见但不可用、且不声明」的�
 ## 5. 验收口径
 
 见 [SDG-RE-任务清单.md](./SDG-RE-任务清单.md) AC-1—AC-7。
+
+## D-037 现行归并约束：桌面窗口外壳（2026-11-19）
+
+本节自包含接收 feature-804 的现行窗口外壳需求；feature-804 仅保留历史证据。
+
+1. `BrowserWindow` 平台选项固定为：macOS 使用 `{ titleBarStyle: 'hiddenInset' }`；Windows / Linux 使用 `{ frame: false }`。macOS 保留原交通灯与既有工作区布局，Windows / Linux 由 Renderer 提供最小化、最大化/还原和关闭控件。
+2. 既有窗口通道为 `window:minimize`、`window:toggle-maximize`、`window:is-maximized`、`window:close`，主进程以 `window:maximize-changed` 推送最新布尔状态。最大化状态以主进程为唯一权威，Renderer 不以本地点击结果代替主进程状态。
+3. Windows / Linux 标题栏按钮命中区不得小于 **46×32 px**；关闭按钮 hover 使用 **#C42B1C**；拖拽区采用系统拖拽能力，按钮、输入和其他交互元素必须设置 `no-drag`，不得形成吞点击区。
+4. 自定义 `frame:false` 会付出原生窗口能力代价，尤其 Windows 原生 Snap Layouts 不再自动等价提供。若要求恢复，须另行处理 Snap Layouts 悬浮/命中、DPI、多屏、缩放及最大化边界，不得以普通 CSS 标题栏宣称已经补齐。
+5. preload 构建链必须输出 CommonJS `preload.cjs`，由 `preload.js` 源码/构建入口经构建配置生成，并同步主进程引用、模块写权及全局声明检查；不得留下主进程仍加载不存在 `preload.js` 的断链。
+6. **验收状态**：Windows ENV-02 已验收；macOS AC5「零视觉/行为变化」回归仍为开放项，归档与归并均不代表该项已通过。
+7. **冲突裁决**：feature-804 的「不做深色」只是历史切片范围，已由 feature-817 双主题取代，不构成本包现行禁令；本包原 Change 的「零新增 IPC / 零 preload / 零 global.d.ts 变更」仅约束该次入口收口，不否定上述既有窗口 IPC 与 preload 构建链。本次仅归并文档，不新增接口、不宣称新增产品能力或真机验收通过。

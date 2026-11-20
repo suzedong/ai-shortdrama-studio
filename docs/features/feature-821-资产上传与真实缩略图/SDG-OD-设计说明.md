@@ -45,3 +45,22 @@ AssetsPanel
 - 列表与缩略图请求仅允许当前项目/当前组件回写；上传防重入。
 - 图片占位始终可回退；请求或解码失败不影响资产存在事实和绑定功能。
 - 显示名/搜索兼容旧路径与新 `meta.originalName`；不新增全局缓存或通知系统。
+
+## 7. D-037 现行归并设计：可信来源补写（2026-11-19）
+
+```text
+运行时 tool.call（过滤前）
+  → 物理名 shortdrama_asset_register 精确匹配
+  → 成功 JSON resultPreview：直接对象或 text 内 JSON
+  → 真实 assetId + jobId + 事件 sessionId/messageId/callId 齐套
+  → updateAssetSource(assetId, { sourceJobId, sourceSession })
+  → 资产索引既有串行队列 / 原子写
+```
+
+1. 资产文件与媒体作业已经完成后才补写来源，来源是索引元数据而非媒体完成前提。补写失败只记录安全日志，不回滚资产、不阻断 SSE。
+2. 只信事件与真实登记 ID；不从 activeSessionId、显示名、当前聊天上下文或 Agent 自报文本反推。缺字段与非 JSON 一律跳过。
+3. 重复登记沿用稳定 ID 与 createdAt，缺省来源字段不覆盖旧值；非法 ID 不造记录，坏索引不按空索引恢复。
+4. 缩略图仍是由资产相对 path 派生的独立事实，不新增 thumbnailPath。§2“为什么不改索引结构”仅解释缩略图；sourceJobId / sourceSession 是后续 814 已批准的不同职责，现归本包维护。
+5. 上传仍走 §1 系统直做流程，不调用 Agent，不自动绑节点。Canvas 绑定归属 823，对话资产引用归属 822，三者只共享同一资产索引，不共享入口或来源猜测逻辑。
+
+本次仅归并文档，不新增运行链路或验收结论；历史实施与测试证据保留在原变更记录。

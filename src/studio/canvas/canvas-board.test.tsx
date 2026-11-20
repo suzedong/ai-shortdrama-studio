@@ -528,7 +528,7 @@ describe('feature-823 · 多创作页与自由画布交互', () => {
     expect(container.querySelector('[data-page-id="page-a"]')).toHaveAttribute('aria-selected', 'true')
     expect(screen.getAllByText('A1 节点')).not.toHaveLength(0)
     expect(viewState).toHaveBeenCalledWith({
-      type: 'active.set', projectId: 'p1', pageId: 'page-b', canvasId: 'canvas-b1',
+      type: 'active.set', projectId: 'p1', pageId: 'page-b', canvasId: 'canvas-b1', activeView: 'canvas',
     })
   })
 
@@ -679,5 +679,186 @@ describe('feature-823 · 多创作页与自由画布交互', () => {
     })
     expect(onCanvasChange).toHaveBeenCalledTimes(callsAfterSwitch)
     expect(screen.getAllByText('A2 节点')).not.toHaveLength(0)
+  })
+
+  it('feature-829 · 历史后退/前进、失败不提交索引及新导航截断前进栈', async () => {
+    const { command, viewState } = mockBoardApi()
+    const onError = vi.fn()
+    const { container } = render(<CanvasBoard canvas={boardCanvas()} onError={onError} />)
+    const back = screen.getByTestId('canvas-history-back')
+    const forward = screen.getByTestId('canvas-history-forward')
+    expect(back).toBeDisabled()
+    expect(forward).toBeDisabled()
+
+    fireEvent.click(container.querySelector('[data-page-id="page-b"]')!)
+    await waitFor(() => expect(back).toBeEnabled())
+    viewState.mockRejectedValueOnce(new Error('历史写入失败'))
+    fireEvent.click(back)
+    await waitFor(() => expect(onError).toHaveBeenCalledWith('切换创作页或画布失败：历史写入失败'))
+    expect(container.querySelector('[data-page-id="page-b"]')).toHaveAttribute('aria-selected', 'true')
+    expect(forward).toBeDisabled()
+
+    fireEvent.click(back)
+    await waitFor(() => expect(container.querySelector('[data-page-id="page-a"]')).toHaveAttribute('aria-selected', 'true'))
+    expect(forward).toBeEnabled()
+    fireEvent.change(screen.getByLabelText('当前画布'), { target: { value: 'canvas-a2' } })
+    await waitFor(() => expect(screen.getByLabelText('当前画布')).toHaveValue('canvas-a2'))
+    expect(forward).toBeDisabled()
+
+    fireEvent.click(back)
+    await waitFor(() => expect(screen.getByLabelText('当前画布')).toHaveValue('canvas-a1'))
+    expect(forward).toBeEnabled()
+    fireEvent.click(forward)
+    await waitFor(() => expect(screen.getByLabelText('当前画布')).toHaveValue('canvas-a2'))
+    expect(back).toBeEnabled()
+    expect(forward).toBeDisabled()
+    expect(command).not.toHaveBeenCalled()
+    for (const call of viewState.mock.calls) {
+      expect(call[0]).toMatchObject({ type: 'active.set', activeView: 'canvas' })
+      expect(call[0]).not.toHaveProperty('expectedRevision')
+    }
+  })
+
+  it('feature-829 · 历史导航跳过已删除目标且完整重建后重置栈', async () => {
+    const initial = boardCanvas()
+    initial.pages.push({
+      id: 'page-c', title: '页 C', activeCanvasId: 'canvas-c1',
+      canvases: [{ id: 'canvas-c1', title: '画布 C1', nodes: [], edges: [], viewport: null }],
+    })
+    mockBoardApi()
+    const { container, rerender, unmount } = render(<CanvasBoard canvas={initial} />)
+    fireEvent.click(container.querySelector('[data-page-id="page-b"]')!)
+    await waitFor(() => expect(container.querySelector('[data-page-id="page-b"]')).toHaveAttribute('aria-selected', 'true'))
+    fireEvent.click(container.querySelector('[data-page-id="page-c"]')!)
+    await waitFor(() => expect(container.querySelector('[data-page-id="page-c"]')).toHaveAttribute('aria-selected', 'true'))
+
+    const removed = structuredClone(initial)
+    removed.pages = removed.pages.filter(item => item.id !== 'page-b')
+    removed.activePageId = 'page-c'
+    rerender(<CanvasBoard canvas={removed} />)
+    fireEvent.click(screen.getByTestId('canvas-history-back'))
+    await waitFor(() => expect(container.querySelector('[data-page-id="page-a"]')).toHaveAttribute('aria-selected', 'true'))
+    fireEvent.click(screen.getByTestId('canvas-history-forward'))
+    await waitFor(() => expect(container.querySelector('[data-page-id="page-c"]')).toHaveAttribute('aria-selected', 'true'))
+
+    unmount()
+    render(<CanvasBoard canvas={removed} />)
+    expect(screen.getByTestId('canvas-history-back')).toBeDisabled()
+    expect(screen.getByTestId('canvas-history-forward')).toBeDisabled()
+  })
+
+  it('feature-829 · 复制正式引用不写盘，跨页粘贴发送一次固定来源命令', async () => {
+    let current = boardCanvas()
+    const source = current.pages[0]!.canvases[0]!.nodes[0]!
+    source.id = 'source-node'
+    source.title = '源产物'
+    source.status = 'done'
+    source.meta = { version: 'v1' }
+    current.pages[1]!.canvases[0]!.nodes = []
+    current.pages[1]!.canvases[0]!.viewport = { x: 10, y: 20, zoom: 1 }
+    const { command } = mockBoardApi()
+    command.mockImplementation(async request => {
+      const next = structuredClone(current)
+      const sourceNode = next.pages[0]!.canvases[0]!.nodes[0]!
+      next.pages[1]!.canvases[0]!.nodes.push({
+        ...sourceNode,
+        id: request.nodeId,
+        position: request.position,
+        reference: { artifactId: sourceNode.id, version: 'v1', source: request.source.target },
+      })
+      next.revision += 1
+      current = next
+      return { commandId: request.commandId, revision: next.revision, canvas: next, target: request.target }
+    })
+    const { container } = render(<CanvasBoard canvas={current} />)
+
+    fireEvent.contextMenu(container.querySelector('[data-node-id="source-node"]')!, { clientX: 120, clientY: 100 })
+    expect(container.querySelector('[data-ctx-item="copy"]')).toBeTruthy()
+    expect(container.querySelector('[data-ctx-item="ref"]')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '复制正式引用' }))
+    expect(command).not.toHaveBeenCalled()
+    fireEvent.click(container.querySelector('[data-page-id="page-b"]')!)
+    await waitFor(() => expect(container.querySelector('[data-page-id="page-b"]')).toHaveAttribute('aria-selected', 'true'))
+    const viewport = container.querySelector('[data-viewport]') as HTMLElement
+    vi.spyOn(viewport, 'getBoundingClientRect').mockReturnValue({
+      x: 100, y: 50, left: 100, top: 50, width: 800, height: 600, right: 900, bottom: 650,
+      toJSON: () => ({}),
+    } as DOMRect)
+    await waitFor(() => expect(worldOf(container).style.transform).toBe('translate(10px, 20px) scale(1)'))
+    fireEvent.contextMenu(viewport, { clientX: 300, clientY: 240 })
+    fireEvent.click(screen.getByRole('button', { name: '粘贴正式引用' }))
+
+    await waitFor(() => expect(command).toHaveBeenCalledTimes(1))
+    const request = command.mock.calls[0]?.[0]
+    expect(request).toMatchObject({
+      type: 'reference.create',
+      target: { projectId: 'p1', pageId: 'page-b', canvasId: 'canvas-b1' },
+      source: { target: { projectId: 'p1', pageId: 'page-a', canvasId: 'canvas-a1' }, nodeId: 'source-node' },
+      position: { x: 190, y: 170 },
+      expectedRevision: 7,
+    })
+    expect(request.nodeId).toBeTruthy()
+    expect(request.nodeId).not.toBe('source-node')
+    await waitFor(() => expect(container.querySelector('[data-reference-badge]')).toHaveTextContent('引用 v1 · 源产物 source-node'))
+  })
+
+  it('feature-829 · 固定版本与再版黄条独立呈现，打开源产物先切换再查看', async () => {
+    const initial = boardCanvas()
+    const source = initial.pages[0]!.canvases[0]!.nodes[0]!
+    source.id = 'source-node'
+    source.title = '源产物 v2'
+    source.meta = { version: 'v2' }
+    initial.pages[1]!.canvases[0]!.nodes = [node({
+      id: 'reference-node', step: '1', kind: 'outline', title: '跨页引用', status: 'done',
+      meta: { version: 'v1' },
+      reference: {
+        artifactId: 'source-node', version: 'v1', latestVersion: 'v2', markedAt: '2026-11-19T00:00:00.000Z',
+        source: { projectId: 'p1', pageId: 'page-a', canvasId: 'canvas-a1' },
+      },
+    })]
+    initial.activePageId = 'page-b'
+    const { viewState } = mockBoardApi()
+    const onOpenNode = vi.fn()
+    const { container } = render(<CanvasBoard canvas={initial} onOpenNode={onOpenNode} />)
+
+    expect(container.querySelector('[data-reference-badge="reference-node"]')).toHaveTextContent('引用 v1 · 源产物 source-node')
+    expect(container.querySelector('[data-reference-dirty-badge="reference-node"]')).toHaveTextContent('源已至 v2')
+    expect(container.querySelector('[data-reference-dirty-banner]')).toHaveTextContent('有 1 个跨页引用基于旧版源产物')
+    expect(container.querySelector('[data-dirty-badge]')).toBeNull()
+    expect(container.querySelector('[data-dirty-banner]')).toBeNull()
+
+    fireEvent.contextMenu(container.querySelector('[data-node-id="reference-node"]')!)
+    fireEvent.click(screen.getByRole('button', { name: '打开源产物' }))
+    await waitFor(() => expect(onOpenNode).toHaveBeenCalledTimes(1))
+    expect(onOpenNode.mock.calls[0]?.[0].id).toBe('source-node')
+    expect(viewState).toHaveBeenCalledWith({
+      type: 'active.set', projectId: 'p1', pageId: 'page-a', canvasId: 'canvas-a1', activeView: 'canvas',
+    })
+    expect(container.querySelector('[data-page-id="page-a"]')).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('feature-829 · 源定位导航失败时保留位置且不打开查看器', async () => {
+    const initial = boardCanvas()
+    initial.pages[0]!.canvases[0]!.nodes[0]!.id = 'source-node'
+    initial.pages[0]!.canvases[0]!.nodes[0]!.meta = { version: 'v2' }
+    initial.pages[1]!.canvases[0]!.nodes = [node({
+      id: 'reference-node', step: '1', kind: 'outline', title: '跨页引用', status: 'done',
+      reference: {
+        artifactId: 'source-node', version: 'v1',
+        source: { projectId: 'p1', pageId: 'page-a', canvasId: 'canvas-a1' },
+      },
+    })]
+    initial.activePageId = 'page-b'
+    const { viewState } = mockBoardApi()
+    viewState.mockRejectedValueOnce(new Error('活动目标写入失败'))
+    const onOpenNode = vi.fn()
+    const onError = vi.fn()
+    const { container } = render(<CanvasBoard canvas={initial} onOpenNode={onOpenNode} onError={onError} />)
+
+    fireEvent.contextMenu(container.querySelector('[data-node-id="reference-node"]')!)
+    fireEvent.click(screen.getByRole('button', { name: '打开源产物' }))
+    await waitFor(() => expect(onError).toHaveBeenCalledWith('切换创作页或画布失败：活动目标写入失败'))
+    expect(onOpenNode).not.toHaveBeenCalled()
+    expect(container.querySelector('[data-page-id="page-b"]')).toHaveAttribute('aria-selected', 'true')
   })
 })

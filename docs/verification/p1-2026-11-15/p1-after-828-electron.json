@@ -1,0 +1,321 @@
+{
+  "feature": "feature-828",
+  "date": "2026-11-18",
+  "status": "pass",
+  "environment": {
+    "mode": "production build + Vite preview + Electron CDP + native macOS dialogs",
+    "root": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh",
+    "provider": "LM Studio protocol against isolated loopback mock; real opencode runtime and IPC; no cloud key or cloud request",
+    "result": {
+      "imported": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/workspace/project-20261119-005604-maht",
+      "importedCopy": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/workspace/project-20261119-005625-1urh",
+      "duplicateCopy": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/workspace/project-20261119-005630-44px",
+      "exportOne": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/exports/f828-export-one",
+      "exportTwo": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/exports/f828-export-two",
+      "sourceSessionId": "ses_e10699c3dffeSdxaoqnTRbSPYZ",
+      "continuedSessionId": "ses_e10695467ffeW0eqso0FNxfEcV",
+      "requestSummary": [
+        {
+          "request": 1,
+          "stream": true,
+          "hasToolResult": false,
+          "roles": [
+            "system",
+            "user",
+            "user"
+          ]
+        },
+        {
+          "request": 2,
+          "stream": true,
+          "hasToolResult": false,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "toolNames": [
+            "shortdrama_file_read"
+          ]
+        },
+        {
+          "request": 3,
+          "stream": true,
+          "hasToolResult": true,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "toolNames": [
+            "shortdrama_file_read"
+          ]
+        },
+        {
+          "request": 4,
+          "stream": true,
+          "hasToolResult": false,
+          "roles": [
+            "system",
+            "user",
+            "user"
+          ]
+        },
+        {
+          "request": 5,
+          "stream": true,
+          "hasToolResult": false,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "toolNames": [
+            "shortdrama_file_read"
+          ]
+        },
+        {
+          "request": 6,
+          "stream": true,
+          "hasToolResult": true,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "toolNames": [
+            "shortdrama_file_read"
+          ]
+        }
+      ],
+      "rendererExceptions": [],
+      "consoleErrors": []
+    },
+    "runtimeProcesses": "91430 /Applications/MiniMax Design.app/Contents/Resources/opencode/opencode serve --hostname 127.0.0.1 --port 55111"
+  },
+  "checks": {
+    "AC-828-3-import": {
+      "status": "pass",
+      "actual": "外部静态项目包经原生目录选择导入；活动会话清空、秘密与缩略图过滤、身份重写，源目录保持不变。",
+      "evidence": [
+        {
+          "source": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/documents/f828-source-package",
+          "imported": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/workspace/project-20261119-005604-maht",
+          "sourceSessionPreserved": true
+        }
+      ]
+    },
+    "AC-828-5-import-cancel": {
+      "status": "pass",
+      "actual": "原生导入对话框取消不创建项目、不打开项目、不刷新列表。",
+      "evidence": [
+        {
+          "projectCount": 1
+        }
+      ]
+    },
+    "AC-828-3-invalid-rollback": {
+      "status": "pass",
+      "actual": "损坏画布导入预检失败；项目列表不增加，工作区无 staging 残留。",
+      "evidence": [
+        {
+          "alert": "Error invoking remote method 'project:import': CANVAS_CORRUPT: 画布文件损坏，已停止加载；请修复或从归档恢复"
+        }
+      ]
+    },
+    "AC-828-1-detail": {
+      "status": "pass",
+      "actual": "项目详情显示 manifest 状态、项目身份、最近打开时间与静态包状态；无快照项目不伪造历史。",
+      "evidence": [
+        {
+          "dir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/workspace/project-20261119-005604-maht",
+          "projectId": "project-20261119-005604-maht",
+          "snapshots": 0
+        }
+      ]
+    },
+    "AC-828-1-finder": {
+      "status": "pass",
+      "actual": "项目行菜单通过系统 Finder 定位到真实项目目录。",
+      "evidence": [
+        {
+          "selected": "/private/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/workspace/project-20261119-005604-maht",
+          "imported": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/workspace/project-20261119-005604-maht"
+        }
+      ]
+    },
+    "AC-828-4-real-runtime": {
+      "status": "pass",
+      "actual": "真实 Electron 经 opencode 与本地 OpenAI 兼容服务完成用户→推理→工具→Agent 会话；无快照项目不产生虚假来源映射。",
+      "evidence": [
+        {
+          "sourceSessionId": "ses_e10699c3dffeSdxaoqnTRbSPYZ",
+          "messages": 3,
+          "requests": [
+            {
+              "request": 1,
+              "stream": true,
+              "hasToolResult": false,
+              "roles": [
+                "system",
+                "user",
+                "user"
+              ]
+            },
+            {
+              "request": 2,
+              "stream": true,
+              "hasToolResult": false,
+              "roles": [
+                "system",
+                "user"
+              ],
+              "toolNames": [
+                "shortdrama_file_read"
+              ]
+            },
+            {
+              "request": 3,
+              "stream": true,
+              "hasToolResult": true,
+              "roles": [
+                "system",
+                "user",
+                "assistant",
+                "tool"
+              ],
+              "toolNames": [
+                "shortdrama_file_read"
+              ]
+            },
+            {
+              "request": 4,
+              "stream": true,
+              "hasToolResult": false,
+              "roles": [
+                "system",
+                "user",
+                "user"
+              ]
+            },
+            {
+              "request": 5,
+              "stream": true,
+              "hasToolResult": false,
+              "roles": [
+                "system",
+                "user"
+              ],
+              "toolNames": [
+                "shortdrama_file_read"
+              ]
+            },
+            {
+              "request": 6,
+              "stream": true,
+              "hasToolResult": true,
+              "roles": [
+                "system",
+                "user",
+                "assistant",
+                "tool"
+              ],
+              "toolNames": [
+                "shortdrama_file_read"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "AC-828-5-export-cancel": {
+      "status": "pass",
+      "actual": "原生导出对话框取消后目标目录与 staging 均为零新增。",
+      "evidence": [
+        {
+          "exportRootEntries": []
+        }
+      ]
+    },
+    "AC-828-2-export": {
+      "status": "pass",
+      "actual": "静态导出目录含 manifest/canvas/清理会话/包元数据/真实会话快照；不含运行时绑定与秘密。",
+      "evidence": [
+        {
+          "exportOne": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/exports/f828-export-one",
+          "sourceSessionId": "ses_e10699c3dffeSdxaoqnTRbSPYZ",
+          "messageCount": 3
+        }
+      ]
+    },
+    "AC-828-4-readonly-replay": {
+      "status": "pass",
+      "actual": "导入项目详情只读回放用户、Agent、推理与工具状态；快照区域无续聊输入框。",
+      "evidence": [
+        {
+          "replay": {
+            "text": "来源：project-20261119-005604-maht / ses_e10699c3dffeSdxaoqnTRbSPYZ导出：2026/11/19 00:56:20。在项目对话中续聊会新建本地会话并记录来源。用户msg_862109cd-ab3e-40dd-9389-6fd6a112820c请读取项目清单并形成首条正式会话。Agentmsg_1ef966550001reG4dvtoNN4fx6先读取项目清单，再生成可核验的正式回复。shortdrama_file_read · completedmanifest.jsonAgentmsg_1ef9668d7001aOeqfuICjk0hPY项目清单已读取，正式会话可导出。",
+            "composer": false
+          },
+          "screenshot": "/Users/szd/Documents/Code/ai-shortdrama-studio/docs/verification/p1-2026-11-15/p1-after-828-session-snapshot.png"
+        }
+      ]
+    },
+    "AC-828-3-repeat-import": {
+      "status": "pass",
+      "actual": "同一导出包重复导入分配不同 project-* 目录，不覆盖来源或已有项目。",
+      "evidence": [
+        {
+          "original": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/workspace/project-20261119-005604-maht",
+          "importedCopy": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/workspace/project-20261119-005625-1urh",
+          "duplicateCopy": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/workspace/project-20261119-005630-44px"
+        }
+      ]
+    },
+    "AC-828-4-continuation-source": {
+      "status": "pass",
+      "actual": "导入快照不绑定旧 sessionId；首次续聊创建新本地会话并记录 sessionId/sourceSessionId/createdAt。",
+      "evidence": [
+        {
+          "sourceSessionId": "ses_e10699c3dffeSdxaoqnTRbSPYZ",
+          "continuedSessionId": "ses_e10695467ffeW0eqso0FNxfEcV",
+          "sources": [
+            {
+              "sessionId": "ses_e10695467ffeW0eqso0FNxfEcV",
+              "sourceSessionId": "ses_e10699c3dffeSdxaoqnTRbSPYZ",
+              "createdAt": "2026-11-18T16:56:31.403Z"
+            }
+          ]
+        }
+      ]
+    },
+    "AC-828-5-restart": {
+      "status": "pass",
+      "actual": "完整退出并重启 production Electron 后恢复当前项目、新项目列表与续聊会话历史。",
+      "evidence": [
+        {
+          "currentDir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/workspace/project-20261119-005625-1urh",
+          "continuedSessionId": "ses_e10695467ffeW0eqso0FNxfEcV",
+          "messages": 3,
+          "rendererExceptions": []
+        }
+      ]
+    },
+    "AC-828-2-reexport": {
+      "status": "pass",
+      "actual": "导入→续聊→完整重启后的再次导出保留来源快照并追加当前本地会话，不复用来源 sessionId。",
+      "evidence": [
+        {
+          "exportTwo": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f828.8IS7Vh/exports/f828-export-two",
+          "sourceSessionId": "ses_e10699c3dffeSdxaoqnTRbSPYZ",
+          "continuedSessionId": "ses_e10695467ffeW0eqso0FNxfEcV",
+          "messages": 3
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "静态目录 staging→rename，不宣称跨文件事务、跨进程锁、目录 fsync 或断电级目录原子性。",
+    "本地 OpenAI 兼容协议仅作为可重复模型端；Electron、opencode、MCP、IPC 与消息持久化均为真实产品路径。"
+  ]
+}

@@ -87,7 +87,45 @@
 
 ## 7. 依赖与风险
 
-- 依赖 feature-814 命令底座、feature-817 设计令牌、feature-819 运行时、feature-820 入口收口、feature-821 上传/缩略图、feature-822 对话资产引用。
+- 历史基础为 feature-814 命令底座（D-037 已归档，现行职责并入本包与 821）；其他依赖为 feature-817 设计令牌、feature-819 运行时、feature-820 入口收口、feature-821 上传/可信来源/缩略图、feature-822 对话资产引用。
 - v4 会触及既有根级 nodes/edges fixture 与消费点，必须全量 typecheck，不得以兼容别名保留双份事实。
 - 视图保存与 Agent 写共用队列但不共享 revision，必须验证排队顺序与冲突语义。
 - 本环境此前截图可能为空；无法取得截图时只能以 DOM、JSON 与日志为证并明确限制。
+
+## 8. D-037 现行归并约束：Canvas 命令与资产绑定（2026-11-19）
+
+本节接收归档包 814 的 Canvas revision / receipt、命令幂等、原子 JSON、坏档保护、CanvasNode.assetIds 及资产绑定 UI。**现行形状以本包 v4“页—画布树”为唯一事实**；814 根级 nodes/edges 的 v3 只保留历史，不恢复为并行结构。
+
+1. `CanvasNode.assetIds?: string[]` 是节点到真实资产索引的多选引用；image / video / music / workflow 均可绑定。绑定按 nodeId 去重，不自动修改坐标、连边、资产 meta 或 sourceSession。
+2. `assets.bind` 校验节点、资产存在及数量上限后追加；`assets.unbind` 幂等移除。两条命令都携带完整 `{pageId, canvasId}` 目标，在不同页 / 画布存在同名 nodeId 时不得串写。
+3. 结构、移动和资产命令继续使用 expectedRevision、commandId + 稳定内容 hash、receipts 和项目内单队列。重复提交同命令返回原 receipt，不重写、不广播；同 ID 不同内容明确冲突；revision 不符不写盘。
+4. Canvas JSON 只在项目 canvas 目录内写同目录临时文件，归档既有档案后 rename；坏 JSON / 非法形状报 CANVAS_CORRUPT，ENOENT 才按缺文件处理，不得重建覆盖坏档。viewState 与命令共用队列和原子写，但不增加 revision / receipts。
+5. AssetsPanel 与 CanvasBoard 通过 nodeId / canvasId 派生选中资产；绑定和解绑即时更新选中数、按钮 busy 与可访问状态。切节点只取消与该资产—节点对有关的旧请求，不影响其他节点选择；失败 / 冲突 / 广播后重新 get 当前页画布，按选择版本保留仍有效的其他勾选。
+6. 历史消息中的安全资产 chip 可回放；缺索引记录、相对路径逃逸、真实文件缺失和来源补写失败均不阻断历史消息 / SSE。上传仍由 821 系统直做，不因导入成功自动绑定。
+7. 可信来源由 821 负责，对话资产引用由 822 负责；本包只拥有 Canvas 节点绑定及其命令 / UI，不接 Agent 自报来源，不新增 MCP `canvas.write`。
+
+**冲突裁决**：814 的 v3 文件布局、根级集合和以其为输入的旧示例均被本包 v2/v3 → v4 懒迁移与完整目标规则取代；可迁移的是命令语义、安全约束和交互行为，不是旧 JSON 形状。本次仅文档归并，不新增接口或真机验收声明。
+
+## 9. Canvas 只读预检
+
+本节接收归档包 825 中属于 CanvasStore 的只读预检约束。预检只回答“显式项目根目录下的 canvas 是否可按正式加载同一判据读取”，不代表完整项目打开已经提交成功。
+
+### 9.1 与正式加载共用判据
+
+1. CanvasStore 提供主进程内部能力 `assertReadable(projectDir)`，按调用方显式捕获的项目根目录检查画布；不得读取全局 currentDir 猜测目标，也不信任既有缓存。
+2. 预检与正式 `getForRoot` 必须共用同一只读磁盘步骤：读取既有文件 → JSON 解析 → v2/v3 迁移及 v4 结构校验 → `projectId` 对目录身份校验。不得为预检复制一套较宽松或较严格的坏档判据。
+3. 文件不存在（ENOENT）视为 Canvas 预检可打开，只读步骤返回空结果；正式加载才可在后续实际打开流程中创建空画布。坏 JSON、未知 / 非法结构、活动引用或事务字段损坏仍抛 `CANVAS_CORRUPT`，磁盘 `projectId` 与目标目录不符仍抛 `CANVAS_PROJECT_MISMATCH`，均 fail closed，不得返回假成功或以空画布覆盖。
+4. 合法旧档只在内存中形成迁移投影；预检本身不得借“迁移”写入 v4。现有 v4 页—画布树仍是唯一现行结构，旧根级 nodes/edges 只作历史与懒迁移输入。
+
+### 9.2 只读与零副作用
+
+- 预检必须绕过缓存并直接检查磁盘，旧缓存不得掩盖坏档；有效返回值在预检完成后丢弃。
+- 预检不得写盘、创建或补建 session、清理 / 恢复门、reset 或填充画布缓存、同步标题、广播 `canvas:changed`，也不得产生其他可观察写副作用。
+- 文件缺失时预检不创建文件、不填缓存；只有正式 `getForRoot` 在缓存未命中且同一只读步骤返回空结果时，才按既有行为创建 emptyCanvas、原子写盘并填缓存。合法旧档仍遵循读取零写、首次成功变更才写 v4。
+- 预检错误保持原错误码和可读原因向上传递，不吞错、不改写为成功；调用方必须将其视为不可继续提交的失败。
+
+### 9.3 项目打开职责边界
+
+827 负责路径和 manifest 校验后的 `openProject beforeCommit` guard、session / currentDir 提交与项目写队列；828 负责完整 `project:open` 编排、成功提交以及提交后的清门、reset / recover、标题与广播顺序。823 只负责 Canvas 文件解析、迁移 / 结构 / 项目身份校验及上述只读能力，不接管路径错误优先级或项目会话事务。
+
+本包不因此扩展为跨文件事务、通用项目打开回滚或任意后置 I/O 故障保证，也不承诺预检成功后的任意并发文件替换均可被后续步骤发现。本次仅归并文档，不新增 IPC、DTO、共享类型或产品验收结论。

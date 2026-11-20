@@ -4,29 +4,33 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { relativeTime } from './ProjectNav'
+import ProjectDetailPanel from './ProjectDetailPanel'
 
 interface Props {
   /** 主 CTA：StudioApp 实现为 createProject(undefined) → openProject(dir) */
   onCreate: () => void | Promise<void>
   /** 列表项：StudioApp 实现为 openProject(dir) */
   onOpen: (dir: string) => void | Promise<void>
+  onNotice?: (message: string) => void
 }
 
 interface ProjectEntry {
   dir: string
   name: string
   updatedAt: string
+  lastOpenedAt: string
 }
 
 /** 首屏只负责"可点"，完整项目库在左栏；超出部分提示去左栏 */
 const MAX_RECENT = 5
 const THUMB_COLORS = ['#6C5CE7', '#0F9F6E', '#E8833A', '#3D7BD9', '#C4487A']
 
-export default function WelcomeView({ onCreate, onOpen }: Props) {
+export default function WelcomeView({ onCreate, onOpen, onNotice }: Props) {
   const [projects, setProjects] = useState<ProjectEntry[]>([])
   const [listError, setListError] = useState<string | null>(null)
-  const [busy, setBusy] = useState<{ kind: 'create' | 'open'; dir?: string } | null>(null)
+  const [busy, setBusy] = useState<{ kind: 'create' | 'open' | 'import'; dir?: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [detailDir, setDetailDir] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -38,9 +42,9 @@ export default function WelcomeView({ onCreate, onOpen }: Props) {
     return () => { alive = false }
   }, [])
 
-  // 契约 §2.3：按 updatedAt 降序取前 5（不可变排序，不改 state 原数组）
+  // feature-828：最近项目以真实 lastOpenedAt 排序；旧 mock 缺省时回退产物更新时间。
   const recent = [...projects]
-    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+    .sort((a, b) => Date.parse(b.lastOpenedAt || b.updatedAt) - Date.parse(a.lastOpenedAt || a.updatedAt))
     .slice(0, MAX_RECENT)
 
   const run = useCallback(
@@ -60,6 +64,23 @@ export default function WelcomeView({ onCreate, onOpen }: Props) {
   )
 
   const creating = busy?.kind === 'create'
+
+  const importProject = async (): Promise<void> => {
+    if (busy) return
+    setError(null)
+    setBusy({ kind: 'import' })
+    try {
+      const result = await window.api.projectImport()
+      if (!result.canceled) {
+        await onOpen(result.dir)
+        onNotice?.('项目已导入并打开')
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '导入项目失败')
+    } finally {
+      setBusy(null)
+    }
+  }
 
   return (
     <div
@@ -91,6 +112,15 @@ export default function WelcomeView({ onCreate, onOpen }: Props) {
         >
           {creating ? '创建中…' : '＋ 新建项目'}
         </button>
+        <button
+          type="button"
+          onClick={() => void importProject()}
+          disabled={busy !== null}
+          className="mt-2 w-full rounded-[10px] border border-line bg-surface py-2 text-[12px] font-semibold text-muted transition hover:border-violet/40 hover:text-violet disabled:cursor-not-allowed disabled:opacity-50"
+          data-welcome-import
+        >
+          {busy?.kind === 'import' ? '导入中…' : '导入静态项目包'}
+        </button>
 
         <div className="my-5 flex items-center gap-3 text-[10.5px] text-muted">
           <span className="h-px flex-1 bg-line" />
@@ -105,13 +135,13 @@ export default function WelcomeView({ onCreate, onOpen }: Props) {
         ) : (
           <ul className="flex flex-col gap-1">
             {recent.map((p, i) => (
-              <li key={p.dir}>
+              <li key={p.dir} className="flex items-center gap-1">
                 <button
                   type="button"
                   disabled={busy !== null}
                   onClick={() => void run('open', () => onOpen(p.dir), p.dir)}
                   title={p.dir}
-                  className="flex w-full items-center gap-2.5 rounded-[10px] border border-transparent p-2 text-left transition hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[10px] border border-transparent p-2 text-left transition hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-50"
                   data-welcome-open={p.dir}
                 >
                   <span
@@ -122,11 +152,20 @@ export default function WelcomeView({ onCreate, onOpen }: Props) {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[12px] font-bold text-ink">{p.name || '未命名项目'}</span>
-                    <span className="mt-0.5 block text-[10px] text-muted">{relativeTime(p.updatedAt)}</span>
+                    <span className="mt-0.5 block text-[10px] text-muted">{relativeTime(p.lastOpenedAt || p.updatedAt)}</span>
                   </span>
                   <span className="shrink-0 text-[10.5px] font-bold text-violet">
                     {busy?.kind === 'open' && busy.dir === p.dir ? '打开中…' : '打开'}
                   </span>
+                </button>
+                <button
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => setDetailDir(p.dir)}
+                  className="shrink-0 rounded-lg px-2 py-1.5 text-[10.5px] text-muted hover:bg-canvas hover:text-ink disabled:opacity-50"
+                  data-welcome-detail={p.dir}
+                >
+                  详情
                 </button>
               </li>
             ))}
@@ -137,6 +176,14 @@ export default function WelcomeView({ onCreate, onOpen }: Props) {
           0 立项 → 1 故事 → 2 分场 → 3 资产 → 4 分镜 → 5 镜头 → 6 后期 → 7 发布
         </p>
       </div>
+
+      {detailDir && (
+        <ProjectDetailPanel
+          dir={detailDir}
+          onClose={() => setDetailDir(null)}
+          onNotice={onNotice}
+        />
+      )}
     </div>
   )
 }

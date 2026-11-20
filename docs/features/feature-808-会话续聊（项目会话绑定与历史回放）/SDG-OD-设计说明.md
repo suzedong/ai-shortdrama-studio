@@ -184,3 +184,35 @@ onProjectSessionChange(pid):
 | 8 | enqueue 串行队列中 openProject 与 setActiveSession 交叉 | 同一写队列天然串行；setActiveSession 在 openProject 之后入队时读到的是已含五字段的新文件 | library 测试显式覆盖「open 后立即 set」交叉序列；不另加锁 |
 | 9 | dev-mock 与真实 API 形状漂移 | 三桩手工维护 | AC8 兜底；类型上三桩受 global.d.ts 约束，形状错会 typecheck 报错 |
 | 10 | 工作树混合存量（feature-807/画布缩放/Markdown 气泡未提交改动并存） | 现状 | T7 收尾 git diff 按文件白名单核对，只认本包 15 个文件的 diff；基线测试在混合树上跑（与 feature-003 收尾同做法） |
+
+## 10. D-037 归并后的数据与路径职责（2026-11-19）
+
+### 10.1 模板路径决策
+
+```text
+resolveAgentTemplatePath(file)
+  ├─ process.defaultApp === true
+  │    → <root>/resources/opencode/agents/<file>（开发态，优先真实启动形态）
+  ├─ app.isPackaged && !process.defaultApp
+  │    → process.resourcesPath/opencode/agents/<file>（真打包态）
+  └─ 其余开发启动 → 仓库模板路径
+```
+
+路径判定只决定读取哪份现行模板；文件缺失 / 占位符缺失继续显式失败，不增加“旧副本兜底”分支。`app.isPackaged` 在 `electron <appdir>` 下也可能为真，不能单独作为打包判据。
+
+### 10.2 回放数据流水线
+
+```text
+opencode 原始 messages
+  → 主进程 toMessageRecord：角色 / part 过滤 + partId / callId / 状态 / 白名单 argsPreview
+  → runtime:session:messages（既有 IPC）
+  → history-replay：单遍有序归约，同 callId 原位更新，纯 reasoning / tool 轮保留
+  → 有序回放段 / StreamingTurn 数据（streaming=false）
+  → 817 负责呈现；808 不负责交错布局、活跃动画或滚动
+```
+
+### 10.3 冲突与边界
+
+- 010 的“工具请求/结果全部回放”被 H6 收窄：仅状态、错误和白名单参数摘要可跨界，完整 input/output / 结果仍排除；本次不借归并新增 `resultSummary` 字段。
+- 819 的 `app.isPackaged` 单判据由 `app.isPackaged && !process.defaultApp` 取代，开发态旧模板不得兜底。
+- 本 Change 无新接口，仅把上述现行约束收拢到 808；历史真机结论、测试计数与未完成项均保留。

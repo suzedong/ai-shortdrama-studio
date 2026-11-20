@@ -34,3 +34,12 @@
 | AC-5 | Skill 广场类目按钮真实筛选列表；页面不存在无行为的「在对话中试用 →」；插件面板不存在可切换的假开关 | ✅ 真机点「情绪」后卡片由 2 → 1；`在对话中试用` 0 命中；`role="switch"` 计数 0 |
 | AC-6 | 资源库存在「本地模型」一级入口，点击可见未开放说明，且「打开 AI 服务设置」可打开既有面板 | ✅ 真机 `dialog[aria-label="AI 服务设置"]` 已弹出 |
 | AC-7 | `npm run typecheck` 通过；本包相关测试通过；`shared/types.ts`、preload、`global.d.ts`、`package.json` 零 diff | ✅ typecheck exit 0；`architecture` + 专项 29/29、shell 套件 11 文件全绿；全量 12 个失败文件均为既有基线（谱系资源 v1.47 与夹具 v1.46 / CRLF frontmatter），无一在 shell / 本包范围；四个受保护文件零 diff |
+
+## D-037 文档归并 Change：接收 feature-804（2026-11-19，✅ 文档完成）
+
+- [x] 读取 feature-804 五份标准文档与本包现行约束，保留原任务、AC、ENV-02 证据及 macOS 挂起项。
+- [x] 在本包需求、契约、设计分别补入平台窗口参数、五个既有窗口通道、命中区/颜色/no-drag、主进程状态权威、Snap Layouts 代价及 preload.cjs 构建链。
+- [x] 裁决「不做深色」和「零新增 IPC / preload / global.d.ts」的历史适用范围。
+- [x] 仅修订文档；未改产品代码、测试、shared/types.ts、依赖或真实项目数据。
+
+**文档 AC**：① 本包无需回查 feature-804 即可理解现行窗口外壳；② Windows 已验收与 macOS AC5 挂起没有混写；③ 历史「不做深色」未变成现行禁令；④ 本次文档 Change 不宣称新增接口、产品能力或真机验收通过。

@@ -1,0 +1,890 @@
+{
+  "feature": "feature-827",
+  "startedAt": "2026-11-18T10:41:16.232Z",
+  "driver": "external Node parent → real Electron binary + browser CDP / main-process inspector（异步 rename require hook；同步 rename 条件断点）→ SIGKILL + PID gone",
+  "matrix": "manifest.json / project .session.json / userData session-state.json × rename before/after",
+  "scenarios": [
+    {
+      "id": "manifest-before",
+      "kind": "manifest",
+      "phase": "before",
+      "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a/manifest.json",
+      "marker": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/manifest-before.marker.json",
+      "fixedCommand": {
+        "request": {
+          "type": "page.rename",
+          "projectId": "project-a",
+          "pageId": "page-f824",
+          "title": "F827 manifest-before",
+          "commandId": "f827-replay-manifest-before",
+          "expectedRevision": 0
+        },
+        "receipt": {
+          "commandId": "f827-replay-manifest-before",
+          "type": "page.rename",
+          "requestHash": "ed927277bc895530964eba61bb601f63e8254cc469dd1242d157df9b3f05fe0c",
+          "revision": 1,
+          "appliedAt": "2026-11-18T10:41:18.060Z",
+          "payload": {
+            "request": {
+              "type": "page.rename",
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "title": "F827 manifest-before"
+            },
+            "target": {
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "canvasId": "canvas-f824"
+            }
+          }
+        },
+        "revision": 1
+      },
+      "killMarker": {
+        "pid": 25661,
+        "kind": "async",
+        "phase": "before",
+        "from": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a/.manifest.json.25661.ef7038c1-9dbe-4558-805c-0b24e0588d14.tmp",
+        "to": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a/manifest.json",
+        "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a/manifest.json",
+        "at": "2026-11-18T10:41:20.180Z"
+      },
+      "hookLoaded": {
+        "pid": 25661,
+        "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a/manifest.json",
+        "phase": "before",
+        "loadedAt": "2026-11-18T10:41:20.138Z"
+      },
+      "kill": {
+        "sent": true,
+        "pid": 25661,
+        "binary": "/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/electron@33.4.11/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron",
+        "processGone": true,
+        "exit": {
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        "cdpAfterKill": {
+          "rejected": "Error: CDP timeout: Runtime.evaluate"
+        }
+      },
+      "postKill": {
+        "target": {
+          "status": "story-profiles",
+          "createdAt": "2026-11-18T10:41:16.238Z",
+          "workflowVersion": 1,
+          "updatedAt": "2026-11-18T10:41:16.238Z",
+          "statusHistory": [
+            {
+              "event": "brief-published",
+              "from": "initiating",
+              "to": "story-outline",
+              "at": "2026-11-18T10:41:16.238Z"
+            },
+            {
+              "event": "outline-approved",
+              "from": "story-outline",
+              "to": "story-profiles",
+              "at": "2026-11-18T10:41:16.238Z"
+            }
+          ],
+          "briefVersion": 1
+        },
+        "tempFiles": [
+          ".manifest.json.25661.ef7038c1-9dbe-4558-805c-0b24e0588d14.tmp"
+        ]
+      },
+      "afterKill": {
+        "manifest": {
+          "status": "story-profiles",
+          "createdAt": "2026-11-18T10:41:16.238Z",
+          "workflowVersion": 1,
+          "updatedAt": "2026-11-18T10:41:16.238Z",
+          "statusHistory": [
+            {
+              "event": "brief-published",
+              "from": "initiating",
+              "to": "story-outline",
+              "at": "2026-11-18T10:41:16.238Z"
+            },
+            {
+              "event": "outline-approved",
+              "from": "story-outline",
+              "to": "story-profiles",
+              "at": "2026-11-18T10:41:16.238Z"
+            }
+          ],
+          "briefVersion": 1
+        },
+        "projectBSession": {
+          "dir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b",
+          "title": "项目 B",
+          "createdAt": "2026-11-18T10:41:16.237Z",
+          "lastOpenedAt": "2026-11-18T10:41:16.237Z",
+          "activeSessionId": null
+        },
+        "globalState": {
+          "currentDir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a"
+        },
+        "tempFiles": {
+          "projectA": [
+            ".manifest.json.25661.ef7038c1-9dbe-4558-805c-0b24e0588d14.tmp"
+          ],
+          "projectB": [],
+          "userData": []
+        }
+      },
+      "valueAssertion": "manifest 完整旧值（逐字节相等）",
+      "recovery": {
+        "projectCount": 2,
+        "reopenedProject": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a",
+        "receiptSame": true,
+        "revisionBeforeReplay": 2,
+        "revisionAfterReplay": 2,
+        "replayReceipt": {
+          "commandId": "f827-replay-manifest-before",
+          "type": "page.rename",
+          "requestHash": "ed927277bc895530964eba61bb601f63e8254cc469dd1242d157df9b3f05fe0c",
+          "revision": 1,
+          "appliedAt": "2026-11-18T10:41:18.060Z",
+          "payload": {
+            "request": {
+              "type": "page.rename",
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "title": "F827 manifest-before"
+            },
+            "target": {
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "canvasId": "canvas-f824"
+            }
+          }
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "manifest-after",
+      "kind": "manifest",
+      "phase": "after",
+      "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a/manifest.json",
+      "marker": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/manifest-after.marker.json",
+      "fixedCommand": {
+        "request": {
+          "type": "page.rename",
+          "projectId": "project-a",
+          "pageId": "page-f824",
+          "title": "F827 manifest-after",
+          "commandId": "f827-replay-manifest-after",
+          "expectedRevision": 0
+        },
+        "receipt": {
+          "commandId": "f827-replay-manifest-after",
+          "type": "page.rename",
+          "requestHash": "d98196f5ea2a6d8b3bf7b8d31bee7ae721e6784147c8d29a879bb44843e45f27",
+          "revision": 1,
+          "appliedAt": "2026-11-18T10:41:54.283Z",
+          "payload": {
+            "request": {
+              "type": "page.rename",
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "title": "F827 manifest-after"
+            },
+            "target": {
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "canvasId": "canvas-f824"
+            }
+          }
+        },
+        "revision": 1
+      },
+      "killMarker": {
+        "pid": 25887,
+        "kind": "async",
+        "phase": "after",
+        "from": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a/.manifest.json.25887.e2cb5c8a-2bd8-4105-aafc-b73288548b19.tmp",
+        "to": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a/manifest.json",
+        "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a/manifest.json",
+        "at": "2026-11-18T10:42:01.318Z"
+      },
+      "hookLoaded": {
+        "pid": 25887,
+        "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a/manifest.json",
+        "phase": "after",
+        "loadedAt": "2026-11-18T10:42:01.277Z"
+      },
+      "kill": {
+        "sent": true,
+        "pid": 25887,
+        "binary": "/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/electron@33.4.11/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron",
+        "processGone": true,
+        "exit": {
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        "cdpAfterKill": {
+          "rejected": "Error: CDP timeout: Runtime.evaluate"
+        }
+      },
+      "postKill": {
+        "target": {
+          "status": "script-scenes",
+          "createdAt": "2026-11-18T10:41:52.586Z",
+          "workflowVersion": 1,
+          "updatedAt": "2026-11-18T10:42:01.314Z",
+          "statusHistory": [
+            {
+              "event": "brief-published",
+              "from": "initiating",
+              "to": "story-outline",
+              "at": "2026-11-18T10:41:52.586Z"
+            },
+            {
+              "event": "outline-approved",
+              "from": "story-outline",
+              "to": "story-profiles",
+              "at": "2026-11-18T10:41:52.586Z"
+            },
+            {
+              "event": "profiles-approved",
+              "from": "story-profiles",
+              "to": "script-scenes",
+              "at": "2026-11-18T10:42:01.314Z"
+            }
+          ],
+          "briefVersion": 1
+        },
+        "tempFiles": []
+      },
+      "afterKill": {
+        "manifest": {
+          "status": "script-scenes",
+          "createdAt": "2026-11-18T10:41:52.586Z",
+          "workflowVersion": 1,
+          "updatedAt": "2026-11-18T10:42:01.314Z",
+          "statusHistory": [
+            {
+              "event": "brief-published",
+              "from": "initiating",
+              "to": "story-outline",
+              "at": "2026-11-18T10:41:52.586Z"
+            },
+            {
+              "event": "outline-approved",
+              "from": "story-outline",
+              "to": "story-profiles",
+              "at": "2026-11-18T10:41:52.586Z"
+            },
+            {
+              "event": "profiles-approved",
+              "from": "story-profiles",
+              "to": "script-scenes",
+              "at": "2026-11-18T10:42:01.314Z"
+            }
+          ],
+          "briefVersion": 1
+        },
+        "projectBSession": {
+          "dir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b",
+          "title": "项目 B",
+          "createdAt": "2026-11-18T10:41:52.586Z",
+          "lastOpenedAt": "2026-11-18T10:41:52.586Z",
+          "activeSessionId": null
+        },
+        "globalState": {
+          "currentDir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a"
+        },
+        "tempFiles": {
+          "projectA": [],
+          "projectB": [],
+          "userData": []
+        }
+      },
+      "valueAssertion": "manifest 完整新值（script-scenes + profiles-approved）",
+      "recovery": {
+        "projectCount": 2,
+        "reopenedProject": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a",
+        "receiptSame": true,
+        "revisionBeforeReplay": 2,
+        "revisionAfterReplay": 2,
+        "replayReceipt": {
+          "commandId": "f827-replay-manifest-after",
+          "type": "page.rename",
+          "requestHash": "d98196f5ea2a6d8b3bf7b8d31bee7ae721e6784147c8d29a879bb44843e45f27",
+          "revision": 1,
+          "appliedAt": "2026-11-18T10:41:54.283Z",
+          "payload": {
+            "request": {
+              "type": "page.rename",
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "title": "F827 manifest-after"
+            },
+            "target": {
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "canvasId": "canvas-f824"
+            }
+          }
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "project-session-before",
+      "kind": "project-session",
+      "phase": "before",
+      "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b/.session.json",
+      "marker": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/project-session-before.marker.json",
+      "fixedCommand": {
+        "request": {
+          "type": "page.rename",
+          "projectId": "project-a",
+          "pageId": "page-f824",
+          "title": "F827 project-session-before",
+          "commandId": "f827-replay-project-session-before",
+          "expectedRevision": 0
+        },
+        "receipt": {
+          "commandId": "f827-replay-project-session-before",
+          "type": "page.rename",
+          "requestHash": "fbe43d7b3fdab50ee1360ffa45149900ab01d1032dc2d2ea6fb7321a7d7c62ff",
+          "revision": 1,
+          "appliedAt": "2026-11-18T10:42:35.509Z",
+          "payload": {
+            "request": {
+              "type": "page.rename",
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "title": "F827 project-session-before"
+            },
+            "target": {
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "canvasId": "canvas-f824"
+            }
+          }
+        },
+        "revision": 1
+      },
+      "killMarker": {
+        "pid": 26067,
+        "kind": "async",
+        "phase": "before",
+        "from": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b/..session.json.26067.b8772a09-77ac-4399-b06e-8b933ad8a908.tmp",
+        "to": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b/.session.json",
+        "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b/.session.json",
+        "at": "2026-11-18T10:42:37.579Z"
+      },
+      "hookLoaded": {
+        "pid": 26067,
+        "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b/.session.json",
+        "phase": "before",
+        "loadedAt": "2026-11-18T10:42:37.567Z"
+      },
+      "kill": {
+        "sent": true,
+        "pid": 26067,
+        "binary": "/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/electron@33.4.11/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron",
+        "processGone": true,
+        "exit": {
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        "cdpAfterKill": {
+          "rejected": "Error: CDP timeout: Runtime.evaluate"
+        }
+      },
+      "postKill": {
+        "target": {
+          "dir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b",
+          "title": "项目 B",
+          "createdAt": "2026-11-18T10:42:33.818Z",
+          "lastOpenedAt": "2026-11-18T10:42:33.818Z",
+          "activeSessionId": null
+        },
+        "tempFiles": [
+          "..session.json.26067.b8772a09-77ac-4399-b06e-8b933ad8a908.tmp"
+        ]
+      },
+      "afterKill": {
+        "manifest": {
+          "status": "initiating",
+          "createdAt": "2026-11-18T10:42:33.817Z",
+          "workflowVersion": 1,
+          "updatedAt": "2026-11-18T10:42:33.817Z",
+          "statusHistory": [],
+          "briefVersion": null
+        },
+        "projectBSession": {
+          "dir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b",
+          "title": "项目 B",
+          "createdAt": "2026-11-18T10:42:33.818Z",
+          "lastOpenedAt": "2026-11-18T10:42:33.818Z",
+          "activeSessionId": null
+        },
+        "globalState": {
+          "currentDir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a"
+        },
+        "tempFiles": {
+          "projectA": [],
+          "projectB": [
+            "..session.json.26067.b8772a09-77ac-4399-b06e-8b933ad8a908.tmp"
+          ],
+          "userData": []
+        }
+      },
+      "valueAssertion": "项目 session 完整旧值（逐字节相等）；全局 session-state 仍为 currentDir=A",
+      "recovery": {
+        "projectCount": 2,
+        "reopenedProject": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a",
+        "receiptSame": true,
+        "revisionBeforeReplay": 1,
+        "revisionAfterReplay": 1,
+        "replayReceipt": {
+          "commandId": "f827-replay-project-session-before",
+          "type": "page.rename",
+          "requestHash": "fbe43d7b3fdab50ee1360ffa45149900ab01d1032dc2d2ea6fb7321a7d7c62ff",
+          "revision": 1,
+          "appliedAt": "2026-11-18T10:42:35.509Z",
+          "payload": {
+            "request": {
+              "type": "page.rename",
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "title": "F827 project-session-before"
+            },
+            "target": {
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "canvasId": "canvas-f824"
+            }
+          }
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "project-session-after",
+      "kind": "project-session",
+      "phase": "after",
+      "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b/.session.json",
+      "marker": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/project-session-after.marker.json",
+      "fixedCommand": {
+        "request": {
+          "type": "page.rename",
+          "projectId": "project-a",
+          "pageId": "page-f824",
+          "title": "F827 project-session-after",
+          "commandId": "f827-replay-project-session-after",
+          "expectedRevision": 0
+        },
+        "receipt": {
+          "commandId": "f827-replay-project-session-after",
+          "type": "page.rename",
+          "requestHash": "a7c645ecb750ea1575f90207d14856e55496aa1e04696f96784c9c5a60f25968",
+          "revision": 1,
+          "appliedAt": "2026-11-18T10:43:11.703Z",
+          "payload": {
+            "request": {
+              "type": "page.rename",
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "title": "F827 project-session-after"
+            },
+            "target": {
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "canvasId": "canvas-f824"
+            }
+          }
+        },
+        "revision": 1
+      },
+      "killMarker": {
+        "pid": 26300,
+        "kind": "async",
+        "phase": "after",
+        "from": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b/..session.json.26300.40fdcb20-2a79-4c16-8a5d-d7acaaac9264.tmp",
+        "to": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b/.session.json",
+        "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b/.session.json",
+        "at": "2026-11-18T10:43:18.646Z"
+      },
+      "hookLoaded": {
+        "pid": 26300,
+        "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b/.session.json",
+        "phase": "after",
+        "loadedAt": "2026-11-18T10:43:18.626Z"
+      },
+      "kill": {
+        "sent": true,
+        "pid": 26300,
+        "binary": "/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/electron@33.4.11/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron",
+        "processGone": true,
+        "exit": {
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        "cdpAfterKill": {
+          "rejected": "Error: CDP timeout: Runtime.evaluate"
+        }
+      },
+      "postKill": {
+        "target": {
+          "dir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b",
+          "title": "项目 B",
+          "createdAt": "2026-11-18T10:43:10.005Z",
+          "lastOpenedAt": "2026-11-18T10:43:18.629Z",
+          "activeSessionId": null
+        },
+        "tempFiles": []
+      },
+      "afterKill": {
+        "manifest": {
+          "status": "initiating",
+          "createdAt": "2026-11-18T10:43:10.005Z",
+          "workflowVersion": 1,
+          "updatedAt": "2026-11-18T10:43:10.005Z",
+          "statusHistory": [],
+          "briefVersion": null
+        },
+        "projectBSession": {
+          "dir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b",
+          "title": "项目 B",
+          "createdAt": "2026-11-18T10:43:10.005Z",
+          "lastOpenedAt": "2026-11-18T10:43:18.629Z",
+          "activeSessionId": null
+        },
+        "globalState": {
+          "currentDir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a"
+        },
+        "tempFiles": {
+          "projectA": [],
+          "projectB": [],
+          "userData": []
+        }
+      },
+      "valueAssertion": "项目 session 完整新值（五字段完整，lastOpenedAt 已推进）；全局 session-state 仍为 currentDir=A",
+      "recovery": {
+        "projectCount": 2,
+        "reopenedProject": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a",
+        "receiptSame": true,
+        "revisionBeforeReplay": 1,
+        "revisionAfterReplay": 1,
+        "replayReceipt": {
+          "commandId": "f827-replay-project-session-after",
+          "type": "page.rename",
+          "requestHash": "a7c645ecb750ea1575f90207d14856e55496aa1e04696f96784c9c5a60f25968",
+          "revision": 1,
+          "appliedAt": "2026-11-18T10:43:11.703Z",
+          "payload": {
+            "request": {
+              "type": "page.rename",
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "title": "F827 project-session-after"
+            },
+            "target": {
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "canvasId": "canvas-f824"
+            }
+          }
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "global-session-before",
+      "kind": "global-session",
+      "phase": "before",
+      "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/user-data/session-state.json",
+      "marker": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/global-session-before.marker.json",
+      "fixedCommand": {
+        "request": {
+          "type": "page.rename",
+          "projectId": "project-a",
+          "pageId": "page-f824",
+          "title": "F827 global-session-before",
+          "commandId": "f827-replay-global-session-before",
+          "expectedRevision": 0
+        },
+        "receipt": {
+          "commandId": "f827-replay-global-session-before",
+          "type": "page.rename",
+          "requestHash": "d60fb36cc581675fba40ba22c7dabef224246764f7936c3e2c2ae9f0f8385c4a",
+          "revision": 1,
+          "appliedAt": "2026-11-18T10:43:53.126Z",
+          "payload": {
+            "request": {
+              "type": "page.rename",
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "title": "F827 global-session-before"
+            },
+            "target": {
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "canvasId": "canvas-f824"
+            }
+          }
+        },
+        "revision": 1
+      },
+      "killMarker": {
+        "via": "main-process inspector conditional breakpoint",
+        "phase": "before",
+        "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/user-data/session-state.json",
+        "reason": "other",
+        "location": {
+          "scriptId": "187",
+          "lineNumber": 38,
+          "columnNumber": 8
+        }
+      },
+      "hookLoaded": {
+        "loadedAt": "2026-11-18T10:43:55.328Z",
+        "via": "main-process inspector conditional breakpoint",
+        "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/user-data/session-state.json",
+        "phase": "before",
+        "breakpoint": {
+          "breakpointId": "1:38:0:file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/fs/atomic.js",
+          "locations": [
+            {
+              "scriptId": "187",
+              "lineNumber": 38,
+              "columnNumber": 8
+            }
+          ]
+        }
+      },
+      "kill": {
+        "sent": true,
+        "pid": 26539,
+        "binary": "/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/electron@33.4.11/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron",
+        "processGone": true,
+        "exit": {
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        "cdpAfterKill": {
+          "rejected": "Error: CDP timeout: Runtime.evaluate"
+        }
+      },
+      "postKill": {
+        "target": {
+          "currentDir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a"
+        },
+        "tempFiles": [
+          ".session-state.json.26539.bb35fd37-5f9c-4748-a732-4e50a17a114c.tmp"
+        ]
+      },
+      "afterKill": {
+        "manifest": {
+          "status": "initiating",
+          "createdAt": "2026-11-18T10:43:51.377Z",
+          "workflowVersion": 1,
+          "updatedAt": "2026-11-18T10:43:51.377Z",
+          "statusHistory": [],
+          "briefVersion": null
+        },
+        "projectBSession": {
+          "dir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b",
+          "title": "项目 B",
+          "createdAt": "2026-11-18T10:43:51.378Z",
+          "lastOpenedAt": "2026-11-18T10:43:55.329Z",
+          "activeSessionId": null
+        },
+        "globalState": {
+          "currentDir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a"
+        },
+        "tempFiles": {
+          "projectA": [],
+          "projectB": [],
+          "userData": [
+            ".session-state.json.26539.bb35fd37-5f9c-4748-a732-4e50a17a114c.tmp"
+          ]
+        }
+      },
+      "valueAssertion": "项目 session 完整新值（五字段完整，lastOpenedAt 已推进）；全局 session-state 完整旧值（逐字节相等）",
+      "recovery": {
+        "projectCount": 2,
+        "reopenedProject": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a",
+        "receiptSame": true,
+        "revisionBeforeReplay": 1,
+        "revisionAfterReplay": 1,
+        "replayReceipt": {
+          "commandId": "f827-replay-global-session-before",
+          "type": "page.rename",
+          "requestHash": "d60fb36cc581675fba40ba22c7dabef224246764f7936c3e2c2ae9f0f8385c4a",
+          "revision": 1,
+          "appliedAt": "2026-11-18T10:43:53.126Z",
+          "payload": {
+            "request": {
+              "type": "page.rename",
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "title": "F827 global-session-before"
+            },
+            "target": {
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "canvasId": "canvas-f824"
+            }
+          }
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "global-session-after",
+      "kind": "global-session",
+      "phase": "after",
+      "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/user-data/session-state.json",
+      "marker": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/global-session-after.marker.json",
+      "fixedCommand": {
+        "request": {
+          "type": "page.rename",
+          "projectId": "project-a",
+          "pageId": "page-f824",
+          "title": "F827 global-session-after",
+          "commandId": "f827-replay-global-session-after",
+          "expectedRevision": 0
+        },
+        "receipt": {
+          "commandId": "f827-replay-global-session-after",
+          "type": "page.rename",
+          "requestHash": "bfc71723ffec2cba813506c756509ab8b136961ebe3f7801e411ef57a4018923",
+          "revision": 1,
+          "appliedAt": "2026-11-18T10:44:30.023Z",
+          "payload": {
+            "request": {
+              "type": "page.rename",
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "title": "F827 global-session-after"
+            },
+            "target": {
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "canvasId": "canvas-f824"
+            }
+          }
+        },
+        "revision": 1
+      },
+      "killMarker": {
+        "via": "main-process inspector conditional breakpoint",
+        "phase": "after",
+        "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/user-data/session-state.json",
+        "reason": "other",
+        "location": {
+          "scriptId": "184",
+          "lineNumber": 39,
+          "columnNumber": 8
+        }
+      },
+      "hookLoaded": {
+        "loadedAt": "2026-11-18T10:44:32.235Z",
+        "via": "main-process inspector conditional breakpoint",
+        "target": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/user-data/session-state.json",
+        "phase": "after",
+        "breakpoint": {
+          "breakpointId": "1:39:0:file:///Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron/fs/atomic.js",
+          "locations": [
+            {
+              "scriptId": "184",
+              "lineNumber": 39,
+              "columnNumber": 8
+            }
+          ]
+        }
+      },
+      "kill": {
+        "sent": true,
+        "pid": 27084,
+        "binary": "/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/electron@33.4.11/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron",
+        "processGone": true,
+        "exit": {
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        "cdpAfterKill": {
+          "rejected": "Error: CDP timeout: Runtime.evaluate"
+        }
+      },
+      "postKill": {
+        "target": {
+          "currentDir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b"
+        },
+        "tempFiles": []
+      },
+      "afterKill": {
+        "manifest": {
+          "status": "initiating",
+          "createdAt": "2026-11-18T10:44:28.148Z",
+          "workflowVersion": 1,
+          "updatedAt": "2026-11-18T10:44:28.148Z",
+          "statusHistory": [],
+          "briefVersion": null
+        },
+        "projectBSession": {
+          "dir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b",
+          "title": "项目 B",
+          "createdAt": "2026-11-18T10:44:28.149Z",
+          "lastOpenedAt": "2026-11-18T10:44:32.237Z",
+          "activeSessionId": null
+        },
+        "globalState": {
+          "currentDir": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-b"
+        },
+        "tempFiles": {
+          "projectA": [],
+          "projectB": [],
+          "userData": []
+        }
+      },
+      "valueAssertion": "项目 session 完整新值（五字段完整，lastOpenedAt 已推进）；全局 session-state 完整新值（currentDir=B）",
+      "recovery": {
+        "projectCount": 2,
+        "reopenedProject": "/var/folders/9q/z3wktrm90yv8kvjh1h4xfpvr0000gn/T/ai-shortdrama-f825.G6VTXy/workspace/project-a",
+        "receiptSame": true,
+        "revisionBeforeReplay": 1,
+        "revisionAfterReplay": 1,
+        "replayReceipt": {
+          "commandId": "f827-replay-global-session-after",
+          "type": "page.rename",
+          "requestHash": "bfc71723ffec2cba813506c756509ab8b136961ebe3f7801e411ef57a4018923",
+          "revision": 1,
+          "appliedAt": "2026-11-18T10:44:30.023Z",
+          "payload": {
+            "request": {
+              "type": "page.rename",
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "title": "F827 global-session-after"
+            },
+            "target": {
+              "projectId": "project-a",
+              "pageId": "page-f824",
+              "canvasId": "canvas-f824"
+            }
+          }
+        }
+      },
+      "status": "PASS"
+    }
+  ],
+  "limits": {
+    "singleFileCommit": "同目录 temp → fsync → close → rename；rename 是唯一提交点",
+    "renameBefore": "正档保持完整旧值；temp 可能因 SIGKILL 留存的全新值，不替代正档",
+    "renameAfter": "正档为完整新值；不保证后续状态推送或调用方返回完成",
+    "excluded": "不宣称跨文件事务、目录 fsync、断电级持久化或跨进程互斥锁"
+  },
+  "finishedAt": "2026-11-18T10:45:04.777Z",
+  "status": "PASS"
+}

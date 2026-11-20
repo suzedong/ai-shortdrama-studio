@@ -2,7 +2,7 @@
 
 > 配套文件：[SDG-RE-需求规格.md](./SDG-RE-需求规格.md)（背景 / 场景 / 范围 / 验收）。本文件固化**模块形状、函数签名、入参、返回、错误码、测试约束**，是编码的直接依据。
 >
-> 事实源：设计书 §2.6.4（L195–215）、§7.1（L594–596）、§8.3（L613–627）；数据源 [AI短剧制作视觉风格谱系.md](../../../resources/H3-Style/AI短剧制作视觉风格谱系.md) v1.46。
+> 事实源：设计书 §2.6.4（L195–215）、§7.1（L594–596）、§8.3（L613–627）；数据源 [AI短剧制作视觉风格谱系.md](../../../resources/H3-Style/AI短剧制作视觉风格谱系.md)（现行示例 v1.47，运行时以 md 实际版本为准）。
 >
 > **K1：无**。本包所有类型仅在 `electron/` 侧声明与消费，[shared/types.ts](../../../shared/types.ts) 零改动（BriefStyle / BriefPlan / BriefMissingCode 均不动）。
 >
@@ -17,7 +17,7 @@ export type StyleFamilyCode = 'A' | 'B' | 'C' | 'D' | 'E'
 // 验证状态轴：主 = 已项目验证；备 = 已入谱未验证（均可作主风格，备风险自担）
 export type StyleRole = 'main' | 'backup'
 
-// 可行度（J.0 图例三档；v1.46 实际仅出现 high/medium）
+// 可行度（J.0 图例三档；v1.47 实际仅出现 high/medium）
 export type StyleFeasibility = 'high' | 'medium' | 'low'
 
 // ID 注册表条目（代码固化，§2）
@@ -44,7 +44,7 @@ export interface ParsedStyleEntry {
 
 // 装载成品（注册表 ⊙ md 解析，loader 缓存对象）
 export interface LoadedStyleCatalog {
-  version: string               // 从 md J.0 读出，如 'v1.46'；不硬编码
+  version: string               // 从 md J.0 读出，如 'v1.47'；不硬编码
   sourcePath: string            // 实际读取的 md 绝对路径（错误消息/调试用）
   entries: Array<RegisteredStyleEntry & {
     visualTraits: string
@@ -123,7 +123,7 @@ export function parseStyleCatalogMd(text: string): {
 
 解析规则：
 
-1. **版本**：在 J.0 段以正则 `/本文版本：谱系\s*(v\d+\.\d+)/` 提取（锚 L7 原文「本文版本：谱系 v1.46（…）」）；未命中 → 抛 `STYLE_CATALOG_PARSE_ERROR`。
+1. **版本**：在 J.0 段以正则 `/本文版本：谱系\s*(v\d+\.\d+)/` 提取（现行 L7 示例「本文版本：谱系 v1.47（…）」）；未命中 → 抛 `STYLE_CATALOG_PARSE_ERROR`。
 2. **明细表定位**：在 `## J.2` 与 `## J.3` 之间，按 5 个家族粗体表头定位五张表，表头到家族代码的映射按前缀逐字匹配：
    - `**A 写实影像系` → A（6 行）、`**B 青春治愈系` → B（1 行）、`**C 动画插画系` → C（5 行）、`**D 类型氛围系` → D（5 行）、`**E 材质工艺系` → E（1 行）。
    - 任一家族表头缺失 → `STYLE_CATALOG_PARSE_ERROR`。
@@ -158,7 +158,7 @@ export async function loadStyleCatalog(force = false): Promise<LoadedStyleCatalo
    - 任一不符 → 抛 `STYLE_CATALOG_DRIFT`，消息须列出差异类别与涉及 ID/名称（如 `注册表缺失: …; md 多余: …; 主备不符: A3 …`），不静默、不部分装载。
 4. **合并产出**：以注册表条目为骨架（id/name/family/role/feasibility/auxiliaryCandidate），按 `familyCode + name` 关联解析行补 visualTraits/anchorWords/textureRecipe；18 条齐全才返回。
 5. **缓存**：模块级 `cached: LoadedStyleCatalog | null`；`loadStyleCatalog()` 命中即返回不读盘，`force=true` 与 `clearStyleCatalogCache()` 强制重载。装载失败不写缓存（下次调用重试）。
-6. 版本取自解析结果（`catalog.version`），代码任何位置不硬编码 `'v1.46'`。
+6. 版本取自解析结果（`catalog.version`），代码任何位置不硬编码 `'v1.47'` 或其他具体版本。
 
 ## 5. 校验纯函数与 evaluateDraft 注入（`electron/style/validate.ts` + [plan.ts](../../../electron/brief/plan.ts)）
 
@@ -206,7 +206,7 @@ export function evaluateDraft(
 
 ```ts
 { ok: true,
-  version: 'v1.46',
+  version: 'v1.47',
   count: 18,
   entries: Array<{
     id; name; familyCode; familyLabel; role; feasibility; auxiliaryCandidate;
@@ -229,7 +229,7 @@ export function evaluateDraft(
 - 返回：
 
 ```ts
-{ ok: true, valid: boolean, version: 'v1.46', issues: StyleIssue[] }
+{ ok: true, valid: boolean, version: 'v1.47', issues: StyleIssue[] }
 ```
 
 - 空/缺省字段不产 issue（故 `{}` → `valid:true`；非空由 brief.plan 的 missing 负责，两工具职责不混）。
@@ -279,7 +279,7 @@ export function evaluateDraft(
 - `src/test/style-catalog.test.ts`（纯函数 + 真实资产）：
   - 注册表计数：18 条、ID 闭集逐字相等、主 11 / 备 7 / 辅助 6 / 家族 5；每个 auxiliaryCandidate=true 的恰为 B1/D1–D5；A6/C3/C4 不存在。
   - `isKnownStyleId` / `isAuxiliaryCandidate` / `getRegisteredEntry` 正反例。
-  - 解析真实 `resources/H3-Style/AI短剧制作视觉风格谱系.md`：版本为 `v1.46`（以文件实况断言，升级时此断言点名改两处）；18 条；A3 无空格尾标命中；E1 feasibility=medium，其余 high；抽查锚点词/质感配方非空。
+  - 解析真实 `resources/H3-Style/AI短剧制作视觉风格谱系.md`：版本以文件实况断言（现行示例 `v1.47`，升级时同步校准测试与注册表）；18 条；A3 无空格尾标命中；E1 feasibility=medium，其余 high；抽查锚点词/质感配方非空。
   - 构造 md：缺版本行、缺某家族表头、坏行（列数不符）、未知可行度标记、行数 ≠18 → 均抛 `STYLE_CATALOG_PARSE_ERROR`。
   - 交叉核对：构造与注册表名称/主备/可行度不一致的解析结果（可对 loader 内部核对逻辑以注入文本方式触发）→ `STYLE_CATALOG_DRIFT` 且消息含差异 ID。
   - loader：开发态路径命中真实文件并返回 18 条；二次调用命中缓存（spy fsp.readFile 次数）；`clearStyleCatalogCache`/`force` 后重读；指向缺失路径 → `STYLE_CATALOG_MISSING`。
@@ -287,7 +287,7 @@ export function evaluateDraft(
   - style.catalog：信封 `ok/version/count/entries`，条目字段齐全。
   - style.get：A7 命中（name=拟真人·仿真人动漫、auxiliaryCandidate=false）；ZZ9 → `STYLE_ID_UNKNOWN`。
   - style.validate：A7@当前版本 valid:true；v1.45 → STYLE_VERSION_MISMATCH；ZZ9 → STYLE_ID_UNKNOWN；辅助 A1 → STYLE_AUX_NOT_CANDIDATE；辅助 D1 → 通过；空参 → valid:true。
-  - brief.plan 注入联动（也可追加到 mcp-brief-tools）：`A7@v1.46` 草案 ready:true 且 styleIssues=[]（既有夹具零变化）；`ZZ9@v1.46` → ready:false、styleIssues 含 STYLE_ID_UNKNOWN；错版本 / 辅助越域各一例。
+  - brief.plan 注入联动（也可追加到 mcp-brief-tools）的现行示例：`A7@v1.47` 草案 ready:true 且 styleIssues=[]；`ZZ9@v1.47` → ready:false、styleIssues 含 STYLE_ID_UNKNOWN；错版本 / 辅助越域各一例。首次实施的 v1.46 夹具与结果属历史证据，本次仅校准文档示例，不改写、不重跑。
 - `src/test/brief.test.ts` 追加（纯函数层）：注入构造 catalog 后未知 ID/错版本/辅助越域产出 styleIssues；**既有全部断言逐字不动**（无注入调用返回新增键但不参与既有 toEqual）。
 - 编排/静态：provider 白名单数组含三个 `shortdrama_style.*` 物理 ID（参照 801 既有白名单断言文件，实施时定位）；全仓 grep 确认 shared/types.ts 零改动、无 electron/style 之外模块直连谱系 md。
 
@@ -322,7 +322,164 @@ export function evaluateDraft(
 | AC4 | §6.4 brief.plan 注入、ready 联动 + §9 |
 | AC5 | §5.2 默认不变、planBrief 不动 + §9 既有断言不动 |
 | AC6 | §3/§4 三码 + §9 构造异常用例 |
-| AC7 | §4 交叉核对 + §9 真实 v1.46 用例与计数断言 |
+| AC7 | §4 交叉核对 + §9 真实当前版本用例与计数断言 |
 | AC8 | §7 白名单与 showrunner 两处动作 |
 | AC9 | §9 回归红线 |
 | AC10 | §6 工具数 19、头注释；§12 设计书表述差异留痕 |
+
+## 14. D-037 现行归并约束（2026-11-19）
+
+本节汇总归档包 810 / 811 / 815 已存在的现行契约，统一由 802 维护；不是新增 K1/K8/K9 授权。与 §11 的旧排除冲突时，仅本节列明的升级、真实 Store / 谱系面板和预览媒体能力优先，其余非目标不变。
+
+### 14.1 当前目录与全量 Store
+
+当前 md 示例版本为 `v1.47`，条目数仍为 18；版本运行时从 J.0 提取。前文章节中的 v1.46 实施背景和历史断言不得解释为永久版本锁。
+
+既有 `style:catalog` IPC 无入参，返回 `{ version, count, entries }`，与 MCP `style.catalog` 共用 `loadStyleCatalog()`；entries 复用十键 `StyleCatalogEntryDto`，不为面板扩字段。
+
+```ts
+interface StyleCatalogState {
+  status: 'idle' | 'loading' | 'ok' | 'failed' | 'unavailable'
+  version: string | null
+  entries: StyleCatalogEntryDto[]
+}
+
+function ensureStyleCatalog(force?: boolean): void
+function useStyleCatalog(): StyleCatalogState
+function getStyleEntry(id: string): StyleCatalogEntryDto | null
+function getStyleName(id: string): string
+```
+
+Store 位于 `src/studio/style-catalog-store.ts`：loading 单 flight；仅 force 或 idle / failed 真发 IPC；ok / unavailable 下普通 ensure 不覆盖快照；同步查询不触发拉取；无 `window.api.styleCatalog` 为 unavailable，reject 为 failed。VisualCatalog / ChatComposer / Stage0View / StudioViewer 全部消费该快照，dev-mock 自具同 DTO 的 18 条演示数据。沿用既有 testid，不新增跨进程类型、推送或监听。
+
+### 14.2 升级差异 DTO
+
+```ts
+interface StyleUpgradeRefEntry {
+  id: string
+  role: 'main' | 'auxiliary'
+  removed: boolean
+  current?: {
+    role: 'main' | 'backup'
+    auxiliaryCandidate: boolean
+    feasibility: 'high' | 'medium' | 'low'
+    anchorWords: string[]
+  }
+}
+
+interface StyleChangelogEntry {
+  version: string
+  date?: string
+  items: string[]
+}
+
+interface StyleUpgradeDiff {
+  hasUpgrade: boolean
+  registeredVersion?: string
+  currentVersion: string
+  referenced: StyleUpgradeRefEntry[]
+  blocking: boolean
+  changelog: StyleChangelogEntry[]
+  changelogUnavailable: boolean
+}
+```
+
+版本只做逐字相等比较，`catalogVersion !== 当前 version` 即 hasUpgrade；旧版内容不可得，不伪造逐字段旧值→新值。`removed:true` 令 blocking。未立项 / 无 style 返回 `{ hasUpgrade:false, currentVersion, referenced:[], blocking:false, changelog:[], changelogUnavailable:false, noBrief:true }` 空态。
+
+J.3 使用 `## J.3 谱系变更记录` 至下一二级标题；`### vX.Y（可选日期）` 分节，`- ` 为条目，按 `(registered, current]` 过滤。J.3 缺失 / 解析失败仅置 `changelogUnavailable:true`，不影响目录 loader。
+
+### 14.3 升级通道与采纳写权
+
+| 通道 | 现行职责 |
+|---|---|
+| `style:catalog` | 无入参；返回真实全量目录与版本 |
+| `style:upgrade-diff` | 无入参；读取当前激活项目 Brief，返回 §14.2 DTO |
+| `brief:update` | 既有 style 白名单允许 `mainStyleId / auxiliaryStyleId / catalogVersion`；本升级流程只写 `catalogVersion` |
+
+采纳前面板重取 `style:catalog`，其 version 与差异快照 currentVersion 不同则拒绝旧快照并要求刷新。可用时 `updateBrief({style:{catalogVersion: currentVersion}})`，沿用 updateBriefFields 恒 mark、立项单版本 +1 和 diff 追溯；blocking / noBrief 禁用，忽略只关闭面板。不得借升级修改主辅 ID、重出提示词、重生成媒体或新增忽略持久化。
+
+### 14.4 预览元数据 IPC 与 DTO
+
+沿用恰一个 `style:preview-metadata` IPC；renderer 只传白名单标识，不传路径：
+
+```ts
+type StylePreviewMetadataRequest =
+  | { styleId: string; mediaKind: 'image' }
+  | { styleId: string; mediaKind: 'video'; tier: 'std' | 'turbo' | 'fast' }
+
+type StylePreviewMetadataStatus =
+  | 'ok' | 'missing' | 'no-metadata' | 'unsupported' | 'invalid'
+
+interface StylePreviewPromptDto {
+  key: 'positive' | 'negative' | 'motion'
+  label: string
+  text: string
+}
+
+interface StylePreviewParameterDto {
+  key: string
+  label: string
+  value: string | number
+}
+
+interface StylePreviewMetadataDto {
+  request: StylePreviewMetadataRequest
+  status: StylePreviewMetadataStatus
+  prompts: StylePreviewPromptDto[]
+  params: StylePreviewParameterDto[]
+  message?: string
+}
+```
+
+`ok` 只表示容器和内嵌 JSON 有效且为可识别 API graph，prompts / params 可以为空数组；`missing` 为文件不存在，`no-metadata` 为无 prompt，`unsupported` 为 UI Format / 非受支持 graph，`invalid` 为坏档、超限或安全校验失败。可预期错误均返 DTO，不抛原始 fs / parser 异常，不泄漏路径、graph 或堆栈。
+
+### 14.5 二进制解析、UI 与安全不变量
+
+1. 媒体根为谱系 md 同目录 `_style_preview`；只允许注册家族封闭目录、固定文件名与 `MEDIA_STEM` 映射。resolve 与 realpath 均须 containment，只读常规 `.png / .mp4`。
+2. PNG 验签名并顺序解析 chunk，只收集 keyword 精确为 prompt 的合法 tEXt；MP4 解析 32 / 64 位 box，沿 `moov → udta → meta → keys/ilst` 匹配 mdta.prompt，禁止全文件搜索字符串。
+3. graph 为节点字典，按 class_type / inputs 与连接识别，不硬编码某画风节点 ID；只求确定 primitive / 连接，不执行表达式或节点、不读取 graph 引用文件。数字 finite，模型 / 首帧仅 basename，缺字段不补默认值。
+4. 每媒体 UI 状态 `idle | loading | ready | error`，ready 保留 DTO 五态；请求序号加 styleId / mediaKind / tier 双重防 stale，卸载忽略结果。切档只重置视频，切风格才重置两类，单媒体失败不清空另一媒体。
+5. 主进程异步句柄 finally 关闭，限制文件 / 元数据大小和 box / chunk 长度；renderer 零 fs、零路径、零 ComfyUI 直连。只读操作零项目写入、零目录 DTO 变化。
+
+### 14.6 契约冲突与证据边界
+
+- §9 是首次实施的测试契约；本节对当前版本示例的校准不是测试重跑记录。历史任务、变更记录、PASS/FAIL 与计数原样保留。
+- 本归并不改变 MCP 工具总数、showrunner 授权、共享类型、依赖或生成通道，不新增媒体生成、预览重生成、HTML 解析和全局 brief 写接口。
+
+## 15. 谱系版本、changelog 与负向业务约束
+
+本节接收 826 的谱系业务语义，是 §2—§6 与 §14.2—§14.3 的现行补充；不新增函数、IPC、MCP 工具或 DTO。
+
+### 15.1 当前版本注册与真实 changelog
+
+- `LoadedStyleCatalog.version` 始终来自当前正式 md 的 J.0。当前合法引用的 `catalogVersion` 必须与该运行时版本逐字相等，不能固定为历史 v1.46 或当前示例 v1.47；loader 仍须完成注册表与 md 条目、名称、主备、可行度的 DRIFT 交叉核对。
+- 当前真实 `## J.3 谱系变更记录` 同时含 `### v1.47` 与 `### v1.46` 两节。`StyleChangelogEntry[]` 按资源中的真实版本节、条目和顺序形成，不以合成区间文本替换真实 changelog，也不删除历史节。
+- 后续换版只改变当前事实源及其合法引用基线；历史 v1.45→v1.46 的 diff / decision / mark 采纳语义与故意错版数据不因当前版本变化而改写。
+
+### 15.2 区间过滤与不可用降级
+
+`style:upgrade-diff` 的 changelog 筛选契约补充如下：
+
+1. 两端可解析时采用 **`(fromVersion,toVersion]`**：排除起点、包含终点，位于其间的版本节按序返回。
+2. 任一端点不可解析时，不执行不可靠的区间裁剪，保留全部相关 changelog 记录，做到“宁多勿缺”；不得返回伪造空数组冒充“无变更”。
+3. `hasUpgrade` 仍只由引用版本与当前版本逐字不等决定，与 changelog 端点是否可解析无关。
+4. J.3 缺失、空段、读取失败或解析失败时，`changelogUnavailable:true`，目录快照及引用现况仍可使用；不得升级为 `STYLE_CATALOG_PARSE_ERROR` 或 DRIFT。
+5. 独立合成升级输入应明确两个不同版本节及 J.3 边界，以验证上述区间和降级行为，不复制真实当前版本节。该输入的测试数据治理不属于本契约新增写权。
+
+### 15.3 校验与采纳严格性
+
+| 业务输入 | 必须保持的结果 |
+| --- | --- |
+| 当前合法主 / 备引用及合法辅助候选 | 通过谱系校验，下游发布、Harness、影响评估或门继续执行各自规则 |
+| 故意错误 `catalogVersion` | `STYLE_VERSION_MISMATCH`，不因当前版本升级而消失 |
+| 未知主 / 辅 ID | `STYLE_ID_UNKNOWN`；`style.get` 与 validate / plan 的既有返回形态不变 |
+| 辅助候选越域 | `STYLE_AUX_NOT_CANDIDATE` |
+| 非法画幅、门 / Harness 草案谱系版本失配 | 沿原业务错误路径拒绝，错误码与防护不放宽 |
+| 引用条目 `removed` 或项目 `noBrief` | 阻断采纳，不写 `catalogVersion` |
+| 可采纳升级 | 采纳前重取目录核版，只经 `brief:update` 写 `style.catalogVersion` |
+
+版本注册、真实 changelog、升级与采纳不得只保留其中一部分。历史固定区间继续表达原业务场景，不机械替换为当前版本。
+
+### 15.4 职责边界
+
+830 负责通用测试门禁、测试数据分类、dev-mock 证据原则和临时目录规则；画幅、Harness、发布、影响评估、门态、幂等、零写盘、故障注入及补偿由各业务 Feature 负责。802 只保证其谱系引用与版本语义不在这些链路中被削弱，不承接 Vitest / typecheck / build 门禁或其他业务实现。本次仅归并文档，不授予新的代码或测试写权。

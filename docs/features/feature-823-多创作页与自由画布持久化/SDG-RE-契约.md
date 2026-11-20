@@ -293,3 +293,89 @@ renderer 不提交项目绝对路径；projectId 仅作当前项目身份校验�
 - AC-11：§2、§4.3 + 资产与切片 D 回归。
 - AC-12：设计说明的视觉验收 + DOM/可用截图证据。
 - AC-13/14：任务清单验证项、变更记录及阶段文档边界。
+
+## 8. D-037 现行归并契约：命令幂等与资产绑定（2026-11-19）
+
+本节收编归档包 814 已存在的命令与资产关联契约；§2 的 Canvas v4 和 §3 的完整目标优先，旧根级 v3 仅作懒迁移输入。
+
+### 8.1 节点引用与命令
+
+```ts
+// CanvasNode 既有可选字段
+assetIds?: string[] // 真实资产索引 ID，按节点去重，最多 64 个
+
+// assets.bind / assets.unbind 使用既有 CanvasCommandRequest
+{
+  commandId: string
+  expectedRevision: number
+  command: {
+    type: 'assets.bind' | 'assets.unbind'
+    pageId: string
+    canvasId: string
+    nodeId: string
+    assetId: string
+  }
+}
+```
+
+bind 校验节点与资产存在并追加去重；unbind 移除目标 ID，重复解绑保持幂等。节点或资产不存在、目标不完整、参数 / 上限非法均拒绝，不创建空节点或空资产。操作资产引用不改坐标、连边、资产文件、meta 或 sourceSession。
+
+### 8.2 事务与重放
+
+- commandId + 稳定内容 hash 在项目内防重：相同命令直接返回原 receipt，不写盘、不广播；同 ID 不同内容为冲突。
+- expectedRevision 与当前值不符时不写盘；成功返回 `{revision, receipt}`，receipts 有界保存。页 / 画布 / 节点命令都按调用时捕获的 projectRoot 和完整目标执行，排队后切项目 / 切页不改投。
+- `active.set` / `viewport.set` 使用 §3.4 viewState 通道和同一队列，但不增加 revision / receipts；不得把视图操作包装成资产或结构命令。
+- `canvas.update` 的既有 MCP merge 入口只写固定活动画布，缺省 position 保留；不开放通用 MCP `canvas.write`。
+
+### 8.3 文件与广播
+
+Canvas v4 只写当前项目 canvas 目录；同目录临时文件 → 归档既有档案 → rename，失败保留旧 JSON。ENOENT 才表示文件不存在；坏 JSON / 非法结构返回 CANVAS_CORRUPT，不得自动重建覆盖。变更仅在当前项目 canvas 广播，不泄漏文件内容、项目绝对路径、回执全文或日志详情。
+
+### 8.4 选择、绑定 UI 与安全降级
+
+- 选中态由 `{projectId, pageId, canvasId, nodeId}` 范围派生，资产勾选仅在目标节点存在时生效；选择版本和请求身份共同防 stale 回写。
+- 绑定 / 解绑期间只禁用对应资产—节点操作，busy 与错误文案可访问；成功后刷新当前目标和选中数，失败不伪造已绑定。
+- 广播、revision 冲突或请求失败重新 get 当前目标；保留仍有效的其他节点选择，不因单请求失败清空全部选择。
+- 历史安全资产 chip 不因索引缺项、路径不安全或来源补写失败而阻断消息 / SSE；渲染器不直接读文件系统。821 的上传与来源契约、822 的对话引用契约不在本包复制或改写。
+
+## 9. Canvas 只读预检契约
+
+本节接收 825 的 CanvasStore 预检部分，补充 §1.2—§1.3 的解析 / 校验和 §8.3 的坏档保护。以下均为主进程内部能力，不新增 renderer API、IPC、preload、DTO 或共享类型。
+
+### 9.1 共用只读步骤
+
+```ts
+// CanvasStore 私有共用步骤；仅读显式项目根目录下的磁盘文件
+readFromDisk(projectDir): Promise<Canvas | null>
+
+// 主进程内部只读能力；成功仅表示 Canvas 可按同一判据读取
+assertReadable(projectDir): Promise<void>
+```
+
+- `readFromDisk` 依次执行读取既有文件、`JSON.parse`、v2/v3 migrate 与 v4 validate、磁盘 `projectId` 对目标目录身份校验；ENOENT 返回 `null`，合法文件返回有效 Canvas 投影。
+- `assertReadable` 不经过缓存，直接调用同一步骤并丢弃有效返回值；`null` 也视为预检成功，但不得创建 emptyCanvas。
+- 正式 `getForRoot` 才可先读缓存；缓存未命中时调用同一 `readFromDisk`。返回 `null` 时才创建空画布、原子写盘并填缓存；合法 v2/v3 仍只返回迁移投影，首次成功变更才写 v4。
+- `projectDir` 由主进程在合法项目上下文中显式捕获，不从全局 currentDir 二次猜测，不开放 renderer 任意路径参数。
+
+### 9.2 同一失败判据
+
+| 磁盘情况 | `readFromDisk` / 预检结果 | 禁止行为 |
+| --- | --- | --- |
+| 文件不存在 | 返回 `null` / 预检通过 | 预检不得建文件或填缓存 |
+| 合法 v2/v3/v4 | 返回有效投影 / 预检通过并丢弃结果 | 预检不得写迁移结果 |
+| 坏 JSON、未知 schemaVersion、非法页—画布结构、活动引用 / viewport / revision / receipts 损坏 | 抛 `CANVAS_CORRUPT` | 不得初始化空图、覆盖坏档或返回成功 |
+| 磁盘 `projectId` 与显式项目根身份不符 | 抛 `CANVAS_PROJECT_MISMATCH` | 不得改用缓存或其他项目 Canvas |
+
+预检与正式加载不得各自维护不同的解析、迁移 / 结构校验或项目身份判据。错误原样上抛，保留错误码与可读原因并 fail closed。
+
+### 9.3 零副作用契约
+
+`assertReadable` 及其共用只读步骤不得写盘、建 session、清门 / recover、reset 或填缓存、同步标题、广播或产生其他可观察写副作用；也不得读取当前 `session-state` 决定目标。预检通过只授予调用方继续其自身流程的条件，不等于项目打开已提交，不触发任何提交后动作。
+
+### 9.4 与 827 / 828 的接缝
+
+- 827：`openProject beforeCommit` guard 的位置、路径 / manifest 校验后的调用时机、session / currentDir 提交和项目写队列。
+- 828：完整 `project:open` 成功路径、提交点及提交后的清门、reset / recover、标题同步、最终画布读取和广播顺序。
+- 823：本节 Canvas 只读解析 / 校验与正式加载共用路径，以及既有 Canvas 文件、缓存和懒迁移行为。
+
+本契约不建立跨文件事务或通用项目打开回滚，不保证预检成功后的任意后置 I/O 故障或并发替换均被回滚。825 的完整打开历史结论仍留在原包，本次只归并现行 Canvas 约束。

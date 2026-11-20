@@ -2,7 +2,6 @@
 import { describe, expect, it, beforeAll, afterAll, vi, beforeEach } from 'vitest'
 import path from 'node:path'
 import fs from 'node:fs'
-import type { WriteFileOptions } from 'node:fs'
 import fsp from 'node:fs/promises'
 import os from 'node:os'
 
@@ -24,7 +23,7 @@ import {
 } from '../../../electron/settings/workspace'
 
 const originalRename = fsp.rename.bind(fsp)
-const originalWriteFileSync = fs.writeFileSync.bind(fs)
+const originalRenameSync = fs.renameSync.bind(fs)
 const originalFspWriteFile = fsp.writeFile.bind(fsp)
 
 function defaultRoot(): string {
@@ -293,11 +292,15 @@ describe('changeDir 搬移与回滚（契约 §5.1-3~8）', () => {
       'utf-8',
     )
 
-    vi.spyOn(fs, 'writeFileSync').mockImplementation((p: unknown, data?: unknown, options?: unknown) => {
-      if (String(p).endsWith('session-state.json')) {
-        throw new Error('EIO: inject session-state write failure')
+    vi.spyOn(fs, 'renameSync').mockImplementation((from: unknown, to: unknown) => {
+      if (
+        path.resolve(String(to)) === statePath() &&
+        path.basename(String(from)).startsWith('.session-state.json.') &&
+        String(from).endsWith('.tmp')
+      ) {
+        throw new Error('EIO: inject session-state rename failure')
       }
-      return originalWriteFileSync(p as string, data as string | Buffer, options as WriteFileOptions | undefined)
+      return (originalRenameSync as (...args: unknown[]) => void)(from, to)
     })
 
     await expect(changeDir(R1)).rejects.toMatchObject({ code: 'WORKSPACE_PERSIST_FAILED' })

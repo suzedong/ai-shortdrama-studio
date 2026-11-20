@@ -43,6 +43,8 @@ function Icon({ name, size = 14, className }: IconProps & { name: string }) {
     minus: <path d="M5 12h14" />,
     fit: <><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" /><rect x="8" y="8" width="8" height="8" rx="1" /></>,
     map: <><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Z" /><path d="M9 3v15M15 6v15" /></>,
+    back: <><path d="m15 18-6-6 6-6" /><path d="M9 12h11" /></>,
+    forward: <><path d="m9 18 6-6-6-6" /><path d="M4 12h11" /></>,
   }
   return <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>
 }
@@ -56,6 +58,8 @@ const Plus = (props: IconProps) => <Icon {...props} name="plus" />
 const Minus = (props: IconProps) => <Icon {...props} name="minus" />
 const Fit = (props: IconProps) => <Icon {...props} name="fit" />
 const MapIcon = (props: IconProps) => <Icon {...props} name="map" />
+const ChevronLeft = (props: IconProps) => <Icon {...props} name="back" />
+const ChevronRight = (props: IconProps) => <Icon {...props} name="forward" />
 
 const NODE_W = 168
 const NODE_H = 118
@@ -234,6 +238,10 @@ type BoardCommand =
   | { type: 'canvas.rename'; title: string }
   | { type: 'canvas.delete'; confirmNonEmpty?: boolean }
   | { type: 'node.move'; nodeId: string; position: CanvasPosition }
+  | { type: 'reference.create'; source: { target: Target; nodeId: string }; nodeId: string; position: CanvasPosition }
+
+type ReferenceDraft = { source: { target: Target; nodeId: string }; title: string }
+type NavigationHistory = { stack: Target[]; index: number }
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value))
 const finitePosition = (value: CanvasPosition | null | undefined): CanvasPosition | null =>
@@ -401,8 +409,12 @@ export default function CanvasBoard({
   const [error, setError] = useState<string | null>(null)
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState<DeleteConfirmation | null>(null)
+  const [referenceDraft, setReferenceDraft] = useState<ReferenceDraft | null>(null)
+  const [historyState, setHistoryState] = useState<NavigationHistory>(() => ({ stack: [target], index: 0 }))
+  const [historyPending, setHistoryPending] = useState(false)
 
   const viewportRef = useRef<HTMLDivElement>(null)
+  const historyRef = useRef(historyState)
   const viewRef = useRef(view)
   const nodesRef = useRef(nodes)
   const dragOverridesRef = useRef<Record<string, CanvasPosition>>({})
@@ -458,6 +470,33 @@ export default function CanvasBoard({
     setLocalCanvas({ base: canvas, value: next })
     onCanvasChange?.(next)
   }, [canvas, onCanvasChange])
+
+  const commitHistory = (next: NavigationHistory) => {
+    historyRef.current = next
+    setHistoryState(next)
+  }
+  const targetExists = (candidate: Target) => candidate.projectId === currentCanvas.projectId && currentCanvas.pages.some(item =>
+    item.id === candidate.pageId && item.canvases.some(canvasItem => canvasItem.id === candidate.canvasId))
+  const findHistoryIndex = (direction: -1 | 1) => {
+    const { stack, index } = historyState
+    for (let cursor = index + direction; cursor >= 0 && cursor < stack.length; cursor += direction) {
+      if (targetExists(stack[cursor])) return cursor
+    }
+    return null
+  }
+  const recordHistory = (nextTarget: Target) => {
+    const current = historyRef.current
+    if (targetKeyOf(current.stack[current.index]) === targetKeyOf(nextTarget)) return
+    const stack = [...current.stack.slice(0, current.index + 1), nextTarget]
+    commitHistory({ stack, index: stack.length - 1 })
+  }
+
+  useEffect(() => {
+    commitHistory({ stack: [target], index: 0 })
+    setReferenceDraft(null)
+    // 项目切换即开始一条新的会话内导航历史。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentCanvas.projectId])
 
   const persistViewport = (viewport: BoardViewport) => {
     const api = window.api?.canvas?.viewState
@@ -518,6 +557,9 @@ export default function CanvasBoard({
       case 'node.move':
         request = { ...envelope, type: input.type, pageId: capturedTarget.pageId, canvasId: capturedTarget.canvasId, nodeId: input.nodeId, position: input.position }
         break
+      case 'reference.create':
+        request = { ...envelope, type: input.type, target: capturedTarget, source: input.source, nodeId: input.nodeId, position: input.position }
+        break
     }
     pendingRef.current = input.type
     setPending(input.type)
@@ -528,11 +570,33 @@ export default function CanvasBoard({
     try {
       const result = await api(request)
       if (!isCurrent()) return
-      const next = input.type === 'node.move' || input.type === 'page.rename' || input.type === 'canvas.rename'
-        ? canvasAtTarget(result.canvas, capturedTarget)
-        : result.canvas
+      let nextTarget = capturedTarget
+      if (input.type === 'page.create' || input.type === 'canvas.create') {
+        if (result.target) {
+          nextTarget = result.target
+        } else {
+          const activePage = result.canvas.pages.find(item => item.id === result.canvas.activePageId) ?? result.canvas.pages[0]!
+          const activeDocument = activePage.canvases.find(item => item.id === activePage.activeCanvasId) ?? activePage.canvases[0]!
+          nextTarget = { projectId: result.canvas.projectId, pageId: activePage.id, canvasId: activeDocument.id }
+        }
+      }
+      if (input.type === 'page.delete' || input.type === 'canvas.delete') {
+        const fallbackPage = result.canvas.pages.find(item => item.id === capturedTarget.pageId) ?? result.canvas.pages[0]
+        const fallbackCanvas = fallbackPage.canvases.find(item => item.id === fallbackPage.activeCanvasId && item.id !== capturedTarget.canvasId) ?? fallbackPage.canvases[0]
+        nextTarget = { projectId: result.canvas.projectId, pageId: fallbackPage.id, canvasId: fallbackCanvas.id }
+      }
+      if (targetKeyOf(nextTarget) !== capturedKey) {
+        const switched = await changeTarget(nextTarget.pageId, nextTarget.canvasId, true, result.canvas)
+        if (!switched) {
+          publishCanvas(canvasAtTarget(result.canvas, capturedTarget))
+          pendingRef.current = null
+          setPending(null)
+          return
+        }
+      }
       if (input.type === 'node.move') clearDragOverride(input.nodeId)
-      publishCanvas(next)
+      if (input.type === 'reference.create') setReferenceDraft(null)
+      publishCanvas(canvasAtTarget(result.canvas, nextTarget))
       pendingRef.current = null
       setPending(null)
     } catch (reason) {
@@ -830,23 +894,49 @@ export default function CanvasBoard({
     onDropped?.(node ? 'node' : 'canvas', node ? { ...point, nodeId: node.id } : point)
   }
 
-  const changeTarget = (pageId: string, canvasId: string) => {
-    if (pageId === target.pageId && canvasId === target.canvasId) return
+  const changeTarget = async (pageId: string, canvasId: string, record = true, availableCanvas = currentCanvas): Promise<boolean> => {
+    if (pageId === target.pageId && canvasId === target.canvasId) return true
     const previous = currentCanvas
     const previousKey = targetKey
     const nextTarget: Target = { projectId: currentCanvas.projectId, pageId, canvasId }
+    if (nextTarget.projectId !== availableCanvas.projectId || !availableCanvas.pages.some(item => item.id === pageId && item.canvases.some(canvasItem => canvasItem.id === canvasId))) {
+      reportError('目标创作页或画布不存在')
+      return false
+    }
     const nextKey = targetKeyOf(nextTarget)
     const sequence = ++targetSwitchSequenceRef.current
     targetKeyRef.current = nextKey
-    publishCanvas(canvasAtTarget(currentCanvas, nextTarget))
+    publishCanvas(canvasAtTarget(availableCanvas, nextTarget))
     const api = window.api?.canvas?.viewState
-    if (!api) return
-    void api({ type: 'active.set', ...nextTarget }).catch(reason => {
-      if (sequence !== targetSwitchSequenceRef.current || nextKey !== targetKeyRef.current) return
+    if (!api) {
+      targetKeyRef.current = previousKey
+      publishCanvas(previous)
+      reportError('画布活动目标接口不可用')
+      return false
+    }
+    try {
+      await api({ type: 'active.set', ...nextTarget, activeView: 'canvas' })
+      if (sequence !== targetSwitchSequenceRef.current || nextKey !== targetKeyRef.current) return false
+      if (record) recordHistory(nextTarget)
+      return true
+    } catch (reason) {
+      if (sequence !== targetSwitchSequenceRef.current || nextKey !== targetKeyRef.current) return false
       targetKeyRef.current = previousKey
       publishCanvas(previous)
       reportError(`切换创作页或画布失败：${errorMessage(reason)}`)
-    })
+      return false
+    }
+  }
+
+  const navigateHistory = async (direction: -1 | 1) => {
+    if (historyPending) return
+    const index = findHistoryIndex(direction)
+    if (index === null) return
+    const nextTarget = historyState.stack[index]
+    setHistoryPending(true)
+    const changed = await changeTarget(nextTarget.pageId, nextTarget.canvasId, false)
+    if (changed) commitHistory({ stack: historyState.stack, index })
+    setHistoryPending(false)
   }
 
   const startRename = (kind: RenameTarget['kind']) => {
@@ -895,6 +985,32 @@ export default function CanvasBoard({
       : { type: 'canvas.delete', confirmNonEmpty: true })
   }
 
+  const pasteReference = (point: { x: number; y: number }) => {
+    if (!referenceDraft) return
+    void runCommand({
+      type: 'reference.create',
+      source: referenceDraft.source,
+      nodeId: crypto.randomUUID(),
+      position: worldPoint(point.x, point.y),
+    })
+  }
+
+  const openReferenceSource = async (node: CanvasNode) => {
+    const reference = node.reference
+    if (!reference) return
+    const sourcePage = currentCanvas.pages.find(item => item.id === reference.source.pageId)
+    const sourceCanvas = sourcePage?.canvases.find(item => item.id === reference.source.canvasId)
+    const sourceNode = sourceCanvas?.nodes.find(item => item.id === reference.artifactId)
+    if (!sourcePage || !sourceCanvas || !sourceNode?.ref?.path || !sourceNode.meta?.version) {
+      reportError('源产物不存在或缺少版本，无法定位')
+      return
+    }
+    const changed = await changeTarget(sourcePage.id, sourceCanvas.id)
+    if (!changed) return
+    setSelectedNodeId(sourceNode.id)
+    onOpenNode?.(sourceNode)
+  }
+
   const emitNodeAction = (node: CanvasNode, action: BoardNodeAction) => {
     const mapped: NodeAction = action === 'realign' ? 'regen'
       : action === 'ctx-copy' || action === 'ctx-ref' ? 'copy'
@@ -903,6 +1019,7 @@ export default function CanvasBoard({
   }
 
   const dirtyBanner = deriveDirtyBanner(nodes)
+  const referenceDirtyCount = nodes.filter(node => node.reference?.latestVersion && node.reference.latestVersion !== node.reference.version).length
   const drift = driftReminder(nodes)
   const briefVersion = latestBriefVersion(nodes)
   const menuNode = menu?.nodeId ? nodes.find(node => node.id === menu.nodeId) : undefined
@@ -925,6 +1042,10 @@ export default function CanvasBoard({
       <div data-canvas-management className="shrink-0 space-y-1.5 border-b border-line bg-surface px-3 py-2" aria-busy={pending !== null}>
         <div className="flex items-center gap-1.5 overflow-x-auto" aria-label="创作页管理">
           <span className="shrink-0 text-[10px] font-semibold text-muted">创作页</span>
+          <div className="flex shrink-0 items-center gap-0.5" aria-label="创作页导航历史">
+            <button type="button" className="grid h-6 w-6 place-items-center rounded-[5px] text-muted disabled:opacity-30" aria-label="后退一页" data-testid="canvas-history-back" title="后退一页" disabled={historyPending || findHistoryIndex(-1) === null} onClick={() => void navigateHistory(-1)}><ChevronLeft size={12} /></button>
+            <button type="button" className="grid h-6 w-6 place-items-center rounded-[5px] text-muted disabled:opacity-30" aria-label="前进一页" data-testid="canvas-history-forward" title="前进一页" disabled={historyPending || findHistoryIndex(1) === null} onClick={() => void navigateHistory(1)}><ChevronRight size={12} /></button>
+          </div>
           <div role="tablist" aria-label="创作页" className="flex min-w-0 items-center gap-1.5">
             {currentCanvas.pages.map(item => renameTarget?.kind === 'page' && item.id === page.id ? (
               <div key={item.id} className="flex shrink-0 items-center gap-1">
@@ -1019,6 +1140,11 @@ export default function CanvasBoard({
           {drift && <div className="mt-0.5">{drift}</div>}
         </div>
       )}
+      {referenceDirtyCount > 0 && (
+        <div data-reference-dirty-banner className="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] text-amber-700">
+          有 {referenceDirtyCount} 个跨页引用基于旧版源产物；固定版本保持不变，可打开源产物查看最新版。
+        </div>
+      )}
 
       <div
         ref={viewportRef}
@@ -1094,6 +1220,7 @@ export default function CanvasBoard({
           {nodes.map(node => {
             const position = positions.get(node.id)!
             const dirty = Boolean(node.dirty)
+            const referenceDirty = Boolean(node.reference?.latestVersion && node.reference.latestVersion !== node.reference.version)
             const selected = selectedNodeId === node.id
             const refPath = node.ref?.path ?? '未落盘'
             const fileName = refPath.split(/[\\/]/).pop() ?? refPath
@@ -1105,10 +1232,11 @@ export default function CanvasBoard({
                 key={node.id}
                 data-node-id={node.id}
                 data-dirty={dirty ? 'true' : undefined}
+                data-reference-dirty={referenceDirty ? 'true' : undefined}
                 role="button"
                 tabIndex={0}
                 aria-label={`${kindLabel(node.kind)}：${node.title}`}
-                className={`absolute bg-surface flex flex-col rounded-lg border p-2.5 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-violet/40 ${selected ? 'border-violet ring-2 ring-violet/25' : dirty ? 'border-amber-400 ring-1 ring-amber-300/60' : 'border-line'} ${node.status === 'active' ? 'animate-pulse cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
+                className={`absolute bg-surface flex flex-col rounded-lg border p-2.5 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-violet/40 ${selected ? 'border-violet ring-2 ring-violet/25' : dirty || referenceDirty ? 'border-amber-400 ring-1 ring-amber-300/60' : 'border-line'} ${node.status === 'active' ? 'animate-pulse cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
                 style={{ left: position.x, top: position.y, width: NODE_W, height: NODE_H }}
                 onPointerDown={event => startNodeDrag(event, node)}
                 onClick={() => openNode(node)}
@@ -1120,9 +1248,11 @@ export default function CanvasBoard({
                 <div className="flex items-start justify-between gap-1">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-violet">{kindLabel(node.kind)}</span>
                   {dirty && <span data-dirty-badge={node.id} title={dirtyTitle(node)} className="shrink-0 text-xs text-amber-500">⚠</span>}
+                  {referenceDirty && <span data-reference-dirty-badge={node.id} className="shrink-0 text-[9px] text-amber-600">源已至 {node.reference?.latestVersion}</span>}
                 </div>
                 <div className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-ink">{node.title}</div>
                 <div className="mt-0.5 truncate text-[9px] text-muted" title={refPath}>{fileName}</div>
+                {node.reference && <div data-reference-badge={node.id} className="mt-0.5 text-[9px] text-violet">引用 {node.reference.version} · 源产物 {node.reference.artifactId}</div>}
                 <div className="mt-auto flex items-end justify-between gap-1">
                   <div className="min-w-0 text-[9px] text-muted">
                     <div>
@@ -1175,7 +1305,7 @@ export default function CanvasBoard({
             <div className="relative h-20 w-[180px]">
               {nodes.map(node => {
                 const position = positions.get(node.id)!
-                return <div key={node.id} className={`absolute rounded-[1px] ${node.dirty ? 'bg-amber-400' : selectedNodeId === node.id ? 'bg-violet' : 'bg-violet/35'}`} style={{ left: minimapOffset.x + (position.x - bounds.minX) * minimapScale, top: minimapOffset.y + (position.y - bounds.minY) * minimapScale, width: Math.max(2, NODE_W * minimapScale), height: Math.max(2, NODE_H * minimapScale) }} />
+                return <div key={node.id} className={`absolute rounded-[1px] ${node.dirty || (node.reference?.latestVersion && node.reference.latestVersion !== node.reference.version) ? 'bg-amber-400' : selectedNodeId === node.id ? 'bg-violet' : 'bg-violet/35'}`} style={{ left: minimapOffset.x + (position.x - bounds.minX) * minimapScale, top: minimapOffset.y + (position.y - bounds.minY) * minimapScale, width: Math.max(2, NODE_W * minimapScale), height: Math.max(2, NODE_H * minimapScale) }} />
               })}
               {miniViewport && <div data-minimap-viewport className="pointer-events-none absolute border border-violet/70 bg-violet/5" style={miniViewport} />}
             </div>
@@ -1201,9 +1331,16 @@ export default function CanvasBoard({
             { key: 'ref', label: '引用到对话', onSelect: () => emitNodeAction(menuNode, 'ctx-ref') },
             { key: 'invalidate', label: '标记失效', onSelect: () => emitNodeAction(menuNode, 'invalidate') },
             ...(menuNode.dirty ? [{ key: 'realign', label: '重新对齐', onSelect: () => emitNodeAction(menuNode, 'realign') }] : []),
+            ...(menuNode.ref?.path && menuNode.meta?.version && !menuNode.reference ? [{
+              key: 'copy-formal-reference',
+              label: '复制正式引用',
+              onSelect: () => setReferenceDraft({ source: { target, nodeId: menuNode.id }, title: menuNode.title }),
+            }] : []),
+            ...(menuNode.reference ? [{ key: 'open-reference-source', label: '打开源产物', onSelect: () => { void openReferenceSource(menuNode) } }] : []),
           ] : [
             { key: 'fit', label: '适应内容', onSelect: () => fitCanvas(true) },
             { key: 'reset-zoom', label: '重置缩放', onSelect: () => setZoom(0.9) },
+            ...(referenceDraft && referenceDraft.source.target.pageId !== target.pageId ? [{ key: 'paste-formal-reference', label: '粘贴正式引用', onSelect: () => pasteReference(menu) }] : []),
           ]}
         />
       )}

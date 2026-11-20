@@ -189,7 +189,7 @@
 
 <header>
   <div class="kicker">AI SHORT DRAMA · AGENT PLATFORM</div>
-  <h1>短剧 Agent 平台设计<span class="tag">v1.24 · 2026-11-15</span></h1>
+  <h1>短剧 Agent 平台设计<span class="tag">v1.26 · 2026-11-18</span></h1>
   <div class="sub">全面复刻 MiniMax Design、短剧生产闭环优先的 AI Agent 桌面平台 · 一块画布 = 一条生产线，一个指令 = 一支团队</div>
   <div class="stats">
     <div class="stat"><div class="sv">8</div><div class="sl">业务闭环</div><div class="su">0 立项 → 7 发布</div></div>
@@ -201,7 +201,7 @@
     <div class="stat"><div class="sv">93</div><div class="sl">测试文件</div><div class="su">P0 实测（2026-11-15）· 91 passed / 2 failed</div></div>
   </div>
   <div class="fact">可视化呈现 · 事实以 <a href="../../短剧Agent平台设计.md">短剧Agent平台设计.md</a> 为准
-    <span class="src">来源：设计 md v1.24</span><span class="src">台账 D-016·D-023·D-024·D-031·D-032·D-033·D-034</span><span class="src">2026-11-15</span>
+    <span class="src">来源：设计 md v1.26</span><span class="src">台账 D-016·D-023·D-024·D-031·D-032·D-033·D-034·D-035·D-036·D-037</span><span class="src">D-037 镜像 2026-11-19</span>
   </div>
 </header>
 
@@ -226,7 +226,7 @@
     <div class="step"><div class="sn">7</div><div class="st">发布</div><div class="sb">成片 / 切片 / 渠道交付</div></div>
   </div>
   <div class="note"><b>执行语义（v1.21，D-031 / D-032）</b>：八步是<b>产物归属与汇总验收里程碑</b>，不是“完成一步才能开始下一步”的全局串行启动锁。具体任务按<b>最小产物依赖 DAG</b> 调度，允许多个 STAGE 同时进行中；STAGE 0–7 均明确最小调度产物、真实硬依赖、可提前准备 / 草稿试产、正式生成 / 锁定、两级验收和精准影响范围。故事大纲、人物设定与主视觉风格具备后，即可开展角色概念 / 定妆，不必等待完整剧本分场；后期与发布按单集下沉。八步仍是<b>业务验收基线</b>，不允许合并或裁剪；某一步整体完成仍要求该步应交付产物覆盖完整并通过验收。</div>
-  <p class="dim">现状（2026-11-15）：任务包按八步模块分段编号（0xx–7xx + 8xx），现行 29 包均已落地或实施；0–2 步已有基础（含 feature-201 的 2-c 分镜文字稿，自动化通过、未真机验收），3–7 步完整生产闭环待实施；feature-817 实现已落地、验收中。现存代码与新设计存在偏差处按现行任务包对照本设计对齐重建。当前线性状态与固定编排不视为目标全局锁，目标调度模型见 §2.1 / §7.1。</p>
+  <p class="dim">现状（2026-11-19，D-037）：24 个现行负责包 + 22 个历史归档包，46 个目录原位保留；归档仅作历史追溯，不承接新 Change。P0 已完成，P1 未通过；feature-201 的 2-c 真机人工验收仍开放，feature-817 的真实 AI runtime、OptionCard、任务详情和 Gate 现场未全闭环，feature-829 继续实施中。现存代码与新设计存在偏差处按现行任务包对照本设计对齐重建；当前线性状态与固定编排不视为目标全局锁，目标调度模型见 §2.1 / §7.1。本轮归并不构成 Parity、产品能力或真机验收通过。</p>
   <table>
   <tr><th>旧体系</th><th>本平台</th></tr>
   <tr><td>proj.py 状态机 + 子进程包装</td><td>多 Agent 消息总线 + 专职 Agent 协作</td></tr>
@@ -488,7 +488,7 @@
     <li><b>流程导航快捷入口</b>（方案 A 左栏流程导航分区）：点 STAGE 0 步骤进入 v1.9 视图，步骤旁显示当前版本号 + 待对齐计数（<code>✓ v3</code> / <code>v1 ⚠️2</code>）。</li>
     <li><b>生产中实测反补</b>：STAGE 3 资产规格不符、STAGE 4 分镜时长不匹配等实测问题，可在产出节点旁"反补到立项"按钮发起变更。</li>
   </ul>
-  <p><b>字段改动与影响范围映射</b>（字段口径；具体阈值已随 feature-002 / feature-011 落地）：</p>
+  <p><b>字段改动与影响范围映射</b>（现行数据与 Agent 协议归 feature-001，影响视图归 feature-013；feature-002 / 011 仅保留历史实施血缘）：</p>
   <table>
   <tr><th>字段分类</th><th>字段举例</th><th>可能影响的下游产物</th></tr>
   <tr><td>项目标题 / 标签 / 备注</td><td>项目显示名 / <code>tags</code></td><td>仅项目元数据，由系统直改；不再版 brief，下游无感</td></tr>
@@ -518,7 +518,7 @@
   <p>详见 §2.6.7 影响评估机制、§2.6.8 画布布局与界面对应。</p>
 
   <h4>2.6.7 影响评估机制：追溯算法、面板与处理动作（v1.10 新增，v1.17 修订）</h4>
-  <div class="note">本节细化 §2.6.6 提出的"影响必标记 + 决策归用户"，给出可执行算法与 UI 草图。数据模型与 Agent 提示词已随 feature-002 落地；系统直改再版与影响评估面板已随 feature-011 落地。保存成功后先完成再版与挂脏，再弹出面板（D-017）；面板关闭不撤销已落盘内容（D-024）。<b>当前 brief 专用实现与目标通用 DAG 分开陈述</b>：前者不冒称已实现任意产物精确版本影响计算，后者不把 <code>parentReference.briefVersion</code> 当作终态唯一血缘模型。</div>
+  <div class="note">本节细化 §2.6.6 提出的"影响必标记 + 决策归用户"，给出可执行算法与 UI 草图。现行数据模型与 Agent 协议归 feature-001，系统直改再版与影响评估面板归 feature-013；feature-002 / 011 仅保留历史实施血缘。保存成功后先完成再版与挂脏，再弹出面板（D-017）；面板关闭不撤销已落盘内容（D-024）。<b>当前 brief 专用实现与目标通用 DAG 分开陈述</b>：前者不冒称已实现任意产物精确版本影响计算，后者不把 <code>parentReference.briefVersion</code> 当作终态唯一血缘模型。</div>
   <div class="chain">
     <span class="c">① diff 提取</span><span class="ca">→</span>
     <span class="c">② 依赖图反向遍历</span><span class="ca">→</span>
@@ -661,7 +661,7 @@
   <tr><td>runtime:session:create / list / abort / delete</td><td>Agent 会话管理；会话声明可用 MCP 工具（<code>tools[]</code>）</td></tr>
   <tr><td>runtime:prompt / prompt:async</td><td>消息入会话，Agent 规划并调用工具；异步走事件流</td></tr>
   <tr><td>runtime:event:subscribe / unsubscribe</td><td>事件流：text / reasoning / tool.call / structured 分轨，UI 可折叠展示</td></tr>
-  <tr><td>服务商与模型设置（feature-003）</td><td>火山方舟 / LM Studio 二选一（D-021）；safeStorage 加密存 userData，LM Studio 本地 / 局域网免 Key，均需连接预检</td></tr>
+  <tr><td>服务商与模型设置（feature-014）</td><td>火山方舟 / LM Studio 二选一（D-021）；safeStorage 加密存 userData，LM Studio 本地 / 局域网免 Key，均需连接预检</td></tr>
   </table>
   <div class="grid g3">
     <div class="card"><div class="ct">最小依赖与双轨门控 <span class="src s-b">D-031</span></div><div class="cb">生成动作按具体任务的最小产物依赖读取上游，不再以固定文本链或整个 STAGE 状态统一拦截。草稿轨可读已声明的草稿 / 已确认版本并标记“试产”；正式生成 / 锁定只读已确认版本并记录 <code>artifactId + version + requiredStatus</code>。缺料报告具体产物、版本或确认状态，不静默产出。<code>runtime:*</code> 单轨是调用通道，与生产双轨不冲突（见 §2.1 / §7.1）。</div></div>
@@ -671,12 +671,12 @@
   <h3>5.2 工具族（MCP 网关：已落地 + 目标）</h3>
   <p>平台内置 MCP 网关（仅本机），工具以 schema 声明、统一鉴权审计。<b>已落地（磁盘实况，29 个纯工具 / 11 族；物理 ID = <code>shortdrama_&lt;tool&gt;</code>）</b>：</p>
   <div class="grid g4">
-    <div class="card"><div class="ct">画布 3 <code>canvas.get / update / align</code></div><div class="cb">画布节点与连线读写；align 为重生成定稿后清脏并推进血缘版本（feature-002）。</div></div>
+    <div class="card"><div class="ct">画布 3 <code>canvas.get / update / align</code></div><div class="cb">画布节点与连线读写；align 为重生成定稿后清脏并推进血缘版本（feature-001）。</div></div>
     <div class="card"><div class="ct">文件 3 <code>file.list / read / write</code></div><div class="cb">项目内文本产物读写（路径白名单）。</div></div>
     <div class="card"><div class="ct">资产 2 <code>asset.list / register</code></div><div class="cb">资产索引检索与登记。</div></div>
     <div class="card"><div class="ct">ComfyUI 3 <code>instances / queue / status</code></div><div class="cb">引擎实例探活、队列、状态（renderer 不直连）。</div></div>
     <div class="card"><div class="ct">确认门 1 <code>gate.request</code></div><div class="cb">确认门请求（放行 / 否决须确认令牌）。</div></div>
-    <div class="card"><div class="ct">立项 5 <code>brief.plan / publish / list / impact.assess / impact.commit</code></div><div class="cb">就绪校验 + diff、版本化发布、历史列出（feature-001）；再版影响评估与提交（feature-002）。</div></div>
+    <div class="card"><div class="ct">立项 5 <code>brief.plan / publish / list / impact.assess / impact.commit</code></div><div class="cb">就绪校验 + diff、版本化发布、历史列出及影响提交的数据与 Agent 协议归 feature-001；影响评估视图归 feature-013，feature-002 仅保留历史实施血缘。</div></div>
     <div class="card"><div class="ct">状态机 2 <code>manifest.get / advance</code></div><div class="cb">阶段状态指针读取与定稿推进（feature-801）。</div></div>
     <div class="card"><div class="ct">视觉风格 3 <code>style.catalog / get / validate</code></div><div class="cb">谱系 18 项读取、单条取明细、立项风格引用校验（feature-802，读 <code>resources/H3-Style/</code>）。</div></div>
     <div class="card"><div class="ct">已捕获口径 4 <code>capture.list / upsert / upsert_many / remove</code></div><div class="cb">立项对话事实库读写：来源 user/infer × 状态 confirmed/pending，常驻区行内编辑与对话纠正共用（feature-005）。</div></div>
@@ -815,7 +815,7 @@
     <li><b>缺料与持久化</b>：缺料指出具体产物、版本或确认状态，不以“上游阶段未完成”替代，也不静默降级；文本产物 JSON 源 + MD 镜像双写。</li>
     <li><b>单集末端与显式跨镜边</b>：后期按单集剪辑 / 合成 / 验收，发布按单集 / 单渠道 / 单物料组织；普通相邻镜头不建依赖边，只有 <code>continuation</code>、前段末帧 / 视频等显式引用才形成跨镜依赖。DAG 就绪状态与 ComfyUI 资源排队状态分别计算、分别展示。</li>
   </ol>
-  <p>立项后变更按 §2.6.6 / §2.6.7 全字段可改 + 影响评估 + 用户决策（<code>manifest.briefVersion</code> + <code>parentReference</code> + <code>影响清单.vN-v(N+1).json</code>，feature-002 包落地），并在目标依赖图中纳入同样的精准传播。</p>
+  <p>立项后变更按 §2.6.6 / §2.6.7 全字段可改 + 影响评估 + 用户决策（<code>manifest.briefVersion</code> + <code>parentReference</code> + <code>影响清单.vN-v(N+1).json</code>）；现行数据与 Agent 协议归 feature-001，影响视图归 feature-013，feature-002 仅保留历史实施血缘，并在目标依赖图中纳入同样的精准传播。</p>
   <div class="grid g3">
     <div class="card"><div class="ct">版本归档区（持久化机制）</div><div class="cb"><b>目录约定</b>：任何产物文件被覆盖前，旧文件自动移入同目录 <code>版本/&lt;basename&gt;.&lt;YYYYMMDD-HHmmss&gt;&lt;ext&gt;</code>；同秒冲突追加 <code>.N</code> 序号。<code>manifest.json</code> 永不归档。<b>副本语义</b>：归档失败（rename/mkdir 异常）向上抛错阻断本次写入——宁可写入失败也不做无备份覆盖。<b>触发点</b>：立项单定稿、剧本 / 分镜 .json/.md 双写、背景档案保存。<b>消费方式</b>：消息历史复用 opencode 原生会话存储（平台不另建消息 JSON，<code>chat.messages.json</code> 终态作废，R-001）；<code>.session.json</code> 仅持久化 <code>activeSessionId</code> 绑定，重开项目经 SDK <code>session.messages</code> 回放消息流，其中 unlock 消息对 source 为 idea/background 的 unlock 取 <code>newIdea</code>/档案全文，从 <code>版本/</code> 目录反查对应历史版本文件作为 diff 参照；UI 历史角标点击展示同目录版本快照。</div></div>
     <div class="card"><div class="ct">视觉风格谱系（外部数据源）</div><div class="cb">系统级外部数据源（注册路径 / 版本跟踪 / 引用风格 ID + 谱系版本），完整约定见 §8.3；当前实现 <code>electron/style/</code> 模块以代码内 ID 注册表 + 谱系 md 运行时解析交叉核对（版本号不硬编码，非法 ID 或版本 / 数据漂移即拒），与 §8.3 机制并存。辅助风格仅允许 B/D 候选域（§2.6.4）。</div></div>
@@ -872,20 +872,20 @@
     <div class="card"><div class="ct">桌面应用 <span class="src s-a">Design 原有</span></div><div class="cb">macOS / Windows，安装即用，不依赖 docker。</div></div>
     <div class="card"><div class="ct">内部架构 <span class="src s-a">Design 原有</span></div><div class="cb">本地 MCP 网关（仅 127.0.0.1）+ Agent 运行时 + 引擎适配器 + 画布前端。</div></div>
     <div class="card"><div class="ct">数据 <span class="src s-b">改编</span></div><div class="cb">默认本地，支持文件服务跨机；引擎地址可配置局域网实例。</div></div>
-    <div class="card"><div class="ct">密钥 <span class="src s-c">自研新增</span></div><div class="cb">火山方舟 Key 经 safeStorage 加密存入 userData；不可加密即拒绝保存，禁止 .env 等明文落盘。LM Studio 本地 / 局域网无需云端 Key。</div></div>
+    <div class="card"><div class="ct">密钥 <span class="src s-c">自研新增</span></div><div class="cb">火山方舟 Key 经 safeStorage 加密存入 userData；不可加密即拒绝保存，应用级配置禁止明文写回文件。开发态环境变量回退按 D-021 第 6 条保留（store 缺席回退 process.env，明文 Key 不出主进程内存）。LM Studio 本地 / 局域网无需云端 Key。</div></div>
   </div>
 </section>
 
 <!-- ═══ 11 落地路线 ═══ -->
 <section id="sec-11">
-  <div class="sec-head"><span class="sec-no">11</span><h2>落地路线 <span class="src s-c">自研新增</span></h2><span class="hint">§11 · D-034；D-031 / D-032 产物 DAG 不变</span></div>
-  <div class="note"><b>唯一总体开发计划</b>：<a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划 v0.6</a>（P0—P7 阶段路线与当前阶段门的正文入口）；本节只定义交付门口径，不复制阶段视图。<b>当前阶段（2026-11-16）</b>：P0 基线收口完成；P1 已越过启动阻塞，仍因资产上传、真实缩略图、资产引用、多画布与持久化缺口而未通过；P2—P7 未到对应阶段门验收。</div>
-  <div class="note" style="border-left-color:var(--amber)"><b>基线补充（2026-11-16）</b>：<a href="../features/feature-818-Renderer基线类型修复/SDG-AI-变更记录.md">feature-818</a> 已修复 3 条 Renderer 测试类型错误；<a href="../features/feature-819-Agent运行时模板解析修复/SDG-AI-变更记录.md">feature-819</a> 已解除开发态运行时模板路径阻塞，真实 Electron 对话往返通过；<a href="../features/feature-820-一级入口与伪造状态收口/SDG-AI-变更记录.md">feature-820</a> 已完成底栏真实状态与 Skill / 插件 / 本地模型一级入口收口。当前 <code>typecheck</code>、完整 Renderer 构建及 architecture + studio-flow 29 / 29 通过；P0 报告保持历史快照，不据此宣称后续全量测试常绿。</div>
-  <div class="note" style="border-left-color:var(--amber)"><b>当前回归边界（2026-11-16）</b>：全量 Vitest 为 <b>81 / 93 文件通过、12 文件失败</b>（1,111 通过、85 失败、1 跳过）。失败集中于谱系 v1.47 临时目验改动与 Windows profile 夹具，已登记 <a href="../设计现状与偏差清单.md">B-70</a>。真机证据与剩余 P1 缺口见 <a href="../verification/p1-2026-11-15/P1调查记录.md">P1 调查记录补记二</a>；下一入口为切片 C「资产上传与真实缩略图」，须先建包并处理 K1 / K8。</div>
+  <div class="sec-head"><span class="sec-no">11</span><h2>落地路线 <span class="src s-c">自研新增</span></h2><span class="hint">§11 · D-034 / D-035 / D-036 / D-037；D-031 / D-032 产物 DAG 不变</span></div>
+  <div class="note"><b>唯一总体开发计划</b>：<a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划 v0.14</a>（P0—P7 阶段路线与当前阶段门的正文入口）；本节只定义交付门口径，不复制阶段视图。<b>当前阶段（2026-11-18，D-036）</b>：P0 基线收口完成；P1 采用“可信工作台闭环”口径，切片 A—F 已闭环，但包含恢复语义的扩展退出门尚未通过；P2—P7 未到对应阶段门验收。</div>
+  <div class="note" style="border-left-color:var(--amber)"><b>基线补充（2026-11-16，历史）</b>：<a href="../features/feature-818-Renderer基线类型修复/SDG-AI-变更记录.md">feature-818</a> 已修复 3 条 Renderer 测试类型错误；<a href="../features/feature-819-Agent运行时模板解析修复/SDG-AI-变更记录.md">feature-819</a> 已解除开发态运行时模板路径阻塞，真实 Electron 对话往返通过；<a href="../features/feature-820-一级入口与伪造状态收口/SDG-AI-变更记录.md">feature-820</a> 已完成底栏真实状态与 Skill / 插件 / 本地模型一级入口收口。当时 <code>typecheck</code>、完整 Renderer 构建及 architecture + studio-flow 29 / 29 通过；P0 报告保持历史快照，不据此宣称后续全量测试常绿。</div>
+  <div class="note" style="border-left-color:var(--amber)"><b>当前回归边界（2026-11-19，D-037 仅同步归属）</b>：<a href="../features/feature-826-谱系测试基线收口/SDG-AI-变更记录.md">feature-826</a> 已登记全量 Vitest <b>96 个测试文件全过、1,276 通过、1 跳过</b>，<code>typecheck</code> 通过，B-70 闭环；feature-824 检出的 F824-01／B-71 已由 feature-825 修复并独立复验。上述 824 / 825 / 826 编号与测试数字仅作历史证据；现行项目库与打开事务归 feature-828，Canvas 恢复与写安全分别归 feature-823 / 827，谱系业务归 feature-802，通用测试门禁与数据落点归 feature-830。feature-817 的真实 Agent 运行时输入、OptionCard、Gate 及 Agent 模式现场验收仍未完成；D-035／D-036 扩展退出门须逐 Feature 建包取证。D-036 文档同步与本次 D-037 归属同步均未重跑产品测试；归并不构成 P1、Parity 或真机验收通过。</div>
   <table>
     <tr><th>阶段</th><th>交付门</th><th>范围与退出条件</th><th>当前基线</th></tr>
     <tr><td>P0</td><td>基线收口</td><td>D-034、Parity 矩阵、现有任务包校准、测试 / 构建 / 环境基线；只登记在线服务待决清单</td><td><b>基线收口完成</b>；不自动批准 K1/K8/K9 或产品代码实施</td></tr>
-    <tr><td>P1</td><td>桌面工作台</td><td>项目、会话、画布、确认门、diff、对话、双主题、设置与恢复；按最小产物依赖 DAG 打通 STAGE 0—2 局部就绪</td><td><b>进行中 · 未通过</b>：启动与真实对话已通；上传、真实缩略图、资产引用、多画布、视口恢复及故障注入待完成</td></tr>
+    <tr><td>P1</td><td>桌面工作台</td><td><b>可信工作台闭环（D-035／D-036）</b>：项目、会话、多画布、自由布局、资产引用、手动连线、自动整理整体快照 undo/redo、定位＋高亮＋弱化、文本 Diff＋写入前确认、静态完整项目包、轻量通知与恢复；revision 冲突保留双版并经 Diff 由用户选择，异常退出恢复最后有效状态且运行中执行标为“已中断”，Agent 恢复消息／OptionCard／Gate／产物现场并由人工确认新运行；按最小产物依赖 DAG 打通 STAGE 0—2 局部就绪</td><td><b>切片 A—F 已闭环 · 扩展退出门未通过</b>：撤销历史不跨重启；导入会话只读，续聊新建并记录来源；页历史、跨页正式引用、完整快捷键／动画、完整媒体任务中心及归档／模板／迁移后置</td></tr>
     <tr><td>P2</td><td>统一媒体引擎</td><td>ComfyUI 多实例、任务中心、参考 / 本地权重选择、队列 / 恢复 / 收片、资产登记与真实三卡验证</td><td>仅 H3 Image 文生图生产链已验收；资产中心 UI、第二实例与禁用行为待验</td></tr>
     <tr><td>P3</td><td>视觉生产链</td><td>角色 / 场景 / 道具资产、生产分镜、H3 图像 / 视频镜头链；落实按镜实引门与显式 continuation</td><td>H3 视频、图像编辑与其他参考能力尚未成为生产入口</td></tr>
     <tr><td>P4</td><td>后期与发布</td><td>时间线、剪辑、字幕、声音、混音、成片、切片与渠道规格</td><td>语音通道未裁决前只能管理待配文本、任务与既有素材</td></tr>
@@ -893,6 +893,8 @@
     <tr><td>P6</td><td>完整产品面候选</td><td>3D、浏览器、代码 / 网页、协作 / 移动入口等逐域裁决；可不纳入</td><td>不得建立一个“大复刻包”</td></tr>
     <tr><td>P7</td><td>全量验收与发布</td><td>按 Parity 矩阵、八步闭环、异常恢复、性能、安装升级与证据总验收</td><td>最终只认已复刻 / 改编通过 / 经决策不纳入</td></tr>
   </table>
+  <div class="note"><b>D-036 恢复口径</b>：revision 冲突禁止静默最后写入优先，保留磁盘版与待提交版并展示文本 Diff，由用户选择重载磁盘版、另存副本或显式覆盖；异常退出恢复最后有效项目、画布和已落盘产物，运行中执行标为“已中断”并保留日志，用户确认后才可重试，不自动重新提交；Agent 保留消息、OptionCard、Gate 和产物状态，未决 Gate 不代决、未提交选项不代选，重试创建带血缘的新运行记录，不伪装接续原 Token 流。</div>
+  <div class="note"><b>D-036 后置目标</b>：页历史仅做应用内轻量前进／后退并持久化最后位置，不跨重启保留完整浏览栈，不替代产物版本历史；跨页正式引用采用“产物 ID＋版本”，源产物再版只挂脏实际引用者；归档默认列表隐藏、完整保留、只读且可解除；模板只含结构、配置和说明并实例化新项目与新 ID；迁移基于静态完整项目包执行 schema 版本、缺失资产和兼容性预检，默认建副本，不静默原地升级。上述后置目标不构成当前 P1 退出门或实施授权。</div>
   <div class="note" style="border-left-color:var(--amber)"><b>产物 DAG 与双轨门控不被阶段路线替代</b>：继续统一任务 / 产物 ID、逻辑引用、精确版本血缘与生产轨道，实现依赖展开、单产物验收、阶段汇总和精准挂脏；按 STAGE 0—2 局部就绪、STAGE 3—5 资产分支与按镜实引门、STAGE 6—7 单集 / 单渠道下沉逐步替换固定 Agent 编排与线性 <code>manifest.status</code> 的职责。草稿试产与正式生产保持双轨，局部结果不冒充全剧 ready。当前生产仅由 feature-816 接入 H3 Image 文生图，H3 视频与 Music3 仍待各自 Feature 接入；每次契约 / 接口变化须先走对应任务包与 K8 卡口。</div>
 </section>
 
@@ -910,8 +912,12 @@
 
 <!-- ═══ 13 版本记录 ═══ -->
 <section id="sec-13">
-  <div class="sec-head"><span class="sec-no">13</span><h2>版本记录</h2><span class="hint">§13 · v1.0 → v1.24</span></div>
+  <div class="sec-head"><span class="sec-no">13</span><h2>版本记录</h2><span class="hint">§13 · v1.0 → v1.26</span></div>
   <div class="timeline">
+    <div class="tl"><div class="vh">v1.26 <span class="vd">2026-11-18 · D-036</span></div>
+      <div class="vb">§11 补充 P1 恢复退出门：revision 冲突保留双版并经文本 Diff 由用户选择，异常退出恢复最后有效状态且运行中执行标为“已中断”，Agent 恢复消息／OptionCard／Gate／产物现场并由人工确认带血缘的新运行。页历史、跨页正式引用及归档／模板／迁移只登记后置目标，不构成当前实施授权。同步 feature-826 的 96 个测试文件全过、1,276 通过、1 跳过及 B-70 闭环；本次未重跑产品测试。</div></div>
+    <div class="tl"><div class="vh">v1.25 <span class="vd">2026-11-18 · D-035</span></div>
+      <div class="vb">§11 明确 P1“可信工作台闭环”：手动连线、自动整理整体快照 undo/redo、定位＋高亮＋弱化、文本 Diff＋写入前确认、静态完整项目包及轻量通知纳入 P1；页历史、跨页正式引用、完整快捷键／动画及完整媒体任务中心后置。撤销历史不跨重启；导入会话只读，续聊新建本地会话并记录来源。参考端差异逐项裁决。本次仅改设计与治理文档，不直接授权 Feature 实施、共享类型、IPC/MCP 或依赖变更。</div></div>
     <div class="tl"><div class="vh">v1.24 <span class="vd">2026-11-15 · D-034 收口补充</span></div>
       <div class="vb">§11 增加唯一总体开发计划《MiniMax Design全面复刻开发计划》入口及当前阶段口径：P0 基线收口完成，P1 处于准入调查且未通过退出门，P2—P7 未到对应阶段门验收。补充 P0 后由 feature-818 修复 3 条 Renderer 测试类型错误，当前 typecheck 与完整 Renderer 构建通过；P0 报告与原始日志保持历史快照，不全量改写为全绿。本次仅改文档，未改产品代码、共享类型、IPC/MCP 或依赖。</div></div>
     <div class="tl"><div class="vh">v1.23 <span class="vd">2026-11-15 · D-034</span></div>
@@ -959,9 +965,9 @@
 </section>
 
 <footer>
-  <span>短剧 Agent 平台设计 · 设计 v1.24 · 镜像同步 2026-11-16</span>
-  <span class="src">规范事实源：短剧Agent平台设计.md v1.24 · 实施状态：总规划 v0.6 / 任务包索引 36 包</span>
-  <span class="src">台账 D-005 · D-011 · D-012 · D-016 · D-023 · D-024 · D-031 · D-032 · D-033 · D-034</span>
+  <span>短剧 Agent 平台设计 · 设计 v1.26 · D-037 镜像同步 2026-11-19</span>
+  <span class="src">规范事实源：短剧Agent平台设计.md v1.26 · 实施状态：总规划 v0.14 / 24 个现行负责包 + 22 个历史归档包（46 个目录）</span>
+  <span class="src">台账 D-005 · D-011 · D-012 · D-016 · D-023 · D-024 · D-031 · D-032 · D-033 · D-034 · D-037（仅归属同步）</span>
 </footer>
 
 </main>

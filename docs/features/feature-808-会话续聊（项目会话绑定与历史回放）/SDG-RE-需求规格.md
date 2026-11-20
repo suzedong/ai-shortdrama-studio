@@ -127,3 +127,18 @@ Design 的会话形态是**项目即会话**：左栏项目列表就是会话入
 - **AC8（R8 dev-mock）**：浏览器 mock 态应用可用：演示气泡不变、控制台无「api 不是函数」类错误；新通道均有桩。
 - **AC9（工程红线）**：`npm run typecheck` 不新增错误（基线 T1 实测冻结：当前仅 2 条 canvas-zoom.test.tsx 历史基线错误）；node/preload 双工程 tsc 退出码 0；全量 vitest passed 不减少、skipped/failed 不扩大（基线 T1 实测：40 文件 431 passed / 1 skipped，skip=T8-4 需 ARK Key）；静态契约套件（architecture 红线 renderer 禁直连 runtime 端口、mcp-pure-tools、agent-profiles 等）无感通过。
 - **AC10（卡口与修订）**：K1 改动仅 `activeSessionId?: string | null` 一处；K8 新增恰为 2 个 IPC（`runtime:session:messages`、`project:active-session` **双态**：无参读 / `{sessionId}` 写，D-004）+ openProject 返回值扩展，preload/global.d.ts/runtime-types 三处镜像齐备且形状一致；package.json/package-lock.json 与 resources/opencode 零 diff（K9）；设计书 L564/L599 完成 R-001 修订且两个 HTML 镜像按 OD 口径处理，修订记入门本包变更记录。
+
+## 6. D-037 现行归并约束（2026-11-19）
+
+本节自包含承接 feature-819 的运行时模板路径修复约束，以及 feature-010 的 reasoning / 工具轨迹历史回放数据约束。此次只归并现行规格，不新增产品能力。
+
+| 编号 | 现行有效需求 |
+| :-- | :-- |
+| R37-01 | **Agent 模板路径按真实启动形态解析**：`resolveAgentTemplatePath(file)` 的签名不变；打包态判据为 `app.isPackaged && !process.defaultApp`。`process.defaultApp` 为真时必须读取仓库 `<root>/resources/opencode/agents/<file>`；真打包态读取 `process.resourcesPath/opencode/agents/<file>`。 |
+| R37-02 | **路径错误不得静默降级**：模板不存在沿用 ENOENT；`__MODEL_REF__` 等必需占位符缺失沿用既有 INTERNAL 明确报错。不得改读 `node_modules/electron/dist/resources` 的残留副本、用旧模板兜底或伪造 runtime 启动成功。 |
+| R37-03 | **历史回放数据完整且有序**：同一用户/助手轮次的正文、reasoning 与工具调用须按原始 partId / callId 顺序形成可回放段；多段推理不得折叠丢失，纯 reasoning / 纯工具轮不得因正文为空被丢弃，同 callId 的状态更新原位替换。ignored / synthetic 文本及 system / tool-role 原始消息继续按现行 H1–H4 规则过滤。 |
+| R37-04 | **流式与重载同口径**：Think、正文和工具状态在流式期间与关闭重开后使用同一排序、过滤与字段映射；重载由空输入开始构建历史，不沿用上轮 `streaming`，不伪造仍在运行的动画。 |
+| R37-05 | **工具数据最小披露**：回放保留工具名、callId、pending/running/completed/error 状态、起止时间、错误文本与既有白名单 `argsPreview`；完整 input/output、附件和工具结果继续按 H6 排除。010 的 resultSummary 愿望不得被解释为开放完整结果或新增未批字段；没有可信摘要时显示已有状态/错误，不编造。 |
+| R37-06 | **职责边界**：本包只负责会话绑定、运行时模板解析、回放 DTO / 数据归约与失败降级；交错内容、活跃态、滚动和卡片视觉归 feature-817。808 与 817 独立，本包不吞并视觉，也不承担 001 的立项定案协议。 |
+
+**范围声明**：无新 IPC、MCP / Agent 协议、共享类型或依赖；内部模板解析函数签名与既有回放通道不变。本 Change 是文档归并，不把历史修复写成新的真机验收完成。

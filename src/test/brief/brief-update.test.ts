@@ -12,6 +12,7 @@ vi.mock('electron', () => ({
 }))
 
 import { updateBriefFields } from '../../../electron/brief/update'
+import { clearStyleCatalogCache } from '../../../electron/style/loader'
 import { writeSessionState } from '../../../electron/project/library'
 import { canvasStore } from '../../../electron/canvas/store'
 import { MANIFEST_FILE } from '../../../electron/project/manifest'
@@ -30,7 +31,7 @@ const baseBrief: ProjectBrief = {
     leads: '28 岁女白领 / 30 岁男医生', time: '2024 年', place: '上海',
     coreEvent: '医院重逢', seasonBoundary: '第一季只讲相识',
   },
-  style: { mainStyleId: 'A7', catalogVersion: 'v1.46' },
+  style: { mainStyleId: 'A7', catalogVersion: 'v1.47' },
   diagnosisDetail: '诊断明细基线', // D-018：面板不动明细，验证原样沿用
   approve: { at: '2026-10-16T08:00:00.000Z', by: 'gate' },
   changesFromPrevious: [],
@@ -101,7 +102,10 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  clearStyleCatalogCache()
 })
+
+const REAL_MD = path.join(process.cwd(), 'resources', 'H3-Style', 'AI短剧制作视觉风格谱系.md')
 
 describe('D-017 修改立项面板直写（updateBriefFields）', () => {
   it('无已发布立项 → BRIEF_NO_BASELINE，零写盘', async () => {
@@ -155,7 +159,7 @@ describe('D-017 修改立项面板直写（updateBriefFields）', () => {
     expect(v2.approve.by).toBe('ui')
     expect(v2.fiveElements.episodeCount).toBe('100 集')
     expect(v2.fiveElements.genre).toBe('甜宠')
-    expect(v2.style).toEqual({ mainStyleId: 'A7', catalogVersion: 'v1.46' })
+    expect(v2.style).toEqual({ mainStyleId: 'A7', catalogVersion: 'v1.47' })
     expect(v2.diagnosisDetail).toBe('诊断明细基线') // D-018：明细不经面板，原样沿用
 
     // v2 md：定案行渲染为「修改立项面板直改」
@@ -269,6 +273,15 @@ describe('feature-810 style.catalogVersion 键（谱系升级采纳 · 直改通
     await fsp.writeFile(canvasPath, JSON.stringify(c0, null, 2), 'utf-8')
     canvasStore.reset()
 
+    // 固定历史 v1.46 当前版，正式谱系后续升级不改变本用例的采纳区间。
+    const originalReadFile = fsp.readFile.bind(fsp)
+    const realText = await originalReadFile(REAL_MD, 'utf-8')
+    const historicalCatalog = realText.replace(/本文版本：谱系\s*v1\.47/, '本文版本：谱系 v1.46')
+    vi.spyOn(fsp, 'readFile').mockImplementation((async (p: unknown) => {
+      if (p === REAL_MD) return historicalCatalog
+      return originalReadFile(p as Parameters<typeof fsp.readFile>[0], 'utf-8')
+    }) as typeof fsp.readFile)
+    clearStyleCatalogCache()
     const r = await updateBriefFields(projDir, { style: { catalogVersion: 'v1.46' } })
     expect(r.version).toBe(2)
     expect(r.changes).toEqual([
@@ -293,10 +306,10 @@ describe('feature-810 style.catalogVersion 键（谱系升级采纳 · 直改通
     expect(manifest.briefVersion).toBe(2)
   })
 
-  it('catalogVersion 同基线（值同 v1.46）→ INVALID_ARGUMENT，零写盘', async () => {
+  it('catalogVersion 同基线（值同 v1.47）→ INVALID_ARGUMENT，零写盘', async () => {
     const before = await fsp.readdir(projDir)
     await expect(
-      updateBriefFields(projDir, { style: { catalogVersion: 'v1.46' } }),
+      updateBriefFields(projDir, { style: { catalogVersion: 'v1.47' } }),
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' })
     await expect(fsp.readdir(projDir)).resolves.toEqual(before)
   })
@@ -452,6 +465,24 @@ function mockWriteFailure(target: string, message: string, always = false): void
   }) as unknown as typeof fsp.writeFile)
 }
 
+/** manifest 已改为原子替换，在提交点注入失败；默认允许后续补偿写透传。 */
+function mockManifestRenameFailure(target: string, message: string, always = false): void {
+  let injected = false
+  vi.spyOn(fsp, 'rename').mockImplementation(((
+    from: unknown, to: unknown
+  ) => {
+    if (
+      path.resolve(String(to)) === target &&
+      String(from).endsWith('.tmp') &&
+      (always || !injected)
+    ) {
+      injected = true
+      return Promise.reject(Object.assign(new Error(message), { code: 'INJECT_WRITE' }))
+    }
+    return (originalRename as (...args: unknown[]) => Promise<unknown>)(from, to)
+  }) as unknown as typeof fsp.rename)
+}
+
 async function expectAbsent(name: string): Promise<void> {
   await expect(fsp.access(path.join(projDir, name))).rejects.toMatchObject({ code: 'ENOENT' })
 }
@@ -496,7 +527,7 @@ describe('updateBriefFields 跨文件失败补偿', () => {
       await expect(fsp.readFile(path.join(projDir, '立项单.v1.json'), 'utf-8')).resolves.toBe(v1Before)
       await expect(fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')).resolves.toBe(manifestBefore)
       await expect(fsp.readFile(path.join(projDir, 'canvas.json'), 'utf-8')).resolves.toBe(canvasBefore)
-      expect(await canvasStore.get()).toBe(cachedBefore)
+      expect(await canvasStore.get()).toStrictEqual(cachedBefore)
       expect(broadcasts).toEqual([])
     } finally {
       unsubscribe()
@@ -535,7 +566,7 @@ describe('updateBriefFields 跨文件失败补偿', () => {
     await fsp.writeFile(reportAbs, reportBefore, 'utf-8')
     const manifestAbs = path.join(projDir, MANIFEST_FILE)
     const manifestBefore = await fsp.readFile(manifestAbs, 'utf-8')
-    mockWriteFailure(manifestAbs, 'INJECT_MANIFEST')
+    mockManifestRenameFailure(manifestAbs, 'INJECT_MANIFEST')
 
     await expect(updateBriefFields(projDir, patch)).rejects.toThrow('INJECT_MANIFEST')
     await expectAbsent(jsonName)
@@ -555,7 +586,7 @@ describe('updateBriefFields 跨文件失败补偿', () => {
       file: unknown, ...rest: unknown[]
     ) => {
       const name = String(file)
-      if (name.startsWith(`${canvasAbs}.`) && name.endsWith('.tmp')) {
+      if (path.dirname(name) === projDir && path.basename(name).startsWith('.canvas.') && name.endsWith('.tmp')) {
         return Promise.reject(new Error('INJECT_CANVAS'))
       }
       return (originalOpen as (...args: unknown[]) => Promise<unknown>)(file, ...rest)
@@ -569,7 +600,7 @@ describe('updateBriefFields 跨文件失败补偿', () => {
       await expect(fsp.readFile(path.join(projDir, MANIFEST_FILE), 'utf-8')).resolves.toBe(manifestBefore)
       await expect(fsp.readFile(canvasAbs, 'utf-8')).resolves.toBe(canvasBefore)
       await expect(fsp.access(path.join(projDir, '版本'))).rejects.toMatchObject({ code: 'ENOENT' })
-      expect(await canvasStore.get()).toBe(cachedBefore)
+      expect(await canvasStore.get()).toStrictEqual(cachedBefore)
       expect(broadcasts).toEqual([])
     } finally {
       unsubscribe()
@@ -590,7 +621,7 @@ describe('updateBriefFields 跨文件失败补偿', () => {
 
   it('manifest 补偿也失败 → BRIEF_UPDATE_ROLLBACK_FAILED 保留原错误与补偿错误', async () => {
     const manifestAbs = path.join(projDir, MANIFEST_FILE)
-    mockWriteFailure(manifestAbs, 'INJECT_MANIFEST_ALWAYS', true)
+    mockManifestRenameFailure(manifestAbs, 'INJECT_MANIFEST_ALWAYS', true)
 
     await expect(updateBriefFields(projDir, patch)).rejects.toMatchObject({
       code: 'BRIEF_UPDATE_ROLLBACK_FAILED',
@@ -629,7 +660,7 @@ describe('updateBriefFields 跨文件失败补偿', () => {
       expect(archives).toHaveLength(1)
       await expect(fsp.readFile(path.join(projDir, '版本', archives[0]!), 'utf-8')).resolves.toBe(canvasBefore)
       expect((await fsp.readdir(projDir)).filter(name => name.endsWith('.tmp'))).toEqual([])
-      expect(await canvasStore.get()).toBe(cachedBefore)
+      expect(await canvasStore.get()).toStrictEqual(cachedBefore)
       expect(broadcasts).toEqual([])
     } finally {
       unsubscribe()

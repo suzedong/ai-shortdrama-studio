@@ -7,8 +7,9 @@ import path from 'node:path'
 import fsp from 'node:fs/promises'
 import type { BriefDraft, ProjectBrief, ProjectKind } from '../../shared/types.js'
 import { enqueue } from '../fs/write-queue.js'
+import { writeTextAtomic } from '../fs/atomic.js'
 import { resolveInside } from '../fs/sandbox.js'
-import { MANIFEST_FILE, parseManifest, applyBriefVersion } from '../project/manifest.js'
+import { MANIFEST_FILE, parseManifest, applyBriefVersion, writeManifestFile } from '../project/manifest.js'
 import { canvasStore } from '../canvas/store.js'
 import { loadStyleCatalog } from '../style/loader.js'
 import { diffBrief } from './diff.js'
@@ -211,7 +212,7 @@ export async function updateBriefFields(
 
       // manifest 指针推进（不追加 statusHistory）
       manifestWriteAttempted = true
-      await fsp.writeFile(manifestAbs, JSON.stringify(nextManifest, null, 2), 'utf-8')
+      await writeManifestFile(projectDir, nextManifest)
 
       // 画布单次写：全部 item 挂脏 + brief 节点 upsert；原子写失败保留旧正档与 cache
       const markedDirty = assessment.items.map(i => i.nodeId)
@@ -270,7 +271,7 @@ export async function updateBriefFields(
           : fsp.writeFile(reportAbs, reportOriginal, 'utf-8'))
       }
       if (manifestWriteAttempted) {
-        await attemptRollback(() => fsp.writeFile(manifestAbs, manifestOriginal, 'utf-8'))
+        await attemptRollback(() => writeTextAtomic(manifestAbs, manifestOriginal))
       }
 
       if (rollbackErrors.length > 0 || originalError.code === 'CANVAS_RESTORE_FAILED') {

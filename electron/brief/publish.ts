@@ -9,7 +9,7 @@ import type {
 } from '../../shared/types.js'
 import { enqueue } from '../fs/write-queue.js'
 import { resolveInside } from '../fs/sandbox.js'
-import { MANIFEST_FILE, parseManifest, applyBriefVersion } from '../project/manifest.js'
+import { MANIFEST_FILE, parseManifest, applyBriefVersion, writeManifestFile } from '../project/manifest.js'
 import { diffBrief } from './diff.js'
 import { latestReadableEntry } from './plan.js'
 import { renderBriefMd } from './render-md.js'
@@ -137,7 +137,7 @@ export async function publishV1InQueue(
       }
       const manifest = parseManifest(JSON.parse(text), new Date().toISOString())
       const next = applyBriefVersion(manifest, 1, new Date().toISOString())
-      await fsp.writeFile(manifestAbs, JSON.stringify(next, null, 2), 'utf-8')
+      await writeManifestFile(projectDir, next)
     }
     return written
   })

@@ -14,6 +14,7 @@ import { app, dialog } from 'electron'
 import type { BrowserWindow } from 'electron'
 import { enqueue } from '../fs/write-queue.js'
 import { archiveExisting } from '../fs/archive.js'
+import { writeTextAtomicSync } from '../fs/atomic.js'
 
 // -- 形状（契约 §1.1 / §2.1 / §2.3） ------------------------------------------------
 
@@ -130,7 +131,7 @@ function readSessionCurrentDir(): string | null {
 
 function writeSessionCurrentDir(dir: string): void {
   fs.mkdirSync(path.dirname(sessionStateFile()), { recursive: true })
-  fs.writeFileSync(sessionStateFile(), JSON.stringify({ currentDir: dir }, null, 2), 'utf-8')
+  writeTextAtomicSync(sessionStateFile(), JSON.stringify({ currentDir: dir }, null, 2))
 }
 
 // -- changeDir（契约 §2.3） --------------------------------------------------------------

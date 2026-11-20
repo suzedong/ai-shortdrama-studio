@@ -153,6 +153,24 @@ declare global {
     counts: { high: number; medium: number }
     items: ImpactSummaryItemDto[]
   }
+  // feature-828 · 静态项目包只读会话快照与详情（K1 零触发）
+  type ProjectSessionSnapshotDto = {
+    sourceProjectId: string
+    sourceSessionId: string
+    exportedAt: string
+    messages: RuntimeSessionMessageRecord[]
+  }
+  type ProjectDetailDto = {
+    dir: string
+    projectId: string
+    title: string
+    createdAt: string
+    updatedAt: string
+    lastOpenedAt: string
+    status: string
+    current: boolean
+    snapshots: ProjectSessionSnapshotDto[]
+  }
   // feature-015 · 裁决后置动作结果（IPC 推送体，不进 shared；K1 零触发）
   type GateExecutionDto =
     | { ok: true; summary: string }
@@ -161,13 +179,19 @@ declare global {
     api: {
       // 项目库（feature-011 F13）
       listProjects: () => Promise<{
-        dir: string; name: string; createdAt?: string; updatedAt: string
+        dir: string; name: string; createdAt?: string; updatedAt: string; lastOpenedAt: string
       }[]>
       createProject: (name?: string) => Promise<{ dir: string }>
       openProject: (dir: string) => Promise<{ ok: true; activeSessionId: string | null }>
       // B-19：项目改名/删除（K8 已批）
       renameProject: (dir: string, title: string) => Promise<{ ok: true; title: string }>
       deleteProject: (dir: string) => Promise<{ ok: true }>
+      projectDetail: (dir: string) => Promise<ProjectDetailDto>
+      projectReveal: (dir: string) => Promise<{ ok: true }>
+      projectImport: () => Promise<{ canceled: true } | { canceled: false; dir: string }>
+      projectExport: (dir: string) => Promise<
+        { canceled: true } | { canceled: false; exportDir: string; sessionSnapshotExported: boolean }
+      >
       // D-017：修改立项面板直写（K8 已批；approve.by 恒 'ui'，受影响节点全仅挂脏）
       // feature-013：白名单扩键（全字段直改 + L0 标签/备注）
       updateBrief(patch: {

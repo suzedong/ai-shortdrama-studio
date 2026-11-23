@@ -221,8 +221,8 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   <h1>架构与<em>模块关系图</em></h1>
   <p class="lede">一张图看清平台<b>四层运行边界、模块归属、runtime 单轨与数据血缘</b>：渲染层 → 主进程 → opencode 子进程 → 外部世界，媒体全部收敛于局域网 ComfyUI。</p>
   <div class="verline">
-    <span class="chip">设计基准 <b>设计 v1.27 · 总规划 v0.15</b></span>
-    <span class="chip">D-039 镜像同步 <b>2026-11-20</b>（24 个现行负责包 + 1 个历史归档包 / 25 个目录 · 29 个 MCP 工具 / 11 个业务族）</span>
+    <span class="chip">设计基准 <b>设计 v1.28 · 总规划 v0.16</b></span>
+    <span class="chip">D-040 镜像同步 <b>2026-11-20</b>（24 个现行目录 / 0 个历史归档目录 · 29 个 MCP 工具 / 11 个业务族）</span>
     <span class="chip">技术栈 <b>Electron 33 · React 18 · TS 5.6 · Vite</b></span>
     <span class="chip">Agent 运行时 <b>opencode 1.18 + MCP</b></span>
     <span class="chip">画像 <b>P2</b>（多模块 · 长期演进）</span>
@@ -233,14 +233,14 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   </div>
   <div class="truth-banner" style="border-color:var(--amber)">
     <span class="tb-ic" style="border-color:var(--amber);color:var(--amber)">CURRENT</span>
-    <span><b>现行归属与目录边界（2026-11-20，D-039）</b>：D-037 的模块—Feature—Change 归属规则不变；24 个现行负责包 + 1 个历史归档包（feature-826），共 25 个目录，其余 21 个被删目录仅从 Git 历史追溯。P0 基线收口完成，P1 仍未通过，feature-829 继续实施中；目录清理不改变任何验收结论。2026-11-16 的回归快照 <b>81 / 93 文件通过、12 文件失败</b> 仅作历史记录。IPC 按业务域展示，具体注册点以 <code>electron/main.ts</code> 为准；阶段门见 <a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划</a>。</span>
+    <span><b>现行归属与目录边界（2026-11-20，D-040）</b>：D-037 的模块—Feature—Change 归属规则不变；24 个目录全部为现行负责包，历史归档目录为 0，D-039／D-040 删除的 22 个历史目录仅从 Git 追溯。P0 基线收口完成，P1 仍未通过，feature-829 继续实施中；目录清理不改变任何验收结论。2026-11-16 的回归快照 <b>81 / 93 文件通过、12 文件失败</b> 仅作历史记录。IPC 按业务域展示，具体注册点以 <code>electron/main.ts</code> 为准；阶段门见 <a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划</a>。</span>
   </div>
 </header>
 
 <!-- ══════ 01 四层架构 ══════ -->
 <section id="layers">
   <div class="sec-head rv"><span class="sec-no">01</span><h2>四层运行架构</h2></div>
-  <p class="sec-sub rv">信任从左到右逐级收窄：renderer 不直连任何外部服务与 ComfyUI；媒体调用一律收敛于主进程 / MCP 引擎工具。<b>下图为 2026-11-20 当前架构镜像</b>；对话通道遵循 D-012 runtime 单轨，业务与媒体边界按设计 v1.27 / D-034 / D-037 归属规则 / D-039 清理边界展示。</p>
+  <p class="sec-sub rv">信任从左到右逐级收窄：renderer 不直连任何外部服务与 ComfyUI；媒体调用一律收敛于主进程 / MCP 引擎工具。<b>下图为 2026-11-20 当前架构镜像</b>；对话通道遵循 D-012 runtime 单轨，业务与媒体边界按设计 v1.28 / D-034 / D-037 归属规则 / D-039／D-040 清理边界展示。</p>
 
   <div class="diagram rv">
     <div class="legend">
@@ -330,7 +330,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 02 模块清单 ══════ -->
 <section id="modules">
   <div class="sec-head rv"><span class="sec-no">02</span><h2>模块清单与落地状态</h2></div>
-  <p class="sec-sub rv">模块按进程归属分组。<b>以下为 2026-11-20 当前架构镜像</b>（对话通道遵循 D-012 runtime 单轨；业务与媒体边界按设计 v1.27 / D-034 / D-037 归属规则 / D-039 清理边界）；模块存在不等于 P1 阶段门已通过。</p>
+  <p class="sec-sub rv">模块按进程归属分组。<b>以下为 2026-11-20 当前架构镜像</b>（对话通道遵循 D-012 runtime 单轨；业务与媒体边界按设计 v1.28 / D-034 / D-037 归属规则 / D-039／D-040 清理边界）；模块存在不等于 P1 阶段门已通过。</p>
 
   <table class="mtab rv">
     <thead><tr><th>模块</th><th>职责</th><th>状态</th></tr></thead>
@@ -410,7 +410,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
 <!-- ══════ 04 数据血缘 ══════ -->
 <section id="data">
   <div class="sec-head rv"><span class="sec-no">04</span><h2>会话目录与数据血缘</h2></div>
-  <p class="sec-sub rv">纯 JSON / Markdown 文件持久化，无数据库。<b>下列目录树保留为 2026-10-09 历史结构样例</b>；工作区根目录可配置，现行血缘与版本规则以设计 v1.27 §7.1 及当前实现为准。</p>
+  <p class="sec-sub rv">纯 JSON / Markdown 文件持久化，无数据库。<b>下列目录树保留为 2026-10-09 历史结构样例</b>；工作区根目录可配置，现行血缘与版本规则以设计 v1.28 §7.1 及当前实现为准。</p>
 
   <div class="dltree rv"><span class="cmt"># 历史结构样例：项目工作区（2026-10-09 核对，非当前目验）</span>
 <span class="dir">~/Documents/ai-shortdrama-studio/</span>   <span class="cmt"># 默认根，可经设置面板更换（feature-813）</span>
@@ -523,11 +523,11 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
     <div class="src-grid">
       <div class="src-row">
         <span class="si-base">A · 架构</span>
-        <div><div class="si-ti">短剧Agent平台设计.md（v1.27）</div><div class="si-sub">D-034 全面复刻定位 · D-037 归属规则与 D-039 目录清理 · §4 多 Agent 架构 · §5 MCP 工具层与 runtime 单轨（28 个业务工具 / 11 族，另有 tool.search） · §7/§7.1 目录与实体 · §8 引擎通道 · §11 P0—P7 路线 · §13 版本记录</div></div>
+        <div><div class="si-ti">短剧Agent平台设计.md（v1.28）</div><div class="si-sub">D-034 全面复刻定位 · D-037 归属规则与 D-039／D-040 目录清理 · §4 多 Agent 架构 · §5 MCP 工具层与 runtime 单轨（28 个业务工具 / 11 族，另有 tool.search） · §7/§7.1 目录与实体 · §8 引擎通道 · §11 P0—P7 路线 · §13 版本记录</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 决策</span>
-        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-012 / D-021 / D-022 / D-023 / D-033 / D-034 / D-037 / D-039）</div><div class="si-sub">runtime 单轨；文本服务二选一；Agent 调度权限；媒体固定 H3 Image / H3 / Music3 并经 ComfyUI；D-034 全面复刻定位；D-037 负责归属与 D-039 历史目录清理分别生效</div></div>
+        <div><div class="si-ti">docs/governance/SDG-AI-决策台账.md（D-012 / D-021 / D-022 / D-023 / D-033 / D-034 / D-037 / D-039 / D-040）</div><div class="si-sub">runtime 单轨；文本服务二选一；Agent 调度权限；媒体固定 H3 Image / H3 / Music3 并经 ComfyUI；D-034 全面复刻定位；D-037 负责归属与 D-039／D-040 历史目录清理分别生效</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">A · 治理</span>
@@ -535,7 +535,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
       </div>
       <div class="src-row">
         <span class="si-base">A · 新包</span>
-        <div><div class="si-ti">docs/features/（24 个现行负责包 + 1 个历史归档包 · 2026-11-20）</div><div class="si-sub">共 25 个目录；保留 feature-826，其余 21 个被删目录仅从 Git 历史追溯；逐包现行状态与验收口径以索引及各任务清单为准</div></div>
+        <div><div class="si-ti">docs/features/（24 个现行负责包 · 0 个历史归档目录 · 2026-11-20）</div><div class="si-sub">共 24 个目录；D-039／D-040 删除的 22 个历史目录仅从 Git 追溯；逐包现行状态与验收口径以索引及各任务清单为准</div></div>
       </div>
       <div class="src-row">
         <span class="si-base">代码核对</span>
@@ -545,7 +545,7 @@ details.source-index[open] summary::before{transform:rotate(90deg)}
   </div>
 </details>
 
-<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准 · 2026-11-20 D-039 清理同步：24 个现行负责包 + 1 个历史归档包（feature-826），共 25 个目录；其余 21 个仅从 Git 历史追溯 / 29 个 MCP 工具。D-037 归属规则不变；当前 P0 已完成、P1 未通过，feature-829 继续实施中；2026-11-16 回归 81 / 93 文件通过仅作历史快照。历史快照：2026-11-02—03 曾记录 27→28 包、28 个业务工具及 1029 用例通过，仅作编年史。</div>
+<div class="foot-note">B 类可视化 · 事实以 A 类 .md 为准 · 2026-11-20 D-040 清理同步：24 个现行负责包 / 0 个历史归档目录；D-039／D-040 删除的 22 个历史目录仅从 Git 追溯 / 29 个 MCP 工具。D-037 归属规则不变；当前 P0 已完成、P1 未通过，feature-829 继续实施中；2026-11-16 回归 81 / 93 文件通过仅作历史快照。历史快照：2026-11-02—03 曾记录 27→28 包、28 个业务工具及 1029 用例通过，仅作编年史。</div>
 </main>
 </div>
 

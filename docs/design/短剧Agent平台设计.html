@@ -189,7 +189,7 @@
 
 <header>
   <div class="kicker">AI SHORT DRAMA · AGENT PLATFORM</div>
-  <h1>短剧 Agent 平台设计<span class="tag">v1.27 · 2026-11-20</span></h1>
+  <h1>短剧 Agent 平台设计<span class="tag">v1.28 · 2026-11-20</span></h1>
   <div class="sub">全面复刻 MiniMax Design、短剧生产闭环优先的 AI Agent 桌面平台 · 一块画布 = 一条生产线，一个指令 = 一支团队</div>
   <div class="stats">
     <div class="stat"><div class="sv">8</div><div class="sl">业务闭环</div><div class="su">0 立项 → 7 发布</div></div>
@@ -201,7 +201,7 @@
     <div class="stat"><div class="sv">93</div><div class="sl">测试文件</div><div class="su">P0 实测（2026-11-15）· 91 passed / 2 failed</div></div>
   </div>
   <div class="fact">可视化呈现 · 事实以 <a href="../../短剧Agent平台设计.md">短剧Agent平台设计.md</a> 为准
-    <span class="src">来源：设计 md v1.27</span><span class="src">台账 D-016·D-023·D-024·D-031·D-032·D-033·D-034·D-035·D-036·D-037·D-039</span><span class="src">D-039 镜像 2026-11-20</span>
+    <span class="src">来源：设计 md v1.28</span><span class="src">台账 D-016·D-023·D-024·D-031·D-032·D-033·D-034·D-035·D-036·D-037·D-039·D-040</span><span class="src">D-040 镜像 2026-11-20</span>
   </div>
 </header>
 
@@ -226,7 +226,7 @@
     <div class="step"><div class="sn">7</div><div class="st">发布</div><div class="sb">成片 / 切片 / 渠道交付</div></div>
   </div>
   <div class="note"><b>执行语义（v1.21，D-031 / D-032）</b>：八步是<b>产物归属与汇总验收里程碑</b>，不是“完成一步才能开始下一步”的全局串行启动锁。具体任务按<b>最小产物依赖 DAG</b> 调度，允许多个 STAGE 同时进行中；STAGE 0–7 均明确最小调度产物、真实硬依赖、可提前准备 / 草稿试产、正式生成 / 锁定、两级验收和精准影响范围。故事大纲、人物设定与主视觉风格具备后，即可开展角色概念 / 定妆，不必等待完整剧本分场；后期与发布按单集下沉。八步仍是<b>业务验收基线</b>，不允许合并或裁剪；某一步整体完成仍要求该步应交付产物覆盖完整并通过验收。</div>
-  <p class="dim">现状（2026-11-20，D-039）：24 个现行负责包 + 1 个历史归档包（feature-826），共 25 个目录；其余 21 个被删目录的原始文档仅从 Git 历史追溯，保留归档与 Git 历史均不承接新 Change。D-037 归属规则不变。P0 已完成，P1 未通过；feature-201 的 2-c 真机人工验收仍开放，feature-817 的真实 AI runtime、OptionCard、任务详情和 Gate 现场未全闭环，feature-829 继续实施中。现存代码与新设计存在偏差处按现行任务包对照本设计对齐重建；当前线性状态与固定编排不视为目标全局锁，目标调度模型见 §2.1 / §7.1。目录清理不构成 Parity、产品能力或真机验收通过。</p>
+  <p class="dim">现状（2026-11-20，D-040）：24 个目录全部为现行负责包，历史归档目录为 0；D-039／D-040 删除的 22 个历史目录原始文档仅从 Git 追溯，历史编号不承接新 Change。D-037 归属规则不变。P0 已完成，P1 未通过；feature-201 的 2-c 真机人工验收仍开放，feature-817 的真实 AI runtime、OptionCard、任务详情和 Gate 现场未全闭环，feature-829 继续实施中。现存代码与新设计存在偏差处按现行任务包对照本设计对齐重建；当前线性状态与固定编排不视为目标全局锁，目标调度模型见 §2.1 / §7.1。目录清理不构成 Parity、产品能力或真机验收通过。</p>
   <table>
   <tr><th>旧体系</th><th>本平台</th></tr>
   <tr><td>proj.py 状态机 + 子进程包装</td><td>多 Agent 消息总线 + 专职 Agent 协作</td></tr>
@@ -878,11 +878,11 @@
 
 <!-- ═══ 11 落地路线 ═══ -->
 <section id="sec-11">
-  <div class="sec-head"><span class="sec-no">11</span><h2>落地路线 <span class="src s-c">自研新增</span></h2><span class="hint">§11 · D-034 / D-035 / D-036 / D-037 / D-039；D-031 / D-032 产物 DAG 不变</span></div>
-  <div class="note"><b>唯一总体开发计划</b>：<a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划 v0.15</a>（P0—P7 阶段路线与当前阶段门的正文入口）；本节只定义交付门口径，不复制阶段视图。<b>当前阶段（2026-11-18，D-036）</b>：P0 基线收口完成；P1 采用“可信工作台闭环”口径，切片 A—F 已闭环，但包含恢复语义的扩展退出门尚未通过；P2—P7 未到对应阶段门验收。</div>
+  <div class="sec-head"><span class="sec-no">11</span><h2>落地路线 <span class="src s-c">自研新增</span></h2><span class="hint">§11 · D-034 / D-035 / D-036 / D-037 / D-039 / D-040；D-031 / D-032 产物 DAG 不变</span></div>
+  <div class="note"><b>唯一总体开发计划</b>：<a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划 v0.16</a>（P0—P7 阶段路线与当前阶段门的正文入口）；本节只定义交付门口径，不复制阶段视图。<b>当前阶段（2026-11-18，D-036）</b>：P0 基线收口完成；P1 采用“可信工作台闭环”口径，切片 A—F 已闭环，但包含恢复语义的扩展退出门尚未通过；P2—P7 未到对应阶段门验收。</div>
   <div class="note" style="border-left-color:var(--amber)"><b>基线补充（2026-11-16，历史）</b>：<code>feature-818</code> 已修复 3 条 Renderer 测试类型错误；<code>feature-819</code> 已解除开发态运行时模板路径阻塞，真实 Electron 对话往返通过；<a href="../features/feature-820-一级入口与伪造状态收口/SDG-AI-变更记录.md">feature-820</a> 已完成底栏真实状态与 Skill / 插件 / 本地模型一级入口收口。当时 <code>typecheck</code>、完整 Renderer 构建及 architecture + studio-flow 29 / 29 通过；P0 报告保持历史快照，不据此宣称后续全量测试常绿。</div>
-  <div class="note" style="border-left-color:var(--amber)"><b>历史回归边界（2026-11-19，D-037 仅同步归属）</b>：<a href="../features/feature-826-谱系测试基线收口/SDG-AI-变更记录.md">feature-826</a> 已登记全量 Vitest <b>96 个测试文件全过、1,276 通过、1 跳过</b>，<code>typecheck</code> 通过，B-70 闭环；feature-824 检出的 F824-01／B-71 已由 feature-825 修复并独立复验。上述 824 / 825 / 826 编号与测试数字仅作历史证据；现行项目库与打开事务归 feature-828，Canvas 恢复与写安全分别归 feature-823 / 827，谱系业务归 feature-802，通用测试门禁与数据落点归 feature-830。feature-817 的真实 Agent 运行时输入、OptionCard、Gate 及 Agent 模式现场验收仍未完成；D-035／D-036 扩展退出门须逐 Feature 建包取证。D-036 文档同步与本次 D-037 归属同步均未重跑产品测试；归并不构成 P1、Parity 或真机验收通过。</div>
-  <div class="note"><b>当前文档结构（2026-11-20，D-039）</b>：删除 002 / 003 / 007 / 008 / 009 / 010 / 011 / 012 / 015 / 804 / 807 / 809 / 810 / 811 / 812 / 814 / 815 / 818 / 819 / 824 / 825 共 21 个历史归档目录，保留 feature-826-谱系测试基线收口；被删原始文档仅从 Git 历史追溯，上文 818 / 819 因此保留为纯文本。现为 24 个现行负责包 + 1 个历史归档包，共 25 个目录。D-037 归属规则与上述历史测试证据不变，本次未重跑产品测试或真机验收；P0 已完成、P1 未通过，feature-829 继续实施中。</div>
+  <div class="note" style="border-left-color:var(--amber)"><b>历史回归边界（2026-11-19，D-037 仅同步归属）</b>：feature-826（原始变更记录仅从 Git 历史追溯）已登记全量 Vitest <b>96 个测试文件全过、1,276 通过、1 跳过</b>，<code>typecheck</code> 通过，B-70 闭环；feature-824 检出的 F824-01／B-71 已由 feature-825 修复并独立复验。上述 824 / 825 / 826 编号与测试数字仅作历史证据；现行项目库与打开事务归 feature-828，Canvas 恢复与写安全分别归 feature-823 / 827，谱系业务归 feature-802，通用测试门禁与数据落点归 feature-830。feature-817 的真实 Agent 运行时输入、OptionCard、Gate 及 Agent 模式现场验收仍未完成；D-035／D-036 扩展退出门须逐 Feature 建包取证。D-036 文档同步与本次 D-037 归属同步均未重跑产品测试；归并不构成 P1、Parity 或真机验收通过。</div>
+  <div class="note"><b>当前文档结构（2026-11-20，D-040）</b>：D-039 删除 002 / 003 / 007 / 008 / 009 / 010 / 011 / 012 / 015 / 804 / 807 / 809 / 810 / 811 / 812 / 814 / 815 / 818 / 819 / 824 / 825 共 21 个历史归档目录，D-040 删除 feature-826；22 个历史目录原始文档均仅从 Git 追溯，上文 818 / 819 / 826 因此保留为纯文本。现为 24 个目录，全部为现行负责包，历史归档目录为 0。D-037 归属规则与上述历史测试证据不变，本次未重跑产品测试或真机验收；P0 已完成、P1 未通过，feature-829 继续实施中。</div>
   <table>
     <tr><th>阶段</th><th>交付门</th><th>范围与退出条件</th><th>当前基线</th></tr>
     <tr><td>P0</td><td>基线收口</td><td>D-034、Parity 矩阵、现有任务包校准、测试 / 构建 / 环境基线；只登记在线服务待决清单</td><td><b>基线收口完成</b>；不自动批准 K1/K8/K9 或产品代码实施</td></tr>
@@ -913,8 +913,10 @@
 
 <!-- ═══ 13 版本记录 ═══ -->
 <section id="sec-13">
-  <div class="sec-head"><span class="sec-no">13</span><h2>版本记录</h2><span class="hint">§13 · v1.0 → v1.27</span></div>
+  <div class="sec-head"><span class="sec-no">13</span><h2>版本记录</h2><span class="hint">§13 · v1.0 → v1.28</span></div>
   <div class="timeline">
+    <div class="tl"><div class="vh">v1.28 <span class="vd">2026-11-20 · D-040</span></div>
+      <div class="vb">删除 feature-826 历史归档目录；docs/features/ 收敛为 24 个目录，全部为现行负责包，历史归档目录为 0。D-039／D-040 删除的 22 个历史目录原始文档仅从 Git 追溯；谱系业务仍归 feature-802，通用测试门禁与测试数据归 feature-830。不改产品代码、历史证据、任务状态或验收结论。</div></div>
     <div class="tl"><div class="vh">v1.27 <span class="vd">2026-11-20 · D-039</span></div>
       <div class="vb">保留 feature-826、删除其余 21 个历史归档目录，docs/features/ 收敛为 25 个目录＝24 个现行负责包＋1 个历史归档包。被删目录的原始规格、任务状态、测试计数与 PASS／FAIL 仅从 Git 历史追溯；历史叙述与编年数量不倒写，失效相对链接改为纯文本编号或现行负责包链接。产品能力、D-037 归属规则及阶段验收结论不变；两处源码注释仅修事实源路径，不改运行逻辑。</div></div>
     <div class="tl"><div class="vh">v1.26 <span class="vd">2026-11-18 · D-036</span></div>
@@ -968,9 +970,9 @@
 </section>
 
 <footer>
-  <span>短剧 Agent 平台设计 · 设计 v1.27 · D-039 镜像同步 2026-11-20</span>
-  <span class="src">规范事实源：短剧Agent平台设计.md v1.27 · 实施状态：总规划 v0.15 / 24 个现行负责包 + 1 个历史归档包（feature-826）/ 25 个目录；其余 21 个仅从 Git 历史追溯</span>
-  <span class="src">台账 D-005 · D-011 · D-012 · D-016 · D-023 · D-024 · D-031 · D-032 · D-033 · D-034 · D-037（归属规则）· D-039（目录清理）</span>
+  <span>短剧 Agent 平台设计 · 设计 v1.28 · D-040 镜像同步 2026-11-20</span>
+  <span class="src">规范事实源：短剧Agent平台设计.md v1.28 · 实施状态：总规划 v0.16 / 24 个现行目录 / 0 个历史归档目录；D-039／D-040 删除的 22 个历史目录仅从 Git 追溯</span>
+  <span class="src">台账 D-005 · D-011 · D-012 · D-016 · D-023 · D-024 · D-031 · D-032 · D-033 · D-034 · D-037（归属规则）· D-039／D-040（目录清理）</span>
 </footer>
 
 </main>

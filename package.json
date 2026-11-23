@@ -13,7 +13,9 @@
     "start": "electron .",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
-    "test:run": "vitest run"
+    "check:docs": "node scripts/check-governance-docs.cjs",
+    "docs:context": "node scripts/docs-context.cjs",
+    "test:run": "npm run check:docs && vitest run"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",

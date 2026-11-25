@@ -998,7 +998,9 @@ export default function CanvasBoard({
   const openReferenceSource = async (node: CanvasNode) => {
     const reference = node.reference
     if (!reference) return
-    const sourcePage = currentCanvas.pages.find(item => item.id === reference.source.pageId)
+    const sourcePage = reference.source.projectId === currentCanvas.projectId
+      ? currentCanvas.pages.find(item => item.id === reference.source.pageId)
+      : undefined
     const sourceCanvas = sourcePage?.canvases.find(item => item.id === reference.source.canvasId)
     const sourceNode = sourceCanvas?.nodes.find(item => item.id === reference.artifactId)
     if (!sourcePage || !sourceCanvas || !sourceNode?.ref?.path || !sourceNode.meta?.version) {

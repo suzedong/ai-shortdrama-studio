@@ -800,6 +800,8 @@ describe('feature-823 · 多创作页与自由画布交互', () => {
     expect(request.nodeId).toBeTruthy()
     expect(request.nodeId).not.toBe('source-node')
     await waitFor(() => expect(container.querySelector('[data-reference-badge]')).toHaveTextContent('引用 v1 · 源产物 source-node'))
+    fireEvent.contextMenu(viewport, { clientX: 320, clientY: 260 })
+    expect(screen.queryByRole('button', { name: '粘贴正式引用' })).not.toBeInTheDocument()
   })
 
   it('feature-829 · 固定版本与再版黄条独立呈现，打开源产物先切换再查看', async () => {
@@ -861,4 +863,64 @@ describe('feature-823 · 多创作页与自由画布交互', () => {
     expect(onOpenNode).not.toHaveBeenCalled()
     expect(container.querySelector('[data-page-id="page-b"]')).toHaveAttribute('aria-selected', 'true')
   })
+
+  it('feature-829 · 粘贴失败保留内存草稿并显示真实错误', async () => {
+    const initial = boardCanvas()
+    const source = initial.pages[0]!.canvases[0]!.nodes[0]!
+    source.id = 'source-node'
+    source.meta = { version: 'v1' }
+    initial.pages[1]!.canvases[0]!.nodes = []
+    const { command } = mockBoardApi()
+    command.mockRejectedValueOnce(new Error('引用写入失败'))
+    const onError = vi.fn()
+    const { container } = render(<CanvasBoard canvas={initial} onError={onError} />)
+
+    fireEvent.contextMenu(container.querySelector('[data-node-id="source-node"]')!)
+    fireEvent.click(screen.getByRole('button', { name: '复制正式引用' }))
+    fireEvent.click(container.querySelector('[data-page-id="page-b"]')!)
+    await waitFor(() => expect(container.querySelector('[data-page-id="page-b"]')).toHaveAttribute('aria-selected', 'true'))
+    const viewport = container.querySelector('[data-viewport]') as HTMLElement
+    fireEvent.contextMenu(viewport, { clientX: 300, clientY: 240 })
+    fireEvent.click(screen.getByRole('button', { name: '粘贴正式引用' }))
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith('引用写入失败'))
+    expect(screen.getByRole('alert')).toHaveTextContent('引用写入失败')
+    expect(command).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('[data-reference-badge]')).toBeNull()
+    fireEvent.contextMenu(viewport, { clientX: 320, clientY: 260 })
+    expect(screen.getByRole('button', { name: '粘贴正式引用' })).toBeInTheDocument()
+  })
+
+  for (const { label, state } of [
+    { label: '源节点缺失', state: 'missing' },
+    { label: '源版本缺失', state: 'unversioned' },
+    { label: '来源项目不匹配', state: 'cross-project' },
+  ] as const) {
+    it(`feature-829 · ${label}时源定位不跳转、不打开查看器`, async () => {
+      const initial = boardCanvas()
+      const source = initial.pages[0]!.canvases[0]!.nodes[0]!
+      source.id = 'source-node'
+      source.meta = state === 'unversioned' ? {} : { version: 'v2' }
+      if (state === 'missing') initial.pages[0]!.canvases[0]!.nodes = []
+      initial.pages[1]!.canvases[0]!.nodes = [node({
+        id: 'reference-node', step: '1', kind: 'outline', title: '跨页引用', status: 'done',
+        reference: {
+          artifactId: 'source-node', version: 'v1',
+          source: { projectId: state === 'cross-project' ? 'p2' : 'p1', pageId: 'page-a', canvasId: 'canvas-a1' },
+        },
+      })]
+      initial.activePageId = 'page-b'
+      const { viewState } = mockBoardApi()
+      const onOpenNode = vi.fn()
+      const onError = vi.fn()
+      const { container } = render(<CanvasBoard canvas={initial} onOpenNode={onOpenNode} onError={onError} />)
+
+      fireEvent.contextMenu(container.querySelector('[data-node-id="reference-node"]')!)
+      fireEvent.click(screen.getByRole('button', { name: '打开源产物' }))
+      await waitFor(() => expect(onError).toHaveBeenCalledWith('源产物不存在或缺少版本，无法定位'))
+      expect(viewState).not.toHaveBeenCalled()
+      expect(onOpenNode).not.toHaveBeenCalled()
+      expect(container.querySelector('[data-page-id="page-b"]')).toHaveAttribute('aria-selected', 'true')
+    })
+  }
 })

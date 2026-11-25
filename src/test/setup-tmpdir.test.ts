@@ -17,7 +17,7 @@ describe('feature-830 单测临时目录统一（契约 §1.1）', () => {
   })
 
   it('mkdtemp 产物确实落在 .test-tmp/ 下（磁盘实证）', async () => {
-    const expected = path.resolve(process.env.TMPDIR)
+    const expected = path.resolve(process.env.TMPDIR!)
     const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'asd-loc-probe-'))
     try {
       expect(path.dirname(dir)).toBe(expected)

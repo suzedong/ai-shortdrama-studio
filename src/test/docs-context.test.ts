@@ -158,11 +158,11 @@ describe('docs:context · 合成仓库', () => {
 })
 
 describe('docs:context · 真实仓库与 CLI', () => {
-  it('真实 feature-829 从其他 cwd 提取 T2—T5', () => {
+  it('真实 feature-829 从其他 cwd 提取现行上下文', () => {
     const result = spawnSync(process.execPath, [SCRIPT_PATH, '829'], { cwd: os.tmpdir(), encoding: 'utf8' })
     expect(result.status).toBe(0)
     expect(result.stderr).toBe('')
-    for (const task of ['T2', 'T3', 'T4', 'T5']) expect(result.stdout).toContain(`- [ ] ${task}`)
+    expect(result.stdout).toContain('## 未完成任务')
     expect(result.stdout).not.toContain('- [ ] T1')
     expect(result.stdout).toContain('## 非目标／排除项')
   })

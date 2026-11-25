@@ -1,121 +1,1374 @@
 {
-  "feature": 829,
-  "date": "2026-11-19",
-  "node": "v22.23.1",
-  "electron": "33.4.11",
-  "mode": "real-electron-cdp-independent-profile",
-  "checks": {
-    "navigation": {
-      "sequence": [
-        "page-a",
-        "page-b",
-        "page-a",
-        "page-b",
-        "page-a"
-      ],
-      "revisionBefore": 1,
-      "revisionAfter": 1
+  "feature": "829",
+  "task": "T4",
+  "startedAt": "2026-11-25T07:10:50.835Z",
+  "harness": "Vite renderer + real Electron main/preload/IPC + renderer CDP + main-process inspector + real MCP Streamable HTTP；无 dev-mock、无直接 JSON 改写",
+  "rendererErrors": [],
+  "consoleErrors": [],
+  "logErrors": [],
+  "diagnosticPhases": [
+    "before-restart",
+    "after-restart"
+  ],
+  "assertions": [
+    {
+      "name": "真实 Electron / preload",
+      "passed": true,
+      "detail": {
+        "api": "object",
+        "createProject": "function",
+        "protocol": "http:",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ai-shortdrama-studio/0.1.0 Chrome/130.0.6723.191 Electron/33.4.11 Safari/537.36",
+        "productionBuildCheckedSeparately": true,
+        "devMock": false
+      }
     },
-    "referenceCreate": {
-      "nodeId": "06bde0b8-f10a-4823-b1ff-7ae9f491b095",
-      "reference": {
-        "artifactId": "step-0-brief",
-        "version": "v1",
-        "source": {
-          "projectId": "project-829-1954",
-          "pageId": "page-a",
-          "canvasId": "canvas-a1"
+    {
+      "name": "真实项目创建与打开",
+      "passed": true,
+      "detail": {
+        "id": "project-20261125-151052-vayt",
+        "title": "project-accept-829-t4-1795590652007",
+        "dir": "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-151052-vayt",
+        "reusedAfterSetupRetry": false
+      }
+    },
+    {
+      "name": "A→B→A 导航、后退、前进",
+      "passed": true,
+      "detail": {
+        "sourceTarget": {
+          "projectId": "project-20261125-151052-vayt",
+          "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+          "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+        },
+        "referenceTarget": {
+          "projectId": "project-20261125-151052-vayt",
+          "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+          "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+        },
+        "initialBackDisabled": true,
+        "afterBack": {
+          "selectedPageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+          "backDisabled": false,
+          "forwardDisabled": false
+        },
+        "afterForward": {
+          "selectedPageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+          "backDisabled": false,
+          "forwardDisabled": true
         }
-      },
-      "revision": 2,
-      "receipt": {
-        "commandId": "7e2ba73b-f3b6-4a1f-8998-760b5522c3ba",
-        "type": "reference.create",
-        "requestHash": "31c0925f916ea2a216ae90c606502aa898811d212363f414cee60dc72b8f722e",
-        "revision": 2,
-        "appliedAt": "2026-11-19T03:08:39.406Z",
-        "payload": {
-          "request": {
-            "projectId": "project-829-1954",
-            "type": "reference.create",
-            "target": {
-              "projectId": "project-829-1954",
-              "pageId": "page-b",
-              "canvasId": "canvas-b1"
-            },
+      }
+    },
+    {
+      "name": "跨页正式引用经真实 IPC 创建并落盘",
+      "passed": true,
+      "detail": {
+        "seedMcpContent": [
+          {
+            "type": "text",
+            "text": "{\"ok\":true,\"canvas\":{\"schemaVersion\":4,\"projectId\":\"project-20261125-151052-vayt\",\"title\":\"project-accept-829-t4-1795590652007\",\"activePageId\":\"page-01e491b9-b550-4513-a2f8-e68f85f62b55\",\"activeView\":\"canvas\",\"pages\":[{\"id\":\"page-01e491b9-b550-4513-a2f8-e68f85f62b55\",\"title\":\"创作页 1\",\"activeCanvasId\":\"canvas-a9083522-23ac-40a5-828a-289ac038a839\",\"canvases\":[{\"id\":\"canvas-a9083522-23ac-40a5-828a-289ac038a839\",\"title\":\"画布 1\",\"nodes\":[{\"id\":\"t4-source-artifact\",\"step\":\"7\",\"kind\":\"manifest\",\"title\":\"T4 源产物\",\"status\":\"done\",\"position\":{\"x\":80,\"y\":100},\"ref\":{\"path\":\"manifest.json\",\"format\":\"json\"},\"meta\":{\"version\":\"v1\"},\"updatedAt\":\"2026-11-25T07:10:53.699Z\"}],\"edges\":[],\"viewport\":null}]},{\"id\":\"page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201\",\"title\":\"创作页 2\",\"activeCanvasId\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\",\"canvases\":[{\"id\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\",\"title\":\"画布 1\",\"nodes\":[],\"edges\":[],\"viewport\":null}]}],\"gates\":[],\"revision\":3,\"receipts\":[{\"commandId\":\"f6290e3a-f528-43c4-be8c-48e43106e3ee\",\"type\":\"canvas.withCanvas\",\"requestHash\":\"ecbbd1dafa2ca596a1d725728cbffd2c42d69e8ee3fc9bd452a2ad6a186fb878\",\"revision\":1,\"appliedAt\":\"2026-11-25T07:10:52.349Z\"},{\"commandId\":\"77e5c01b-09d3-4ba6-aa2e-5be14440d72f\",\"type\":\"page.create\",\"requestHash\":\"286ae6400380f3c24491a94b4877ea5c8537e791390ac624a364e804f4d556bf\",\"revision\":2,\"appliedAt\":\"2026-11-25T07:10:52.410Z\",\"payload\":{\"request\":{\"projectId\":\"project-20261125-151052-vayt\",\"type\":\"page.create\"},\"target\":{\"projectId\":\"project-20261125-151052-vayt\",\"pageId\":\"page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201\",\"canvasId\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\"}}},{\"commandId\":\"t4-seed-1795590653695\",\"type\":\"canvas.update\",\"requestHash\":\"ae4e7cf3096a04174d61cf3aaacc49c62c10ba2e13fc6d8b890693a221b9535c\",\"revision\":3,\"appliedAt\":\"2026-11-25T07:10:53.699Z\"}],\"updatedAt\":\"2026-11-25T07:10:53.699Z\"},\"commandId\":\"t4-seed-1795590653695\",\"revision\":3,\"replayed\":false}"
+          }
+        ],
+        "copyRevisionUnchanged": true,
+        "pasteRevisionDelta": 1,
+        "node": {
+          "id": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+          "step": "7",
+          "kind": "manifest",
+          "title": "T4 源产物",
+          "status": "done",
+          "position": {
+            "x": 44.44444444444444,
+            "y": 32.77777777777778
+          },
+          "ref": {
+            "path": "manifest.json",
+            "format": "json"
+          },
+          "meta": {
+            "version": "v1"
+          },
+          "updatedAt": "2026-11-25T07:10:53.743Z",
+          "reference": {
+            "artifactId": "t4-source-artifact",
+            "version": "v1",
             "source": {
+              "projectId": "project-20261125-151052-vayt",
+              "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+              "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+            }
+          }
+        },
+        "receipt": {
+          "commandId": "16840e61-3afa-4f2e-9e13-cc6beb143ef5",
+          "type": "reference.create",
+          "requestHash": "e421d4c990404c1632aaa76c05688da37a83519f88ac1d58498275e118a2cd28",
+          "revision": 4,
+          "appliedAt": "2026-11-25T07:10:53.743Z",
+          "payload": {
+            "request": {
+              "projectId": "project-20261125-151052-vayt",
+              "type": "reference.create",
               "target": {
-                "projectId": "project-829-1954",
-                "pageId": "page-a",
-                "canvasId": "canvas-a1"
+                "projectId": "project-20261125-151052-vayt",
+                "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
               },
-              "nodeId": "step-0-brief"
+              "source": {
+                "target": {
+                  "projectId": "project-20261125-151052-vayt",
+                  "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                  "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+                },
+                "nodeId": "t4-source-artifact"
+              },
+              "nodeId": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+              "position": {
+                "x": 44.44444444444444,
+                "y": 32.77777777777778
+              }
             },
-            "nodeId": "06bde0b8-f10a-4823-b1ff-7ae9f491b095",
+            "target": {
+              "projectId": "project-20261125-151052-vayt",
+              "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+              "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+            }
+          }
+        },
+        "dom": {
+          "title": "短剧 Agent 平台",
+          "protocol": "http:",
+          "electron": true,
+          "selectedPageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+          "managementText": "创作页创作页 1创作页 2画布画布 1",
+          "backDisabled": false,
+          "forwardDisabled": true,
+          "badges": [
+            "引用 v1 · 源产物 t4-source-artifact"
+          ],
+          "dirtyReferences": [],
+          "dirtyBanners": [],
+          "nodes": [
+            {
+              "id": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+              "text": "发布清单T4 源产物manifest.json引用 v1 · 源产物 t4-source-artifact已完成 · 0入/0出"
+            }
+          ],
+          "viewer": false,
+          "bodyText": "剧\n短剧 Agent · project-accept-829-t4-1795590652007\n0\n·\n1\n·\n2\n·\n3\n·\n4\n·\n5\n·\n6\n·\n7\n🎨\n视觉风格谱系\nv1.46\n项目\nSkill\n资产\n插件\n本地模型\nAI\n项目库\n资源库\n流程导航\n导入静态项目包\np\nproject-accept-829-t4-1795590564036\n1 分钟前\n···\np\nproject-accept-829-t4-1795590498073\n2 分钟前\n···\np\nproject-accept-829-t4-1795590112196\n9 分钟前\n···\np\nproject-accept-829-t4-1795590060375\n9 分钟前\n···\np\nproject-accept-829-t4-1795589370034\n11 分钟前\n···\np\nproject-accept-829-t4-1795588574968\n34 分钟前\n···\nt\ntest\n21 天前\n···\n＋ 新建项目\n创作页\n创作页 1\n创作页 2\n画布\n画布 1\nSTAGE 7 · 发布\n发布清单\nT4 源产物\nmanifest.json\n引用 v1 · 源产物 t4-source-artifact\n已完成 · 0入/0出\n拖拽卡片调整位置 · 滚轮缩放 · 空白拖拽平移 · 右键更多操作\n90%\n🎨\n视觉风格谱系\n谱系不可用\n×\n全部\nA 写实影像\nB 青春治愈\nC 动画插画\nD 类型氛围\nE 材质工艺\n谱系不可用\n数据源：md 唯一源（AI 通道读结构化）/ html 派生镜像（人读预览墙）· 平台只消费不私改 · 改源走对话（AI 改 md → 同步 html → 升版 → 提示差异）\n已捕获口径\n· 0 条\n展开 ▾\n从第一句话起持续累积——对话中提取的题材、平台、集数等口径会实时列在这里，可随时直改。\n主控 Agent\n导演 · 任务调度与确认门\n主\n编\n美\n镜\n声\n输入一句灵感（如「重生复仇都市女频」），主控 Agent 会理解拆解，并按当前阶段依次请你裁决确认门。\n火山方舟 · ark-code-latest\nH3 自动选配\n文本 · 火山方舟\nark-code-latest\n运行时 · 运行中\nComfyUI 未配置\n画布更新于 15:10"
+        },
+        "snapshot": {
+          "projectId": "project-20261125-151052-vayt",
+          "activePageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+          "activeView": "canvas",
+          "revision": 4,
+          "pages": [
+            {
+              "id": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+              "title": "创作页 1",
+              "activeCanvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839",
+              "canvases": [
+                {
+                  "id": "canvas-a9083522-23ac-40a5-828a-289ac038a839",
+                  "nodes": [
+                    {
+                      "id": "t4-source-artifact",
+                      "title": "T4 源产物",
+                      "version": "v1",
+                      "ref": {
+                        "path": "manifest.json",
+                        "format": "json"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+              "title": "创作页 2",
+              "activeCanvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13",
+              "canvases": [
+                {
+                  "id": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13",
+                  "nodes": [
+                    {
+                      "id": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+                      "title": "T4 源产物",
+                      "version": "v1",
+                      "ref": {
+                        "path": "manifest.json",
+                        "format": "json"
+                      },
+                      "reference": {
+                        "artifactId": "t4-source-artifact",
+                        "version": "v1",
+                        "source": {
+                          "projectId": "project-20261125-151052-vayt",
+                          "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                          "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "receipts": [
+            {
+              "commandId": "f6290e3a-f528-43c4-be8c-48e43106e3ee",
+              "type": "canvas.withCanvas",
+              "requestHash": "ecbbd1dafa2ca596a1d725728cbffd2c42d69e8ee3fc9bd452a2ad6a186fb878",
+              "revision": 1,
+              "appliedAt": "2026-11-25T07:10:52.349Z"
+            },
+            {
+              "commandId": "77e5c01b-09d3-4ba6-aa2e-5be14440d72f",
+              "type": "page.create",
+              "requestHash": "286ae6400380f3c24491a94b4877ea5c8537e791390ac624a364e804f4d556bf",
+              "revision": 2,
+              "appliedAt": "2026-11-25T07:10:52.410Z",
+              "payload": {
+                "request": {
+                  "projectId": "project-20261125-151052-vayt",
+                  "type": "page.create"
+                },
+                "target": {
+                  "projectId": "project-20261125-151052-vayt",
+                  "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                  "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+                }
+              }
+            },
+            {
+              "commandId": "t4-seed-1795590653695",
+              "type": "canvas.update",
+              "requestHash": "ae4e7cf3096a04174d61cf3aaacc49c62c10ba2e13fc6d8b890693a221b9535c",
+              "revision": 3,
+              "appliedAt": "2026-11-25T07:10:53.699Z"
+            },
+            {
+              "commandId": "16840e61-3afa-4f2e-9e13-cc6beb143ef5",
+              "type": "reference.create",
+              "requestHash": "e421d4c990404c1632aaa76c05688da37a83519f88ac1d58498275e118a2cd28",
+              "revision": 4,
+              "appliedAt": "2026-11-25T07:10:53.743Z",
+              "payload": {
+                "request": {
+                  "projectId": "project-20261125-151052-vayt",
+                  "type": "reference.create",
+                  "target": {
+                    "projectId": "project-20261125-151052-vayt",
+                    "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                    "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+                  },
+                  "source": {
+                    "target": {
+                      "projectId": "project-20261125-151052-vayt",
+                      "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                      "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+                    },
+                    "nodeId": "t4-source-artifact"
+                  },
+                  "nodeId": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+                  "position": {
+                    "x": 44.44444444444444,
+                    "y": 32.77777777777778
+                  }
+                },
+                "target": {
+                  "projectId": "project-20261125-151052-vayt",
+                  "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                  "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "真实 canvas.update 再版只挂脏实际引用者",
+      "passed": true,
+      "detail": {
+        "mcpContent": [
+          {
+            "type": "text",
+            "text": "{\"ok\":true,\"canvas\":{\"schemaVersion\":4,\"projectId\":\"project-20261125-151052-vayt\",\"title\":\"project-accept-829-t4-1795590652007\",\"activePageId\":\"page-01e491b9-b550-4513-a2f8-e68f85f62b55\",\"activeView\":\"canvas\",\"pages\":[{\"id\":\"page-01e491b9-b550-4513-a2f8-e68f85f62b55\",\"title\":\"创作页 1\",\"activeCanvasId\":\"canvas-a9083522-23ac-40a5-828a-289ac038a839\",\"canvases\":[{\"id\":\"canvas-a9083522-23ac-40a5-828a-289ac038a839\",\"title\":\"画布 1\",\"nodes\":[{\"id\":\"t4-source-artifact\",\"step\":\"7\",\"kind\":\"manifest\",\"title\":\"T4 源产物\",\"status\":\"done\",\"position\":{\"x\":80,\"y\":100},\"ref\":{\"path\":\"manifest.json\",\"format\":\"json\"},\"meta\":{\"version\":\"v2\"},\"updatedAt\":\"2026-11-25T07:10:54.215Z\"}],\"edges\":[],\"viewport\":null}]},{\"id\":\"page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201\",\"title\":\"创作页 2\",\"activeCanvasId\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\",\"canvases\":[{\"id\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\",\"title\":\"画布 1\",\"nodes\":[{\"id\":\"ca72aa43-7fb5-41f8-9e10-fb48e280ab2b\",\"step\":\"7\",\"kind\":\"manifest\",\"title\":\"T4 源产物\",\"status\":\"done\",\"position\":{\"x\":44.44444444444444,\"y\":32.77777777777778},\"ref\":{\"path\":\"manifest.json\",\"format\":\"json\"},\"meta\":{\"version\":\"v1\"},\"updatedAt\":\"2026-11-25T07:10:53.743Z\",\"reference\":{\"artifactId\":\"t4-source-artifact\",\"version\":\"v1\",\"source\":{\"projectId\":\"project-20261125-151052-vayt\",\"pageId\":\"page-01e491b9-b550-4513-a2f8-e68f85f62b55\",\"canvasId\":\"canvas-a9083522-23ac-40a5-828a-289ac038a839\"},\"latestVersion\":\"v2\",\"markedAt\":\"2026-11-25T07:10:54.215Z\"}}],\"edges\":[],\"viewport\":null}]}],\"gates\":[],\"revision\":5,\"receipts\":[{\"commandId\":\"f6290e3a-f528-43c4-be8c-48e43106e3ee\",\"type\":\"canvas.withCanvas\",\"requestHash\":\"ecbbd1dafa2ca596a1d725728cbffd2c42d69e8ee3fc9bd452a2ad6a186fb878\",\"revision\":1,\"appliedAt\":\"2026-11-25T07:10:52.349Z\"},{\"commandId\":\"77e5c01b-09d3-4ba6-aa2e-5be14440d72f\",\"type\":\"page.create\",\"requestHash\":\"286ae6400380f3c24491a94b4877ea5c8537e791390ac624a364e804f4d556bf\",\"revision\":2,\"appliedAt\":\"2026-11-25T07:10:52.410Z\",\"payload\":{\"request\":{\"projectId\":\"project-20261125-151052-vayt\",\"type\":\"page.create\"},\"target\":{\"projectId\":\"project-20261125-151052-vayt\",\"pageId\":\"page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201\",\"canvasId\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\"}}},{\"commandId\":\"t4-seed-1795590653695\",\"type\":\"canvas.update\",\"requestHash\":\"ae4e7cf3096a04174d61cf3aaacc49c62c10ba2e13fc6d8b890693a221b9535c\",\"revision\":3,\"appliedAt\":\"2026-11-25T07:10:53.699Z\"},{\"commandId\":\"16840e61-3afa-4f2e-9e13-cc6beb143ef5\",\"type\":\"reference.create\",\"requestHash\":\"e421d4c990404c1632aaa76c05688da37a83519f88ac1d58498275e118a2cd28\",\"revision\":4,\"appliedAt\":\"2026-11-25T07:10:53.743Z\",\"payload\":{\"request\":{\"projectId\":\"project-20261125-151052-vayt\",\"type\":\"reference.create\",\"target\":{\"projectId\":\"project-20261125-151052-vayt\",\"pageId\":\"page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201\",\"canvasId\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\"},\"source\":{\"target\":{\"projectId\":\"project-20261125-151052-vayt\",\"pageId\":\"page-01e491b9-b550-4513-a2f8-e68f85f62b55\",\"canvasId\":\"canvas-a9083522-23ac-40a5-828a-289ac038a839\"},\"nodeId\":\"t4-source-artifact\"},\"nodeId\":\"ca72aa43-7fb5-41f8-9e10-fb48e280ab2b\",\"position\":{\"x\":44.44444444444444,\"y\":32.77777777777778}},\"target\":{\"projectId\":\"project-20261125-151052-vayt\",\"pageId\":\"page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201\",\"canvasId\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\"}}},{\"commandId\":\"t4-republish-1795590654211\",\"type\":\"canvas.update\",\"requestHash\":\"64f456ef9da4952d658a64c0e7cf55fa79b0bedf070643011de242bef29b0617\",\"revision\":5,\"appliedAt\":\"2026-11-25T07:10:54.215Z\"}],\"updatedAt\":\"2026-11-25T07:10:54.215Z\"},\"commandId\":\"t4-republish-1795590654211\",\"revision\":5,\"replayed\":false}"
+          }
+        ],
+        "source": {
+          "id": "t4-source-artifact",
+          "version": "v2"
+        },
+        "reference": {
+          "id": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+          "step": "7",
+          "kind": "manifest",
+          "title": "T4 源产物",
+          "status": "done",
+          "position": {
+            "x": 44.44444444444444,
+            "y": 32.77777777777778
+          },
+          "ref": {
+            "path": "manifest.json",
+            "format": "json"
+          },
+          "meta": {
+            "version": "v1"
+          },
+          "updatedAt": "2026-11-25T07:10:53.743Z",
+          "reference": {
+            "artifactId": "t4-source-artifact",
+            "version": "v1",
+            "source": {
+              "projectId": "project-20261125-151052-vayt",
+              "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+              "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+            },
+            "latestVersion": "v2",
+            "markedAt": "2026-11-25T07:10:54.215Z"
+          }
+        },
+        "dirtyDom": {
+          "dirtyReferences": [
+            "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b"
+          ],
+          "badges": [
+            "引用 v1 · 源产物 t4-source-artifact"
+          ],
+          "banner": "有 1 个跨页引用基于旧版源产物；固定版本保持不变，可打开源产物查看最新版。"
+        },
+        "snapshot": {
+          "projectId": "project-20261125-151052-vayt",
+          "activePageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+          "activeView": "canvas",
+          "revision": 5,
+          "pages": [
+            {
+              "id": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+              "title": "创作页 1",
+              "activeCanvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839",
+              "canvases": [
+                {
+                  "id": "canvas-a9083522-23ac-40a5-828a-289ac038a839",
+                  "nodes": [
+                    {
+                      "id": "t4-source-artifact",
+                      "title": "T4 源产物",
+                      "version": "v2",
+                      "ref": {
+                        "path": "manifest.json",
+                        "format": "json"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+              "title": "创作页 2",
+              "activeCanvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13",
+              "canvases": [
+                {
+                  "id": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13",
+                  "nodes": [
+                    {
+                      "id": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+                      "title": "T4 源产物",
+                      "version": "v1",
+                      "ref": {
+                        "path": "manifest.json",
+                        "format": "json"
+                      },
+                      "reference": {
+                        "artifactId": "t4-source-artifact",
+                        "version": "v1",
+                        "source": {
+                          "projectId": "project-20261125-151052-vayt",
+                          "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                          "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+                        },
+                        "latestVersion": "v2",
+                        "markedAt": "2026-11-25T07:10:54.215Z"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "receipts": [
+            {
+              "commandId": "f6290e3a-f528-43c4-be8c-48e43106e3ee",
+              "type": "canvas.withCanvas",
+              "requestHash": "ecbbd1dafa2ca596a1d725728cbffd2c42d69e8ee3fc9bd452a2ad6a186fb878",
+              "revision": 1,
+              "appliedAt": "2026-11-25T07:10:52.349Z"
+            },
+            {
+              "commandId": "77e5c01b-09d3-4ba6-aa2e-5be14440d72f",
+              "type": "page.create",
+              "requestHash": "286ae6400380f3c24491a94b4877ea5c8537e791390ac624a364e804f4d556bf",
+              "revision": 2,
+              "appliedAt": "2026-11-25T07:10:52.410Z",
+              "payload": {
+                "request": {
+                  "projectId": "project-20261125-151052-vayt",
+                  "type": "page.create"
+                },
+                "target": {
+                  "projectId": "project-20261125-151052-vayt",
+                  "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                  "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+                }
+              }
+            },
+            {
+              "commandId": "t4-seed-1795590653695",
+              "type": "canvas.update",
+              "requestHash": "ae4e7cf3096a04174d61cf3aaacc49c62c10ba2e13fc6d8b890693a221b9535c",
+              "revision": 3,
+              "appliedAt": "2026-11-25T07:10:53.699Z"
+            },
+            {
+              "commandId": "16840e61-3afa-4f2e-9e13-cc6beb143ef5",
+              "type": "reference.create",
+              "requestHash": "e421d4c990404c1632aaa76c05688da37a83519f88ac1d58498275e118a2cd28",
+              "revision": 4,
+              "appliedAt": "2026-11-25T07:10:53.743Z",
+              "payload": {
+                "request": {
+                  "projectId": "project-20261125-151052-vayt",
+                  "type": "reference.create",
+                  "target": {
+                    "projectId": "project-20261125-151052-vayt",
+                    "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                    "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+                  },
+                  "source": {
+                    "target": {
+                      "projectId": "project-20261125-151052-vayt",
+                      "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                      "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+                    },
+                    "nodeId": "t4-source-artifact"
+                  },
+                  "nodeId": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+                  "position": {
+                    "x": 44.44444444444444,
+                    "y": 32.77777777777778
+                  }
+                },
+                "target": {
+                  "projectId": "project-20261125-151052-vayt",
+                  "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                  "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+                }
+              }
+            },
+            {
+              "commandId": "t4-republish-1795590654211",
+              "type": "canvas.update",
+              "requestHash": "64f456ef9da4952d658a64c0e7cf55fa79b0bedf070643011de242bef29b0617",
+              "revision": 5,
+              "appliedAt": "2026-11-25T07:10:54.215Z"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "完整进程重启恢复持久化目标/引用且历史栈重置",
+      "passed": true,
+      "detail": {
+        "oldMainPid": 13431,
+        "requestedAt": "2026-11-25T07:10:54.582Z",
+        "newMainPid": 13532,
+        "restored": {
+          "activeTarget": {
+            "projectId": "project-20261125-151052-vayt",
+            "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+            "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+          },
+          "reference": {
+            "id": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+            "step": "7",
+            "kind": "manifest",
+            "title": "T4 源产物",
+            "status": "done",
             "position": {
-              "x": 660,
-              "y": 543.8888888888889
+              "x": 44.44444444444444,
+              "y": 32.77777777777778
+            },
+            "ref": {
+              "path": "manifest.json",
+              "format": "json"
+            },
+            "meta": {
+              "version": "v1"
+            },
+            "updatedAt": "2026-11-25T07:10:53.743Z",
+            "reference": {
+              "artifactId": "t4-source-artifact",
+              "version": "v1",
+              "source": {
+                "projectId": "project-20261125-151052-vayt",
+                "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+              },
+              "latestVersion": "v2",
+              "markedAt": "2026-11-25T07:10:54.215Z"
             }
           },
-          "target": {
-            "projectId": "project-829-1954",
-            "pageId": "page-b",
-            "canvasId": "canvas-b1"
+          "backDisabled": true,
+          "forwardDisabled": true,
+          "snapshot": {
+            "projectId": "project-20261125-151052-vayt",
+            "activePageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+            "activeView": "canvas",
+            "revision": 5,
+            "pages": [
+              {
+                "id": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                "title": "创作页 1",
+                "activeCanvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839",
+                "canvases": [
+                  {
+                    "id": "canvas-a9083522-23ac-40a5-828a-289ac038a839",
+                    "nodes": [
+                      {
+                        "id": "t4-source-artifact",
+                        "title": "T4 源产物",
+                        "version": "v2",
+                        "ref": {
+                          "path": "manifest.json",
+                          "format": "json"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                "title": "创作页 2",
+                "activeCanvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13",
+                "canvases": [
+                  {
+                    "id": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13",
+                    "nodes": [
+                      {
+                        "id": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+                        "title": "T4 源产物",
+                        "version": "v1",
+                        "ref": {
+                          "path": "manifest.json",
+                          "format": "json"
+                        },
+                        "reference": {
+                          "artifactId": "t4-source-artifact",
+                          "version": "v1",
+                          "source": {
+                            "projectId": "project-20261125-151052-vayt",
+                            "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                            "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+                          },
+                          "latestVersion": "v2",
+                          "markedAt": "2026-11-25T07:10:54.215Z"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "receipts": [
+              {
+                "commandId": "f6290e3a-f528-43c4-be8c-48e43106e3ee",
+                "type": "canvas.withCanvas",
+                "requestHash": "ecbbd1dafa2ca596a1d725728cbffd2c42d69e8ee3fc9bd452a2ad6a186fb878",
+                "revision": 1,
+                "appliedAt": "2026-11-25T07:10:52.349Z"
+              },
+              {
+                "commandId": "77e5c01b-09d3-4ba6-aa2e-5be14440d72f",
+                "type": "page.create",
+                "requestHash": "286ae6400380f3c24491a94b4877ea5c8537e791390ac624a364e804f4d556bf",
+                "revision": 2,
+                "appliedAt": "2026-11-25T07:10:52.410Z",
+                "payload": {
+                  "request": {
+                    "projectId": "project-20261125-151052-vayt",
+                    "type": "page.create"
+                  },
+                  "target": {
+                    "projectId": "project-20261125-151052-vayt",
+                    "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                    "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+                  }
+                }
+              },
+              {
+                "commandId": "t4-seed-1795590653695",
+                "type": "canvas.update",
+                "requestHash": "ae4e7cf3096a04174d61cf3aaacc49c62c10ba2e13fc6d8b890693a221b9535c",
+                "revision": 3,
+                "appliedAt": "2026-11-25T07:10:53.699Z"
+              },
+              {
+                "commandId": "16840e61-3afa-4f2e-9e13-cc6beb143ef5",
+                "type": "reference.create",
+                "requestHash": "e421d4c990404c1632aaa76c05688da37a83519f88ac1d58498275e118a2cd28",
+                "revision": 4,
+                "appliedAt": "2026-11-25T07:10:53.743Z",
+                "payload": {
+                  "request": {
+                    "projectId": "project-20261125-151052-vayt",
+                    "type": "reference.create",
+                    "target": {
+                      "projectId": "project-20261125-151052-vayt",
+                      "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                      "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+                    },
+                    "source": {
+                      "target": {
+                        "projectId": "project-20261125-151052-vayt",
+                        "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                        "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+                      },
+                      "nodeId": "t4-source-artifact"
+                    },
+                    "nodeId": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+                    "position": {
+                      "x": 44.44444444444444,
+                      "y": 32.77777777777778
+                    }
+                  },
+                  "target": {
+                    "projectId": "project-20261125-151052-vayt",
+                    "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                    "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+                  }
+                }
+              },
+              {
+                "commandId": "t4-republish-1795590654211",
+                "type": "canvas.update",
+                "requestHash": "64f456ef9da4952d658a64c0e7cf55fa79b0bedf070643011de242bef29b0617",
+                "revision": 5,
+                "appliedAt": "2026-11-25T07:10:54.215Z"
+              }
+            ]
           }
         }
       }
     },
-    "republish": {
-      "briefVersion": 2,
-      "sourceVersion": "v2",
-      "reference": {
-        "artifactId": "step-0-brief",
-        "version": "v1",
-        "source": {
-          "projectId": "project-829-1954",
-          "pageId": "page-a",
-          "canvasId": "canvas-a1"
-        },
-        "latestVersion": "v2",
-        "markedAt": "2026-11-19T03:08:39.820Z"
-      },
-      "legacyDirty": null
-    },
-    "restart": {
-      "fullProcessRestart": true,
-      "activePageId": "page-b",
-      "activeCanvasId": "canvas-b1",
-      "backDisabled": true,
-      "forwardDisabled": true,
-      "reference": {
-        "artifactId": "step-0-brief",
-        "version": "v1",
-        "source": {
-          "projectId": "project-829-1954",
-          "pageId": "page-a",
-          "canvasId": "canvas-a1"
-        },
-        "latestVersion": "v2",
-        "markedAt": "2026-11-19T03:08:39.820Z"
+    {
+      "name": "打开源产物切回源页并打开真实查看器",
+      "passed": true,
+      "detail": {
+        "activePageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+        "sourcePageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+        "sourceNodeVisible": true,
+        "viewerVisible": true,
+        "sourceTitleVisible": true,
+        "sourceRefVisible": true
       }
+    }
+  ],
+  "runtime": {
+    "api": "object",
+    "createProject": "function",
+    "protocol": "http:",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ai-shortdrama-studio/0.1.0 Chrome/130.0.6723.191 Electron/33.4.11 Safari/537.36",
+    "productionBuildCheckedSeparately": true,
+    "devMock": false
+  },
+  "initialProjects": [
+    {
+      "title": "project-accept-829-t4-1795590564036",
+      "dir": "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-150924-gztn"
     },
-    "openSource": {
-      "activePageId": "page-a",
-      "sourceNodeId": "step-0-brief",
-      "sourceVersion": "v2",
-      "viewerOpened": true
+    {
+      "title": "project-accept-829-t4-1795590498073",
+      "dir": "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-150818-4c4c"
     },
-    "renderer": {
-      "pageErrors": [],
-      "exceptions": 0
+    {
+      "title": "project-accept-829-t4-1795590112196",
+      "dir": "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-150152-gxle"
+    },
+    {
+      "title": "project-accept-829-t4-1795590060375",
+      "dir": "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-150100-09fj"
+    },
+    {
+      "title": "project-accept-829-t4-1795589370034",
+      "dir": "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-144930-dns6"
+    },
+    {
+      "title": "project-accept-829-t4-1795588574968",
+      "dir": "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-143614-52z3"
+    },
+    {
+      "title": "test",
+      "dir": "/Users/szd/Documents/ai-shortdrama-studio/project-20261104-092720-gv9u"
+    }
+  ],
+  "project": {
+    "id": "project-20261125-151052-vayt",
+    "title": "project-accept-829-t4-1795590652007",
+    "dir": "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-151052-vayt",
+    "reusedAfterSetupRetry": false
+  },
+  "projectScope": {
+    "before": [
+      "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-150924-gztn",
+      "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-150818-4c4c",
+      "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-150152-gxle",
+      "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-150100-09fj",
+      "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-144930-dns6",
+      "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-143614-52z3",
+      "/Users/szd/Documents/ai-shortdrama-studio/project-20261104-092720-gv9u"
+    ],
+    "created": "/Users/szd/Documents/ai-shortdrama-studio/project-20261125-151052-vayt",
+    "prefixAllowed": true
+  },
+  "navigation": {
+    "sourceTarget": {
+      "projectId": "project-20261125-151052-vayt",
+      "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+      "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+    },
+    "referenceTarget": {
+      "projectId": "project-20261125-151052-vayt",
+      "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+      "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+    },
+    "initialBackDisabled": true,
+    "afterBack": {
+      "selectedPageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+      "backDisabled": false,
+      "forwardDisabled": false
+    },
+    "afterForward": {
+      "selectedPageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+      "backDisabled": false,
+      "forwardDisabled": true
     }
   },
-  "screenshots": [
-    "docs/verification/p1-2026-11-15/p1-after-829-reference.png",
-    "docs/verification/p1-2026-11-15/p1-after-829-reference-dirty.png",
-    "docs/verification/p1-2026-11-15/p1-after-829-restart.png",
-    "docs/verification/p1-2026-11-15/p1-after-829-open-source.png"
-  ],
-  "runtimeResourceShim": "temporary-md-only-removed-after-acceptance",
-  "pass": true
+  "mcpRuntime": {
+    "state": "running",
+    "transport": "应用 Runtime 启动的真实 MCP / Streamable HTTP；Bearer token 已省略"
+  },
+  "reference": {
+    "seedMcpContent": [
+      {
+        "type": "text",
+        "text": "{\"ok\":true,\"canvas\":{\"schemaVersion\":4,\"projectId\":\"project-20261125-151052-vayt\",\"title\":\"project-accept-829-t4-1795590652007\",\"activePageId\":\"page-01e491b9-b550-4513-a2f8-e68f85f62b55\",\"activeView\":\"canvas\",\"pages\":[{\"id\":\"page-01e491b9-b550-4513-a2f8-e68f85f62b55\",\"title\":\"创作页 1\",\"activeCanvasId\":\"canvas-a9083522-23ac-40a5-828a-289ac038a839\",\"canvases\":[{\"id\":\"canvas-a9083522-23ac-40a5-828a-289ac038a839\",\"title\":\"画布 1\",\"nodes\":[{\"id\":\"t4-source-artifact\",\"step\":\"7\",\"kind\":\"manifest\",\"title\":\"T4 源产物\",\"status\":\"done\",\"position\":{\"x\":80,\"y\":100},\"ref\":{\"path\":\"manifest.json\",\"format\":\"json\"},\"meta\":{\"version\":\"v1\"},\"updatedAt\":\"2026-11-25T07:10:53.699Z\"}],\"edges\":[],\"viewport\":null}]},{\"id\":\"page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201\",\"title\":\"创作页 2\",\"activeCanvasId\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\",\"canvases\":[{\"id\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\",\"title\":\"画布 1\",\"nodes\":[],\"edges\":[],\"viewport\":null}]}],\"gates\":[],\"revision\":3,\"receipts\":[{\"commandId\":\"f6290e3a-f528-43c4-be8c-48e43106e3ee\",\"type\":\"canvas.withCanvas\",\"requestHash\":\"ecbbd1dafa2ca596a1d725728cbffd2c42d69e8ee3fc9bd452a2ad6a186fb878\",\"revision\":1,\"appliedAt\":\"2026-11-25T07:10:52.349Z\"},{\"commandId\":\"77e5c01b-09d3-4ba6-aa2e-5be14440d72f\",\"type\":\"page.create\",\"requestHash\":\"286ae6400380f3c24491a94b4877ea5c8537e791390ac624a364e804f4d556bf\",\"revision\":2,\"appliedAt\":\"2026-11-25T07:10:52.410Z\",\"payload\":{\"request\":{\"projectId\":\"project-20261125-151052-vayt\",\"type\":\"page.create\"},\"target\":{\"projectId\":\"project-20261125-151052-vayt\",\"pageId\":\"page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201\",\"canvasId\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\"}}},{\"commandId\":\"t4-seed-1795590653695\",\"type\":\"canvas.update\",\"requestHash\":\"ae4e7cf3096a04174d61cf3aaacc49c62c10ba2e13fc6d8b890693a221b9535c\",\"revision\":3,\"appliedAt\":\"2026-11-25T07:10:53.699Z\"}],\"updatedAt\":\"2026-11-25T07:10:53.699Z\"},\"commandId\":\"t4-seed-1795590653695\",\"revision\":3,\"replayed\":false}"
+      }
+    ],
+    "copyRevisionUnchanged": true,
+    "pasteRevisionDelta": 1,
+    "node": {
+      "id": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+      "step": "7",
+      "kind": "manifest",
+      "title": "T4 源产物",
+      "status": "done",
+      "position": {
+        "x": 44.44444444444444,
+        "y": 32.77777777777778
+      },
+      "ref": {
+        "path": "manifest.json",
+        "format": "json"
+      },
+      "meta": {
+        "version": "v1"
+      },
+      "updatedAt": "2026-11-25T07:10:53.743Z",
+      "reference": {
+        "artifactId": "t4-source-artifact",
+        "version": "v1",
+        "source": {
+          "projectId": "project-20261125-151052-vayt",
+          "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+          "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+        }
+      }
+    },
+    "receipt": {
+      "commandId": "16840e61-3afa-4f2e-9e13-cc6beb143ef5",
+      "type": "reference.create",
+      "requestHash": "e421d4c990404c1632aaa76c05688da37a83519f88ac1d58498275e118a2cd28",
+      "revision": 4,
+      "appliedAt": "2026-11-25T07:10:53.743Z",
+      "payload": {
+        "request": {
+          "projectId": "project-20261125-151052-vayt",
+          "type": "reference.create",
+          "target": {
+            "projectId": "project-20261125-151052-vayt",
+            "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+            "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+          },
+          "source": {
+            "target": {
+              "projectId": "project-20261125-151052-vayt",
+              "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+              "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+            },
+            "nodeId": "t4-source-artifact"
+          },
+          "nodeId": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+          "position": {
+            "x": 44.44444444444444,
+            "y": 32.77777777777778
+          }
+        },
+        "target": {
+          "projectId": "project-20261125-151052-vayt",
+          "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+          "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+        }
+      }
+    },
+    "dom": {
+      "title": "短剧 Agent 平台",
+      "protocol": "http:",
+      "electron": true,
+      "selectedPageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+      "managementText": "创作页创作页 1创作页 2画布画布 1",
+      "backDisabled": false,
+      "forwardDisabled": true,
+      "badges": [
+        "引用 v1 · 源产物 t4-source-artifact"
+      ],
+      "dirtyReferences": [],
+      "dirtyBanners": [],
+      "nodes": [
+        {
+          "id": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+          "text": "发布清单T4 源产物manifest.json引用 v1 · 源产物 t4-source-artifact已完成 · 0入/0出"
+        }
+      ],
+      "viewer": false,
+      "bodyText": "剧\n短剧 Agent · project-accept-829-t4-1795590652007\n0\n·\n1\n·\n2\n·\n3\n·\n4\n·\n5\n·\n6\n·\n7\n🎨\n视觉风格谱系\nv1.46\n项目\nSkill\n资产\n插件\n本地模型\nAI\n项目库\n资源库\n流程导航\n导入静态项目包\np\nproject-accept-829-t4-1795590564036\n1 分钟前\n···\np\nproject-accept-829-t4-1795590498073\n2 分钟前\n···\np\nproject-accept-829-t4-1795590112196\n9 分钟前\n···\np\nproject-accept-829-t4-1795590060375\n9 分钟前\n···\np\nproject-accept-829-t4-1795589370034\n11 分钟前\n···\np\nproject-accept-829-t4-1795588574968\n34 分钟前\n···\nt\ntest\n21 天前\n···\n＋ 新建项目\n创作页\n创作页 1\n创作页 2\n画布\n画布 1\nSTAGE 7 · 发布\n发布清单\nT4 源产物\nmanifest.json\n引用 v1 · 源产物 t4-source-artifact\n已完成 · 0入/0出\n拖拽卡片调整位置 · 滚轮缩放 · 空白拖拽平移 · 右键更多操作\n90%\n🎨\n视觉风格谱系\n谱系不可用\n×\n全部\nA 写实影像\nB 青春治愈\nC 动画插画\nD 类型氛围\nE 材质工艺\n谱系不可用\n数据源：md 唯一源（AI 通道读结构化）/ html 派生镜像（人读预览墙）· 平台只消费不私改 · 改源走对话（AI 改 md → 同步 html → 升版 → 提示差异）\n已捕获口径\n· 0 条\n展开 ▾\n从第一句话起持续累积——对话中提取的题材、平台、集数等口径会实时列在这里，可随时直改。\n主控 Agent\n导演 · 任务调度与确认门\n主\n编\n美\n镜\n声\n输入一句灵感（如「重生复仇都市女频」），主控 Agent 会理解拆解，并按当前阶段依次请你裁决确认门。\n火山方舟 · ark-code-latest\nH3 自动选配\n文本 · 火山方舟\nark-code-latest\n运行时 · 运行中\nComfyUI 未配置\n画布更新于 15:10"
+    },
+    "snapshot": {
+      "projectId": "project-20261125-151052-vayt",
+      "activePageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+      "activeView": "canvas",
+      "revision": 4,
+      "pages": [
+        {
+          "id": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+          "title": "创作页 1",
+          "activeCanvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839",
+          "canvases": [
+            {
+              "id": "canvas-a9083522-23ac-40a5-828a-289ac038a839",
+              "nodes": [
+                {
+                  "id": "t4-source-artifact",
+                  "title": "T4 源产物",
+                  "version": "v1",
+                  "ref": {
+                    "path": "manifest.json",
+                    "format": "json"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+          "title": "创作页 2",
+          "activeCanvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13",
+          "canvases": [
+            {
+              "id": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13",
+              "nodes": [
+                {
+                  "id": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+                  "title": "T4 源产物",
+                  "version": "v1",
+                  "ref": {
+                    "path": "manifest.json",
+                    "format": "json"
+                  },
+                  "reference": {
+                    "artifactId": "t4-source-artifact",
+                    "version": "v1",
+                    "source": {
+                      "projectId": "project-20261125-151052-vayt",
+                      "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                      "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "receipts": [
+        {
+          "commandId": "f6290e3a-f528-43c4-be8c-48e43106e3ee",
+          "type": "canvas.withCanvas",
+          "requestHash": "ecbbd1dafa2ca596a1d725728cbffd2c42d69e8ee3fc9bd452a2ad6a186fb878",
+          "revision": 1,
+          "appliedAt": "2026-11-25T07:10:52.349Z"
+        },
+        {
+          "commandId": "77e5c01b-09d3-4ba6-aa2e-5be14440d72f",
+          "type": "page.create",
+          "requestHash": "286ae6400380f3c24491a94b4877ea5c8537e791390ac624a364e804f4d556bf",
+          "revision": 2,
+          "appliedAt": "2026-11-25T07:10:52.410Z",
+          "payload": {
+            "request": {
+              "projectId": "project-20261125-151052-vayt",
+              "type": "page.create"
+            },
+            "target": {
+              "projectId": "project-20261125-151052-vayt",
+              "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+              "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+            }
+          }
+        },
+        {
+          "commandId": "t4-seed-1795590653695",
+          "type": "canvas.update",
+          "requestHash": "ae4e7cf3096a04174d61cf3aaacc49c62c10ba2e13fc6d8b890693a221b9535c",
+          "revision": 3,
+          "appliedAt": "2026-11-25T07:10:53.699Z"
+        },
+        {
+          "commandId": "16840e61-3afa-4f2e-9e13-cc6beb143ef5",
+          "type": "reference.create",
+          "requestHash": "e421d4c990404c1632aaa76c05688da37a83519f88ac1d58498275e118a2cd28",
+          "revision": 4,
+          "appliedAt": "2026-11-25T07:10:53.743Z",
+          "payload": {
+            "request": {
+              "projectId": "project-20261125-151052-vayt",
+              "type": "reference.create",
+              "target": {
+                "projectId": "project-20261125-151052-vayt",
+                "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+              },
+              "source": {
+                "target": {
+                  "projectId": "project-20261125-151052-vayt",
+                  "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                  "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+                },
+                "nodeId": "t4-source-artifact"
+              },
+              "nodeId": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+              "position": {
+                "x": 44.44444444444444,
+                "y": 32.77777777777778
+              }
+            },
+            "target": {
+              "projectId": "project-20261125-151052-vayt",
+              "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+              "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "republish": {
+    "mcpContent": [
+      {
+        "type": "text",
+        "text": "{\"ok\":true,\"canvas\":{\"schemaVersion\":4,\"projectId\":\"project-20261125-151052-vayt\",\"title\":\"project-accept-829-t4-1795590652007\",\"activePageId\":\"page-01e491b9-b550-4513-a2f8-e68f85f62b55\",\"activeView\":\"canvas\",\"pages\":[{\"id\":\"page-01e491b9-b550-4513-a2f8-e68f85f62b55\",\"title\":\"创作页 1\",\"activeCanvasId\":\"canvas-a9083522-23ac-40a5-828a-289ac038a839\",\"canvases\":[{\"id\":\"canvas-a9083522-23ac-40a5-828a-289ac038a839\",\"title\":\"画布 1\",\"nodes\":[{\"id\":\"t4-source-artifact\",\"step\":\"7\",\"kind\":\"manifest\",\"title\":\"T4 源产物\",\"status\":\"done\",\"position\":{\"x\":80,\"y\":100},\"ref\":{\"path\":\"manifest.json\",\"format\":\"json\"},\"meta\":{\"version\":\"v2\"},\"updatedAt\":\"2026-11-25T07:10:54.215Z\"}],\"edges\":[],\"viewport\":null}]},{\"id\":\"page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201\",\"title\":\"创作页 2\",\"activeCanvasId\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\",\"canvases\":[{\"id\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\",\"title\":\"画布 1\",\"nodes\":[{\"id\":\"ca72aa43-7fb5-41f8-9e10-fb48e280ab2b\",\"step\":\"7\",\"kind\":\"manifest\",\"title\":\"T4 源产物\",\"status\":\"done\",\"position\":{\"x\":44.44444444444444,\"y\":32.77777777777778},\"ref\":{\"path\":\"manifest.json\",\"format\":\"json\"},\"meta\":{\"version\":\"v1\"},\"updatedAt\":\"2026-11-25T07:10:53.743Z\",\"reference\":{\"artifactId\":\"t4-source-artifact\",\"version\":\"v1\",\"source\":{\"projectId\":\"project-20261125-151052-vayt\",\"pageId\":\"page-01e491b9-b550-4513-a2f8-e68f85f62b55\",\"canvasId\":\"canvas-a9083522-23ac-40a5-828a-289ac038a839\"},\"latestVersion\":\"v2\",\"markedAt\":\"2026-11-25T07:10:54.215Z\"}}],\"edges\":[],\"viewport\":null}]}],\"gates\":[],\"revision\":5,\"receipts\":[{\"commandId\":\"f6290e3a-f528-43c4-be8c-48e43106e3ee\",\"type\":\"canvas.withCanvas\",\"requestHash\":\"ecbbd1dafa2ca596a1d725728cbffd2c42d69e8ee3fc9bd452a2ad6a186fb878\",\"revision\":1,\"appliedAt\":\"2026-11-25T07:10:52.349Z\"},{\"commandId\":\"77e5c01b-09d3-4ba6-aa2e-5be14440d72f\",\"type\":\"page.create\",\"requestHash\":\"286ae6400380f3c24491a94b4877ea5c8537e791390ac624a364e804f4d556bf\",\"revision\":2,\"appliedAt\":\"2026-11-25T07:10:52.410Z\",\"payload\":{\"request\":{\"projectId\":\"project-20261125-151052-vayt\",\"type\":\"page.create\"},\"target\":{\"projectId\":\"project-20261125-151052-vayt\",\"pageId\":\"page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201\",\"canvasId\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\"}}},{\"commandId\":\"t4-seed-1795590653695\",\"type\":\"canvas.update\",\"requestHash\":\"ae4e7cf3096a04174d61cf3aaacc49c62c10ba2e13fc6d8b890693a221b9535c\",\"revision\":3,\"appliedAt\":\"2026-11-25T07:10:53.699Z\"},{\"commandId\":\"16840e61-3afa-4f2e-9e13-cc6beb143ef5\",\"type\":\"reference.create\",\"requestHash\":\"e421d4c990404c1632aaa76c05688da37a83519f88ac1d58498275e118a2cd28\",\"revision\":4,\"appliedAt\":\"2026-11-25T07:10:53.743Z\",\"payload\":{\"request\":{\"projectId\":\"project-20261125-151052-vayt\",\"type\":\"reference.create\",\"target\":{\"projectId\":\"project-20261125-151052-vayt\",\"pageId\":\"page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201\",\"canvasId\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\"},\"source\":{\"target\":{\"projectId\":\"project-20261125-151052-vayt\",\"pageId\":\"page-01e491b9-b550-4513-a2f8-e68f85f62b55\",\"canvasId\":\"canvas-a9083522-23ac-40a5-828a-289ac038a839\"},\"nodeId\":\"t4-source-artifact\"},\"nodeId\":\"ca72aa43-7fb5-41f8-9e10-fb48e280ab2b\",\"position\":{\"x\":44.44444444444444,\"y\":32.77777777777778}},\"target\":{\"projectId\":\"project-20261125-151052-vayt\",\"pageId\":\"page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201\",\"canvasId\":\"canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13\"}}},{\"commandId\":\"t4-republish-1795590654211\",\"type\":\"canvas.update\",\"requestHash\":\"64f456ef9da4952d658a64c0e7cf55fa79b0bedf070643011de242bef29b0617\",\"revision\":5,\"appliedAt\":\"2026-11-25T07:10:54.215Z\"}],\"updatedAt\":\"2026-11-25T07:10:54.215Z\"},\"commandId\":\"t4-republish-1795590654211\",\"revision\":5,\"replayed\":false}"
+      }
+    ],
+    "source": {
+      "id": "t4-source-artifact",
+      "version": "v2"
+    },
+    "reference": {
+      "id": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+      "step": "7",
+      "kind": "manifest",
+      "title": "T4 源产物",
+      "status": "done",
+      "position": {
+        "x": 44.44444444444444,
+        "y": 32.77777777777778
+      },
+      "ref": {
+        "path": "manifest.json",
+        "format": "json"
+      },
+      "meta": {
+        "version": "v1"
+      },
+      "updatedAt": "2026-11-25T07:10:53.743Z",
+      "reference": {
+        "artifactId": "t4-source-artifact",
+        "version": "v1",
+        "source": {
+          "projectId": "project-20261125-151052-vayt",
+          "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+          "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+        },
+        "latestVersion": "v2",
+        "markedAt": "2026-11-25T07:10:54.215Z"
+      }
+    },
+    "dirtyDom": {
+      "dirtyReferences": [
+        "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b"
+      ],
+      "badges": [
+        "引用 v1 · 源产物 t4-source-artifact"
+      ],
+      "banner": "有 1 个跨页引用基于旧版源产物；固定版本保持不变，可打开源产物查看最新版。"
+    },
+    "snapshot": {
+      "projectId": "project-20261125-151052-vayt",
+      "activePageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+      "activeView": "canvas",
+      "revision": 5,
+      "pages": [
+        {
+          "id": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+          "title": "创作页 1",
+          "activeCanvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839",
+          "canvases": [
+            {
+              "id": "canvas-a9083522-23ac-40a5-828a-289ac038a839",
+              "nodes": [
+                {
+                  "id": "t4-source-artifact",
+                  "title": "T4 源产物",
+                  "version": "v2",
+                  "ref": {
+                    "path": "manifest.json",
+                    "format": "json"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+          "title": "创作页 2",
+          "activeCanvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13",
+          "canvases": [
+            {
+              "id": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13",
+              "nodes": [
+                {
+                  "id": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+                  "title": "T4 源产物",
+                  "version": "v1",
+                  "ref": {
+                    "path": "manifest.json",
+                    "format": "json"
+                  },
+                  "reference": {
+                    "artifactId": "t4-source-artifact",
+                    "version": "v1",
+                    "source": {
+                      "projectId": "project-20261125-151052-vayt",
+                      "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                      "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+                    },
+                    "latestVersion": "v2",
+                    "markedAt": "2026-11-25T07:10:54.215Z"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "receipts": [
+        {
+          "commandId": "f6290e3a-f528-43c4-be8c-48e43106e3ee",
+          "type": "canvas.withCanvas",
+          "requestHash": "ecbbd1dafa2ca596a1d725728cbffd2c42d69e8ee3fc9bd452a2ad6a186fb878",
+          "revision": 1,
+          "appliedAt": "2026-11-25T07:10:52.349Z"
+        },
+        {
+          "commandId": "77e5c01b-09d3-4ba6-aa2e-5be14440d72f",
+          "type": "page.create",
+          "requestHash": "286ae6400380f3c24491a94b4877ea5c8537e791390ac624a364e804f4d556bf",
+          "revision": 2,
+          "appliedAt": "2026-11-25T07:10:52.410Z",
+          "payload": {
+            "request": {
+              "projectId": "project-20261125-151052-vayt",
+              "type": "page.create"
+            },
+            "target": {
+              "projectId": "project-20261125-151052-vayt",
+              "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+              "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+            }
+          }
+        },
+        {
+          "commandId": "t4-seed-1795590653695",
+          "type": "canvas.update",
+          "requestHash": "ae4e7cf3096a04174d61cf3aaacc49c62c10ba2e13fc6d8b890693a221b9535c",
+          "revision": 3,
+          "appliedAt": "2026-11-25T07:10:53.699Z"
+        },
+        {
+          "commandId": "16840e61-3afa-4f2e-9e13-cc6beb143ef5",
+          "type": "reference.create",
+          "requestHash": "e421d4c990404c1632aaa76c05688da37a83519f88ac1d58498275e118a2cd28",
+          "revision": 4,
+          "appliedAt": "2026-11-25T07:10:53.743Z",
+          "payload": {
+            "request": {
+              "projectId": "project-20261125-151052-vayt",
+              "type": "reference.create",
+              "target": {
+                "projectId": "project-20261125-151052-vayt",
+                "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+              },
+              "source": {
+                "target": {
+                  "projectId": "project-20261125-151052-vayt",
+                  "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                  "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+                },
+                "nodeId": "t4-source-artifact"
+              },
+              "nodeId": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+              "position": {
+                "x": 44.44444444444444,
+                "y": 32.77777777777778
+              }
+            },
+            "target": {
+              "projectId": "project-20261125-151052-vayt",
+              "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+              "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+            }
+          }
+        },
+        {
+          "commandId": "t4-republish-1795590654211",
+          "type": "canvas.update",
+          "requestHash": "64f456ef9da4952d658a64c0e7cf55fa79b0bedf070643011de242bef29b0617",
+          "revision": 5,
+          "appliedAt": "2026-11-25T07:10:54.215Z"
+        }
+      ]
+    }
+  },
+  "restart": {
+    "oldMainPid": 13431,
+    "requestedAt": "2026-11-25T07:10:54.582Z",
+    "newMainPid": 13532,
+    "restored": {
+      "activeTarget": {
+        "projectId": "project-20261125-151052-vayt",
+        "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+        "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+      },
+      "reference": {
+        "id": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+        "step": "7",
+        "kind": "manifest",
+        "title": "T4 源产物",
+        "status": "done",
+        "position": {
+          "x": 44.44444444444444,
+          "y": 32.77777777777778
+        },
+        "ref": {
+          "path": "manifest.json",
+          "format": "json"
+        },
+        "meta": {
+          "version": "v1"
+        },
+        "updatedAt": "2026-11-25T07:10:53.743Z",
+        "reference": {
+          "artifactId": "t4-source-artifact",
+          "version": "v1",
+          "source": {
+            "projectId": "project-20261125-151052-vayt",
+            "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+            "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+          },
+          "latestVersion": "v2",
+          "markedAt": "2026-11-25T07:10:54.215Z"
+        }
+      },
+      "backDisabled": true,
+      "forwardDisabled": true,
+      "snapshot": {
+        "projectId": "project-20261125-151052-vayt",
+        "activePageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+        "activeView": "canvas",
+        "revision": 5,
+        "pages": [
+          {
+            "id": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+            "title": "创作页 1",
+            "activeCanvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839",
+            "canvases": [
+              {
+                "id": "canvas-a9083522-23ac-40a5-828a-289ac038a839",
+                "nodes": [
+                  {
+                    "id": "t4-source-artifact",
+                    "title": "T4 源产物",
+                    "version": "v2",
+                    "ref": {
+                      "path": "manifest.json",
+                      "format": "json"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+            "title": "创作页 2",
+            "activeCanvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13",
+            "canvases": [
+              {
+                "id": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13",
+                "nodes": [
+                  {
+                    "id": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+                    "title": "T4 源产物",
+                    "version": "v1",
+                    "ref": {
+                      "path": "manifest.json",
+                      "format": "json"
+                    },
+                    "reference": {
+                      "artifactId": "t4-source-artifact",
+                      "version": "v1",
+                      "source": {
+                        "projectId": "project-20261125-151052-vayt",
+                        "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                        "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+                      },
+                      "latestVersion": "v2",
+                      "markedAt": "2026-11-25T07:10:54.215Z"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "receipts": [
+          {
+            "commandId": "f6290e3a-f528-43c4-be8c-48e43106e3ee",
+            "type": "canvas.withCanvas",
+            "requestHash": "ecbbd1dafa2ca596a1d725728cbffd2c42d69e8ee3fc9bd452a2ad6a186fb878",
+            "revision": 1,
+            "appliedAt": "2026-11-25T07:10:52.349Z"
+          },
+          {
+            "commandId": "77e5c01b-09d3-4ba6-aa2e-5be14440d72f",
+            "type": "page.create",
+            "requestHash": "286ae6400380f3c24491a94b4877ea5c8537e791390ac624a364e804f4d556bf",
+            "revision": 2,
+            "appliedAt": "2026-11-25T07:10:52.410Z",
+            "payload": {
+              "request": {
+                "projectId": "project-20261125-151052-vayt",
+                "type": "page.create"
+              },
+              "target": {
+                "projectId": "project-20261125-151052-vayt",
+                "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+              }
+            }
+          },
+          {
+            "commandId": "t4-seed-1795590653695",
+            "type": "canvas.update",
+            "requestHash": "ae4e7cf3096a04174d61cf3aaacc49c62c10ba2e13fc6d8b890693a221b9535c",
+            "revision": 3,
+            "appliedAt": "2026-11-25T07:10:53.699Z"
+          },
+          {
+            "commandId": "16840e61-3afa-4f2e-9e13-cc6beb143ef5",
+            "type": "reference.create",
+            "requestHash": "e421d4c990404c1632aaa76c05688da37a83519f88ac1d58498275e118a2cd28",
+            "revision": 4,
+            "appliedAt": "2026-11-25T07:10:53.743Z",
+            "payload": {
+              "request": {
+                "projectId": "project-20261125-151052-vayt",
+                "type": "reference.create",
+                "target": {
+                  "projectId": "project-20261125-151052-vayt",
+                  "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                  "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+                },
+                "source": {
+                  "target": {
+                    "projectId": "project-20261125-151052-vayt",
+                    "pageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+                    "canvasId": "canvas-a9083522-23ac-40a5-828a-289ac038a839"
+                  },
+                  "nodeId": "t4-source-artifact"
+                },
+                "nodeId": "ca72aa43-7fb5-41f8-9e10-fb48e280ab2b",
+                "position": {
+                  "x": 44.44444444444444,
+                  "y": 32.77777777777778
+                }
+              },
+              "target": {
+                "projectId": "project-20261125-151052-vayt",
+                "pageId": "page-f192ec2c-4c6f-408d-8fc9-f4131b4fc201",
+                "canvasId": "canvas-db5ce9ba-7429-40c8-ae1d-f7647437eb13"
+              }
+            }
+          },
+          {
+            "commandId": "t4-republish-1795590654211",
+            "type": "canvas.update",
+            "requestHash": "64f456ef9da4952d658a64c0e7cf55fa79b0bedf070643011de242bef29b0617",
+            "revision": 5,
+            "appliedAt": "2026-11-25T07:10:54.215Z"
+          }
+        ]
+      }
+    }
+  },
+  "sourceLocate": {
+    "activePageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+    "sourcePageId": "page-01e491b9-b550-4513-a2f8-e68f85f62b55",
+    "sourceNodeVisible": true,
+    "viewerVisible": true,
+    "sourceTitleVisible": true,
+    "sourceRefVisible": true
+  },
+  "ok": true,
+  "finishedAt": "2026-11-25T07:11:00.198Z"
 }

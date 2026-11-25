@@ -32,7 +32,7 @@
 | 多创作页与画布持久化 | [feature-823 · 多创作页与自由画布持久化](./feature-823-多创作页与自由画布持久化/) | 814 的画布命令 / revision / receipt / 资产绑定；825 的 Canvas 只读预检 | ✅ 切片 E 与本包专项已验；不代表 P1 整体通过 | `electron/canvas/`；`src/studio/canvas/`；`src/studio/shell/` |
 | 项目 JSON 写安全 | [feature-827 · 项目 JSON 原子写与异常终止验收](./feature-827-项目JSON原子写与异常终止验收/) | 825 的 openProject guard / session、同单项目写队列与错误优先级 | ✅ 本包专项完成；不扩写为跨文件 / 跨项目事务 | `electron/fs/`；`electron/project/`；`electron/canvas/` |
 | 项目库与打开事务 | [feature-828 · 项目库 P1 能力补齐](./feature-828-项目库P1能力补齐/) | 812 的无项目入口；824 的项目库 F1—F10；825 的项目打开提交事务 | ✅ 本包专项完成；824 原始 FAIL 仅在 Git 历史保留，不倒写 | `electron/project/`；`src/studio/shell/` |
-| 页历史与跨页正式引用 | [feature-829 · 创作页历史与跨页正式引用](./feature-829-创作页历史与跨页正式引用/) | — | 🚧 继续实施中；真实 Electron 未验收前不得闭环 | `electron/canvas/`；`src/studio/canvas/`；`src/studio/shell/` |
+| 页历史与跨页正式引用 | [feature-829 · 创作页历史与跨页正式引用](./feature-829-创作页历史与跨页正式引用/) | — | ✅ 本包已闭环；真实 Electron 专项已验，不代表 P1 / Parity 通过 | `electron/canvas/`；`src/studio/canvas/`；`src/studio/shell/` |
 | 测试与验收数据落点 | [feature-830 · 测试与验收数据落点统一](./feature-830-测试与验收数据落点统一/) | 818 / 826 的通用测试门禁与测试数据原则 | ✅ 已完成；X-001 / X-002 作为历史记录保留 | `src/test/setup.ts`；`scripts/acceptance-env.cjs`；`electron/main.ts` |
 
 **独立边界**：001 / 005、801 / 806、803 / 816、808 / 817、821 / 822 均不合并；013 只承接呈现职责，不吞并 005；813 保持独立。

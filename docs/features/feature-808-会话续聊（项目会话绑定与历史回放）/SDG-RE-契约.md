@@ -489,3 +489,48 @@ sessionMessages: (sessionId: string): Promise<RuntimeSessionMessageRecord[]> =>
 - 819 只改变路径判据，不改变模板内容、模型占位符和启动失败语义；其“真实 runtime 已可用”只保留为当时历史验证，不由本次文档归并重新确认。
 - 010 的“完整工具请求/结果”与 808 H6 冲突时，以**状态 + 错误 + 白名单参数摘要、不回放完整结果**为现行口径；归档包原契约不删改。
 - 数据归本包，视觉归 817；runtime 会话失败不得用视觉活跃态掩盖。
+
+## 10. 运行中断恢复契约（2026-11-26，K8 已随计划批准）
+
+本次新增恰 2 个 IPC，不新增错误码、运行时事件或共享类型；K1/K9 零触发。原 §4.6 的“不改 prompt 通道”现仅收敛为：不改通道名与业务白名单，允许主进程在发送前生成并注入真实用户 messageID。
+
+### 10.1 项目运行档
+
+`.agent-runs.json` 为 `AgentRunRecord[]` JSON，主进程唯一写者，复用全局串行写队列与原子替换：
+
+```ts
+type AgentRunStatus = 'running' | 'stopping' | 'completed' | 'failed' | 'stopped' | 'interrupted'
+
+interface AgentRunRecord {
+  id: string
+  sessionId: string
+  request: RuntimePromptRequest
+  status: AgentRunStatus
+  createdAt: string
+  updatedAt: string
+  endedAt?: string
+  error?: string
+  retryOfMessageId?: string
+}
+```
+
+- `id === SDK body.messageID`；request 只含原文、agent、模型与资产引用，不含密钥。
+- 首次加载当前项目账本时，将磁盘遗留 running/stopping 对账为 interrupted；已在本进程加载并写入的活跃运行不被项目切换误对账。
+- `running → completed/failed/stopping/interrupted`，`stopping → stopped/failed/interrupted`；completed/failed/stopped/interrupted 为终态。会话 abort 记 stopped，整个 runtime 主动 stop 同样经 stopping→stopped/停止收尾。
+- 非法 JSON/结构不得替换为空数组；runs 查询可独立失败，发送与重试在账本可用前拒绝。
+
+### 10.2 新 IPC 与镜像
+
+```ts
+window.api.runtime.runs(): Promise<AgentRunRecord[]>
+window.api.runtime.retryRun(messageId: string): Promise<{ accepted: true; messageId: string }>
+```
+
+- channel：`runtime:runs`、`runtime:run:retry`；读取/重试均只针对 currentDir 项目。
+- retry 仅接受当前绑定会话的 interrupted 记录；非字符串/未知记录/状态不符/Gate 阻断使用 `INVALID_ARGUMENT`，同会话活跃并发使用带明确消息的 `INTERNAL`。
+- retry 由主进程从旧记录取 request，复用 `withRuntime → 资产复核 → client.promptAsync` 完整链；新记录带 `retryOfMessageId`，旧记录不改。
+- main、preload、`electron/runtime/types.ts`、`src/global.d.ts`、`src/lib/runtime-types.ts`、dev mock 同步；renderer 不接触 opencode SDK。
+
+### 10.3 回放展示适配
+
+`replayMessages(records, runs?)` 新增可选第二入参，原 `ReplayMessageRecord`/IPC 消息 DTO 不变。用户消息按真实 id 关联 run，后续 assistant 继承至下一用户消息；运行元数据只附到 renderer `ChatItem` 展示模型。孤儿 interrupted run 生成独立恢复展示项，不伪造用户/assistant 历史记录。工具原始 status 不改，interrupted 的 pending/running 仅由 817 展示为“已中断”。

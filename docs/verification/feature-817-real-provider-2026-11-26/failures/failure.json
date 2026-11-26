@@ -1,0 +1,30 @@
+{
+  "feature": "817",
+  "evidenceClass": "real-electron-real-opencode-real-ark",
+  "provider": "ark",
+  "model": "ark-code-latest",
+  "status": "failed-then-retried",
+  "ac": "AC11 / AC16",
+  "failedAt": "2026-11-26T07:50:12.251Z",
+  "actual": {
+    "gateId": "0-final",
+    "gateStatus": "approved",
+    "execution": "HARNESS_VALIDATION_FAILED",
+    "checkId": "SPEC_FIELD_ENUM",
+    "field": "fiveElements.aspectRatio",
+    "invalidValue": "9:16竖屏",
+    "allowedValues": [
+      "竖屏 9:16",
+      "横屏 16:9"
+    ],
+    "briefVersion": null
+  },
+  "expected": "批准仅在结构化草案通过校验后发布立项 v1；失败保持可见并允许真实修订后重试。",
+  "artifacts": [
+    "gate-approve-failed.png",
+    "canvas-after-failed-approve.json",
+    "electron-gateApprove.log",
+    "acceptance-result-at-failure.json"
+  ],
+  "note": "这是 Agent 结构化草案值越界导致的真实后置执行失败，不作为批准成功证据；后续修正与重试验证单独留痕。"
+}

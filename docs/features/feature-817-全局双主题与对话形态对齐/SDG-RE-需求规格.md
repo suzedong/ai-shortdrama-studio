@@ -82,3 +82,21 @@
 | R37-05 | **视觉与行为分责**：817 只承接上述视觉、活跃态和滚动；芯片点击、输入清理、链态 / 分色 / 影响面板 / 留存卡归 013，芯片业务数据与定案协议归 001，门态归 801，回放 DTO 与数据归约归 808。ChipRow 既有单击直发和 GateCard 语义不变。 |
 
 **状态保留**：双主题 Electron 现场通过仍是既有事实；真实 AI runtime、OptionCard、真实任务详情和 Gate 现场未全闭环，T8 与 AC4–AC12 的既有开放状态不因本节或文档 AC 改为完成。本 Change 无新接口，不新增消息存储、运行时事件或共享类型，也不构成真机验收。
+
+## 5. 运行中断展示与证据校准 Change（2026-11-26）
+
+本 Change 消费 feature-808 已批准的 runs/retry IPC，不在本包重复定义接口，不新增视觉需求。
+
+- 仅对 interrupted 轮次的 pending/running 工具显示“已中断”，去掉活跃动画；原始 ToolView 与历史 DTO 不变，completed/error 工具保持原状。
+- 引擎无用户消息的 interrupted 运行显示独立“提交结果未知”恢复卡；OptionCard 未提交答案不代选，pending Gate 保持人工拍板，已落盘产物不回滚。
+- 提供“确认并重试”显式操作；pending Gate、活跃运行或非 interrupted 状态禁用/拒绝。点击后只调用一次 retry，展示新运行关联，不自动重试、不续接 Token 流。
+- 校准既有 AC1–AC12 的真实输入、OptionCard、任务详情、Gate、协议元数据与主题证据；Shift+Enter 既有换行逻辑不变，只有实际复现的既有 AC 缺陷才修复。
+
+| AC | 可复现预期 |
+| :-- | :-- |
+| AC13 | interrupted 轮次遗留工具显示已中断且无 spinner，其他轮次/工具状态不受影响 |
+| AC14 | 孤儿运行显示提交结果未知；未提交选项与 pending Gate 在重启后仍等待人工，不发生自动请求 |
+| AC15 | 确认重试仅触发一次；pending Gate 阻断；新运行 ID 不同且血缘可见，旧中断现场保留 |
+| AC16 | 既有真实 AC 的本次证据与历史证据分开记录；Provider 不可用或失败保持开放，不用 mock 冒充 |
+
+**2026-11-26 真实 Provider 状态校准**：真实 Electron + 真实 opencode + 火山方舟 `ark-code-latest` 已补验正常输入、OptionCard/Chip、真实任务状态、Gate 否决/返修/发布、Markdown、双主题与正常重启回放。AC4–AC6、AC8、AC10–AC12 通过；AC7 的真实发送失败解锁重试和 AC9 的真实元数据在场渲染仍未观察，保持开放。AC16 的真实 Ark 回放与历史真实 Electron + controlled-mock 强退证据分别登记，不互相替代。本段只校准证据状态，不改变既有 AC 语义或新增接口；详见 [真实 Provider 证据索引](../../verification/feature-817-real-provider-2026-11-26/证据索引.md)。

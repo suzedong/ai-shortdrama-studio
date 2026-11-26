@@ -1,6 +1,7 @@
 // feature-808 · 历史回放纯函数（契约 §3 H1–H8 / §6.1）
 import { describe, expect, it } from 'vitest'
-import { replayMessages, type ReplayMessageRecord } from './history-replay'
+import { attachRunMetadata, replayMessages, type ReplayMessageRecord } from './history-replay'
+import type { AgentRunRecord } from './runtime-types'
 
 function rec(
   id: string,
@@ -380,6 +381,80 @@ describe('feature-808 · replayMessages（契约 §6.1）', () => {
     const snapshot = structuredClone(input)
     replayMessages(input)
     expect(input).toEqual(snapshot)
+  })
+})
+
+describe('feature-808/817 · 中断运行回放与人工重试元数据', () => {
+  function run(id: string, status: AgentRunRecord['status'], extra: Partial<AgentRunRecord> = {}): AgentRunRecord {
+    return {
+      id,
+      sessionId: 'ses-1',
+      request: { sessionId: 'ses-1', text: `请求 ${id}` },
+      status,
+      createdAt: '2026-11-26T00:00:00.000Z',
+      updatedAt: '2026-11-26T00:00:00.000Z',
+      ...extra,
+    }
+  }
+
+  it('真实用户 messageID 关联运行，后续 assistant 继承至下一用户消息', () => {
+    const first = run('msg-old', 'interrupted')
+    const second = run('msg-new', 'running', { retryOfMessageId: 'msg-old' })
+    const out = replayMessages([
+      rec('msg-old', 'user', [t('旧请求')]),
+      rec('a-old-1', 'assistant', [t('旧回复一', { startedAt: 1 })]),
+      rec('a-old-2', 'assistant', [{ type: 'tool', text: '', callId: 'c1', tool: 'read_file', status: 'running' }]),
+      rec('msg-new', 'user', [t('人工重试')]),
+      rec('a-new', 'assistant', [t('新回复', { startedAt: 2 })]),
+      rec('msg-untracked', 'user', [t('账本外消息')]),
+      rec('a-untracked', 'assistant', [t('不继承旧运行', { startedAt: 3 })]),
+    ], [first, second])
+
+    expect(out.map(item => item.run?.id)).toEqual([
+      'msg-old', 'msg-old', 'msg-old', 'msg-new', 'msg-new', undefined, undefined,
+    ])
+    expect(out[3]?.run?.retryOfMessageId).toBe('msg-old')
+    expect(out[2]?.segments?.[0]).toMatchObject({ kind: 'tool', tool: { status: 'running' } })
+  })
+
+  it('仅 interrupted 且无用户历史的运行生成有序孤儿卡，不伪造用户气泡', () => {
+    const later = run('msg-later', 'interrupted', { createdAt: '2026-11-26T00:02:00.000Z' })
+    const earlier = run('msg-orphan', 'interrupted', { createdAt: '2026-11-26T00:01:00.000Z' })
+    const replayed = run('msg-known', 'interrupted')
+    const out = replayMessages([
+      rec('msg-known', 'user', [t('已有历史')]),
+    ], [later, run('msg-done', 'completed'), earlier, replayed])
+
+    expect(out.map(item => item.id)).toEqual(['msg-known', 'run-recovery:msg-orphan', 'run-recovery:msg-later'])
+    expect(out.slice(1)).toEqual([
+      { id: 'run-recovery:msg-orphan', role: 'agent', text: '', run: earlier, orphan: true },
+      { id: 'run-recovery:msg-later', role: 'agent', text: '', run: later, orphan: true },
+    ])
+  })
+
+  it('attachRunMetadata 只刷新运行状态与血缘，保留现有 segments 和正文', () => {
+    const original = run('msg-old', 'running')
+    const items = replayMessages([
+      rec('msg-old', 'user', [t('保留正文')]),
+      rec('a-old', 'assistant', [
+        { type: 'reasoning', text: '保留推理' },
+        t('保留回复', { startedAt: 1 }),
+      ]),
+    ], [original])
+    const segments = items[1]?.segments
+    const interrupted = { ...original, status: 'interrupted' as const, updatedAt: '2026-11-26T00:03:00.000Z' }
+    const next = attachRunMetadata(items, [interrupted])
+
+    expect(next).not.toBe(items)
+    expect(next.map(item => item.run?.status)).toEqual(['interrupted', 'interrupted'])
+    expect(next[1]?.segments).toBe(segments)
+    expect(next[1]?.text).toBe('保留回复')
+
+    const orphanRun = { ...original, id: 'msg-orphan', status: 'running' as const }
+    const orphan = attachRunMetadata([
+      { id: 'run-recovery:msg-orphan', role: 'agent', text: '', run: orphanRun, orphan: true },
+    ], [{ ...orphanRun, status: 'interrupted', retryOfMessageId: 'msg-root' }])
+    expect(orphan[0]?.run).toMatchObject({ id: 'msg-orphan', status: 'interrupted', retryOfMessageId: 'msg-root' })
   })
 })
 

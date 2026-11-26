@@ -1,0 +1,124 @@
+{
+  "feature": "817",
+  "date": "2026-11-26",
+  "status": "partial_open",
+  "evidenceClass": "real-electron-real-opencode-real-ark",
+  "provider": {
+    "kind": "火山方舟 Agent Plan",
+    "baseUrl": "https://ark.cn-beijing.volces.com/api/plan/v3",
+    "model": "ark-code-latest",
+    "credential": "正式设置 IPC 加密保存；归档不含密钥、加密 userData 或完整会话库"
+  },
+  "driverSummaryCalibration": {
+    "rawTopLevelStatus": "passed",
+    "calibratedStatus": "partial_open",
+    "reason": "原始顶层状态会被后续成功阶段重写，只代表驱动最后执行结果，不是完整 AC 矩阵。",
+    "resume": {
+      "rawStageStatus": "failed",
+      "functionalChecksPassed": [
+        "谱系恢复口径经既有输入链发送",
+        "谱系恢复回合无运行时错误"
+      ],
+      "failureClass": "evidence-capture",
+      "error": "Page.captureScreenshot timed out.",
+      "productFailureObserved": false,
+      "missingArtifact": "09-resume-response.png",
+      "supportingEvidence": "resume-observations.json 与 messages-after-resume.json 已在截图前落盘；后续 10-numbered-before.png 仅作状态旁证，不冒充缺失截图。"
+    }
+  },
+  "acceptance": [
+    {
+      "id": "AC4",
+      "status": "passed",
+      "evidence": "真实 Electron 观察连续工具聚合、running/completed 状态与折叠；自动化覆盖 ToolView 顺序和状态映射。"
+    },
+    {
+      "id": "AC5",
+      "status": "passed_with_evidence_boundary",
+      "evidence": "真实现场观察 running 工具折叠且 spinner 保持；无文本回合与活跃动画的逐帧语义由组件自动化覆盖，不以静态截图宣称动画帧级验收。"
+    },
+    {
+      "id": "AC6",
+      "status": "passed",
+      "evidence": "真实编号选项仅暂存，下一步仅发送 1；自定义回答 trim 后原文发送。"
+    },
+    {
+      "id": "AC7",
+      "status": "partial_open",
+      "passed": [
+        "选项与自定义互斥",
+        "关闭/重开",
+        "busy/历史卡禁用",
+        "真实同批次原生双击只发送一次"
+      ],
+      "open": "未制造真实发送失败后由同一 OptionCard 解锁并成功重试的现场；自动化与 Gate 执行失败重试不能替代此子项。"
+    },
+    {
+      "id": "AC8",
+      "status": "passed",
+      "evidence": "真实后续用户答案恢复 picked/禁用；Chip 单击直接发送完整文本，未再添加额外确认。"
+    },
+    {
+      "id": "AC9",
+      "status": "partial_open",
+      "passed": [
+        "真实 A1/A2/B1 响应未含协议元数据时，UI 不臆造步骤或推荐",
+        "步骤/推荐正反向、非法值回退由解析器与组件自动化覆盖"
+      ],
+      "open": "本轮真实 Agent 未发出同时携带 步骤：N/M 与 【推荐】 的协议包，真实在场渲染未观察。"
+    },
+    {
+      "id": "AC10",
+      "status": "passed",
+      "evidence": "真实普通编号、风格块、Markdown 表格/强调、门卡、重启回放和全量回归通过。"
+    },
+    {
+      "id": "AC11",
+      "status": "passed",
+      "evidence": "真实 showrunner 先复述目标并保持原首问；未声称未执行阶段已完成，未臆造步骤/推荐。"
+    },
+    {
+      "id": "AC12",
+      "status": "passed",
+      "evidence": "check:docs、105 个测试文件、1357 passed / 1 skipped / 0 failed、typecheck 与 build 均退出 0。"
+    },
+    {
+      "id": "AC16",
+      "status": "passed_with_evidence_boundary",
+      "evidence": "真实 Ark 正常重启/回放与真实 Electron + controlled-mock 的 SIGKILL 恢复证据分开引用；后者 realProviderAcceptance=false，不写成真实 Ark 强退证据。失败与未观察项继续开放。"
+    }
+  ],
+  "realWorkflow": {
+    "styleCatalog": {
+      "version": "v1.47",
+      "entries": 18
+    },
+    "gate": {
+      "id": "0-final",
+      "rejected": true,
+      "reworked": true,
+      "firstExecution": "HARNESS_VALIDATION_FAILED / SPEC_FIELD_ENUM / fiveElements.aspectRatio",
+      "correctedValue": "竖屏 9:16",
+      "publishedVersions": 1,
+      "approveBy": "gate",
+      "repeatDecision": "ignored",
+      "autoAgentAfterDecision": false
+    },
+    "replay": {
+      "messagesAdded": 0,
+      "autoAdvanced": false,
+      "pendingGate": false,
+      "historicalOptionsDisabled": true,
+      "historicalChipsDisabled": true,
+      "completedToolsCollapsed": true,
+      "markdownRestored": true,
+      "themeStorageKey": "studio.theme"
+    }
+  },
+  "openItems": [
+    "AC7：真实 OptionCard 发送失败、解锁与同卡成功重试未观察。",
+    "AC9：真实 步骤：N/M / 【推荐】 元数据在场的渲染未观察。",
+    "resume：09-resume-response.png 因 CDP 截图超时缺失；功能断言已通过，但不能声称该截图存在。",
+    "真实 Ark 生成中 SIGKILL 未在本轮复测；既有真实 Electron + controlled-mock 强退证据不被升级或冒充。"
+  ]
+}

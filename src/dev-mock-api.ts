@@ -7,6 +7,7 @@ import type {
 } from '../shared/types'
 import type { CanvasUpsertNode } from '../electron/canvas/edges'
 import type {
+  AgentRunRecord,
   RuntimeAssetRef,
   RuntimePromptRequest,
   RuntimeSessionMessageRecord,
@@ -1127,9 +1128,11 @@ export function installDevMockApi(): void {
   let demoComfyInstances: ComfyInstanceConfig[] = []
   let demoComfySequence = 0
   const demoSessionMessages = new Map<string, RuntimeSessionMessageRecord[]>()
+  const demoRuns: AgentRunRecord[] = []
+  let demoRunSequence = 0
   let demoSessionSequence = 0
   let demoMessageSequence = 0
-  const recordDemoPrompt = (req: RuntimePromptRequest): string => {
+  const recordDemoPrompt = (req: RuntimePromptRequest, submittedMessageId?: string): string => {
     const seen = new Set<string>()
     const assets: RuntimeAssetRef[] = []
     for (const ref of req.assetRefs ?? []) {
@@ -1141,7 +1144,8 @@ export function installDevMockApi(): void {
       }
       assets.push(demoAssetRef(item))
     }
-    const messageId = demoMessageSequence === 0 ? 'm-demo' : `m-demo-${demoMessageSequence + 1}`
+    const messageId = submittedMessageId
+      ?? (demoMessageSequence === 0 ? 'm-demo' : `m-demo-${demoMessageSequence + 1}`)
     demoMessageSequence += 1
     const messages = demoSessionMessages.get(req.sessionId) ?? []
     messages.push({
@@ -1153,6 +1157,21 @@ export function installDevMockApi(): void {
     })
     demoSessionMessages.set(req.sessionId, messages)
     return messageId
+  }
+  const startDemoRun = (req: RuntimePromptRequest, retryOfMessageId?: string) => {
+    const messageId = `msg_mock_${++demoRunSequence}`
+    const now = new Date().toISOString()
+    demoRuns.push({
+      id: messageId,
+      sessionId: req.sessionId,
+      request: structuredClone(req),
+      status: 'running',
+      createdAt: now,
+      updatedAt: now,
+      ...(retryOfMessageId ? { retryOfMessageId } : {}),
+    })
+    recordDemoPrompt(req, messageId)
+    return { accepted: true as const, messageId }
   }
   const mockComfyError = (code: string, message: string) => Object.assign(new Error(message), { code })
   const normalizeMockComfyUrl = (input: string): string => {
@@ -1428,6 +1447,21 @@ export function installDevMockApi(): void {
       },
       listSessions: () => resolve([]),
       sessionMessages: (sessionId: string) => resolve(structuredClone(demoSessionMessages.get(sessionId) ?? [])),
+      runs: () => resolve(structuredClone(demoRuns)),
+      retryRun: (messageId: string) => {
+        const run = demoRuns.find(item => item.id === messageId)
+        if (!run || run.status !== 'interrupted') {
+          return Promise.reject(new Error('仅可重试已中断运行'))
+        }
+        if (getDemoCanvas().gates.some(gate => gate.status === 'pending')) {
+          return Promise.reject(new Error('请先完成未决 Gate，再重试已中断运行'))
+        }
+        if (demoRuns.some(item => item.sessionId === run.sessionId
+          && (item.status === 'running' || item.status === 'stopping'))) {
+          return Promise.reject(new Error('当前会话存在尚未结束的运行，不能并发重试'))
+        }
+        return resolve(startDemoRun(run.request, run.id))
+      },
       abortSession: () => resolve({ ok: true as const }),
       deleteSession: (sessionId: string) => {
         demoSessionMessages.delete(sessionId)
@@ -1436,9 +1470,7 @@ export function installDevMockApi(): void {
       prompt: (req: RuntimePromptRequest) => Promise.resolve().then(() => ({
         messageId: recordDemoPrompt(req), text: '', structured: null, error: null,
       })),
-      promptAsync: (req: RuntimePromptRequest) => Promise.resolve().then(() => ({
-        accepted: true as const, messageId: recordDemoPrompt(req),
-      })),
+      promptAsync: (req: RuntimePromptRequest) => Promise.resolve().then(() => startDemoRun(req)),
       subscribe: () => resolve({ ok: true as const }),
       unsubscribe: () => resolve({ ok: true as const }),
       listAgents: () => resolve([]),

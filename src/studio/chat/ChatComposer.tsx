@@ -1,7 +1,7 @@
 // feature-019 · 对话驱动区（契约 §3.3 / §4）
 // 多 Agent 结构化对话：用户气泡 + Agent 气泡（文本 / 立项单卡 / 工具轨迹卡）+ 内嵌 GateCard。
 // 视觉对齐原型 #rightChat：28px 头像、#F4F5FA 气泡、brief-card / trace / gate 卡。
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 
 import {
   turnSegments,
@@ -12,7 +12,7 @@ import {
 } from '../../lib/chat-runtime'
 import { summarizeToolActions, toolActionPhrase, toolArgPreview } from '../../lib/tool-labels'
 import type { AssetIndexItem, CanvasGate } from '@shared/types'
-import type { RuntimeAssetKind, RuntimeAssetRef } from '../../lib/runtime-types'
+import type { AgentRunRecord, RuntimeAssetKind, RuntimeAssetRef } from '../../lib/runtime-types'
 import GateCardView from './GateCardView'
 import MarkdownText from './ChatMarkdown'
 import { FAMILY_GRAD, PREVIEW_URL } from '../style/VisualCatalog'
@@ -63,6 +63,10 @@ export interface ChatItem {
   segments?: TurnSegment[]
   tools?: ToolView[] // Agent 当轮工具快照；正文定稿与历史回放均保留（segments 缺省时的旧路径）
   agent?: AgentId // agent 消息的发言身份，默认 showrunner
+  /** 主进程运行账本投影；真实用户 messageID 关联整轮，直到下一条用户消息。 */
+  run?: AgentRunRecord
+  /** 无对应用户历史的中断记录：只显示恢复卡，不伪造 agent 气泡。 */
+  orphan?: boolean
   brief?: BriefRow[] // 立项单卡（kv）
   trace?: TraceData // 工具轨迹卡
   label?: ChatLabel // 显式气泡标签；缺省时 agent 消息按前缀约定解析、用户消息固定「用户」
@@ -264,15 +268,21 @@ function OptionCard({
   const [custom, setCustom] = useState('')
   const [collapsed, setCollapsed] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const submitLock = useRef(false)
 
   // 父级 busy 结束后若本卡仍活跃（例如发送失败），释放本地锁允许重试。
   useEffect(() => {
-    if (!disabled) setSubmitting(false)
+    if (!disabled) {
+      submitLock.current = false
+      setSubmitting(false)
+    }
   }, [disabled])
 
   const answer = selectedNum ?? custom.trim()
   const submit = () => {
-    if (!answer || disabled || submitting) return
+    if (!answer || disabled || submitting || submitLock.current) return
+    // state 在同一批次双击时尚未刷新，ref 同步拦截第二次提交。
+    submitLock.current = true
     setSubmitting(true)
     onPick(answer)
   }
@@ -504,8 +514,11 @@ interface Props {
   onDecide: (decision: 'approved' | 'rejected', note?: string) => void
   /** projectId + 会话边界；变化时重置选择并使旧异步结果失效。 */
   resetKey?: string
-  /** feature-808（R4 / D-006）：sending 或 generating 中显示停止钮；不传则维持仅发送钮形态 */
+  /** feature-808：sending 或 generating 中显示停止钮；不传则维持仅发送钮形态 */
   onStop?: () => void
+  /** feature-808/817：仅由用户点击触发，从旧 request 创建带血缘的新运行。 */
+  onRetryRun?: (messageId: string) => void
+  retryingRunId?: string | null
   /** feature-808：历史回放加载态（默认 false）；加载中禁用发送 */
   historyLoading?: boolean
   /** D-013：AI 服务不可用原因（null=可用/未知）；非空显示常驻横幅并禁用输入与发送 */
@@ -520,6 +533,49 @@ interface Props {
   lockedReason?: string | null
   /** feature-812 X-005：锁定期间的空态说明（缺省按"未打开项目"表述；加载中传"正在读取…"） */
   lockedHint?: string | null
+}
+
+function RunRecoveryCard({
+  run,
+  orphan = false,
+  retrying = false,
+  blockReason = null,
+  onRetry,
+}: {
+  run: AgentRunRecord
+  orphan?: boolean
+  retrying?: boolean
+  blockReason?: string | null
+  onRetry?: (messageId: string) => void
+}) {
+  return (
+    <section
+      className="ml-11 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2.5 text-ink"
+      data-run-recovery="interrupted"
+      data-run-id={run.id}
+    >
+      <div className="text-[11px] font-semibold text-amber-800">运行已中断</div>
+      <p className="mt-1 text-[11px] leading-relaxed text-ink-2">
+        {orphan
+          ? '没有找到对应的用户消息，提交结果未知。请核对已落盘产物，再决定是否重新运行。'
+          : '已保留已生成的内容、选项与工具记录；未提交的选项和 Gate 不会自动处理。'}
+      </p>
+      <p className="mt-1 text-[10px] leading-relaxed text-ink-3">
+        重新运行将从原始提交创建新运行，不接续中断前的 Token 流。
+      </p>
+      {blockReason && <p className="mt-1.5 text-[10px] text-amber-800">{blockReason}</p>}
+      {onRetry && (
+        <button
+          type="button"
+          className="mt-2 rounded-md bg-ink px-2.5 py-1 text-[10px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={Boolean(blockReason) || retrying}
+          onClick={() => onRetry(run.id)}
+        >
+          {retrying ? '正在重新运行…' : '重新运行'}
+        </button>
+      )}
+    </section>
+  )
 }
 
 function chatModelKey(model: ChatModelOption): string {
@@ -756,7 +812,7 @@ function TypingDots() {
 }
 
 /** 行内工具状态行：pending=○+「待执行」；running=spinner+「执行中」；completed=✓+耗时；error=✗+errorText */
-function ToolRow({ tool }: { tool: ToolView }) {
+function ToolRow({ tool, interrupted = false }: { tool: ToolView; interrupted?: boolean }) {
   const duration = toolDurationLabel(tool)
   const phrase = toolActionPhrase(tool.tool)
   // D-012：白名单关键参数摘要——历史回放用主进程 argsPreview；流式从 args 现算
@@ -772,7 +828,15 @@ function ToolRow({ tool }: { tool: ToolView }) {
       className="flex items-center gap-1.5 text-[11px] leading-4 text-muted"
       title={tool.tool}
     >
-      {tool.status === 'pending' && (
+      {interrupted && (tool.status === 'pending' || tool.status === 'running') && (
+        <>
+          <span className="shrink-0 text-amber-700">■</span>
+          <span className="truncate">{phrase}</span>
+          {previewNode}
+          <span className="shrink-0 text-amber-700">已中断</span>
+        </>
+      )}
+      {!interrupted && tool.status === 'pending' && (
         <>
           <span className="shrink-0">○</span>
           <span className="truncate">{phrase}</span>
@@ -780,7 +844,7 @@ function ToolRow({ tool }: { tool: ToolView }) {
           <span className="shrink-0">待执行</span>
         </>
       )}
-      {tool.status === 'running' && (
+      {!interrupted && tool.status === 'running' && (
         <>
           <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-line border-t-violet" />
           <span className="truncate">{phrase}</span>
@@ -817,19 +881,22 @@ function ToolRow({ tool }: { tool: ToolView }) {
 function ToolTrace({
   tools,
   defaultOpen,
+  interrupted = false,
 }: {
   tools: ToolView[]
   defaultOpen?: boolean
+  interrupted?: boolean
 }) {
   if (tools.length === 0) return null
   const summary = summarizeToolActions(tools.map(t => t.tool))
-  const active = tools.some(tool => tool.status === 'running' || tool.status === 'pending')
+  const active = !interrupted && tools.some(tool => tool.status === 'running' || tool.status === 'pending')
+  const hasInterrupted = interrupted && tools.some(tool => tool.status === 'running' || tool.status === 'pending')
   const hasError = tools.some(tool => tool.status === 'error')
-  const status = active ? '进行中' : hasError ? '执行失败' : '已完成'
+  const status = hasInterrupted ? '已中断' : active ? '进行中' : hasError ? '执行失败' : '已完成'
   return (
     <details
       data-testid="chat-tool-trace"
-      data-status={active ? 'running' : hasError ? 'error' : 'completed'}
+      data-status={hasInterrupted ? 'interrupted' : active ? 'running' : hasError ? 'error' : 'completed'}
       open={defaultOpen}
       className="group mt-2 rounded-[10px] border border-line/70 bg-canvas px-3 py-2 text-xs leading-5 text-muted"
     >
@@ -843,7 +910,7 @@ function ToolTrace({
       </summary>
       <div className="mt-2 space-y-1.5 border-t border-line/60 pt-2">
         {tools.map(tool => (
-          <ToolRow key={tool.callId} tool={tool} />
+          <ToolRow key={tool.callId} tool={tool} interrupted={interrupted} />
         ))}
       </div>
     </details>
@@ -900,11 +967,13 @@ function InterleavedContent({
   segments,
   streaming = false,
   running = false,
+  interrupted = false,
   trailing,
 }: {
   segments: TurnSegment[]
   streaming?: boolean
   running?: boolean
+  interrupted?: boolean
   /** 末尾追加节点（选项卡 / chips，定位在最后一个正文段之后） */
   trailing?: React.ReactNode
 }) {
@@ -960,7 +1029,7 @@ function InterleavedContent({
       i = j - 1
       nodes.push(
         <div key={`tg-${seg.key}`} className={nodes.length > 0 ? 'mt-2' : ''}>
-          <ToolTrace tools={group} defaultOpen={streaming} />
+          <ToolTrace tools={group} defaultOpen={streaming} interrupted={interrupted} />
         </div>,
       )
       continue
@@ -984,6 +1053,7 @@ function InterleavedContent({
 
 export default function ChatComposer({
   items, stream, pendingGate, deciding, sending, generating = false, error, onSend, onDecide, onStop,
+  onRetryRun, retryingRunId = null,
   resetKey = '', historyLoading, aiDown = null, onAiRetry, modelOptions, selectedModel, onModelChange,
   lockedReason = null,
   lockedHint = null,
@@ -1140,6 +1210,7 @@ export default function ChatComposer({
   // B-35：选项点击 = 代发编号（与手打同路径）；忙态或无可用模型禁点
   // feature-812：lockedReason 并入忙态，锁定时选项一并禁点
   const busy = sending || generating || historyLoading || !!stream || !!aiDown || !selectedModel || !!lockedReason
+  const hasActiveRun = items.some(item => item.run?.status === 'running' || item.run?.status === 'stopping')
   const pickOption = (num: string): void => {
     if (busy) return
     // B-55：点选项等同主动发送，强制贴底跟随新一轮流式
@@ -1215,12 +1286,38 @@ export default function ChatComposer({
           </div>
         )}
 
-        {items.map((item, index) =>
-          item.role === 'user' ? (
+        {items.map((item, index) => {
+          const interrupted = item.run?.status === 'interrupted'
+          if (item.orphan && item.run) {
+            return (
+              <RunRecoveryCard
+                key={item.id}
+                run={item.run}
+                orphan
+                retrying={retryingRunId === item.run.id}
+                blockReason={retryingRunId && retryingRunId !== item.run.id
+                  ? '另一项重试正在提交。'
+                  : pendingGate?.status === 'pending'
+                    ? '请先完成未决 Gate，再重试运行。'
+                    : busy || hasActiveRun || retryingRunId !== null ? '请等待当前运行结束后再重试。' : null}
+                onRetry={onRetryRun}
+              />
+            )
+          }
+          const showRecovery = interrupted && item.run
+            && items[index + 1]?.run?.id !== item.run.id
+          return (
+            <Fragment key={item.id}>
+          {item.role === 'user' ? (
             <div key={item.id} className="flex flex-row-reverse gap-[9px]">
               <Avatar user />
               <div className="relative max-w-[85%] rounded-[12px] rounded-tr-[4px] bg-violet px-3 py-[9px] text-[12px] leading-[1.6] text-white">
                 <LabelTag label={item.label ?? { text: '用户', tone: 'user' }} side="right" />
+                {item.run?.retryOfMessageId && (
+                  <div className="mb-1.5 text-[10px] text-white/75" data-run-lineage={item.run.retryOfMessageId}>
+                    人工重试的新运行 · 来源 {item.run.retryOfMessageId}
+                  </div>
+                )}
                 {item.assets && item.assets.length > 0 && (
                   <div className="mb-1.5 flex flex-wrap gap-1">
                     {item.assets.map(asset => (
@@ -1295,6 +1392,7 @@ export default function ChatComposer({
                       <LabelTag label={label ?? defaultAgentLabel(item.agent)} side="left" />
                       <InterleavedContent
                         segments={ordered}
+                        interrupted={interrupted}
                         trailing={opt.options || opt.chips ? trailing : undefined}
                       />
                       {item.brief && <BriefCard rows={item.brief} />}
@@ -1323,7 +1421,7 @@ export default function ChatComposer({
                       <ChipRow chips={opt.chips} disabled={consumed} pickedChip={pickedChip} onPick={pickOption} />
                     )}
                     {item.tools && item.tools.length > 0 && (
-                      <ToolTrace tools={item.tools} />
+                      <ToolTrace tools={item.tools} interrupted={interrupted} />
                     )}
                     {item.brief && <BriefCard rows={item.brief} />}
                     {item.trace && <TraceCard trace={item.trace} />}
@@ -1332,8 +1430,22 @@ export default function ChatComposer({
                 )
               })()}
             </div>
-          ),
-        )}
+          )}
+          {showRecovery && item.run && (
+            <RunRecoveryCard
+              run={item.run}
+              retrying={retryingRunId === item.run.id}
+              blockReason={retryingRunId && retryingRunId !== item.run.id
+                ? '另一项重试正在提交。'
+                : pendingGate?.status === 'pending'
+                  ? '请先完成未决 Gate，再重试运行。'
+                  : busy || hasActiveRun || retryingRunId !== null ? '请等待当前运行结束后再重试。' : null}
+              onRetry={onRetryRun}
+            />
+          )}
+            </Fragment>
+          )
+        })}
 
         {stream && (
           <div className="flex gap-[9px]">

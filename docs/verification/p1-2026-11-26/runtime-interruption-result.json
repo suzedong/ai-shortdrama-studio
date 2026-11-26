@@ -1,0 +1,188 @@
+{
+  "feature": [
+    "808",
+    "817",
+    "830"
+  ],
+  "change": "2026-11-26-runtime-interruption-recovery",
+  "status": "passed",
+  "evidenceClass": "real-electron-real-opencode-controlled-mock",
+  "realProviderAcceptance": false,
+  "startedAt": "2026-11-26T03:57:53.880Z",
+  "artifactRoot": "/Users/szd/Documents/Code/ai-shortdrama-studio/.test-tmp/runtime-interruption/2026-11-26T03-57-53-879Z",
+  "checks": [
+    {
+      "name": "构建产物存在",
+      "passed": true
+    },
+    {
+      "name": "首轮 promptAsync 返回真实 messageID",
+      "passed": true,
+      "detail": {
+        "accepted": true,
+        "messageId": "msg_abb8601e-8933-4b2e-bed8-76d7db20fc84"
+      }
+    },
+    {
+      "name": "中断前用户与 assistant 历史已持久化",
+      "passed": true,
+      "detail": {
+        "count": 3
+      }
+    },
+    {
+      "name": "中断前画布产物与 pending Gate 已落盘",
+      "passed": true
+    },
+    {
+      "name": "真实 opencode 子进程存在",
+      "passed": true,
+      "detail": [
+        "/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/electron@33.4.11/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (GPU).app/Contents/MacOS/Electron Helper (GPU) --type=gpu-process --user-data-dir=/Users/szd/Documents/Code/ai-shortdrama-studio/.test-tmp/runtime-interruption/2026-11-26T03-57-53-879Z/userData --gpu-preferences=UAAAAAAAAAAgAAAEAAAAAAAAAAAAAAAAAABgAAEAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAEAAAAAAAAAAIAAAAAAAAAAgAAAAAAAAA --shared-files --field-trial-handle=1718379636,r,13281090127233818365,6529161634638340535,262144 --enable-features=ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=MacWebContentsOcclusion,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts --variations-seed-version --seatbelt-client=33",
+        "/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/electron@33.4.11/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility --utility-sub-type=network.mojom.NetworkService --lang=zh-CN --service-sandbox-type=network --user-data-dir=/Users/szd/Documents/Code/ai-shortdrama-studio/.test-tmp/runtime-interruption/2026-11-26T03-57-53-879Z/userData --shared-files --field-trial-handle=1718379636,r,13281090127233818365,6529161634638340535,262144 --enable-features=ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=MacWebContentsOcclusion,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts --variations-seed-version --seatbelt-client=35",
+        "/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/electron@33.4.11/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer) --type=renderer --user-data-dir=/Users/szd/Documents/Code/ai-shortdrama-studio/.test-tmp/runtime-interruption/2026-11-26T03-57-53-879Z/userData --app-path=/Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron --enable-sandbox --remote-debugging-port=57350 --lang=zh-CN --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1795591892043766 --launch-time-ticks=73582540412 --shared-files --field-trial-handle=1718379636,r,13281090127233818365,6529161634638340535,262144 --enable-features=ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=MacWebContentsOcclusion,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts --variations-seed-version --seatbelt-client=56",
+        "/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/opencode-ai@1.18.34/node_modules/opencode-ai/bin/opencode.exe serve --hostname 127.0.0.1 --port 4096"
+      ]
+    },
+    {
+      "name": "SIGKILL Electron 并清理其遗留 opencode 子进程",
+      "passed": true
+    },
+    {
+      "name": "重启后消息不丢失",
+      "passed": true,
+      "detail": {
+        "before": 3,
+        "after": 3
+      }
+    },
+    {
+      "name": "重启后画布产物与 pending Gate 保留且未代决",
+      "passed": true
+    },
+    {
+      "name": "未决 Gate 阻断人工重试",
+      "passed": true,
+      "detail": {
+        "disabled": true,
+        "reason": "运行已中断已保留已生成的内容、选项与工具记录；未提交的选项和 Gate 不会自动处理。重新运行将从原始提交创建新运行，不接续中断前的 Token 流。请先完成未决 Gate，再重试运行。重新运行"
+      }
+    },
+    {
+      "name": "冷启动没有自动重试或代选 OptionCard",
+      "passed": true
+    },
+    {
+      "name": "双击恢复按钮不展示并发内部错误",
+      "passed": true
+    },
+    {
+      "name": "重试 ID 不同且血缘正确",
+      "passed": true,
+      "detail": {
+        "id": "msg_3beea736-c6c1-45f4-a203-dd5559b7c02c",
+        "sessionId": "ses_de9ff4528ffecsVibRoYa8YzX4",
+        "request": {
+          "sessionId": "ses_de9ff4528ffecsVibRoYa8YzX4",
+          "text": "生成一个中断恢复测试方案",
+          "agent": "showrunner",
+          "model": {
+            "providerID": "mock",
+            "modelID": "mock-1"
+          }
+        },
+        "status": "running",
+        "createdAt": "2026-11-26T03:58:00.415Z",
+        "updatedAt": "2026-11-26T03:58:00.415Z",
+        "retryOfMessageId": "msg_abb8601e-8933-4b2e-bed8-76d7db20fc84"
+      }
+    },
+    {
+      "name": "旧中断与孤儿运行不被改写或自动重试",
+      "passed": true
+    },
+    {
+      "name": "连续点击只提交一个新运行",
+      "passed": true,
+      "detail": {
+        "runs": 3,
+        "providerRequests": 3
+      }
+    },
+    {
+      "name": "重试完成后仅新运行进入 completed",
+      "passed": true
+    },
+    {
+      "name": "重试使用新的真实用户 messageID",
+      "passed": true
+    }
+  ],
+  "provider": {
+    "kind": "controlled-mock",
+    "providerID": "mock",
+    "modelID": "mock-1"
+  },
+  "beforeKill": {
+    "runId": "msg_abb8601e-8933-4b2e-bed8-76d7db20fc84",
+    "messageCount": 3,
+    "providerRequests": 2
+  },
+  "injectedProcesses": [
+    {
+      "pid": 25257,
+      "command": "/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/electron@33.4.11/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (GPU).app/Contents/MacOS/Electron Helper (GPU) --type=gpu-process --user-data-dir=/Users/szd/Documents/Code/ai-shortdrama-studio/.test-tmp/runtime-interruption/2026-11-26T03-57-53-879Z/userData --gpu-preferences=UAAAAAAAAAAgAAAEAAAAAAAAAAAAAAAAAABgAAEAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAEAAAAAAAAAAIAAAAAAAAAAgAAAAAAAAA --shared-files --field-trial-handle=1718379636,r,13281090127233818365,6529161634638340535,262144 --enable-features=ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=MacWebContentsOcclusion,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts --variations-seed-version --seatbelt-client=33"
+    },
+    {
+      "pid": 25258,
+      "command": "/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/electron@33.4.11/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility --utility-sub-type=network.mojom.NetworkService --lang=zh-CN --service-sandbox-type=network --user-data-dir=/Users/szd/Documents/Code/ai-shortdrama-studio/.test-tmp/runtime-interruption/2026-11-26T03-57-53-879Z/userData --shared-files --field-trial-handle=1718379636,r,13281090127233818365,6529161634638340535,262144 --enable-features=ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=MacWebContentsOcclusion,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts --variations-seed-version --seatbelt-client=35"
+    },
+    {
+      "pid": 25260,
+      "command": "/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/electron@33.4.11/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer) --type=renderer --user-data-dir=/Users/szd/Documents/Code/ai-shortdrama-studio/.test-tmp/runtime-interruption/2026-11-26T03-57-53-879Z/userData --app-path=/Users/szd/Documents/Code/ai-shortdrama-studio/dist-electron/electron --enable-sandbox --remote-debugging-port=57350 --lang=zh-CN --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1795591892043766 --launch-time-ticks=73582540412 --shared-files --field-trial-handle=1718379636,r,13281090127233818365,6529161634638340535,262144 --enable-features=ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=MacWebContentsOcclusion,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts --variations-seed-version --seatbelt-client=56"
+    },
+    {
+      "pid": 25261,
+      "command": "/Users/szd/Documents/Code/ai-shortdrama-studio/node_modules/.pnpm/opencode-ai@1.18.34/node_modules/opencode-ai/bin/opencode.exe serve --hostname 127.0.0.1 --port 4096"
+    }
+  ],
+  "orphanFixture": "SIGKILL 后向真实项目账本注入 running 记录；无对应 opencode 用户消息，仅用于孤儿恢复分支。",
+  "retry": {
+    "oldRunId": "msg_abb8601e-8933-4b2e-bed8-76d7db20fc84",
+    "newRunId": "msg_3beea736-c6c1-45f4-a203-dd5559b7c02c",
+    "statusBeforeProviderRelease": "running"
+  },
+  "providerRequests": [
+    {
+      "at": "2026-11-26T03:57:58.246Z",
+      "stream": true,
+      "messageCount": 2
+    },
+    {
+      "at": "2026-11-26T03:57:58.508Z",
+      "stream": true,
+      "messageCount": 4
+    },
+    {
+      "at": "2026-11-26T03:58:01.645Z",
+      "stream": true,
+      "messageCount": 5
+    }
+  ],
+  "finalRuns": [
+    {
+      "id": "msg_abb8601e-8933-4b2e-bed8-76d7db20fc84",
+      "status": "interrupted"
+    },
+    {
+      "id": "msg_orphan_recovery_fixture",
+      "status": "interrupted"
+    },
+    {
+      "id": "msg_3beea736-c6c1-45f4-a203-dd5559b7c02c",
+      "status": "completed",
+      "retryOfMessageId": "msg_abb8601e-8933-4b2e-bed8-76d7db20fc84"
+    }
+  ],
+  "finishedAt": "2026-11-26T03:58:02.454Z"
+}

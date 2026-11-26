@@ -1,0 +1,183 @@
+{
+  "gateStatus": "approved",
+  "history": {
+    "versions": [
+      {
+        "version": 1,
+        "path": "立项单.v1.json",
+        "publishedAt": "2026-11-26T07:57:42.467Z",
+        "kind": "commercial",
+        "approveBy": "gate",
+        "changeCount": 0
+      }
+    ],
+    "latestVersion": 1,
+    "warnings": []
+  },
+  "messageCount": 46,
+  "tools": [
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "error",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "error",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    },
+    {
+      "status": "completed",
+      "open": false,
+      "spinner": false
+    }
+  ],
+  "markdown": {
+    "containers": 20,
+    "tables": 1,
+    "lastTableRows": 4,
+    "strong": 36,
+    "code": 19
+  },
+  "optionCards": 3,
+  "chips": 3,
+  "theme": {
+    "dark": false,
+    "theme": "light"
+  }
+}

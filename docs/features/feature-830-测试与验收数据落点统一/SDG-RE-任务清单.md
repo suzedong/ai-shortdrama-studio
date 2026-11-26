@@ -46,3 +46,12 @@ T1 → T6（验证重定向生效）→ T2 → T3 → T4 → T5 → T7 → T8。
 - [x] **DOC-CONTEXT-T2 命令实现**：新增零依赖 `scripts/docs-context.cjs` 与 `package.json` 的 `docs:context` 入口，满足精确解析、跨 cwd、stdout Markdown 和失败语义（CONTEXT-AC1—4）。
 - [x] **DOC-CONTEXT-T3 测试**：新增独立测试，覆盖状态、验收章节、未勾选任务、显式开放项、排除项、缺失章节、无/多匹配、非法参数、只读及跨 cwd CLI；核对真实 829 / 830（CONTEXT-AC5）。
 - [x] **DOC-CONTEXT-T4 验证与追溯**：运行命令样例、定向 Vitest、`check:docs`、全量 `test:run`、typecheck 和 `git diff --check`，在本包修订记录据实回填；不新增编年长文，不提交 Git。typecheck 仅有未改动文件的存量 TS2345，未倒写为通过。
+
+## T5 · 运行中断恢复定向 Electron 驱动（2026-11-26）
+
+- [x] 需求与契约登记 RUN-AC1–AC4；零新依赖，产品接口仍归 feature-808。
+- [x] 新增隔离故障注入驱动，使用受控延迟响应和真实 Electron/opencode/IPC。
+- [x] 覆盖 SIGKILL、重启零自动请求、OptionCard/Gate/产物保留、Gate 阻断与人工重试血缘。
+- [x] 保存命令、退出码和原始结果到新日期化 verification 目录；真实 Provider 证据独立记录。
+
+**实测**：`node scripts/verify-runtime-interruption.cjs` 退出 0，16/16 通过，隔离 HOME、`ASD_USER_DATA` 与 `project-accept-*` 工作区；`realProviderAcceptance=false`。同时归档静态项目包 62 项、全量测试与构建原始证据，RUN-AC1–AC4 映射见 [证据索引](../../verification/p1-2026-11-26/证据索引.md)。

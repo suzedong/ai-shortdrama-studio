@@ -189,7 +189,7 @@
 
 <header>
   <div class="kicker">AI SHORT DRAMA · AGENT PLATFORM</div>
-  <h1>短剧 Agent 平台设计<span class="tag">v1.28 · 2026-11-20</span></h1>
+  <h1>短剧 Agent 平台设计<span class="tag">v1.30 · 2026-11-26</span></h1>
   <div class="sub">全面复刻 MiniMax Design、短剧生产闭环优先的 AI Agent 桌面平台 · 一块画布 = 一条生产线，一个指令 = 一支团队</div>
   <div class="stats">
     <div class="stat"><div class="sv">8</div><div class="sl">业务闭环</div><div class="su">0 立项 → 7 发布</div></div>
@@ -198,10 +198,10 @@
     <div class="stat"><div class="sv">48</div><div class="sl">IPC 通道</div><div class="su">main.ts 静态复核（2026-11-14）</div></div>
     <div class="stat"><div class="sv">29</div><div class="sl">MCP 纯工具</div><div class="su">11 族 · 磁盘实况（2026-11-14）</div></div>
     <div class="stat"><div class="sv">14</div><div class="sl">runtime 错误码</div><div class="su">electron/runtime</div></div>
-    <div class="stat"><div class="sv">93</div><div class="sl">测试文件</div><div class="su">P0 实测（2026-11-15）· 91 passed / 2 failed</div></div>
+    <div class="stat"><div class="sv">93</div><div class="sl">P0 历史测试</div><div class="su">2026-11-15 快照 · 91 passed / 2 failed · 非 v1.30 重跑</div></div>
   </div>
   <div class="fact">可视化呈现 · 事实以 <a href="../../短剧Agent平台设计.md">短剧Agent平台设计.md</a> 为准
-    <span class="src">来源：设计 md v1.28</span><span class="src">台账 D-016·D-023·D-024·D-031·D-032·D-033·D-034·D-035·D-036·D-037·D-039·D-040</span><span class="src">D-040 镜像 2026-11-20</span>
+    <span class="src">来源：设计 md v1.30</span><span class="src">台账 D-016·D-023·D-024·D-031·D-032·D-033·D-034·D-035·D-036·D-037·D-039·D-040·D-041</span><span class="src">D-041 镜像 2026-11-26</span>
   </div>
 </header>
 
@@ -226,6 +226,7 @@
     <div class="step"><div class="sn">7</div><div class="st">发布</div><div class="sb">成片 / 切片 / 渠道交付</div></div>
   </div>
   <div class="note"><b>执行语义（v1.21，D-031 / D-032）</b>：八步是<b>产物归属与汇总验收里程碑</b>，不是“完成一步才能开始下一步”的全局串行启动锁。具体任务按<b>最小产物依赖 DAG</b> 调度，允许多个 STAGE 同时进行中；STAGE 0–7 均明确最小调度产物、真实硬依赖、可提前准备 / 草稿试产、正式生成 / 锁定、两级验收和精准影响范围。故事大纲、人物设定与主视觉风格具备后，即可开展角色概念 / 定妆，不必等待完整剧本分场；后期与发布按单集下沉。八步仍是<b>业务验收基线</b>，不允许合并或裁剪；某一步整体完成仍要求该步应交付产物覆盖完整并通过验收。</div>
+  <p><b>复刻定位（D-034 / D-041）</b>：全面复刻 MiniMax Design，短剧生产闭环优先。D-006 的“部分复刻”为历史定位；现行跨 Feature 对账以 <a href="MiniMax%20Design%20Parity影响矩阵.md">MiniMax Design Parity 影响矩阵</a> 为准，首轮参考基线为《MiniMax Design 功能与架构参考》v1.4，当前安装版产品验收基线为 <b>4.0.18（Build 4.0.18.174）</b>。范围映射不等于实现或验收通过；v2 生产编排与 v3 资源版本语义的选择性吸收以 §2.2 为准。</p>
   <p class="dim">现状（2026-11-20，D-040）：24 个目录全部为现行负责包，历史归档目录为 0；D-039／D-040 删除的 22 个历史目录原始文档仅从 Git 追溯，历史编号不承接新 Change。D-037 归属规则不变。P0 已完成，P1 未通过；feature-201 的 2-c 真机人工验收仍开放，feature-817 的真实 AI runtime、OptionCard、任务详情和 Gate 现场未全闭环，feature-829 继续实施中。现存代码与新设计存在偏差处按现行任务包对照本设计对齐重建；当前线性状态与固定编排不视为目标全局锁，目标调度模型见 §2.1 / §7.1。目录清理不构成 Parity、产品能力或真机验收通过。</p>
   <table>
   <tr><th>旧体系</th><th>本平台</th></tr>
@@ -262,7 +263,7 @@
     <div class="card"><div class="ct">5 · 经验可复用 <span class="src s-a">Design 原有</span></div><div class="cb">跑通过程沉淀为 Skill，可分享、可一键复用。</div></div>
     <div class="card"><div class="ct">6 · 本地优先 <span class="src s-a">Design 原有</span></div><div class="cb">素材与项目默认本地；火山方舟经 safeStorage 加密 key 存 userData（不可加密即拒存），LM Studio 本地 / 局域网无需云端 Key；ComfyUI 媒体全部本地 / 局域网。</div></div>
     <div class="card"><div class="ct">7 · 质量内建 <span class="src s-a">Design 原有</span></div><div class="cb">Harness 后台多轮机器校验，不通过进不了确认门。</div></div>
-    <div class="card"><div class="ct">8 · 画布克制 <span class="src s-b">改编</span></div><div class="cb">自动布局 + 视觉整理，不做无约束自由编排。</div></div>
+    <div class="card"><div class="ct">8 · 画布克制 <span class="src s-b">改编</span></div><div class="cb">视觉位置支持自由布局、手动拖拽与自动整理；手动拖拽不改变数据依赖，产物连线不开放无约束自由编排。</div></div>
   </div>
 </section>
 
@@ -366,6 +367,44 @@
   <tr><td>部分受影响</td><td>上游再版使部分产物失效或待对齐，其余产物继续推进</td></tr>
   </table>
   <p>STAGE 状态是所属任务的<b>汇总结果</b>，不是其他任务的统一启动锁。上游再版后，系统沿精确版本依赖边只挂脏直接及传递引用该版本的下游产物；未引用该版本的任务、其他角色 / 场次 / 镜头 / 单集及无关节点继续推进，不再把整个 STAGE 3–7 一并打回。</p>
+
+  <h3>2.2 Agent 编排选型与系统执行边界 <span class="src s-b">目标设计 · D-041 · 改编 + 自研新增</span></h3>
+  <div class="note"><b>不是当前实现完成声明，也不直接授权 Feature 开发。</b>对外按 MiniMax Design 4.0.18（Build 4.0.18.174）实际产品行为验收；对内以 v2 为生产编排骨架，选择性吸收 v3 Resource / Version。安装包证据见研究文档 §2.7，改造顺序见总体开发计划 §4.1。</div>
+  <table>
+    <tr><th>维度</th><th>采用口径</th><th>明确不采用</th></tr>
+    <tr><td>产品验收</td><td>当前安装版 4.0.18 的实际行为</td><td>不用旧截图、目录存在或配置推断运行时行为</td></tr>
+    <tr><td>生产编排</td><td>v2 Workflow、Plan / Stage、稳定 Work Item、依赖、锁项、确认、局部重试、Replan 与恢复</td><td>不照搬角色数量、专有提示词或云端工具矩阵</td></tr>
+    <tr><td>对象语义</td><td>v3 Resource 稳定身份 + Version 不可变快照</td><td>不全量替换为 Composition，不建第二套项目 / 画布 / 资产模型</td></tr>
+    <tr><td>技术底座</td><td>Electron + React、OpenCode HTTP / SSE、主进程 MCP、纯 JSON、局域网 ComfyUI、现有 4 Agent profile</td><td>不并存两套运行时，不换 SQLite，不增加平行 router / planner / executor Agent 体系</td></tr>
+    <tr><td>后续专业面</td><td>Code Project 仅作 P6 候选</td><td>本轮不建设通用代码 / 网页运行时</td></tr>
+  </table>
+  <p><b>若必须二选一，生产编排选择 v2。</b>v3 的 Resource / Version 是对象语义补充，不构成第二套编排引擎；v2 / v3 并存不证明同时启用。</p>
+  <div class="card"><div class="ct">目标对象模型</div><div class="cb"><code>Workflow Definition → Plan → Stage → Work Item → Run / Attempt</code><br><code>Resource → Version</code><br>Workflow 是版本化定义；Plan 是经校验与用户确认的执行基线；Stage 是审核边界；Work Item 是最小依赖 / 重试 / 收片单元；每次 Attempt 留独立记录。Resource 回答“同一对象是谁”，Version 回答“使用哪一版”。既有画布 artifactId + version 是演进基础，不另建平行引用。</div></div>
+  <div class="grid g3">
+    <div class="card"><div class="ct">主进程确定性服务</div><div class="cb">结构校验、DAG 编译、依赖就绪、状态迁移、预期状态 + revision CAS、门、重试预算、版本写入、持久化、恢复与精准挂脏。不得让模型自由判断可枚举规则。</div></div>
+    <div class="card"><div class="ct">现有 4 个 Agent</div><div class="cb">showrunner 提出 / 修订 Plan 草案；writer / media-director / comfyui-operator 在既有职责内处理 Work Item。不得跳门、改锁项、绕过依赖或写正式版本。</div></div>
+    <div class="card"><div class="ct">用户 / 系统规则</div><div class="cb">用户批准计划、结果、Replan 与锁项变化；Harness 校验可枚举条件。重试与恢复不自动批准未完成 Gate。</div></div>
+  </div>
+  <p>Agent 工具调用只是<b>命令请求</b>，主进程仍校验权限、参数、当前状态、revision、依赖与业务门；对话与 UI 直改必须落同一数据、版本链和审计。</p>
+  <table>
+    <tr><th>业务 STAGE</th><th>参考方法</th><th>本平台 Workflow 产物 / 门</th></tr>
+    <tr><td>0 立项</td><td>目标理解与计划准备</td><td>诊断、故事前提、立项定案卡；0-final</td></tr>
+    <tr><td>1 故事</td><td>Script</td><td>大纲、人物小传；1-a / 1-b</td></tr>
+    <tr><td>2 剧本分场</td><td>Script</td><td>分场、台词、分镜文字稿；2-a / 2-b / 2-c</td></tr>
+    <tr><td>3 资产</td><td>Art Direction / Asset Anchors</td><td>角色、场景、道具及一致性配方与锁定版本；3-assets</td></tr>
+    <tr><td>4 分镜</td><td>Storyboard</td><td>生产 ShotList、资产 refs、景别、运镜、时长；4-final</td></tr>
+    <tr><td>5 镜头</td><td>Shots / Scene Keyframes / Visual Gen</td><td>逐镜关键帧与视频 Work Item、收片；5-all-shots</td></tr>
+    <tr><td>6 后期</td><td>Assemble / Post</td><td>声音、字幕、时间线、剪辑、混音；6-final-cut</td></tr>
+    <tr><td>7 发布</td><td>Export</td><td>成片、封面、切片、渠道发布包；7-publish-ready</td></tr>
+  </table>
+  <p>MiniMax v2 通用六阶段与 drama-series 仅作方法参考，<b>不得替代八步 STAGE</b>；Production Plan 不取消任何业务产物，后期与发布继续按单集下沉。</p>
+  <ul>
+    <li>Work Item 以稳定 ID 局部重试；最多三次具有实质差异的尝试，禁止同参数循环。</li>
+    <li>输入版本、拓扑、锁项或范围变化生成新 Plan 修订，经用户确认后替换基线；未受影响 Work Item 可复用。</li>
+    <li>中断运行标为 interrupted 并保留日志；人工确认后创建新 Attempt，不自动重复提交，不伪装旧流续接。</li>
+    <li>waiting_user 恢复后仍等待原决策；blocked 不放行。ComfyUI 作业状态与 Workflow 状态关联但不混为同一状态机。</li>
+  </ul>
+  <div class="note"><b>当前差距（2026-11-26）</b>：已有 OpenCode 会话、主进程 MCP、4 Agent profile、STAGE 0—2 部分线性状态与画布产物版本引用；尚无通用 Workflow / Plan / Stage / Work Item 执行层，也无 Skill 执行器，侧栏 Skill 卡片仍为静态示例。非目标：复制闭源配置、一次重写全部阶段、把 Workflow 当 Skill、重建 Composition 全家桶、把 Code Project 纳入短剧主线，或改变纯 JSON / ComfyUI / 媒体模型 / 文本 Provider 红线。</div>
 
   <h3>2.6 立项阶段（STAGE 0）详解 <span class="src s-c">自研新增</span></h3>
   <div class="note">本节经《2002 相识》立项流程对话推演（<b>2026-10-08</b>）重写，取代旧版「4 节点（创意输入→选题诊断→立项单→故事背景档案）+ 4 确认门（0-a~0-d）」模型；旧模型与真实生产实践不符，已随 <b>D-005</b> 作废。</div>
@@ -600,7 +639,7 @@
 <section id="sec-3">
   <div class="sec-head"><span class="sec-no">03</span><h2>界面设计</h2><span class="hint">§3 · 三栏 + 顶栏 + 底条</span></div>
   <div class="sketch">
-    <div class="z top"><b>顶栏</b> 项目切换 · Skill 标识 · 模型选择器 · 协作/导出 · 账号积分</div>
+    <div class="z top"><b>顶栏</b> 项目切换 · Skill 标识 · 模型选择器 · 协作/导出 · 账号积分（参考能力，待裁决）</div>
     <div class="z"><b>左侧栏 ≈260px</b><br>项目 / Skill / 资产 / 插件</div>
     <div class="z cv"><b>中间画布</b> 点阵背景 · 节点与自动连线 · 缩放/平移/小地图 · 对齐吸附</div>
     <div class="z"><b>右侧栏 ≈380px</b><br>Agent 对话流 · 工具轨迹 · 确认门卡 · 在岗状态</div>
@@ -608,7 +647,7 @@
   </div>
   <table>
   <tr><th>区域</th><th>内容</th><th>来源</th></tr>
-  <tr><td>顶栏</td><td>项目切换 · Skill 标识 · 模型选择器（自动匹配可手动）· 协作/导出 · 账号积分</td><td>[Design 原有]</td></tr>
+  <tr><td>顶栏</td><td>项目切换 · Skill 标识 · 模型选择器（自动匹配可手动）· 协作/导出 · 账号积分（参考能力，在线形态待裁决）</td><td>[Design 原有]</td></tr>
   <tr><td>左侧栏（约 260px）</td><td>项目（项目库/任务地图）· Skill（广场/我的/模板）· 资产（角色/场景/道具/音色）· 插件</td><td>[改编]</td></tr>
   <tr><td>中间画布</td><td>点阵背景上的节点与自动连线（阶段节点+产物卡）；缩放/平移/小地图；对齐吸附</td><td>[Design 原有]</td></tr>
   <tr><td>右侧栏（约 380px）</td><td>Agent 对话流 · 工具调用轨迹 · 确认门卡片 · 多 Agent 在岗状态</td><td>[改编]</td></tr>
@@ -626,7 +665,7 @@
 <!-- ═══ 4 多 Agent 架构 ═══ -->
 <section id="sec-4">
   <div class="sec-head"><span class="sec-no">04</span><h2>多 Agent 架构</h2><span class="hint">§4 · 摄制组</span></div>
-  <p class="dim">Design 实测角色为 router / planner / executor / media-agent / comfyui-agent；本平台按短剧摄制组重划分。</p>
+  <p class="dim"><b>4.0.10 历史动态调查</b>中的 Design 实测角色为 router / planner / executor / media-agent / comfyui-agent；<b>4.0.18 v2 静态补证</b>为 1 个主 Agent＋8 个专用 Agent，二者不得跨版本混用。本平台按短剧摄制组重划分。</p>
   <div class="grid g4">
     <div class="card"><div class="ct">主控 Agent <span class="src s-b">改编</span></div><div class="cb"><b>导演/制片</b>：意图理解、创意简报、任务地图、派发合流、确认门状态机、模型选配。</div></div>
     <div class="card"><div class="ct">编剧 Agent <span class="src s-c">自研新增</span></div><div class="cb"><b>编剧</b>：大纲、小传、分场、台词、分镜文字稿、风格节奏。</div></div>
@@ -636,7 +675,8 @@
     <div class="card"><div class="ct">引擎 Agent <span class="src s-b">改编</span></div><div class="cb"><b>片场/工程</b>：引擎调度、工作流装载、队列轮询、落盘、断点续跑。</div></div>
     <div class="card"><div class="ct">剪辑 Agent <span class="src s-b">改编</span></div><div class="cb"><b>剪辑</b>：粗剪、字幕、转场、合流、混音、切片、封面。</div></div>
   </div>
-  <p class="dim"><b>实现层摄制组（磁盘实况，v1.12；调度边界见 D-023）</b>：opencode profile 已安装 <b>4 个</b>——<code>showrunner</code>（唯一 primary 主控）+ <code>writer</code> / <code>media-director</code> / <code>comfyui-operator</code>（3 个 subagent）。仅 showrunner 持有 <code>task</code>，三个 subagent 均由它统一调度且自身不派 task；早期同名 <code>director</code> profile 已于 2026-10-14 退役（提交 8114e84）。上表 7 角色为目标态分工，随 STAGE 3-7 逐步扩编。</p>
+  <p class="dim"><b>实现层摄制组（磁盘实况，v1.12；调度边界见 D-023）</b>：opencode profile 已安装 <b>4 个</b>——<code>showrunner</code>（唯一 primary 主控）+ <code>writer</code> / <code>media-director</code> / <code>comfyui-operator</code>（3 个 subagent）。仅 showrunner 持有 <code>task</code>，三个 subagent 均由它统一调度且自身不派 task；早期同名 <code>director</code> profile 已于 2026-10-14 退役（提交 8114e84）。上表为 <b>7 类逻辑职责候选</b>，随 STAGE 3–7 逐 Feature 裁决如何映射到现有 profile；是否新增职责边界也须单独授权，不预设扩编节奏。</p>
+  <p class="dim"><b>D-041 选型边界</b>：保留现有 4 个 profile，不按 MiniMax v2 的 9 个或 v3 的 3 个角色整体替换；上表 7 个角色仍是逻辑职责，不构成自动扩编授权。后续只按 Workflow / Plan 所需的职责边界修订对应负责包。</p>
   <div class="grid g3">
     <div class="card"><div class="ct">主控 → 专职</div><div class="cb">主控把依赖已就绪的任务派发到收件箱，完成后回报产物、生产轨道、精确版本依赖与状态。</div></div>
     <div class="card"><div class="ct">并行</div><div class="cb">以角色、场景、场次、镜头、单集为粒度，无依赖任务可跨 STAGE 并行（角色定妆与剧本分场并行、多镜批量）；有依赖任务按双轨门控就绪后合流，不以整个 STAGE 完成状态互相阻塞。</div></div>
@@ -645,7 +685,7 @@
     <div class="card"><div class="ct">失败隔离</div><div class="cb">单镜失败不拖垮整批，失败事件进确认门由人决策。</div></div>
     <div class="card"><div class="ct">按集后期与发布 <span class="src s-c">D-032</span></div><div class="cb">最终合成只合流本集选版镜头、音频与实际时间码；本集成片验收、发布物料和渠道发布包独立推进，不等待其他集。发布排序属于渠道策略，不建立制作依赖边。</div></div>
     <div class="card"><div class="ct">依赖与资源分离 <span class="src s-c">D-032</span></div><div class="cb">系统先计算可准备 / 可试产 / 可正式生产，再由 ComfyUI 多实例、GPU / 显存、worker 和队列决定执行并发；不得绕过正式版本门，也不得把资源排队误记为上游缺料。</div></div>
-    <div class="card"><div class="ct">确定性调度 <span class="src s-c">D-016 / D-032</span></div><div class="cb">依赖展开、版本检查、缺料定位、状态汇总和精准挂脏由系统直做；Agent 不凭自然语言猜测放行，AI 仅处理文本生成与开放式语义理解。</div></div>
+    <div class="card"><div class="ct">确定性调度 <span class="src s-c">D-016 / D-032 / D-041</span></div><div class="cb">依赖展开、版本检查、缺料定位、状态汇总和精准挂脏由系统直做；Agent 不凭自然语言猜测放行，AI 仅处理文本生成与开放式语义理解。目标 Plan / Stage / Work Item 不是越权通道，系统统一执行结构校验、CAS、门控、重试、版本写入与恢复。</div></div>
     <div class="card"><div class="ct">内部循环 <span class="src s-b">改编</span></div><div class="cb">每个专职 Agent：<code>接收任务 → 检索上下文 → 规划 → 调 MCP 工具 → 自校验 → 回报/进确认门</code>。无删除权，产物写新版本；不可逆动作必须经确认门。</div></div>
   </div>
 </section>
@@ -692,8 +732,11 @@
     <div class="card"><div class="ct">资产扩展 <span class="src s-b">改编</span></div><div class="cb"><code>asset.query / select / import / export</code>：检索、选定、导入导出。</div></div>
     <div class="card"><div class="ct">剪辑 <span class="src s-b">改编</span></div><div class="cb"><code>edit.cut / subtitle / concat / mix / slice</code>：MediaKit/FFmpeg 程序化剪辑。</div></div>
     <div class="card"><div class="ct">质检 <span class="src s-a">Design 原有</span></div><div class="cb"><code>harness.rules / verify / report</code>：规则、校验、结构化报告。</div></div>
-    <div class="card"><div class="ct">Skill <span class="src s-a">Design 原有</span></div><div class="cb"><code>skill.list / run / save / publish</code>：检索、执行、沉淀、投稿。</div></div>
+    <div class="card"><div class="ct">Skill <span class="src s-a">Design 原有</span></div><div class="cb"><code>skill.list / run / save / publish</code>：检索、执行、沉淀、投稿。当前侧栏 Skill 卡片仍为静态示例，运行时没有 Skill 执行器。</div></div>
+    <div class="card"><div class="ct">Workflow / Plan <span class="src s-b">目标 · D-041</span></div><div class="cb">名称与参数待负责 Feature 冻结：Workflow 定义读取 / 校验、Plan 草案提交、DAG 与状态查询；不提供跳门或任意状态写入。</div></div>
+    <div class="card"><div class="ct">Resource / Version <span class="src s-b">目标 · D-041</span></div><div class="cb">名称与参数待负责 Feature 冻结：稳定身份、版本读取、正式引用与血缘追溯；版本写入仍由系统服务执行。</div></div>
   </div>
+  <p class="dim"><b>目标族与当前差距（D-041）</b>：截至 2026-11-26，代码尚无通用 Workflow / Plan / Stage / Work Item 执行层，也无 Skill 执行器；两个新增目标族只表示能力边界，未授权新增物理工具、IPC 或共享字段。实施前须在负责 Feature 契约中逐条冻结并检查 K1 / K8。</p>
   <p class="dim"><b>安全</b>：参数白名单；路径限定项目目录内，禁越界；敏感工具强制确认令牌。 [自研新增]</p>
 </section>
 
@@ -703,9 +746,10 @@
   <div class="grid g4">
     <div class="card"><div class="ct">四种沉淀 <span class="src s-a">Design 原有</span></div><div class="cb">描述需求生成 / 过程一键存 Skill / 改后另存 / 上传资料归纳。</div></div>
     <div class="card"><div class="ct">Skill 内容 <span class="src s-b">改编</span></div><div class="cb">触发条件、任务地图模板、提示词、模型档位、质量规则、参考资产。</div></div>
-    <div class="card"><div class="ct">广场 + 模板中心 <span class="src s-a">Design 原有</span></div><div class="cb">投稿审核上架，官方精选与个人分区；成片/资产/工作流模板。</div></div>
+    <div class="card"><div class="ct">广场 + 模板中心 <span class="src s-a">Design 原有</span></div><div class="cb">投稿审核上架与积分仅为参考能力，在线服务、审核和积分形态须另行裁决；官方精选与个人分区、成片/资产/工作流模板不表示已接入在线服务。</div></div>
     <div class="card"><div class="ct">插件 <span class="src s-a">Design 原有</span></div><div class="cb">3D 导演台、智能剪辑台、批量水印、多宫格分镜、多角度、重打光。</div></div>
   </div>
+  <div class="note"><b>当前差距</b>：侧栏 Skill 卡片仍是静态示例，尚无 Skill 执行器；广场、投稿、审核与积分不得伪造在线成功。</div>
 </section>
 
 <!-- ═══ 7 数据模型 ═══ -->
@@ -720,8 +764,8 @@
 ├─ 镜头/ &lt;镜号&gt;/           # 多档位多版本 mp4 + 参数 json
 ├─ 声音/                   # 配音 wav、配乐、音效
 ├─ 时间线/ timeline.json   # 采用版本、切点、字幕、混音
-├─ 成片/                   # 成片、封面、切片
-└─ events.log              # Agent 消息与决策事件（可重放）</pre>
+└─ 成片/                   # 成片、封面、切片</pre>
+  <p class="dim">部分路径由 Agent 提示词定义，不是代码常量，不得硬编码（R-001 调整）；<code>events.log</code> 已取消，统一使用 §2.2 的 append-only 项目事件日志。</p>
   <div class="grid g4">
     <div class="card"><div class="ct">角色卡</div><div class="cb">{id, 名, 图, 一致性配方{seed, 参考图, 提示词}, 音色id, 版本}</div></div>
     <div class="card"><div class="ct">镜头产物</div><div class="cb">{镜号, 档位, 版本, mp4, 参数{模型, seed, prompt, 参考}, 批次, 质检}</div></div>
@@ -815,12 +859,25 @@
     <li><b>缺料与持久化</b>：缺料指出具体产物、版本或确认状态，不以“上游阶段未完成”替代，也不静默降级；文本产物 JSON 源 + MD 镜像双写。</li>
     <li><b>单集末端与显式跨镜边</b>：后期按单集剪辑 / 合成 / 验收，发布按单集 / 单渠道 / 单物料组织；普通相邻镜头不建依赖边，只有 <code>continuation</code>、前段末帧 / 视频等显式引用才形成跨镜依赖。DAG 就绪状态与 ComfyUI 资源排队状态分别计算、分别展示。</li>
   </ol>
+  <p class="dim">目标 Workflow / Plan / Stage / Work Item 与 Resource / Version（§2.2 / D-041）是产物状态机上的显式编排和版本记录，必须与 Manifest、画布版本及 Gate 共用事实源，不得另建平行状态。截至 2026-11-26，当前实现尚无该通用执行层，亦无 Skill 执行器。</p>
   <p>立项后变更按 §2.6.6 / §2.6.7 全字段可改 + 影响评估 + 用户决策（<code>manifest.briefVersion</code> + <code>parentReference</code> + <code>影响清单.vN-v(N+1).json</code>）；现行数据与 Agent 协议归 feature-001，影响视图归 feature-013，feature-002 仅保留历史实施血缘，并在目标依赖图中纳入同样的精准传播。</p>
   <div class="grid g3">
     <div class="card"><div class="ct">版本归档区（持久化机制）</div><div class="cb"><b>目录约定</b>：任何产物文件被覆盖前，旧文件自动移入同目录 <code>版本/&lt;basename&gt;.&lt;YYYYMMDD-HHmmss&gt;&lt;ext&gt;</code>；同秒冲突追加 <code>.N</code> 序号。<code>manifest.json</code> 永不归档。<b>副本语义</b>：归档失败（rename/mkdir 异常）向上抛错阻断本次写入——宁可写入失败也不做无备份覆盖。<b>触发点</b>：立项单定稿、剧本 / 分镜 .json/.md 双写、背景档案保存。<b>消费方式</b>：消息历史复用 opencode 原生会话存储（平台不另建消息 JSON，<code>chat.messages.json</code> 终态作废，R-001）；<code>.session.json</code> 仅持久化 <code>activeSessionId</code> 绑定，重开项目经 SDK <code>session.messages</code> 回放消息流，其中 unlock 消息对 source 为 idea/background 的 unlock 取 <code>newIdea</code>/档案全文，从 <code>版本/</code> 目录反查对应历史版本文件作为 diff 参照；UI 历史角标点击展示同目录版本快照。</div></div>
     <div class="card"><div class="ct">视觉风格谱系（外部数据源）</div><div class="cb">系统级外部数据源（注册路径 / 版本跟踪 / 引用风格 ID + 谱系版本），完整约定见 §8.3；当前实现 <code>electron/style/</code> 模块以代码内 ID 注册表 + 谱系 md 运行时解析交叉核对（版本号不硬编码，非法 ID 或版本 / 数据漂移即拒），与 §8.3 机制并存。辅助风格仅允许 B/D 候选域（§2.6.4）。</div></div>
     <div class="card"><div class="ct">术语对齐</div><div class="cb">「立项五要素」统一更名为「<b>立项六要素</b>」（题材/平台/集数/单集时长/风格基调/画幅），画幅由 <code>deriveFiveElements</code> 按平台规则派生；<code>FiveElements.aspectRatio</code> 为必填字段，旧数据回退竖屏。</div></div>
   </div>
+  <h3>7.2 数据落点：应用配置 / 项目工作区 / 测试数据（v1.26，D-021 对齐）</h3>
+  <p>本节统一回答"应用自身配置存哪 / 项目数据存哪 / 测试与真机验收数据存哪"。项目数据的永久落点仍为 §7.1 工作区，禁止把真实项目写进 <code>userData</code>；<code>userData</code> 只承载应用级配置、会话索引与框架自有状态。</p>
+  <table>
+    <tr><th>数据</th><th>生产 / 用户运行落点</th><th>测试与真机验收落点</th><th>边界</th></tr>
+    <tr><td><b>应用标识 / userData</b></td><td>Electron <code>app.getPath('userData')</code>；macOS 为 <code>~/Library/Application Support/&lt;productName&gt;/</code>，Windows / Linux 使用 Electron 对应平台目录；以实际打包 productName 为准，不硬编码旧名称。</td><td>自动化测试可用临时 userData；真机验收由 feature-830 的准备器注入隔离 <code>ASD_USER_DATA</code>。该环境变量只覆盖 Electron userData，不改变真实 HOME / Documents。</td><td>不得把 <code>~/Library/tmp</code> 当作 macOS 既有应用配置目录；不得未经用户确认覆盖真实应用配置。</td></tr>
+    <tr><td><b>工作区根与项目数据</b></td><td><code>&lt;userData&gt;/workspace.json.rootDir</code>；默认 <code>~/Documents/ai-shortdrama-studio/</code>（实际由主进程 <code>app.getPath('documents')</code> 推导），项目写入 <code>rootDir/project-*/</code>。用户可迁移 rootDir。</td><td>普通测试在 <code>.test-tmp/</code> 内新建临时工作区；真机验收使用真实工作区，并由准备器先做清单与备份，使用 <code>project-accept-*</code> 前缀和独立配置。</td><td>测试不得写现有真实项目；准备器只读枚举、复制备份和生成 env，零删除。验收不依赖覆盖或清空整个真实工作区。</td></tr>
+    <tr><td><b>用户凭据 / Key</b></td><td>密钥经 safeStorage 加密存 userData；不可加密则拒绝保存。其余偏好与工作区索引按配置存储实现落 userData。</td><td>测试使用临时配置或隔离 userData，不读取 / 复制真实 Key 到测试项目。</td><td>renderer 不直接持久化任意密钥；不把 Key 写入项目目录、日志或快照。</td></tr>
+    <tr><td><b>Electron / Chromium 自有状态</b></td><td>Cookie、Local Storage、IndexedDB、Cache、GPU / Shader Cache 等由 Electron / Chromium 按 <code>userData</code> 管理；可能表现为同目录下的 <code>Local Storage/</code>、<code>IndexedDB/</code>、<code>Cache/</code> 等，非八步项目数据。</td><td>随隔离 userData 自动隔离；测试不按用户文档误删真实框架缓存。</td><td>不得把这些缓存当成权威项目数据或版本证据；项目事实只从工作区文件读取。</td></tr>
+    <tr><td><b>临时文件</b></td><td>应用运行临时产物由系统临时目录或专用临时子目录承载；macOS 常见 <code>$TMPDIR=/var/folders/&lt;hash&gt;/T/</code>，<code>/tmp</code> 是指向 <code>/private/tmp</code> 的系统符号链接。</td><td>仓库 Vitest 默认经 <code>src/test/setup.ts</code> 将 <code>process.env.TMPDIR</code> 覆盖到 <code>&lt;repo&gt;/.test-tmp/</code>；可用 <code>ASD_TEST_TMP</code> 覆盖，不修改各测试的业务语义。</td><td><code>.test-tmp/</code> 只作测试产物，不入 Git、不存用户正式资产；普通终端与工具沙箱的删除策略差异须作为环境证据记录，不伪称产品缺陷。</td></tr>
+    <tr><td><b>LM Studio / ComfyUI / OpenCode</b></td><td>LM Studio、ComfyUI、OpenCode 自身配置在各自应用目录，不复制进本应用 userData；本平台只保存经批准的服务器地址、项目关联和必要配置引用。</td><td>测试优先 mock；真实连通性与真机验收使用显式目标实例，不扫网、不改对方配置。</td><td>局域网媒体硬边界不变；不得因配置落点调整引入媒体云端 Key 或公网生成。</td></tr>
+  </table>
+  <p class="dim"><b>真机验收默认档位</b>：真实工作区 + 隔离配置。准备器在验收前只读列出真实项目，任何以 <code>project-accept-*</code> 创建的验收项目都必须可识别、可追溯；清理须另行授权，不能借"测试"名义删除真实项目。相关实施与契约证据归 feature-830，测试统计不在本节复制。</p>
 </section>
 
 <!-- ═══ 8 引擎与生成通道 ═══ -->
@@ -879,24 +936,21 @@
 <!-- ═══ 11 落地路线 ═══ -->
 <section id="sec-11">
   <div class="sec-head"><span class="sec-no">11</span><h2>落地路线 <span class="src s-c">自研新增</span></h2><span class="hint">§11 · D-034 / D-035 / D-036 / D-037 / D-039 / D-040；D-031 / D-032 产物 DAG 不变</span></div>
-  <div class="note"><b>唯一总体开发计划</b>：<a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划 v0.16</a>（P0—P7 阶段路线与当前阶段门的正文入口）；本节只定义交付门口径，不复制阶段视图。<b>当前阶段（2026-11-18，D-036）</b>：P0 基线收口完成；P1 采用“可信工作台闭环”口径，切片 A—F 已闭环，但包含恢复语义的扩展退出门尚未通过；P2—P7 未到对应阶段门验收。</div>
-  <div class="note" style="border-left-color:var(--amber)"><b>基线补充（2026-11-16，历史）</b>：<code>feature-818</code> 已修复 3 条 Renderer 测试类型错误；<code>feature-819</code> 已解除开发态运行时模板路径阻塞，真实 Electron 对话往返通过；<a href="../features/feature-820-一级入口与伪造状态收口/SDG-AI-变更记录.md">feature-820</a> 已完成底栏真实状态与 Skill / 插件 / 本地模型一级入口收口。当时 <code>typecheck</code>、完整 Renderer 构建及 architecture + studio-flow 29 / 29 通过；P0 报告保持历史快照，不据此宣称后续全量测试常绿。</div>
-  <div class="note" style="border-left-color:var(--amber)"><b>历史回归边界（2026-11-19，D-037 仅同步归属）</b>：feature-826（原始变更记录仅从 Git 历史追溯）已登记全量 Vitest <b>96 个测试文件全过、1,276 通过、1 跳过</b>，<code>typecheck</code> 通过，B-70 闭环；feature-824 检出的 F824-01／B-71 已由 feature-825 修复并独立复验。上述 824 / 825 / 826 编号与测试数字仅作历史证据；现行项目库与打开事务归 feature-828，Canvas 恢复与写安全分别归 feature-823 / 827，谱系业务归 feature-802，通用测试门禁与数据落点归 feature-830。feature-817 的真实 Agent 运行时输入、OptionCard、Gate 及 Agent 模式现场验收仍未完成；D-035／D-036 扩展退出门须逐 Feature 建包取证。D-036 文档同步与本次 D-037 归属同步均未重跑产品测试；归并不构成 P1、Parity 或真机验收通过。</div>
-  <div class="note"><b>当前文档结构（2026-11-20，D-040）</b>：D-039 删除 002 / 003 / 007 / 008 / 009 / 010 / 011 / 012 / 015 / 804 / 807 / 809 / 810 / 811 / 812 / 814 / 815 / 818 / 819 / 824 / 825 共 21 个历史归档目录，D-040 删除 feature-826；22 个历史目录原始文档均仅从 Git 追溯，上文 818 / 819 / 826 因此保留为纯文本。现为 24 个目录，全部为现行负责包，历史归档目录为 0。D-037 归属规则与上述历史测试证据不变，本次未重跑产品测试或真机验收；P0 已完成、P1 未通过，feature-829 继续实施中。</div>
+  <div class="note"><b>唯一总体开发计划</b>：<a href="../research/MiniMax%20Design全面复刻开发计划.md">MiniMax Design 全面复刻开发计划 v0.17</a>（P0—P7 阶段路线、当前阶段与阶段状态的唯一入口）。本节只定义交付门和范围边界，不复制当前阶段、历史测试计数或 Feature 验收结论；现行负责包与证据入口见 <a href="../features/README.md">Feature 索引</a>。历史 PASS／FAIL 与真机结论仍在原 Feature、编年或 Git 历史中冻结追溯。</div>
   <table>
-    <tr><th>阶段</th><th>交付门</th><th>范围与退出条件</th><th>当前基线</th></tr>
-    <tr><td>P0</td><td>基线收口</td><td>D-034、Parity 矩阵、现有任务包校准、测试 / 构建 / 环境基线；只登记在线服务待决清单</td><td><b>基线收口完成</b>；不自动批准 K1/K8/K9 或产品代码实施</td></tr>
-    <tr><td>P1</td><td>桌面工作台</td><td><b>可信工作台闭环（D-035／D-036）</b>：项目、会话、多画布、自由布局、资产引用、手动连线、自动整理整体快照 undo/redo、定位＋高亮＋弱化、文本 Diff＋写入前确认、静态完整项目包、轻量通知与恢复；revision 冲突保留双版并经 Diff 由用户选择，异常退出恢复最后有效状态且运行中执行标为“已中断”，Agent 恢复消息／OptionCard／Gate／产物现场并由人工确认新运行；按最小产物依赖 DAG 打通 STAGE 0—2 局部就绪</td><td><b>切片 A—F 已闭环 · 扩展退出门未通过</b>：撤销历史不跨重启；导入会话只读，续聊新建并记录来源；页历史、跨页正式引用、完整快捷键／动画、完整媒体任务中心及归档／模板／迁移后置</td></tr>
-    <tr><td>P2</td><td>统一媒体引擎</td><td>ComfyUI 多实例、任务中心、参考 / 本地权重选择、队列 / 恢复 / 收片、资产登记与真实三卡验证</td><td>仅 H3 Image 文生图生产链已验收；资产中心 UI、第二实例与禁用行为待验</td></tr>
-    <tr><td>P3</td><td>视觉生产链</td><td>角色 / 场景 / 道具资产、生产分镜、H3 图像 / 视频镜头链；落实按镜实引门与显式 continuation</td><td>H3 视频、图像编辑与其他参考能力尚未成为生产入口</td></tr>
-    <tr><td>P4</td><td>后期与发布</td><td>时间线、剪辑、字幕、声音、混音、成片、切片与渠道规格</td><td>语音通道未裁决前只能管理待配文本、任务与既有素材</td></tr>
-    <tr><td>P5</td><td>Agent 生态</td><td>Skill 检索 / 执行 / 沉淀、插件与本地模板；在线投稿 / 市场另项裁决</td><td>逐 Feature 建包，不自动继承在线服务</td></tr>
-    <tr><td>P6</td><td>完整产品面候选</td><td>3D、浏览器、代码 / 网页、协作 / 移动入口等逐域裁决；可不纳入</td><td>不得建立一个“大复刻包”</td></tr>
-    <tr><td>P7</td><td>全量验收与发布</td><td>按 Parity 矩阵、八步闭环、异常恢复、性能、安装升级与证据总验收</td><td>最终只认已复刻 / 改编通过 / 经决策不纳入</td></tr>
+    <tr><th>阶段</th><th>出口</th><th>范围与退出条件</th></tr>
+    <tr><td>P0 · 基线收口</td><td>已有 UI / 模块可追溯、可继续开发</td><td>既有功能正常，关键流程有状态机、错误和测试证据；不以页面存在或旧测试快照替代真机证据。P0 完成不自动批准 P1 全量新增。</td></tr>
+    <tr><td>P1 · 创作工作台与资产管理</td><td>能创建、编辑、查看、保留和追溯创作数据</td><td>项目、创作页、多画布、视觉自由布局（手动拖拽不改变数据依赖）、资产引用、导入、Skill 可复用形成完整体验；统一基础组件、尺寸、样式与交互；真实用户工作区、纯本地内容生产流程、渲染层编译产物、资源生命周期、恢复 / 重试与 Skill 真机能力分别具备现行负责包与证据，不由已删历史编号冒充完成。</td></tr>
+    <tr><td>P2 · 统一媒体引擎与任务中心</td><td>图像 / 视频共用的局域网执行层</td><td>复用 H3 Image 持久任务能力，接入 H3 视频，统一排队、进度、取消、局部重试、断点续查、收片、资产回写和追溯；逐实例验证真实 GPU 独占。feature-816 文生图子链的历史真机验收仅覆盖其登记范围，不替代本阶段门。</td></tr>
+    <tr><td>P3 · 业务主链与核心 Agent</td><td>从立项到分镜的最小生产链可操作</td><td>立项、故事、剧本分场、资产、分镜与通用 Plan / Stage / Work Item 执行层接入真实 Agent、Harness、确认门与版本；主控可恢复任务，非聊天假执行。</td></tr>
+    <tr><td>P4 · 镜头、后期与完整八步</td><td>从镜头到发布形成端到端闭环</td><td>逐镜生成、选版收片、剪辑、字幕、合流、混音、成片、切片与发布包落账；各阶段独立产物与验收语义不被合并。</td></tr>
+    <tr><td>P5 · Skill 与工作流扩展</td><td>方法沉淀、复用与工程扩展有通用承载</td><td>先验证 Skill、模板、批量与外部导入导出；3D 插件、增强 Agent、风格 / 提示词库及完整工作流执行器逐包裁决，避免未过 P3 即先造大执行器。Code Project 无用户可见项目差异，后置 P6，不在本阶段偷跑。</td></tr>
+    <tr><td>P6 · 独立 Code Project</td><td>代码 / 网页类产品形态可独立裁决</td><td>只有用户可见产品形态确有差异才建设；AI Web Builder、Code Agent、运行预览、文件树、终端、错误修复、Web / API / Full-Stack、本地项目导入等完整面逐包映射，不把画布 / Skill 改名当复刻。</td></tr>
+    <tr><td>P7 · 生态、部署与完整产品面</td><td>本地替代边界明确，完整产品面有结论</td><td>账号、团队、社区、积分、支付、云同步等默认本地替代或经决策不纳入；部署 / 导出、模板、精选等逐项验收。无真实服务不伪造在线成功。</td></tr>
   </table>
   <div class="note"><b>D-036 恢复口径</b>：revision 冲突禁止静默最后写入优先，保留磁盘版与待提交版并展示文本 Diff，由用户选择重载磁盘版、另存副本或显式覆盖；异常退出恢复最后有效项目、画布和已落盘产物，运行中执行标为“已中断”并保留日志，用户确认后才可重试，不自动重新提交；Agent 保留消息、OptionCard、Gate 和产物状态，未决 Gate 不代决、未提交选项不代选，重试创建带血缘的新运行记录，不伪装接续原 Token 流。</div>
   <div class="note"><b>D-036 后置目标</b>：页历史仅做应用内轻量前进／后退并持久化最后位置，不跨重启保留完整浏览栈，不替代产物版本历史；跨页正式引用采用“产物 ID＋版本”，源产物再版只挂脏实际引用者；归档默认列表隐藏、完整保留、只读且可解除；模板只含结构、配置和说明并实例化新项目与新 ID；迁移基于静态完整项目包执行 schema 版本、缺失资产和兼容性预检，默认建副本，不静默原地升级。上述后置目标不构成当前 P1 退出门或实施授权。</div>
-  <div class="note" style="border-left-color:var(--amber)"><b>产物 DAG 与双轨门控不被阶段路线替代</b>：继续统一任务 / 产物 ID、逻辑引用、精确版本血缘与生产轨道，实现依赖展开、单产物验收、阶段汇总和精准挂脏；按 STAGE 0—2 局部就绪、STAGE 3—5 资产分支与按镜实引门、STAGE 6—7 单集 / 单渠道下沉逐步替换固定 Agent 编排与线性 <code>manifest.status</code> 的职责。草稿试产与正式生产保持双轨，局部结果不冒充全剧 ready。当前生产仅由 feature-816 接入 H3 Image 文生图，H3 视频与 Music3 仍待各自 Feature 接入；每次契约 / 接口变化须先走对应任务包与 K8 卡口。</div>
+  <div class="note" style="border-left-color:var(--amber)"><b>产物 DAG 与双轨门控不被阶段路线替代</b>：继续统一任务 / 产物 ID、逻辑引用、精确版本血缘与生产轨道，实现依赖展开、单产物验收、阶段汇总和精准挂脏；按 STAGE 0—2 局部就绪、STAGE 3—5 资产分支与按镜实引门、STAGE 6—7 单集 / 单渠道下沉逐步替换固定 Agent 编排与线性 <code>manifest.status</code> 的职责。草稿试产与正式生产保持双轨，局部结果不冒充全剧 ready。任何子链的历史验收都不替代其他媒体通道或所属阶段门验收；每次契约 / 接口变化须先走对应任务包与 K8 卡口。</div>
 </section>
 
 <!-- ═══ 12 风险与边界 ═══ -->
@@ -907,14 +961,18 @@
     <div class="card"><div class="ct">引擎不可达</div><div class="cb">需显式提示与错误路径，不以其他模型静默回退；首启检测 H3 Image/H3/Music3 三类权重与 GPU/显存（音乐可 CPU 兜底）；Music3 的 ComfyUI 音频节点选型走媒体 Feature 卡口（K2/K9）。Qwen 专用图像能力由 D-033 停用归档，不构成降级路径。</div></div>
     <div class="card"><div class="ct">语音通道待定</div><div class="cb">裁决前仅管理待配文本、任务与既有素材；需“待配 / 已配”清单防漏镜，不预设豆包 / T2A、语音 OpenAPI、声音复刻或其他候选为既定通道。</div></div>
     <div class="card"><div class="ct">Agent 出错</div><div class="cb">靠确认门、事件留痕、可重放兜底；不持有不可逆权限。</div></div>
-    <div class="card"><div class="ct">画布克制</div><div class="cb">坚持自动布局与"看+确认"，不做自由编排。</div></div>
+    <div class="card"><div class="ct">画布克制</div><div class="cb">坚持自动布局与"看+确认"；视觉位置允许自由布局，手动拖拽不改变数据依赖，产物依赖关系不开放无约束自由编排。</div></div>
   </div>
 </section>
 
 <!-- ═══ 13 版本记录 ═══ -->
 <section id="sec-13">
-  <div class="sec-head"><span class="sec-no">13</span><h2>版本记录</h2><span class="hint">§13 · v1.0 → v1.28</span></div>
+  <div class="sec-head"><span class="sec-no">13</span><h2>版本记录</h2><span class="hint">§13 · v1.0 → v1.30</span></div>
   <div class="timeline">
+    <div class="tl"><div class="vh">v1.30 <span class="vd">2026-11-26 · 文档质量修复</span></div>
+      <div class="vb">现行 Feature 目录统一为 24／0 历史目录；终态目标树移除已取消的 <code>events.log</code>。旧 Agent／连接器调查结果补 4.0.10 版本限定，7 类职责不再暗示自动扩编；视觉自由布局与依赖编排、账号／积分／投稿参考能力边界同步澄清。§11 不再双写阶段状态、测试计数和 Feature 验收结论；HTML 补齐 §7.2、目录树提示词限定与 v0.17 计划引用，旧测试快照标日期。历史条目原意不变，未修改产品代码、接口、依赖或真实项目数据。</div></div>
+    <div class="tl"><div class="vh">v1.29 <span class="vd">2026-11-26 · D-041</span></div>
+      <div class="vb">MiniMax 4.0.18 架构选型：对外按当前安装版验收，对内以 v2 为生产编排骨架、选择性吸收 v3 Resource / Version；新增 §2.2 显式八步 Workflow、Plan / Stage / Work Item、系统 CAS / 门控 / 重试 / 恢复边界及当前差距，并同步 §4／§5／§7／§11。保留现有 4 Agent 与技术底座，Code Project 后置；不直接授权 Feature 开发、共享类型、接口或依赖变更。</div></div>
     <div class="tl"><div class="vh">v1.28 <span class="vd">2026-11-20 · D-040</span></div>
       <div class="vb">删除 feature-826 历史归档目录；docs/features/ 收敛为 24 个目录，全部为现行负责包，历史归档目录为 0。D-039／D-040 删除的 22 个历史目录原始文档仅从 Git 追溯；谱系业务仍归 feature-802，通用测试门禁与测试数据归 feature-830。不改产品代码、历史证据、任务状态或验收结论。</div></div>
     <div class="tl"><div class="vh">v1.27 <span class="vd">2026-11-20 · D-039</span></div>
@@ -933,46 +991,46 @@
       <div class="vb">逐阶段补齐 STAGE 0–7 的最小调度 / 验收产物、真实硬依赖、可并行工作、双轨门控、两级验收与再版影响矩阵；新增三张 SVG、可编辑 Whiteboard HTML / Excalidraw 源；明确单集后期 / 发布、显式跨镜边、依赖就绪与资源调度分离。同步 §0.1 / §1 / §2.1 / §4.2 / §7.1 / §11；当前代码仍为实现快照，本次未改产品代码、共享类型、业务接口、Agent 提示词或依赖。</div></div>
     <div class="tl"><div class="vh">v1.20 <span class="vd">2026-11-13 · D-031</span></div>
       <div class="vb">八步保留为产物归属与汇总验收基线，不再表示全局串行启动锁；新增最小产物依赖 DAG、角色定妆与剧本分场等跨 STAGE 并行、草稿试产 / 正式生产双轨门控、精确版本血缘、阶段汇总状态与局部精准挂脏。线性 <code>manifest.status</code> 与固定 Agent 编排明确标为当前实现快照，目标能力不冒称已落地；本次仅设计与治理文档变更，不改代码、共享类型、业务接口或 Agent 提示词。</div></div>
-    <div class="tl"><div class="vh">v1.0 · v1.1 <span class="vd">2026-10-02 · 10-03</span></div>
-      <div class="vb">媒体生成收窄——画面（B0/B5/B8）与配乐（B9）统一走 ComfyUI、复用 Dufs B* 模板，废弃云端矩阵直连；配音维持 T2A。变更史记入《版本记录.md》。</div></div>
-    <div class="tl"><div class="vh">v1.2 <span class="vd">2026-10-03</span></div>
-      <div class="vb">§7.1 新增一期已落地三阶段数据血缘（实现真相）——实际会话目录、CharacterProfile.id / Scene.sceneNo 两条主键引用链、manifest.status 状态机；§7 终态目标目录不变。</div></div>
-    <div class="tl"><div class="vh">v1.3 · v1.4 <span class="vd">2026-10-04</span></div>
-      <div class="vb">§0.1 新增开发原则与边界条件（项目必要性 / 局域网 ComfyUI 硬边界 / 八步闭环完整性 / 继承+扩展），决策见 D-005 / D-010；v1.4 新增原则五 · 生成通道红线（图像仅 qwen-image、视频仅 MiniMax H3、音乐仅 MiniMax Music3）。</div></div>
-    <div class="tl"><div class="vh">v1.7 <span class="vd">2026-10-04 · 媒体执行路径终局 · D-010</span></div>
-      <div class="vb">媒体执行路径经多轮裁决定稿（模型红线「仅 qwen-image / H3 / Music3」不变）：<b>qwen-image/H3/Music3 三类媒体全部经本地/局域网 ComfyUI 权重与工作流推理（B0/B5/B8/B9），媒体生成零公网、无媒体云端 Key；ComfyUI = 统一媒体引擎；平台出公网仅余文本火山方舟</b>。同步修订 §0/§0.1/§5/§8/§11/§12，AGENTS.md 同源。</div></div>
-    <div class="tl"><div class="vh">v1.8 <span class="vd">2026-10-05 · 一致性修复</span></div>
-      <div class="vb"><b>裁决反向同步</b>——§2.6 立项单由"五要素"统一为"<b>立项六要素</b>"（补画幅，落实术语对齐裁决）；§7.1 补入版本归档区 / 视觉风格谱系快照 / 术语对齐三个小节；§0 补旧体系对比表；原型底部状态条"云端模型矩阵"改为"火山方舟（文本）"；§7.1 血缘图由位图 PNG 改为内联矢量 SVG（另存同名 svg 供 md 引用），图内"五要素"同步改"六要素"，删除原 PNG。</div></div>
-    <div class="tl"><div class="vh">v1.9 <span class="vd">2026-10-08 · D-005</span></div>
-      <div class="vb">经《2002 相识》立项流程对话推演，§2.6 整体重写——取代旧「4 节点 + 4 确认门（0-a~0-d）+ 多 tab 立项单」模型，改为「<b>1 入口动作 + 2 节点（选题诊断含六要素口径草案 / 故事前提）+ 1 道定案门（就绪客观判定，定案卡一键或口头拍板）</b>」；新增反问机制、「已捕获口径」常驻区、故事前提最低门槛、立项后变更走变更评估。视觉风格选型明确「<b>主风格唯一 + 辅助 0–1 个（候选域封闭 = B 青春治愈 1 项 + D 类型氛围 5 项）</b>」；新增 §8.3 视觉风格谱系为系统级外部数据源。§0.1 八步表、§7.1（重新定性为现存代码待对齐）同步更新。新任务包自 feature-001 起按八步模块分段编号重建。</div></div>
-    <div class="tl"><div class="vh">v1.10 <span class="vd">2026-10-09 · D-011</span></div>
-      <div class="vb">经用户拍板"立项字段全可改 + 改后标记影响点 + 用户决定是否重生成"，§2.6 立项后变更机制由"反补（半锁定，premise 不可改）"升级为"<b>全可改 + 影响评估 + 用户决策</b>"（三原则：全字段可改 / 影响必标记 / 决策归用户）。修订：§2.6.5 定案门语义"灵魂边界"→"当前版本落定"；§2.6.6 重写立项后变更规则；<b>新增 §2.6.7 影响评估机制</b>（追溯算法 4 步 + 影响分级表 + 评估面板 UI 草图 + 三动作语义）；原 §2.6.7 → §2.6.8 画布布局。原型已具备 STAGE 进度轨（v1.10 待办：STAGE 0 hover tooltip 接入版本号）。</div></div>
-    <div class="tl"><div class="vh">v1.11 <span class="vd">2026-10-09 · D-012</span></div>
-      <div class="vb">用户拍板"旧对话链路不回退、以磁盘实况为终态、所有设计要最后状态"。① §5 改写为「<b>MCP 工具层与对话生成网关</b>」——§5.1 runtime 单轨（runtime:start/stop/status、runtime:session:*、runtime:prompt/async、runtime:event:*；旧 8 个 <code>agent:*</code> IPC 与 <code>shortdrama_*</code> 生成工具不再重建；统一 runtime 错误码 14 个，旧 <code>STORY_CTX_MISSING</code>/<code>REVISE_*</code>/<code>STYLE_NOT_IN_CATALOG</code> 退役；无 Key 显式报 <code>UPSTREAM_AUTH_MISSING</code>，不 mock 降级）；§5.2 工具族按磁盘实况定稿（已落地 11 个纯工具 + 目标族 7 族）。② §7.1 改写为「<b>数据血缘、状态机与版本归档（最终设计）</b>」——删除旧 8 确认门与"待重建"框架；brief.json 由立项单.vN.json 取代；谱系小节并入 §8.3；补 §2.6.6/§2.6.7 影响评估字段落点。③ 旧通道快照文件的有用内容并入本文后删除；平台全景图.html 引用改指 §5.1。</div></div>
-    <div class="tl"><div class="vh">v1.12 <span class="vd">2026-10-14 · 反向同步</span></div>
-      <div class="vb">实现实况反向同步（无新决策编号，依据提交 8114e84 + 用户拍板）。① <b>director profile 退役，showrunner 为唯一 primary 主控</b>——实现层固定 4 个 profile（showrunner + writer / media-director / comfyui-operator 三个 subagent，经 <code>task</code> 调度）；§4.1 表后补「实现层摄制组（磁盘实况）」注记，7 角色目标态表不变。② §5.2 已落地工具由 <b>11 个 / 5 族更正为 22 个 / 8 族</b>（补 canvas.align；新增立项 brief.* 5、状态机 manifest.* 2、视觉风格 style.* 3，随 feature-001/002/801/802 落地），注明物理 ID 规则 <code>shortdrama_&lt;tool&gt;</code> 与 showrunner 请求级白名单 17 个（asset 2 / comfyui 3 不开放给主控）。③ client 层取消 <code>shortdrama_</code> 前缀整体放行，改逐物理 ID 白名单判定（8 个幽灵工具名直接拒绝）。镜像与两张信息图磁盘实况卡同步。</div></div>
-    <div class="tl"><div class="vh">v1.13 <span class="vd">2026-10-19/20 · 回流 + 建包 · 补登</span></div>
-      <div class="vb">新建 feature-006（选题诊断公开数据检索 web.search / web.fetch）、feature-810 任务包；§2.6 数据模型对应段按磁盘实况回流标注。</div></div>
-    <div class="tl"><div class="vh">v1.14 <span class="vd">2026-10-27 · 反向同步</span></div>
-      <div class="vb">实现实况反向同步（无新决策编号）。① §5.2 已落地工具由 <b>22 个 / 8 族更正为 27 个 / 10 族</b>——补「已捕获口径 capture.* 3」（feature-005）与「公开数据检索 web.* 2」（feature-006）两族卡；showrunner 请求级白名单 17 → <b>22</b>（27 − asset 2 − comfyui 3）。② §7.1 / §8.3 两处 <code>electron/style-catalog.ts</code> 旧平铺路径更正为 <code>electron/style/catalog.ts</code>（同日 src/studio 七组、src/test 十二组镜像分包完成，纯重构零行为变化）。</div></div>
-    <div class="tl"><div class="vh">v1.15 <span class="vd">2026-11-01 · 反向同步</span></div>
-      <div class="vb">实现实况反向同步（无新决策编号）。§5.2 已落地工具由 <b>27 个 / 10 族更正为 28 个 / 11 族</b>——补「质检 harness.validate」族卡（feature-806 批一，0-final 门写盘前前置同一校验）；showrunner 请求级白名单 22 → <b>23</b>（28 − asset 2 − comfyui 3）。</div></div>
-    <div class="tl"><div class="vh">v1.16 <span class="vd">2026-11-02 · D-023</span></div>
-      <div class="vb">§1 原则一由「Agent 一等公民」统一为 D-016 的「<b>系统承载，AI 辅助</b>」；§4.1 / §5.2 明确 showrunner 独占 <code>task</code> 调度、三个 subagent 不嵌套委派，media-director 仅回交媒体任务交接物，comfyui.queue/status 仅由 comfyui-operator 持有。</div></div>
     <div class="tl"><div class="vh">v1.19 <span class="vd">2026-11-11 · feature-201</span></div>
       <div class="vb">2-c 分镜文字稿实施：完整 ShotList 草案、结构校验、确认门与 done/边/血缘；系统 approved 后唯一推进 <code>storyboard-finalized → storyboard-done</code>；refs 恒空、零媒体，feature-401 后续同文件生产化。聚焦 27 项、全量 1058 项通过；未真机验收。</div></div>
     <div class="tl"><div class="vh">v1.18 <span class="vd">2026-11-03 · feature-813</span></div>
       <div class="vb">工作区根目录可更换（单一全局根，用户 2026-11-03 三项范围裁决 + K8 批准）：设置面板「工作目录」入口系统直做（D-016）；旧根 <code>project-*</code> 整体搬移、失败回滚零半搬态；session-state 同步重映射；设置落盘 <code>&lt;userData&gt;/workspace.json</code>；跨盘（EXDEV）不支持；K8 新增 3 条 IPC（settings:workspace:get/pick/change），K1 零触发。详见 feature-813 任务包。</div></div>
     <div class="tl"><div class="vh">v1.17 <span class="vd">2026-11-02 · D-024</span></div>
       <div class="vb">§2.6.6/§2.6.7 统一为「<b>再版与挂脏先落盘</b>，面板提供一键重生成选中 / 仅标记脏两个业务动作；Esc / 关闭控件仅退出，不撤销再版」，删除「取消则 v(N+1) 不落盘」旧语义；docs/README 改按职责划分事实源，磁盘代码仅为实现证据，冲突按 L1/L2/L3 处理。</div></div>
+    <div class="tl"><div class="vh">v1.16 <span class="vd">2026-11-02 · D-023</span></div>
+      <div class="vb">§1 原则一由「Agent 一等公民」统一为 D-016 的「<b>系统承载，AI 辅助</b>」；§4.1 / §5.2 明确 showrunner 独占 <code>task</code> 调度、三个 subagent 不嵌套委派，media-director 仅回交媒体任务交接物，comfyui.queue/status 仅由 comfyui-operator 持有。</div></div>
+    <div class="tl"><div class="vh">v1.15 <span class="vd">2026-11-01 · 反向同步</span></div>
+      <div class="vb">实现实况反向同步（无新决策编号）。§5.2 已落地工具由 <b>27 个 / 10 族更正为 28 个 / 11 族</b>——补「质检 harness.validate」族卡（feature-806 批一，0-final 门写盘前前置同一校验）；showrunner 请求级白名单 22 → <b>23</b>（28 − asset 2 − comfyui 3）。</div></div>
+    <div class="tl"><div class="vh">v1.14 <span class="vd">2026-10-27 · 反向同步</span></div>
+      <div class="vb">实现实况反向同步（无新决策编号）。① §5.2 已落地工具由 <b>22 个 / 8 族更正为 27 个 / 10 族</b>——补「已捕获口径 capture.* 3」（feature-005）与「公开数据检索 web.* 2」（feature-006）两族卡；showrunner 请求级白名单 17 → <b>22</b>（27 − asset 2 − comfyui 3）。② §7.1 / §8.3 两处 <code>electron/style-catalog.ts</code> 旧平铺路径更正为 <code>electron/style/catalog.ts</code>（同日 src/studio 七组、src/test 十二组镜像分包完成，纯重构零行为变化）。</div></div>
+    <div class="tl"><div class="vh">v1.13 <span class="vd">2026-10-19/20 · 回流 + 建包 · 补登</span></div>
+      <div class="vb">新建 feature-006（选题诊断公开数据检索 web.search / web.fetch）、feature-810 任务包；§2.6 数据模型对应段按磁盘实况回流标注。</div></div>
+    <div class="tl"><div class="vh">v1.12 <span class="vd">2026-10-14 · 反向同步</span></div>
+      <div class="vb">实现实况反向同步（无新决策编号，依据提交 8114e84 + 用户拍板）。① <b>director profile 退役，showrunner 为唯一 primary 主控</b>——实现层固定 4 个 profile（showrunner + writer / media-director / comfyui-operator 三个 subagent，经 <code>task</code> 调度）；§4.1 表后补「实现层摄制组（磁盘实况）」注记，7 角色目标态表不变。② §5.2 已落地工具由 <b>11 个 / 5 族更正为 22 个 / 8 族</b>（补 canvas.align；新增立项 brief.* 5、状态机 manifest.* 2、视觉风格 style.* 3，随 feature-001/002/801/802 落地），注明物理 ID 规则 <code>shortdrama_&lt;tool&gt;</code> 与 showrunner 请求级白名单 17 个（asset 2 / comfyui 3 不开放给主控）。③ client 层取消 <code>shortdrama_</code> 前缀整体放行，改逐物理 ID 白名单判定（8 个幽灵工具名直接拒绝）。镜像与两张信息图磁盘实况卡同步。</div></div>
+    <div class="tl"><div class="vh">v1.11 <span class="vd">2026-10-09 · D-012</span></div>
+      <div class="vb">用户拍板"旧对话链路不回退、以磁盘实况为终态、所有设计要最后状态"。① §5 改写为「<b>MCP 工具层与对话生成网关</b>」——§5.1 runtime 单轨（runtime:start/stop/status、runtime:session:*、runtime:prompt/async、runtime:event:*；旧 8 个 <code>agent:*</code> IPC 与 <code>shortdrama_*</code> 生成工具不再重建；统一 runtime 错误码 14 个，旧 <code>STORY_CTX_MISSING</code>/<code>REVISE_*</code>/<code>STYLE_NOT_IN_CATALOG</code> 退役；无 Key 显式报 <code>UPSTREAM_AUTH_MISSING</code>，不 mock 降级）；§5.2 工具族按磁盘实况定稿（已落地 11 个纯工具 + 目标族 7 族）。② §7.1 改写为「<b>数据血缘、状态机与版本归档（最终设计）</b>」——删除旧 8 确认门与"待重建"框架；brief.json 由立项单.vN.json 取代；谱系小节并入 §8.3；补 §2.6.6/§2.6.7 影响评估字段落点。③ 旧通道快照文件的有用内容并入本文后删除；平台全景图.html 引用改指 §5.1。</div></div>
+    <div class="tl"><div class="vh">v1.10 <span class="vd">2026-10-09 · D-011</span></div>
+      <div class="vb">经用户拍板"立项字段全可改 + 改后标记影响点 + 用户决定是否重生成"，§2.6 立项后变更机制由"反补（半锁定，premise 不可改）"升级为"<b>全可改 + 影响评估 + 用户决策</b>"（三原则：全字段可改 / 影响必标记 / 决策归用户）。修订：§2.6.5 定案门语义"灵魂边界"→"当前版本落定"；§2.6.6 重写立项后变更规则；<b>新增 §2.6.7 影响评估机制</b>（追溯算法 4 步 + 影响分级表 + 评估面板 UI 草图 + 三动作语义）；原 §2.6.7 → §2.6.8 画布布局。原型已具备 STAGE 进度轨（v1.10 待办：STAGE 0 hover tooltip 接入版本号）。</div></div>
+    <div class="tl"><div class="vh">v1.9 <span class="vd">2026-10-08 · D-005</span></div>
+      <div class="vb">经《2002 相识》立项流程对话推演，§2.6 整体重写——取代旧「4 节点 + 4 确认门（0-a~0-d）+ 多 tab 立项单」模型，改为「<b>1 入口动作 + 2 节点（选题诊断含六要素口径草案 / 故事前提）+ 1 道定案门（就绪客观判定，定案卡一键或口头拍板）</b>」；新增反问机制、「已捕获口径」常驻区、故事前提最低门槛、立项后变更走变更评估。视觉风格选型明确「<b>主风格唯一 + 辅助 0–1 个（候选域封闭 = B 青春治愈 1 项 + D 类型氛围 5 项）</b>」；新增 §8.3 视觉风格谱系为系统级外部数据源。§0.1 八步表、§7.1（重新定性为现存代码待对齐）同步更新。新任务包自 feature-001 起按八步模块分段编号重建。</div></div>
+    <div class="tl"><div class="vh">v1.8 <span class="vd">2026-10-05 · 一致性修复</span></div>
+      <div class="vb"><b>裁决反向同步</b>——§2.6 立项单由"五要素"统一为"<b>立项六要素</b>"（补画幅，落实术语对齐裁决）；§7.1 补入版本归档区 / 视觉风格谱系快照 / 术语对齐三个小节；§0 补旧体系对比表；原型底部状态条"云端模型矩阵"改为"火山方舟（文本）"；§7.1 血缘图由位图 PNG 改为内联矢量 SVG（另存同名 svg 供 md 引用），图内"五要素"同步改"六要素"，删除原 PNG。</div></div>
+    <div class="tl"><div class="vh">v1.7 <span class="vd">2026-10-04 · 媒体执行路径终局 · D-010</span></div>
+      <div class="vb">媒体执行路径经多轮裁决定稿（模型红线「仅 qwen-image / H3 / Music3」不变）：<b>qwen-image/H3/Music3 三类媒体全部经本地/局域网 ComfyUI 权重与工作流推理（B0/B5/B8/B9），媒体生成零公网、无媒体云端 Key；ComfyUI = 统一媒体引擎；平台出公网仅余文本火山方舟</b>。同步修订 §0/§0.1/§5/§8/§11/§12，AGENTS.md 同源。</div></div>
+    <div class="tl"><div class="vh">v1.3 · v1.4 <span class="vd">2026-10-04</span></div>
+      <div class="vb">§0.1 新增开发原则与边界条件（项目必要性 / 局域网 ComfyUI 硬边界 / 八步闭环完整性 / 继承+扩展），决策见 D-005 / D-010；v1.4 新增原则五 · 生成通道红线（图像仅 qwen-image、视频仅 MiniMax H3、音乐仅 MiniMax Music3）。</div></div>
+    <div class="tl"><div class="vh">v1.2 <span class="vd">2026-10-03</span></div>
+      <div class="vb">§7.1 新增一期已落地三阶段数据血缘（实现真相）——实际会话目录、CharacterProfile.id / Scene.sceneNo 两条主键引用链、manifest.status 状态机；§7 终态目标目录不变。</div></div>
+    <div class="tl"><div class="vh">v1.0 · v1.1 <span class="vd">2026-10-02 · 10-03</span></div>
+      <div class="vb">媒体生成收窄——画面（B0/B5/B8）与配乐（B9）统一走 ComfyUI、复用 Dufs B* 模板，废弃云端矩阵直连；配音维持 T2A。变更史记入《版本记录.md》。</div></div>
   </div>
   <p class="dim">镜像纪律：md 改动同步 docs/design/ 同名 html；原型（docs/design/短剧Agent平台-原型.html）同步迭代。</p>
 </section>
 
 <footer>
-  <span>短剧 Agent 平台设计 · 设计 v1.28 · D-040 镜像同步 2026-11-20</span>
-  <span class="src">规范事实源：短剧Agent平台设计.md v1.28 · 实施状态：总规划 v0.16 / 24 个现行目录 / 0 个历史归档目录；D-039／D-040 删除的 22 个历史目录仅从 Git 追溯</span>
-  <span class="src">台账 D-005 · D-011 · D-012 · D-016 · D-023 · D-024 · D-031 · D-032 · D-033 · D-034 · D-037（归属规则）· D-039／D-040（目录清理）</span>
+  <span>短剧 Agent 平台设计 · 设计 v1.30 · D-041 镜像同步 2026-11-26</span>
+  <span class="src">规范事实源：短剧Agent平台设计.md v1.30 · 实施状态：总规划 v0.17 / 24 个现行目录 / 0 个历史归档目录；D-039／D-040 删除的 22 个历史目录仅从 Git 追溯</span>
+  <span class="src">台账 D-005 · D-011 · D-012 · D-016 · D-023 · D-024 · D-031 · D-032 · D-033 · D-034 · D-037（归属规则）· D-039／D-040（目录清理）· D-041（编排选型）</span>
 </footer>
 
 </main>

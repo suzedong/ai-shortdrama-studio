@@ -125,6 +125,26 @@ export interface RuntimePromptRequest {
   assetRefs?: RuntimePromptAssetRef[]
 }
 
+export type AgentRunStatus =
+  | 'running'
+  | 'stopping'
+  | 'completed'
+  | 'failed'
+  | 'stopped'
+  | 'interrupted'
+
+export interface AgentRunRecord {
+  id: string
+  sessionId: string
+  request: RuntimePromptRequest
+  status: AgentRunStatus
+  createdAt: string
+  updatedAt: string
+  endedAt?: string
+  error?: string
+  retryOfMessageId?: string
+}
+
 export interface RuntimePromptResult {
   messageId: string
   text: string

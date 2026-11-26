@@ -4,8 +4,10 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+import type { CanvasGate } from '@shared/types'
 import type { StreamingTurn, ToolView } from '../../lib/chat-runtime'
-import ChatComposer, { showStreamCursor, toolDurationLabel } from './ChatComposer'
+import type { AgentRunRecord } from '../../lib/runtime-types'
+import ChatComposer, { showStreamCursor, toolDurationLabel, type ChatItem } from './ChatComposer'
 
 function makeTurn(partial: Partial<StreamingTurn> = {}): StreamingTurn {
   return {
@@ -449,5 +451,145 @@ describe('终态清除（AC8）', () => {
     expect(screen.queryByTestId('chat-typing-dots')).toBeNull()
     expect(container.querySelector('[class*="animate-"]')).toBeNull()
     expect(screen.getByTestId('chat-tool-row').textContent).toContain('✗')
+  })
+})
+
+describe('feature-808/817 · 中断恢复卡与人工重试', () => {
+  function run(id: string, status: AgentRunRecord['status'] = 'interrupted', extra: Partial<AgentRunRecord> = {}): AgentRunRecord {
+    return {
+      id,
+      sessionId: 'ses-1',
+      request: { sessionId: 'ses-1', text: `请求 ${id}` },
+      status,
+      createdAt: '2026-11-26T00:00:00.000Z',
+      updatedAt: '2026-11-26T00:00:00.000Z',
+      ...extra,
+    }
+  }
+
+  function recoveryElement(items: ChatItem[], props: {
+    onRetryRun?: (messageId: string) => void
+    retryingRunId?: string | null
+    pendingGate?: CanvasGate | null
+    onSend?: (text: string) => void
+    onDecide?: (decision: 'approved' | 'rejected', note?: string) => void
+  } = {}) {
+    return (
+      <ChatComposer
+        items={items}
+        stream={null}
+        pendingGate={props.pendingGate ?? null}
+        deciding={false}
+        sending={false}
+        error={null}
+        modelOptions={[{ providerID: 'ark', modelID: 'test-model' }]}
+        selectedModel={{ providerID: 'ark', modelID: 'test-model' }}
+        onModelChange={vi.fn()}
+        onSend={props.onSend ?? vi.fn()}
+        onDecide={props.onDecide ?? vi.fn()}
+        onRetryRun={props.onRetryRun}
+        retryingRunId={props.retryingRunId}
+      />
+    )
+  }
+
+  it('仅把 interrupted 轮次的 pending/running 工具投影为已中断，不改原始 ToolView', () => {
+    const interrupted = run('msg-old')
+    const tools = [
+      makeTool({ callId: 'c-pending', tool: 'file.read', status: 'pending' }),
+      makeTool({ callId: 'c-running', tool: 'file.write', status: 'running' }),
+      makeTool({ callId: 'c-done', tool: 'canvas.update', status: 'completed', startedAt: 0, endedAt: 100 }),
+    ]
+    const snapshot = structuredClone(tools)
+    render(recoveryElement([
+      { id: interrupted.id, role: 'user', text: '旧请求', run: interrupted },
+      {
+        id: 'a-old', role: 'agent', agent: 'showrunner', text: '', run: interrupted,
+        segments: tools.map(tool => ({ kind: 'tool', key: tool.callId, tool })),
+      },
+    ], { onRetryRun: vi.fn() }))
+
+    expect(screen.getByTestId('chat-tool-trace')).toHaveAttribute('data-status', 'interrupted')
+    const rows = screen.getAllByTestId('chat-tool-row')
+    expect(rows[0]?.textContent).toContain('已中断')
+    expect(rows[1]?.textContent).toContain('已中断')
+    expect(rows[2]?.textContent).not.toContain('已中断')
+    expect(rows[2]?.textContent).toContain('✓')
+    expect(tools).toEqual(snapshot)
+    expect(screen.getAllByTestId('chat-tool-trace')[0]?.querySelector('.animate-spin')).toBeNull()
+  })
+
+  it('OptionCard 恢复后不自动选择或发送，只有显式点击才调用一次 retry', () => {
+    const interrupted = run('msg-old')
+    const onSend = vi.fn()
+    const onRetryRun = vi.fn()
+    const item: ChatItem = {
+      id: 'a-options', role: 'agent', agent: 'showrunner', run: interrupted,
+      text: '选择方向\n【选项】\n1. 都市逆袭\n2. 悬疑推理\n【/选项】',
+    }
+    const { container, rerender } = render(recoveryElement([item], { onSend, onRetryRun }))
+    expect(onSend).not.toHaveBeenCalled()
+    expect(onRetryRun).not.toHaveBeenCalled()
+    expect(container.querySelector('[data-picked]')).toBeNull()
+
+    fireEvent.click(container.querySelector('[data-chat-option="1"]')!)
+    expect(onSend).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: '重新运行' }))
+    expect(onRetryRun).toHaveBeenCalledTimes(1)
+    expect(onRetryRun).toHaveBeenCalledWith('msg-old')
+
+    rerender(recoveryElement([item], { onSend, onRetryRun, retryingRunId: 'msg-old' }))
+    const retry = screen.getByRole('button', { name: '正在重新运行…' })
+    expect(retry).toBeDisabled()
+    fireEvent.click(retry)
+    expect(onRetryRun).toHaveBeenCalledTimes(1)
+  })
+
+  it('pending Gate 保留人工裁决并阻断重试，挂载时不自动拍板', () => {
+    const interrupted = run('msg-gate')
+    const onRetryRun = vi.fn()
+    const onDecide = vi.fn()
+    render(recoveryElement([
+      { id: interrupted.id, role: 'user', text: '等待裁决', run: interrupted },
+    ], {
+      onRetryRun,
+      onDecide,
+      pendingGate: { gateId: 'gate-1', status: 'pending', question: '是否继续？', options: ['批准', '拒绝'] },
+    }))
+
+    expect(screen.getByText('是否继续？')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '重新运行' })).toBeDisabled()
+    expect(screen.getByText('请先完成未决 Gate，再重试运行。')).toBeInTheDocument()
+    expect(onRetryRun).not.toHaveBeenCalled()
+    expect(onDecide).not.toHaveBeenCalled()
+  })
+
+  it('同会话已有 running/stopping 运行时禁用旧恢复卡', () => {
+    const interrupted = run('msg-old')
+    for (const status of ['running', 'stopping'] as const) {
+      const active = run('msg-active', status)
+      const { unmount } = render(recoveryElement([
+        { id: interrupted.id, role: 'user', text: '旧请求', run: interrupted },
+        { id: active.id, role: 'user', text: '新运行', run: active },
+      ], { onRetryRun: vi.fn() }))
+      expect(screen.getByRole('button', { name: '重新运行' })).toBeDisabled()
+      expect(screen.getByText('请等待当前运行结束后再重试。')).toBeInTheDocument()
+      unmount()
+    }
+  })
+
+  it('孤儿卡注明提交结果未知；人工重试的新用户消息展示不同 ID 的血缘', () => {
+    const orphan = run('msg-old')
+    const retried = run('msg-new', 'running', { retryOfMessageId: orphan.id })
+    const { container } = render(recoveryElement([
+      { id: 'run-recovery:msg-old', role: 'agent', text: '', run: orphan, orphan: true },
+      { id: retried.id, role: 'user', text: retried.request.text, run: retried },
+    ], { onRetryRun: vi.fn() }))
+
+    expect(screen.getByText(/提交结果未知/)).toBeInTheDocument()
+    expect(container.querySelector('[data-run-recovery]')).toHaveAttribute('data-run-id', 'msg-old')
+    expect(container.querySelector('[data-run-lineage]')).toHaveAttribute('data-run-lineage', 'msg-old')
+    expect(container.querySelector('[data-run-lineage]')?.textContent).toContain('msg-old')
+    expect(retried.id).not.toBe(orphan.id)
   })
 })

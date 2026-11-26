@@ -1,0 +1,380 @@
+{
+  "status": "passed",
+  "evidenceClass": "real-electron-real-filesystem-native-dialogs",
+  "realProviderAcceptance": false,
+  "artifactRoot": "/Users/szd/Documents/Code/ai-shortdrama-studio/.test-tmp/project-transfer/2026-11-26T04-41-12-621Z",
+  "startedAt": "2026-11-26T04:41:12.622Z",
+  "checks": [
+    {
+      "name": "构建产物存在",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "原生导入取消返回 canceled",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "原生导出取消返回 canceled",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "取消不创建项目或导出目录",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "损坏项目包在真实 IPC 中失败",
+      "passed": true,
+      "detail": "Error: Error: Error invoking remote method 'project:import': CANVAS_CORRUPT: 画布文件损坏，已停止加载；请修复或从归档恢复"
+    },
+    {
+      "name": "导入失败无 staging 遗留",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "运行时历史读取失败使导出失败",
+      "passed": true,
+      "detail": "Error: Error: Error invoking remote method 'project:export': SESSION_NOT_FOUND: 会话不存在或已删除"
+    },
+    {
+      "name": "导出失败不创建目标",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出失败无 staging 遗留",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "原生导出成功",
+      "passed": true,
+      "detail": {
+        "canceled": false,
+        "exportDir": "/Users/szd/Documents/Code/ai-shortdrama-studio/.test-tmp/project-transfer/2026-11-26T04-41-12-621Z/project-20261126-124113-ey13-导出",
+        "sessionSnapshotExported": false
+      }
+    },
+    {
+      "name": "源运行账本仍保留",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 .agent-runs.json",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 .agent-runs.json.tmp",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 opencode.json",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 ai-service.json",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 .env",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 .env.local",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 private.key",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 comfy-jobs.json",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 .git/config",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 .session.archive/old.json",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 runtime/cache.bin",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 runtime/run.lock",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 node_modules/pkg/index.js",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 .sdg-staging-old/file.txt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 资产/缩略图/cache.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 故事/剧本.md.tmp",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 排除 资产/生成.part",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 保留两页三画布与真实节点",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 保留立项历史",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导出包 保留故事与媒体字节",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "原生导入创建新副本",
+      "passed": true,
+      "detail": {
+        "canceled": false,
+        "dir": "/Users/szd/Documents/Code/ai-shortdrama-studio/.test-tmp/project-transfer/2026-11-26T04-41-12-621Z/workspace/project-20261126-124133-f91n"
+      }
+    },
+    {
+      "name": "导入副本 排除 .agent-runs.json",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 .agent-runs.json.tmp",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 opencode.json",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 ai-service.json",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 .env",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 .env.local",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 private.key",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 comfy-jobs.json",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 .git/config",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 .session.archive/old.json",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 runtime/cache.bin",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 runtime/run.lock",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 node_modules/pkg/index.js",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 .sdg-staging-old/file.txt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 资产/缩略图/cache.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 故事/剧本.md.tmp",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 排除 资产/生成.part",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 保留两页三画布与真实节点",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 保留立项历史",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入副本 保留故事与媒体字节",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入来源标题可追溯",
+      "passed": true,
+      "detail": "project-accept-transfer"
+    },
+    {
+      "name": "导入生成独立画布身份",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "真实 API 可读两页画布",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "真实 API 可读两个立项版本",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "真实 API 可读资产索引",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "真实 API 可读故事内容",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "重复导入再次创建独立副本",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "导入数量严格增加两个",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "重启后源项目与两个导入副本均保留",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "重启后导入副本仍可读",
+      "passed": true,
+      "detail": null
+    }
+  ],
+  "errors": [],
+  "dialogDiagnostics": [
+    {
+      "title": "导入静态项目包",
+      "state": "dialog-not-found"
+    },
+    {
+      "title": "导出静态项目包",
+      "state": "dialog-not-found"
+    },
+    {
+      "title": "导入静态项目包",
+      "state": "dialog-not-found"
+    },
+    {
+      "title": "导出静态项目包",
+      "state": "dialog-not-found"
+    },
+    {
+      "title": "导出静态项目包",
+      "state": "dialog-not-found"
+    },
+    {
+      "title": "导入静态项目包",
+      "state": "dialog-not-found"
+    },
+    {
+      "title": "导入静态项目包",
+      "state": "dialog-not-found"
+    }
+  ],
+  "exportedEntries": [
+    ".session.json",
+    "canvas.json",
+    "manifest.json",
+    "project-package.json",
+    "故事",
+    "故事/outline.json",
+    "故事/剧本.md",
+    "版本",
+    "版本/canvas.20261126-124113.json",
+    "立项单.v1.json",
+    "立项单.v2.json",
+    "资产",
+    "资产/asset-index.json",
+    "资产/角色.png"
+  ],
+  "projects": {
+    "sourceDir": "/Users/szd/Documents/Code/ai-shortdrama-studio/.test-tmp/project-transfer/2026-11-26T04-41-12-621Z/workspace/project-20261126-124113-ey13",
+    "importedDir": "/Users/szd/Documents/Code/ai-shortdrama-studio/.test-tmp/project-transfer/2026-11-26T04-41-12-621Z/workspace/project-20261126-124133-f91n",
+    "repeatedDir": "/Users/szd/Documents/Code/ai-shortdrama-studio/.test-tmp/project-transfer/2026-11-26T04-41-12-621Z/workspace/project-20261126-124137-hngs"
+  },
+  "exportDir": "/Users/szd/Documents/Code/ai-shortdrama-studio/.test-tmp/project-transfer/2026-11-26T04-41-12-621Z/project-20261126-124113-ey13-导出",
+  "finishedAt": "2026-11-26T04:41:39.236Z"
+}

@@ -118,6 +118,13 @@ fixtureName 必须匹配 /^project-accept-/
 | 真实工作区验收 | 备份、隔离 userData、`project-accept-*` 前缀、零自动删除；不得写非夹具真项目 |
 | dev-mock / 演示数据 | 仅验证其明确模拟的 UI/逻辑，不作为真实 IPC、持久化或真机证据 |
 
+## §6 运行中断恢复定向驱动契约（2026-11-26）
+
+- 只新增 Node/Electron 可执行驱动及必要夹具，不新增 npm 依赖、不修改产品 IPC；产品接口由 feature-808 契约 §10 唯一定义。
+- 使用 `acceptance-env.cjs` 的隔离与备份能力，所有临时工作区/HOME/userData/日志均落 `.test-tmp/` 或显式 ASD_TEST_TMP；夹具名限 `project-accept-*`。
+- 受控本地服务仅替代 Provider 的延迟/失败时序，opencode、MCP、preload、IPC 和文件恢复链保持真实；驱动不得自动重试或绕过 Gate。
+- 原始结果按日期写入 `docs/verification/` 新目录；记录实际命令、退出码和阻碍，不预写 PASS，不将 mock 结果计作真实 Provider 证据。
+
 ### 3. 归属与边界
 
 feature-826 的当前/历史/合成谱系业务语义由 feature-802 登记；本包只接收可复用的门禁和测试数据原则。feature-818 的具体三条类型错误、29/29 等证据，feature-826 的专项/全量数字，以及本包 X-001/X-002 全部保留在原历史章节。本次未运行测试或修改产品代码。

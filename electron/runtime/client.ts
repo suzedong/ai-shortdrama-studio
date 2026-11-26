@@ -176,8 +176,9 @@ export class OpencodeRuntimeClient {
   async promptAsync(
     req: RuntimePromptRequest,
     resolvedAssets: RuntimeResolvedAsset[] = [],
+    messageId?: string,
   ): Promise<{ accepted: true; messageId: string }> {
-    const body = this.buildPromptBody(req, resolvedAssets)
+    const body = this.buildPromptBody(req, resolvedAssets, messageId)
     const sdk = this.ensureReady()
     const result = await sdk.session.promptAsync({ path: { id: body.sessionId }, body: body.body })
     if (result.error) throw mapHttpError(result, 'PROMPT_FAILED')
@@ -275,6 +276,7 @@ export class OpencodeRuntimeClient {
   private buildPromptBody(
     req: RuntimePromptRequest,
     resolvedAssets: RuntimeResolvedAsset[],
+    messageId?: string,
   ): {
     sessionId: string
     body: PromptBody
@@ -406,7 +408,7 @@ export class OpencodeRuntimeClient {
     return {
       sessionId,
       body: {
-        messageID: `msg_${crypto.randomUUID()}`,
+        messageID: messageId ?? `msg_${crypto.randomUUID()}`,
         parts,
         agent,
         ...(model ? { model } : {}),

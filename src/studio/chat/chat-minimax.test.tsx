@@ -135,6 +135,21 @@ describe('feature-817 · 分步选项卡', () => {
     expect(first.disabled).toBe(true)
   })
 
+  it('同一批次内的原生双击也只发送一次', () => {
+    const onSend = vi.fn()
+    renderWith(<Harness items={[ITEM]} onSend={onSend} />)
+    fireEvent.click(screen.getByRole('button', { name: /都市逆袭/ }))
+    const next = screen.getByRole('button', { name: /下一步/ })
+
+    act(() => {
+      next.click()
+      next.click()
+    })
+
+    expect(onSend).toHaveBeenCalledTimes(1)
+    expect(onSend).toHaveBeenCalledWith('1')
+  })
+
   it('自定义回答与选项互斥，下一步发送 trim 原文', () => {
     const onSend = vi.fn()
     const { container } = renderWith(<Harness items={[ITEM]} onSend={onSend} />)

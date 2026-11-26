@@ -182,8 +182,9 @@ function excluded(relative: string): boolean {
   const parts = relative.split(path.sep)
   const name = parts[parts.length - 1]
   if (parts.some((part) => part === '.git' || part === 'node_modules' || part.startsWith('.sdg-staging-'))) return true
+  if (parts[0] === 'runtime' || parts[0] === '.session.archive') return true
   if (parts.includes('资产') && parts.includes('缩略图')) return true
-  if (name === 'comfy-jobs.json' || name === '.DS_Store') return true
+  if (name === 'comfy-jobs.json' || name === '.agent-runs.json' || name === '.DS_Store') return true
   if (name === 'ai-service.json' || name === 'opencode.json' || name === 'opencode.jsonc') return true
   if (name.startsWith('.env')) return true
   if (/\.(key|pem|p12|pfx)$/i.test(name)) return true

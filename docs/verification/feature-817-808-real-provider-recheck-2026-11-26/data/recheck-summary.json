@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-26",
+  "evidenceClass": "real-electron-real-opencode-real-ark",
+  "provider": {
+    "name": "ark",
+    "model": "ark-code-latest",
+    "baseUrl": "https://ark.cn-beijing.volces.com/api/plan/v3",
+    "credentialSource": "store",
+    "keyArchived": false
+  },
+  "feature817": {
+    "run": "2026-11-26T09-40-53-326Z",
+    "status": "ac7-passed-ac9-passed",
+    "checksPassed": 15,
+    "ac7": {
+      "failureInjection": "占用 4096..4120，使真实 opencode runtime 启动同步失败",
+      "failedRunId": "msg_775955ef-7d8d-44d6-8688-f3b38b0c4b71",
+      "failedSessionId": "ses_de89c691ffezzGDsKL1Pei9g",
+      "failureMessageCount": 4,
+      "failureRunCount": 1,
+      "aiDownClearedBy": "释放端口后点击重新检测",
+      "retry": "同一 DOM OptionCard 重试",
+      "completedRunId": "msg_c4a050a3-35d0-4b5b-9707-488f06c6c147",
+      "completedSessionId": "ses_de899896ffegLIieB7Luu9Dk",
+      "finalMessageCount": 6,
+      "finalRunCount": 2
+    },
+    "ac9": {
+      "stepMetadata": "步骤：第 1/2 步",
+      "recommendedBadgeCount": 1,
+      "recommendedMetadata": "【推荐】"
+    },
+    "captureLimitations": [
+      "resume 回合正文流已停止但未出现 idle；run 为 completed、busy=false、partialAssistantChars=6290，记为采集限制。",
+      "自动 resume 驱动等待了未约定的 data 文本；仅该自动断言无效，人工重试由 feature-808 现场覆盖。"
+    ]
+  },
+  "feature808": {
+    "run": "2026-11-26T10-06-56-833Z",
+    "status": "passed",
+    "checksPassed": 19,
+    "beforeSigkill": {
+      "streamChars": 9123,
+      "diskRunStatus": "running",
+      "messageCount": 4,
+      "runCount": 2
+    },
+    "afterColdRestart": {
+      "oldRunStatus": "interrupted",
+      "endedAtPresent": true,
+      "persistedPartialAssistantChars": 8591,
+      "messageCount": 4,
+      "runCount": 2,
+      "busy": false,
+      "automaticMessages": 0,
+      "automaticRuns": 0,
+      "automaticTokenResume": false,
+      "recoveryCard": "运行已中断；保留已生成内容、选项与工具记录；未提交选项和 Gate 不自动处理；不接续原 Token 流"
+    },
+    "manualRetry": {
+      "oldRunId": "msg_83defc82-e735-4eda-9891-ad508231852a",
+      "newRunId": "msg_e24c5bfc-c5d4-45e3-bb54-28a7e2dc789f",
+      "retryOfMessageId": "msg_83defc82-e735-4eda-9891-ad508231852a",
+      "oldRunStatusAfterRetry": "interrupted",
+      "newRunStatus": "completed",
+      "messageCount": 6,
+      "runCount": 3
+    },
+    "failedCollections": [
+      {
+        "run": "2026-11-26T09-45-49-477Z",
+        "classification": "capture-limitation",
+        "reason": "回合在强杀前已完成，不能证明 running 冷启动对账。"
+      },
+      {
+        "run": "2026-11-26T09-51-48-948Z",
+        "classification": "capture-limitation",
+        "reason": "首个 UI 流式正文前等待超时，未执行 SIGKILL。"
+      },
+      {
+        "run": "2026-11-26T09-57-29-312Z",
+        "classification": "capture-limitation",
+        "reason": "首个 UI 流式正文前等待超时，未执行 SIGKILL。"
+      },
+      {
+        "run": "2026-11-26T10-01-18-823Z",
+        "classification": "driver-assertion-error",
+        "reason": "驱动误要求普通恢复卡包含孤儿专用的提交结果未知；13 项前置检查通过，但未执行人工重试。"
+      }
+    ]
+  },
+  "scope": {
+    "feature817": "仅 AC7 与 AC9 定向真实补验；不重开其他 AC 或偏差确认。",
+    "feature808": "仅 AC16 指定真实 SIGKILL、恢复与显式重试链路；不宣告 AC17–AC21 全部真实 Provider 通过。"
+  },
+  "gates": {
+    "typecheck": { "exitCode": 0 },
+    "build": { "exitCode": 0 },
+    "vitest": {
+      "exitCode": 0,
+      "filesPassed": 105,
+      "testsPassed": 1358,
+      "testsSkipped": 1,
+      "testsFailed": 0
+    },
+    "testRun": {
+      "exitCode": 0,
+      "docs": "DOC_GOVERNANCE_CHECK_OK",
+      "filesPassed": 105,
+      "testsPassed": 1358,
+      "testsSkipped": 1,
+      "testsFailed": 0
+    }
+  }
+}

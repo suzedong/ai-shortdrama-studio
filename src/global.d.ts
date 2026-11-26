@@ -7,6 +7,7 @@ import type {
   CaptureFile, CapturedFact,
 } from '../shared/types'
 import type {
+  AgentRunRecord,
   RuntimeAgent,
   RuntimeEvent,
   RuntimePromptRequest,
@@ -283,6 +284,8 @@ declare global {
         createSession(title?: string): Promise<RuntimeSession>
         listSessions(): Promise<RuntimeSession[]>
         sessionMessages(sessionId: string): Promise<RuntimeSessionMessageRecord[]>
+        runs(): Promise<AgentRunRecord[]>
+        retryRun(messageId: string): Promise<{ accepted: true; messageId: string }>
         abortSession(sessionId: string): Promise<{ ok: true }>
         deleteSession(sessionId: string): Promise<{ ok: true }>
         prompt(req: RuntimePromptRequest): Promise<RuntimePromptResult>

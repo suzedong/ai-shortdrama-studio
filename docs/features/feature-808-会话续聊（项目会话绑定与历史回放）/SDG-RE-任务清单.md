@@ -154,3 +154,27 @@
 2. 回放章节覆盖多段 reasoning、纯 reasoning/tool 轮、partId/callId 交错、流式与重载一致及 H6 白名单；未把完整工具结果或 resultSummary 新字段偷渡进契约。
 3. 明确“无新接口”；历史正文、任务勾选、测试计数与真机状态未被改写，本次不运行产品测试。
 4. 复核方式为**自审 + 无第二人复核**；本项不宣称真实 AI runtime 重新验收完成。
+
+## T9 · 运行中断恢复与人工重试（2026-11-26）
+
+- [x] 用户批准实施计划及 K8 两个新 IPC；K1/K9 零触发。
+- [x] 需求 §7、契约 §10 登记运行档、状态机、恢复边界、重试血缘和 AC16–AC21。
+- [x] 实现 RunStore、真实 messageID 注入、发送/停止/错误/退出挂钩和首次加载对账。
+- [x] 接线 runs/retry IPC、回放关联、显式重试及损坏账本保护。
+- [x] 完成状态迁移、主进程集成、回放与组件定向测试。
+- [x] 完成真实 Electron SIGKILL/重启、OptionCard/Gate/产物保留与人工重试验收，按结果回填证据。
+
+**实测**：定向真实 Electron + 真实 opencode + 受控 `mock/mock-1` 故障注入 16/16 通过，覆盖 SIGKILL、重启零自动请求、孤儿中断、Gate 阻断、显式重试新 messageID/血缘与双击去重；最终全量 105 文件、1357 passed / 1 skipped，typecheck/build 通过。证据见 [2026-11-26 证据索引](../../verification/p1-2026-11-26/证据索引.md)；受控 mock 不构成真实 Provider 验收。
+
+### T10 · AC16 真实 Ark 中断恢复定向补验（2026-11-26）
+
+- [x] 使用隔离 HOME/userData/workspace、合成项目、克隆加密配置和真实 Electron + opencode + 火山方舟 `ark-code-latest`；未归档密钥、userData 或完整消息库。
+- [x] 真实 UI 流式正文达到 9123 字符且磁盘 run 为 `running` 后执行 SIGKILL；冷启动对账将旧 run 转为带 `endedAt` 的 `interrupted`，历史 completed run 不被改写。
+- [x] 重启恢复消息 4、runs 2 与 8591 字符部分 assistant 正文，`busy=false`；零自动新增消息、零自动新 run、零自动续接原 Token 流。
+- [x] 普通恢复卡正确保留已生成内容并提示不自动处理未提交选项 / Gate、不接续原 Token 流；不套用孤儿运行专用的“提交结果未知”。
+- [x] 人工显式重试生成新 run，`retryOfMessageId` 指向旧 interrupted run；旧 run 保持 interrupted，新 run completed，最终消息 6、runs 3，血缘可见。
+- [x] 最终现场 19 项检查通过；四次未通过采集分别按强杀时序、首 Token 超时和驱动误断言归档，不计产品失败。
+- [x] 最终 `npm run test:run` 退出 0（文档门禁通过，105 文件通过，1358 passed / 1 skipped / 0 failed），typecheck/build 退出 0。
+- [ ] AC17–AC21 的真实 Provider 逐项补验不在本轮；保留既有受控 mock / 自动化证据分级，不据此勾选真实 AC16–AC21 全项通过。
+
+**证据**：[817 / 808 定向补验证据索引](../../verification/feature-817-808-real-provider-recheck-2026-11-26/证据索引.md) · [脱敏结构化摘要](../../verification/feature-817-808-real-provider-recheck-2026-11-26/data/recheck-summary.json)。

@@ -184,6 +184,16 @@ describe('prompt / promptAsync 边界与透传', () => {
     expect(body.format).toEqual({ type: 'json_schema', schema: { type: 'object' }, retryCount: 2 })
   })
 
+  it('promptAsync 使用主进程账本预分配的真实 messageID', async () => {
+    const { client, state } = makeFakeClient()
+    const messageId = 'msg_ledger-preallocated'
+    await expect(client.promptAsync(baseReq, [], messageId)).resolves.toEqual({
+      accepted: true,
+      messageId,
+    })
+    expect(state.calls['session.promptAsync']![0].body.messageID).toBe(messageId)
+  })
+
   it('text 空白 / 非字符串、请求体缺失 → INVALID_ARGUMENT', async () => {
     const { client } = makeFakeClient()
     await expect(client.promptAsync({ ...baseReq, text: '   ' })).rejects.toMatchObject({

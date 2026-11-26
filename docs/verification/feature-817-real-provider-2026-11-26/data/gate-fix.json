@@ -1,0 +1,18 @@
+{
+  "before": {
+    "status": "approved",
+    "finding": {
+      "gateId": "0-final",
+      "category": "spec",
+      "checkId": "SPEC_FIELD_ENUM",
+      "severity": "blocker",
+      "message": "fiveElements.aspectRatio 取值「9:16竖屏」越界，仅允许 竖屏 9:16 / 横屏 16:9（D-023）"
+    },
+    "latestVersion": null
+  },
+  "after": {
+    "status": "pending",
+    "aspectRatio": "竖屏 9:16",
+    "requestedAt": "2026-11-26T07:57:21.661Z"
+  }
+}

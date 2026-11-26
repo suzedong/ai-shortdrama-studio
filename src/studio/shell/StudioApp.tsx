@@ -11,8 +11,8 @@ import {
   turnText,
   type StreamingTurn,
 } from '../../lib/chat-runtime'
-import type { RuntimeAssetRef, RuntimeState } from '../../lib/runtime-types'
-import { replayMessages } from '../../lib/history-replay'
+import type { AgentRunRecord, RuntimeAssetRef, RuntimePromptRequest, RuntimeState } from '../../lib/runtime-types'
+import { attachRunMetadata, replayMessages } from '../../lib/history-replay'
 import CanvasBoard, { kindLabel, type NodeAction } from '../canvas/CanvasBoard'
 import { activeCanvasDocument, activeCanvasPage } from '../canvas/document'
 import ChatComposer, { demoChatItems, type ChatItem, type ChatModelOption } from '../chat/ChatComposer'
@@ -177,6 +177,9 @@ export default function StudioApp() {
   /** feature-812：无项目判定的唯一来源（契约 §1.1）；加载中不算"无项目"（中栏走 loading），但同样锁定对话 */
   const hasProject = canvasLoaded && canvas.projectId !== ''
   const [items, setItems] = useState<ChatItem[]>(() => (devMockActive() ? demoChatItems() : []))
+  const [runs, setRuns] = useState<AgentRunRecord[]>([])
+  const [retryingRunId, setRetryingRunId] = useState<string | null>(null)
+  const retryingRunIdRef = useRef<string | null>(null)
   const [stream, setStream] = useState<StreamingTurn | null>(null)
   const [pendingGate, setPendingGate] = useState<DisplayGate | null>(null)
   const [sending, setSending] = useState(false)
@@ -368,6 +371,42 @@ export default function StudioApp() {
     return () => document.removeEventListener('mousedown', onDown)
   }, [sysMenuOpen])
 
+  const refreshRunState = useCallback(async () => {
+    const sid = activeSessionIdRef.current
+    const project = projectIdRef.current
+    const seq = projectSessionSeqRef.current
+    if (!sid) return
+    try {
+      const records = await window.api.runtime.runs()
+      if (seq !== projectSessionSeqRef.current || project !== projectIdRef.current
+        || sid !== activeSessionIdRef.current) return
+      const sessionRuns = records.filter(run => run.sessionId === sid)
+      setRuns(sessionRuns)
+      setItems(current => attachRunMetadata(current, sessionRuns))
+    } catch {
+      // 显式 loadReplay / retry 会展示错误；后台刷新失败不覆盖真实对话错误。
+    }
+  }, [])
+
+  const recordAcceptedRun = useCallback((
+    accepted: { accepted: true; messageId: string },
+    request: RuntimePromptRequest,
+    retryOfMessageId?: string,
+  ): AgentRunRecord => {
+    const now = new Date().toISOString()
+    const run: AgentRunRecord = {
+      id: accepted.messageId,
+      sessionId: request.sessionId,
+      request,
+      status: 'running',
+      createdAt: now,
+      updatedAt: now,
+      ...(retryOfMessageId ? { retryOfMessageId } : {}),
+    }
+    setRuns(current => [run, ...current])
+    return run
+  }, [])
+
   // ---- runtime 事件 → 流式归约；轮次定稿时落为历史消息 ----
   // feature-808：归约前先按绑定会话严格归属（R5 / D-007）——
   // 带 sessionId 的事件必须命中当前绑定 sid，否则一律丢弃；
@@ -382,6 +421,7 @@ export default function StudioApp() {
       // session.idle 在 turn=null 时 reducer 返回 null，无流式分片的空转 idle 也须复位）
       if (ev.type === 'session.idle' || ev.type === 'runtime.error') {
         setGenerating(false)
+        void refreshRunState()
       }
       // D-013：方舟侧失败经 runtime.error 冒出——上屏为不可用横幅（含会话级归属事件）；
       // 恢复靠重新检测/下次发送 status 通过，不在此自动清除
@@ -420,7 +460,7 @@ export default function StudioApp() {
       // feature-808：SSE 全程订阅一次，卸载时退订
       window.api.runtime.unsubscribe().catch(e => console.error('runtime.unsubscribe failed', e))
     }
-  }, [])
+  }, [refreshRunState])
 
   // D-013：AI 服务健康探测——非 running 先试启动一次（与发送路径同策略），仍不可用则置横幅；
   // healthy 即清除。dev-mock 演示态由调用方早退，不进入本函数
@@ -517,11 +557,26 @@ export default function StudioApp() {
     const stale = () =>
       seq !== projectSessionSeqRef.current || projectId !== projectIdRef.current
     try {
-      const records = await window.api.runtime.sessionMessages(sessionId) // withRuntime 惰性自启
+      const [messagesResult, runsResult] = await Promise.allSettled([
+        window.api.runtime.sessionMessages(sessionId), // withRuntime 惰性自启
+        window.api.runtime.runs(),
+      ])
       if (stale()) return
-      setItems(replayMessages(records))
-    } catch (e) {
-      if (stale()) return
+      if (messagesResult.status === 'fulfilled') {
+        const records = messagesResult.value
+        if (runsResult.status === 'fulfilled') {
+          const sessionRuns = runsResult.value.filter(run => run.sessionId === sessionId)
+          setRuns(sessionRuns)
+          setItems(replayMessages(records, sessionRuns))
+        } else {
+          // 账本损坏不得吞掉仍可读取的 opencode 历史，也不得伪造恢复成功。
+          setRuns([])
+          setItems(replayMessages(records))
+          setError('运行恢复记录加载失败，已保留历史对话；修复账本后才能重新运行。')
+        }
+        return
+      }
+      const e = messagesResult.reason
       const code = (e as { name?: string; code?: string } | null)?.name
         ?? (e as { code?: string } | null)?.code
       if (code === 'SESSION_NOT_FOUND') {
@@ -533,6 +588,7 @@ export default function StudioApp() {
         if (stale()) return
         activeSessionIdRef.current = null
         setItems([])
+        setRuns([])
         setToast({ tone: 'info', text: '上次的会话记录已不可用，已为你开始新对话。' })
       } else {
         // 绑定保留，不锁死；用户仍可重试发送
@@ -552,6 +608,8 @@ export default function StudioApp() {
     setComposerResetKey(`${projectId || 'no-project'}:${seq}`)
     setSending(false)
     setItems([])
+    setRuns([])
+    setRetryingRunId(null)
     streamRef.current = null
     setStream(null)
     setGenerating(false) // D-006：切项目清场，停止钮随当前视图复位
@@ -764,13 +822,20 @@ export default function StudioApp() {
         }
       }
       if (stale() || activeSessionIdRef.current !== sid) return false
-      await window.api.runtime.promptAsync({
+      const request: RuntimePromptRequest = {
         sessionId: sid,
         text,
         agent: 'showrunner',
         model: { providerID: selectedModel.providerID, modelID: selectedModel.modelID },
         ...(assets.length > 0 ? { assetRefs: assets.map(asset => ({ assetId: asset.assetId })) } : {}),
-      })
+      }
+      const accepted = await window.api.runtime.promptAsync(request)
+      if (!stale()) {
+        const run = recordAcceptedRun(accepted, request)
+        setItems(current => current.map(item => item.id === optimisticId
+          ? { ...item, id: accepted.messageId, run }
+          : item))
+      }
       // D-006：accepted 后进入生成态，停止钮持续可达；真实环境由 session.idle /
       // runtime.error 事件复位。dev mock 不产生任何 runtime 事件，不置位以免停止钮卡死。
       if (!stale() && !devMockActive()) setGenerating(true)
@@ -792,7 +857,42 @@ export default function StudioApp() {
     } finally {
       if (!stale()) setSending(false)
     }
-  }, [hasProject, ensureSubscribedOnce, selectedModel])
+  }, [hasProject, ensureSubscribedOnce, recordAcceptedRun, selectedModel])
+
+  const handleRetryRun = useCallback(async (messageId: string) => {
+    const original = runs.find(run => run.id === messageId && run.status === 'interrupted')
+    if (!hasProject || !original || retryingRunIdRef.current) return
+    retryingRunIdRef.current = messageId
+    const projectId = projectIdRef.current
+    const seq = projectSessionSeqRef.current
+    const stale = () => seq !== projectSessionSeqRef.current || projectId !== projectIdRef.current
+    setError(null)
+    setRetryingRunId(messageId)
+    try {
+      await ensureSubscribedOnce()
+      if (stale()) return
+      const accepted = await window.api.runtime.retryRun(messageId)
+      if (stale()) return
+      const run = recordAcceptedRun(accepted, original.request, original.id)
+      setItems(current => {
+        const source = current.find(item => item.role === 'user' && item.run?.id === original.id)
+        return [...current, {
+          id: accepted.messageId,
+          role: 'user',
+          text: original.request.text,
+          ...(source?.assets?.length ? { assets: source.assets } : {}),
+          run,
+        }]
+      })
+      setAiDown(null)
+      if (!devMockActive()) setGenerating(true)
+    } catch (e) {
+      if (!stale()) setError(ipcErrorMessage(e) || '重新运行失败，请重试。')
+    } finally {
+      retryingRunIdRef.current = null
+      if (!stale()) setRetryingRunId(null)
+    }
+  }, [ensureSubscribedOnce, hasProject, recordAcceptedRun, runs])
 
   // ---- feature-812：无项目态两入口（异常向上抛，由 WelcomeView 就地显示，不升级为全局 error）----
   // 画布刷新由主进程 project:open 主动推送 canvas:changed 完成，这里不重复 setCanvas
@@ -811,10 +911,11 @@ export default function StudioApp() {
     if (!sid) return // 防御：sending 中理论上必有绑定
     try {
       await window.api.runtime.abortSession(sid)
+      await refreshRunState()
     } catch (e) {
       console.error('abortSession failed', e)
     }
-  }, [])
+  }, [refreshRunState])
 
   // ---- 门裁决 ----
   const handleDecide = useCallback(async (decision: 'approved' | 'rejected', note?: string) => {
@@ -1379,6 +1480,8 @@ export default function StudioApp() {
               lockedHint={composerLockHint}
               onSend={handleSend}
               onStop={handleStop}
+              onRetryRun={handleRetryRun}
+              retryingRunId={retryingRunId}
               onDecide={handleDecide}
             />
           </div>

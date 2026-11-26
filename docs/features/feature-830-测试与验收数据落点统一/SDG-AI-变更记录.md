@@ -88,3 +88,14 @@
 - 按用户批准方案，清理切片 C、E、F 和 P1 完整收口四份被 Git 忽略且未跟踪的本地计划。C／F 的现行职责与验收证据仍归 821、828 和 P1 调查记录；E 的批准事实由 823 包内记录承接；过期完整收口计划不再作为执行入口。
 - 四份文件已移至系统回收站，未复制全文、未新增归档副本或编年长文。目录无剩余 Markdown，全库检索仅有 `.gitignore` 的目录规则；823 两处引用已改为包内链接。
 - `check:docs` 通过（24 features／24 change_logs），`git diff --check` 通过。未修改产品代码、共享类型、IPC、测试、依赖、历史验收证据或 P1 状态；**自审 + 无第二人复核**，不提交 Git。
+
+### D-830-4 运行中断恢复定向驱动（2026-11-26）
+
+用户批准由本包承接 808/817 的定向 Electron 故障注入驱动。复用隔离 HOME、ASD_USER_DATA、`.test-tmp` 与 `project-accept-*` 护栏，零新依赖；受控 mock 只制造故障时序，真实 Provider 证据独立。
+
+### T-IR 实施与验证（2026-11-26，已完成；真实 Provider 独立开放）
+
+- `node scripts/verify-runtime-interruption.cjs` 退出 0，16/16 通过。使用真实 Electron/opencode/IPC、受控 `mock/mock-1`、隔离 HOME/`ASD_USER_DATA`/`.test-tmp` 与 `project-accept-*` 合成项目，零新依赖；覆盖 RUN-AC1–AC2 的异常退出、保留、Gate 阻断和人工重试血缘。
+- `node scripts/verify-project-transfer.cjs` 退出 0，62/62 通过；原生命名对话框、真实文件系统和排除矩阵原始结果一并归档。
+- RUN-AC3 明确记录 `realProviderAcceptance=false`，受控故障注入不作为真实 Provider 通过证据。
+- RUN-AC4 的原始 JSON、Electron 日志、截图、全量测试与构建日志、命令及验收映射见 [2026-11-26 证据索引](../../verification/p1-2026-11-26/证据索引.md)。最终全量为 105 文件通过，1357 passed / 1 skipped / 0 failed；typecheck/build 退出 0。

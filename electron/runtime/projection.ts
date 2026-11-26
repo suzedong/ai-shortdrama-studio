@@ -291,7 +291,7 @@ export interface EventStreamHandle {
 
 export interface SubscribeEventsOptions {
   conn: RuntimeConnection
-  onEvent: (event: RuntimeEvent) => void
+  onEvent: (event: RuntimeEvent) => unknown
   version?: string | null
   fetchImpl?: typeof fetch
   projector?: EventProjector
@@ -338,7 +338,7 @@ export async function subscribeEvents(opts: SubscribeEventsOptions): Promise<Eve
             continue // 畸形帧：忽略，不影响后续
           }
           const event = projector.project(envelope, { version: opts.version })
-          if (event) opts.onEvent(event)
+          if (event) await opts.onEvent(event)
         }
       }
     } catch {

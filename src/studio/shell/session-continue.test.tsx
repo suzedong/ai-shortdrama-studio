@@ -110,6 +110,8 @@ function installApi(
       abortSession: h.abortSession,
       sessionMessages: h.sessionMessages,
       promptAsync: h.promptAsync,
+      runs: vi.fn(async () => []),
+      retryRun: vi.fn(async () => ({ accepted: true as const, messageId: 'msg-retry' })),
       onEvent: vi.fn(cb => { runtimeCbs.add(cb); return () => runtimeCbs.delete(cb) }),
     },
     canvas: {

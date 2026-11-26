@@ -179,3 +179,25 @@ T1—T7 及 D-010—D-015 对应实施已按任务清单与上述决策完成：
 - **冲突处理**：010 的完整工具结果 / resultSummary 愿望被本包 H6 白名单边界收窄，不回放完整 input/output / 结果，也不新增字段；819 的 `app.isPackaged` 单判据按已落地修复改为 `app.isPackaged && !process.defaultApp`。归档正文和历史验证结论不改。
 - **职责边界**：808 与 817 独立；本会话包不吞并视觉。真实 AI runtime 的本次状态未重新验证，819 缺失契约 / 设计文件不补造。
 - **变更性质与验证**：无新接口、无代码 / 测试 / 依赖 / 真实项目数据改动；完成来源章节、目标章节、冲突和历史状态自审，**自审 + 无第二人复核**。
+
+### D-016 运行中断恢复与 K8 契约呈报（2026-11-26）
+
+用户批准《运行中断恢复与证据校准实施计划》。按 K8 呈报：新增 `runtime:runs` 与 `runtime:run:retry`，同步 main、preload、renderer DTO 和 dev mock；运行档为每项目 `.agent-runs.json`，主进程唯一写者。K1/K9 零触发，不改 shared/types、依赖、Gate/Canvas 类型或 SSE 事件。接口形状、状态机与错误边界见需求 §7、契约 §10。
+
+### T-IR 实施与验证（2026-11-26，已完成；真实 Provider 边界保留）
+
+- **实现**：项目级 `.agent-runs.json` 原子运行账本、六态与终态锁定、冷启动 `interrupted` 对账、消息回放关联、孤儿恢复和 `runtime.runs` / `runtime.retryRun` 已落地；显式重试生成新的真实用户 messageID 与血缘，不自动重试或处理 Option/Gate。
+- **定向证据**：`node scripts/verify-runtime-interruption.cjs` 退出 0，16/16 通过。环境为真实 Electron、真实 opencode/IPC 与受控 `mock/mock-1`，覆盖异常退出、重启保留、零自动请求、Gate 阻断、人工重试及双击去重；`realProviderAcceptance=false`。
+- **最终门禁**：`npm run test:run` 退出 0，105 文件通过，1357 passed / 1 skipped / 0 failed；`npm run typecheck` 与 `npm run build` 均退出 0。
+- **追溯**：原始 JSON、Electron 日志、截图、测试与构建日志见 [证据索引](../../verification/p1-2026-11-26/证据索引.md)。本次不宣告 P1 全阶段通过。
+
+### D-017 · AC16 真实 Ark 中断恢复定向补验（2026-11-26）
+
+- **真实环境**：使用隔离 HOME/userData/workspace、合成项目、克隆加密配置与真实 Electron + opencode + 火山方舟 `ark-code-latest`；本轮不修改产品代码、共享类型、IPC 或依赖。
+- **真实 SIGKILL 与冷启动**：UI 流式正文达到 9123 字符、磁盘 run 为 `running` 后实际强杀 Electron 并清理遗留 opencode 子进程。重启后旧 run 对账为带 `endedAt` 的 `interrupted`，历史 completed run 不改写；消息 4、runs 2、部分 assistant 正文 8591 字符、`busy=false`。
+- **零自动动作**：重启后零自动新增消息、零自动新 run、零自动续接原 Token 流。普通恢复卡保留已生成内容并提示不自动处理未提交选项 / Gate、不接续原 Token 流；不误用孤儿运行专用的“提交结果未知”。
+- **显式重试血缘**：旧 run `msg_83defc82-e735-4eda-9891-ad508231852a` 保持 interrupted；人工重试的新 run `msg_e24c5bfc-c5d4-45e3-bb54-28a7e2dc789f` 以 `retryOfMessageId` 指向旧 run 并最终 completed。重试后消息 6、runs 3，血缘可见。
+- **失败采集**：`09-45-49-477Z` 回合在强杀前已完成；`09-51-48-948Z` 与 `09-57-29-312Z` 在首个 UI 流式正文前超时、未强杀；`10-01-18-823Z` 已完成 13 项前置检查，但驱动误要求普通恢复卡包含“提交结果未知”，未执行人工重试。均记为采集限制或驱动错误，不计产品失败；修正断言后的最终现场 19 项检查通过。
+- **证据分级**：本项只将 AC16 的真实 Ark SIGKILL、冷启动、历史 / 部分输出恢复、零自动动作与显式重试血缘标为通过；AC17–AC21 继续沿用受控 mock / 自动化证据，不宣称真实 Provider 全项通过，也不宣称 Feature 或 P1 全阶段验收完成。
+- **最终验证**：`npm run test:run` 退出 0，文档门禁通过，105 文件通过，1358 passed / 1 skipped / 0 failed；typecheck/build 退出 0，只有既有 chunk-size 警告。并行首跑 `test:run` 曾因两套 Vitest 争用 `127.0.0.1:4099` 出现 `EADDRINUSE`，单独复跑通过，属于本轮采集端口竞争。
+- **证据**：新增 [定向补验证据索引](../../verification/feature-817-808-real-provider-recheck-2026-11-26/证据索引.md) 与 [脱敏结构化摘要](../../verification/feature-817-808-real-provider-recheck-2026-11-26/data/recheck-summary.json)；只归档六张截图、脱敏摘要和最终门禁日志，不归档密钥、userData、真实用户项目、完整原始消息库或整个 `.test-tmp`。

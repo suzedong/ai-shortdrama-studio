@@ -1,7 +1,7 @@
 # MiniMax Design 功能与架构参考
 
 > **定位**：文档族参考文档（源 · 权威）。收录 MiniMax Design（MiniMax 官方内容生产 Agent 平台）的功能全景、架构实测与对我们体系的对照结论，供《短剧Agent平台设计》与后续开发逐条参照。**非规范成员**：本文件不定义流程规则，仅提供外部产品情报。
-> 生成自：v1.0（2026-10-02）；v1.1（2026-10-09）补充 SKILL.md、画布节点、ComfyUI 工作流、Agent 驱动工作流与 H3 规范；v1.2（2026-10-10）补充 H3 Max / Max Turbo、ComfyUI H3 节点演进与 FastH3 硬件门限；v1.3（2026-11-10）基于 MiniMax Design 4.0.8 macOS 客户端解包与独立创作页实测，补充 V3 画布渲染、文档命令协议、撤销重做、视口交互、Dagre 自动整理、自研小地图、SQLite 持久化及节点—正文—Agent 关联；v1.4（2026-11-15）基于 Windows 4.0.10.158 安装包选择性解包和运行界面只读观察，补充完整产品功能域、Agent 与短剧工作流、Gateway/MCP、插件、本地模型、全面复刻矩阵及 ComfyUI 改编边界；v1.5（2026-11-15）按 D-010 / D-021 / D-022 / D-033 收敛文本、音乐与语音通道的现行表述，不改写历史实测。来源：官方手册《MiniMax Design - 手册与指南》（飞书，revision 11360）+ 官方页面与 GitHub + ComfyUI 官方 changelog + 社区实测博客（Je，2026-08-23）+ 用户实测截图（2026-10-02）+ macOS 本机解包与运行时实测（2026-11-10）+ Windows 本机解包与界面只读观察（2026-11-15）。本文区分「官方口径」「静态代码证据」「运行时实测」「界面观察」「推断」「未验证」；html 为人读镜像（只改 md 源，同步 html）。
+> 生成自：v1.0（2026-10-02）；v1.1（2026-10-09）补充 SKILL.md、画布节点、ComfyUI 工作流、Agent 驱动工作流与 H3 规范；v1.2（2026-10-10）补充 H3 Max / Max Turbo、ComfyUI H3 节点演进与 FastH3 硬件门限；v1.3（2026-11-10）基于 MiniMax Design 4.0.8 macOS 客户端解包与独立创作页实测，补充 V3 画布渲染、文档命令协议、撤销重做、视口交互、Dagre 自动整理、自研小地图、SQLite 持久化及节点—正文—Agent 关联；v1.4（2026-11-15）基于 Windows 4.0.10.158 安装包选择性解包和运行界面只读观察，补充完整产品功能域、Agent 与短剧工作流、Gateway/MCP、插件、本地模型、全面复刻矩阵及 ComfyUI 改编边界；v1.5（2026-11-15）按 D-010 / D-021 / D-022 / D-033 收敛文本、音乐与语音通道的现行表述，不改写历史实测；v1.6（2026-11-26）补测 macOS 4.0.18 `agent-profiles` v2 / v3 与 2 个连接器 Skill，并校正“9 个官方 Skill”历史口径。来源：官方手册《MiniMax Design - 手册与指南》（飞书，revision 11360）+ 官方页面与 GitHub + ComfyUI 官方 changelog + 社区实测博客（Je，2026-08-23）+ 用户实测截图（2026-10-02）+ macOS 本机解包与运行时实测（2026-11-10）+ Windows 本机解包与界面只读观察（2026-11-15）。本文区分「官方口径」「静态代码证据」「运行时实测」「界面观察」「推断」「未验证」；html 为人读镜像（只改 md 源，同步 html）。
 
 ## 0. 定位
 
@@ -57,7 +57,8 @@
 
 - **沉淀四种方式**：① 直接说需求让 Agent 生成 Skill；② 先创作、再把过程存成 Skill（`/skill-creator` 或"把当前对话总结成 Skill"）；③ 修改已有 Skill 后"保存为我自己的 Skill"；④ 上传已有资料（经验文档/SKILL.md）让 Agent 生成。
 - **分享**：投稿到社区 → 官方审核 → 审核通过获积分奖励 + 可能展示「用户精选」。
-- 内置 skill（实测）：h3-visual-design、cool-music-video、brand-ad 等 9 个，位于 `resources/agent-profiles/v2/config/skills/`（可复制复用）。
+- 内置 skill（历史实测口径）：h3-visual-design、cool-music-video、brand-ad 等 9 个，当时记录位于 `resources/agent-profiles/v2/config/skills/`。
+- **4.0.18 校正（2026-11-26）**：上述“9 个”只代表当时 GitHub / 旧包证据，不能直接代表当前安装包或运行时加载清单。4.0.18 的 `Resources/agent-profiles` 未发现 `SKILL.md`，另仅在 `Resources/bundled-connector-skills/clip-studio/` 实测到 2 个连接器 Skill；v2 的 9 个 Workflow 不是 Skill。详见 §2.7。旧记录保留用于追溯，不再据此声称“当前内置恰好 9 个 Skill”或复制参考端专有内容。
 
 #### 1.4.1 SKILL.md 官方格式（实测 9 个 Hub 官方 Skill 之一 · h3-prompt-writing · github.com/MiniMax-AI/MiniMax-H3）
 
@@ -144,7 +145,9 @@ interface:
 | Agent 运行时 | 标准 opencode（`opencode.exe`），MCP 服务指向网关 `http://localhost:8001` |
 | MCP 工具集 | `mcp-tools/hub_*` 系列：画布读写、媒体生成、ComfyUI 工作流管理等 |
 | 多 Agent 角色 | router / planner / executor / media-agent / **comfyui-agent**（agent-profiles/v2/config/agents/） |
-| 技能库 | agent-profiles/v2/config/skills/（9 个官方 skill，可复制） |
+| 技能库 | agent-profiles/v2/config/skills/（历史记录为 9 个官方 skill；4.0.18 校正见 §2.7） |
+
+> **版本边界（2026-11-26）**：本表保留旧版实测，不代表 4.0.18 的完整角色 / Skill 清单。当前包已确认 v2 / v3 并存，但并存不证明运行时同时启用；不得以本表替代 §2.7 的版本化证据。
 | ComfyUI 插件 | `bundled-plugins/comfyui/`（内嵌完整 ComfyUI 前端，画布上的 ComfyUI 节点由此渲染） |
 | 用户数据 | `%APPDATA%/@hilo/desktop/`（hub-config.json：账号/项目/设置，登录态 accessToken 以 v2enc: 加密） |
 | 工作区 | 数据目录（Projects / asset-center / output_files），画布素材默认本地储存 |
@@ -591,6 +594,102 @@ Stage Execution Plan 的关键不是一段自然语言，而是可执行结构�
 - 未做剪映 / CapCut 真实导入、3D 外部应用联动、插件安装、Skill 投稿或本地模型下载。
 - 未验证旧版与 V3 的全部数据迁移边界，也未验证团队协作、社区审核、会员积分等服务端流程。
 
+### 2.7 macOS 4.0.18 `agent-profiles` 与连接器 Skill 只读补测（2026-11-26）
+
+> **证据等级：当前安装包静态实测**。只读检查 `/Applications/MiniMax Design.app/Contents/Resources/`，未修改安装包、未触发付费生成、未复制专有实现。静态文件证明“包内存在什么”，不证明当前账号、界面或某次对话实际启用了哪套 profile。
+
+#### 2.7.1 版本、目录与角色清单
+
+| 证据 | 4.0.18 实测结果 | 可得结论 / 边界 |
+|---|---|---|
+| `Contents/Info.plist` | 应用 **4.0.18**，Build **4.0.18.174** | 本轮 macOS 安装包基线；后续对外产品验收以该安装版实际行为为准 |
+| `agent-profiles/v2/config/base.json` | base profile **0.4.91** | v2 配置版本，不等于应用版本 |
+| `agent-profiles/v3/config/base.json` | base profile **0.4.108** | v3 配置版本，不等于应用版本 |
+| `agent-profiles/` 顶层 | v2 与 v3 同时存在 | **仅凭目录不能判断运行时启用 v2、v3 或二者如何组合** |
+
+**v2 角色：1 个主 Agent + 8 个专用 Agent。**
+
+- 主 Agent：`media-agent`。
+- 专用 Agent：`router`、`planner`、`executor`、`evaluator`、`comfyui-agent`、`self-test`、`workflow-contract-doctor`、`jupiter-migration`。
+- 这些角色描述参考端职责拆分，不表示本平台要新增同名 9 个 profile；本项目选型见 D-041 与根设计 §2.2。
+
+**v3 角色：3 个 Agent。**
+
+- `media-agent`：以 Skill 工作方法组织媒体创作，并使用 Composition → Resource → Version 对象语义。
+- `code-agent`：面向程序生成媒体、网页与数据的 Code Project 能力。
+- `evaluator`：评估职责。
+- `agent-profiles/v3/config/` 未发现与 v2 同构的 `workflows/` 目录；不能据此推断 v3 没有流程，只能说其静态组织方式不同。
+
+#### 2.7.2 v2 Workflow 与生产编排证据
+
+`agent-profiles/v2/config/workflows/` 实测到 **9 个 Workflow**：
+
+| # | Workflow | # | Workflow | # | Workflow |
+|---:|---|---:|---|---:|---|
+| 1 | `ai-mv-series` | 4 | `drama-series` | 7 | `music-video` |
+| 2 | `channel-intro` | 5 | `game-op` | 8 | `product-intro-video` |
+| 3 | `creator-education-series` | 6 | `multi-clip-creation` | 9 | `video-series` |
+
+> **分类校正**：以上是 Workflow 定义，不是 9 个 `SKILL.md`。v2 的 Workflow 与 Skill 是不同机制，后续不得混称。
+
+`v2/config/workflows/workflow.md` 可见通用生产链：
+
+```text
+Script → Art Direction → Storyboard → Shots → Assemble → Export
+```
+
+`drama-series/workflow.md` 进一步提供：
+
+1. 单 Stage 与全系列扩展两类制作方式。
+2. 角色一致性、分集 / 分镜组织与锁定规格。
+3. Stage 审核，以及计划确认 / 结果确认的过程控制。
+4. 与稳定 Work Item、依赖、局部重试和 Replan 配套的执行方法。
+
+`v2/config/agents/media-agent.md` 可见 Plan / Stage 组织、`expected_status` 前置校验（CAS 思路）、Work Item 重试、Replan 与恢复约束。其核心价值是**把计划、阶段、工作项与运行状态变成可检查结构**，而不是再增加一个自由对话角色。
+
+对本平台的映射规范已写入[根设计 §2.2](../../短剧Agent平台设计.md#22-agent-编排选型与系统执行边界目标设计--d-041-改编--自研新增)：v2 方法必须映射到完整八步业务闭环，不能用六阶段或 drama-series 阶段替代 STAGE 0—7。
+
+#### 2.7.3 v3 对象语义与 Code Project 证据
+
+v3 `media-agent` / `code-agent` 配置显示其重点从 v2 的显式 Workflow 目录转向 Skill 工作方法与对象组织：
+
+- **Composition → Resource → Version**：Composition 表达组合 / 交付对象，Resource 提供稳定业务身份，Version 表达具体不可变版本。
+- **Code Project**：用程序生成媒体、网页或数据，是独立专业能力面，不等于短剧生产必需底座。
+- v3 的对象语义可与 v2 的 Plan / Stage 方法互补；静态包不证明官方运行时实际采用这种组合，本项目组合方式属于 D-041 的自研架构裁决。
+
+本平台只吸收 Resource / Version 的稳定身份、正式版本引用和血缘追溯，不全量替换为 Composition，也不因此引入 SQLite 或另建项目模型。Code Project 保留为 P6 候选，未获实施授权。
+
+#### 2.7.4 连接器 Skill 与“9 个官方 Skill”历史口径校正
+
+本次在 `agent-profiles/` 下未发现 `SKILL.md`。安装包另一目录 `Resources/bundled-connector-skills/clip-studio/` 实测到：
+
+| 连接器 Skill | 版本 | 证据路径 |
+|---|---|---|
+| `video-editing` | 0.4.0 | `bundled-connector-skills/clip-studio/video-editing/SKILL.md` |
+| `motion-graphics` | 0.1.0 | `bundled-connector-skills/clip-studio/motion-graphics/SKILL.md` |
+
+因此必须区分三种数量：
+
+1. 历史 GitHub 仓库中的 **9 个官方 Skill**。
+2. v2 `config/workflows/` 中的 **9 个 Workflow**，它们不是 Skill。
+3. 当前安装包特定连接器目录中实测到的 **2 个 Skill**。
+
+“2 个”只描述该连接器目录，**不是当前运行时总 Skill 数**；界面官方 / 我的 Skill、动态下载、项目级或其他目录仍需单独枚举。旧报告 §1.4 / §2.1 已加版本校正，不删除历史证据。
+
+#### 2.7.5 未知项、复用结论与重测触发条件
+
+本轮仍未验证：
+
+- 4.0.18 运行时究竟选择 v2、v3 或何种组合，以及不同入口是否走不同 profile。
+- 当前运行时完整 Skill 清单、动态加载来源和各 Skill 的真实可用性。
+- v2 全部 Workflow 在 4.0.18 界面中的实际路由、双确认、恢复和 ComfyUI 串联结果。
+- v3 Code Project 的产品入口、权限与交付边界。
+- 真实生成、账号、额度、第三方服务及局域网多实例行为。
+
+**复用结论（规范以根设计为准）**：对外按 4.0.18 实际产品行为验收；对内以 v2 为生产编排骨架，选择性吸收 v3 Resource / Version；保留现有 Electron / OpenCode / MCP / 纯 JSON / ComfyUI 与 4 个 Agent profile。若必须二选一，生产编排选择 v2。该结论由 D-041 批准，目标设计与非目标见根设计 §2.2，后续顺序见总体开发计划 §4.1。
+
+**只有出现以下情况才需重测**：应用版本或 Build 变化；上述目录 / profile 版本变化；实际产品行为与本报告冲突；需要关闭上述运行时未知项。版本与目录均无变化时，后续 AI 直接引用本节，不再重复扫描安装包。
+
 ## 3. 全面复刻范围与体系对照
 
 ### 3.1 全面复刻能力矩阵（本轮新基线）
@@ -603,8 +702,9 @@ Stage Execution Plan 的关键不是一段自然语言，而是可执行结构�
 | 项目与创作页 | 新建 / 自动创建、目录选择、历史、编辑、导出、多创作页、多画布、恢复 | 保留八步项目数据与状态机；`legacy / resource_v3` 双栈不是复刻目标 |
 | 无限画布 | 节点、连线、框选、拖拽、缩放、小地图、整理、吸附、标签、贴纸、设置、Diff Review | 对齐交互与命令 / revision / 撤销语义；技术组件另立规格 |
 | 对话与任务 | `@`、`/`、附件、Skill、模型入口、自动模式、澄清、确认、通知、结果定位 | 系统确定性操作默认直做；AI 负责文本生成与开放语义，双通道落同一数据与追溯 |
-| Agent 编排 | router / planner / executor / media-agent / comfyui-agent、Contract、显式 payload、工具权限 | 可复刻职责划分；不得让模型或 Agent 绕过媒体通道和阶段门禁 |
-| 短剧 Workflow | 七阶段、双确认、稳定 work item、依赖、锁项、局部重试、Replan | 映射到八步闭环，保留 0 立项与 7 发布；每阶段产物与验收不可裁剪 |
+| Agent 编排 | 4.0.10 记录五类角色；4.0.18 静态包另有 v2 的 1 主 + 8 专用 Agent 与 v3 的 3 Agent（§2.7） | D-041 保留现有 4 profile；以 v2 Plan / Stage / Work Item 为编排骨架，不复制角色数量；主进程确定性管理状态与门 |
+| 对象与版本 | v3 的 Composition / Resource / Version | 选择性吸收 Resource 稳定身份与 Version 不可变快照；不全量替换为 Composition，沿用本项目画布与产物模型 |
+| 短剧 Workflow | v2 通用六阶段与 drama-series 双确认、稳定 work item、依赖、锁项、局部重试、Replan | 显式映射到八步闭环，保留 0 立项与 7 发布；每阶段产物与验收不可裁剪，MiniMax 阶段不得替代业务 STAGE |
 | Skill 生态 | 官方 / 我的、导入、创建、保存修改、分类、社区入口、SKILL.md 与 references | 本地创建 / 导入 / 使用优先；投稿、审核、积分等服务端能力另行定义，不伪造在线成功 |
 | 插件生态 | 插件列表、配置、权限、调用、结果回写、自定义插件、专业工具入口 | 外部应用逐项做适配与运行验收；未接通时明确不可用，不能只复制图标 |
 | 资产中心 | 上传、分类、复用、对话 / 画布 / Workflow 引用、产物回流、来源追踪 | 与角色、场景、道具、风格及镜头资产统一关联，避免另一套孤立资产库 |
@@ -620,7 +720,7 @@ Stage Execution Plan 的关键不是一段自然语言，而是可执行结构�
 ### 3.2 需求变更后的决策状态与待决项
 
 1. **规范基线**：K7 已由 D-034 于 2026-11-15 批准，《短剧Agent平台设计》与项目特化规则已调整为“全面复刻 MiniMax Design、短剧生产闭环优先”；后续仍须逐 Feature 建包、对账和验收，不以该决策代替实施授权。
-2. **持久化**：继续纯 JSON 并用文件锁、原子写、revision、CAS、操作日志等机制，还是为画布与任务引入 SQLite；不得以“复刻”为由直接换库。
+2. **持久化（D-041 已定）**：继续纯 JSON、无数据库，以文件锁、原子写、revision、CAS、操作日志等机制对齐参考端的幂等与恢复语义；不得为复刻 SQLite / CAS 实现而直接换库。
 3. **非图像 / 视频通道**：文本服务固定火山方舟 / LM Studio 二选一（D-021 / D-022）；音乐仅 MiniMax Music3，且与图像 H3 Image、视频 H3 一样全部经本地 / 局域网 ComfyUI（D-010 / D-033）；仅语音通道待裁决，未决前不得绑定豆包 T2A 或其他在线语音。
 4. **在线服务边界**：账号、团队、社区投稿、会员积分、云同步和支付是复刻界面、实现自有服务，还是明确不在桌面本地版范围。
 5. **模型与插件清单**：从“原产品可见全集”筛选本项目允许交付的模型、Workflow 和插件；可见条目不能直接变成可用承诺。
@@ -652,7 +752,7 @@ Stage Execution Plan 的关键不是一段自然语言，而是可执行结构�
 | **H3 部署形态**（v1.1 新） | SGLang / vLLM-Omni / Diffusers / ComfyUI 四线部署；12GB 显存可出 480p | ComfyUI 是统一媒体引擎（设计 §0.1 原则五） | **同源**：我们与 Hub 在 ComfyUI 路径一致，硬件门限可对齐 |
 | **H3 变体与版本门限**（v1.2 新） | 开源 FL2VA / Ref2VA + 云端 H3 Max / Max Turbo；ComfyUI v0.30.0→v0.39.1 多次关键升级；Fun ControlNet Union 2.0 支持多控制条件合一 | 设计未定 ComfyUI 最低版本；工作流模板未按版本门限分发 | **补强**：供后续规格评估 ComfyUI 最低版本、镜头控制接口与低显存模板，不在本参考文档直接定规范 |
 
-**更新结论**：MiniMax Design 不再只是“补缺口”的对照物，而是本项目的**完整能力与体验复刻基线**。复刻范围覆盖项目、画布、对话、Agent、Skill、插件、资产、本地模型、3D、剪辑与交付；图片 / 视频执行链路明确改为局域网 ComfyUI，本项目八步闭环、系统优先、媒体红线和安全追溯继续保留。文本与音乐通道按现行决策执行；存储、在线服务及语音通道按 §3.2 另行决策。
+**更新结论**：MiniMax Design 不再只是“补缺口”的对照物，而是本项目的**完整能力与体验复刻基线**。复刻范围覆盖项目、画布、对话、Agent、Skill、插件、资产、本地模型、3D、剪辑与交付；图片 / 视频执行链路明确改为局域网 ComfyUI，本项目八步闭环、系统优先、媒体红线和安全追溯继续保留。文本与音乐通道按现行决策执行；存储按 D-041 继续采用纯 JSON，在线服务及语音通道按 §3.2 继续裁决。
 
 ## 4. 来源与版本
 
@@ -665,14 +765,16 @@ Stage Execution Plan 的关键不是一段自然语言，而是可执行结构�
 - **本机解包与运行时实测（v1.3 新增，2026-11-10）**：官方 MiniMax Design 4.0.8 macOS ARM64 客户端；静态证据来自解包目录 `/tmp/minimax-design-asar/` 的 `package.json`、renderer 的 `CanvasAreaV3-DJZm1ka6.js` / `workspace-canvases-DVIGxQVT.js` / `connector-reference-Cq2qE7xv.js`、V3 入口的 `CanvasPage-om33MQNA.js` / `project-v3-Dtsev_aR.js`、主进程与 preload，以及客户端 Resources 下的 Gateway、MCP 与 OpenCode 插件代码。
 - **运行时落盘样本（v1.3 新增）**：独立创作页 `画布交互调研`，调研时位于 `/Users/szd/Movies/Hub/Projects/.projects/项目新手指引/画布交互调研/`；只读查询 `.hilo/canvas-v3/state.sqlite`，读取 `assets/Untitled.md` 并枚举 `store/ver_*.md`。测试创作页保留，未删除。上述 `/tmp` 与用户数据路径只用于本次证据定位，可能随系统清理、版本更新或工作区迁移失效。
 - **Windows 安装包与界面只读调研（v1.4 新增，2026-11-15）**：官方 MiniMax Design **4.0.10.158**，安装目录 `C:\Users\SZD\AppData\Local\Programs\MiniMax Design\current`。选择性解析 `resources/app.asar` 的主进程、preload、旧版 / V3 Renderer 与工作区、项目、Skill、Workflow、设置、模型选择、资产中心模块；读取 `resources/agent-profiles/v2/config` 的 agents、contracts、drama-series Workflow 与 Stage Execution Plan；检查 `gateway`、`mcp-tools`、`mcp-tools-v3`、OpenCode 插件、ComfyUI、3D 导演台、剪辑导出及示例项目。运行界面只读观察一级导航、工作区、模型选择器、Skill / 插件和本地模型页。临时选择性提取目录为 `C:\Users\SZD\AppData\Local\Temp\minimax-design-4.0.10-research`，不是项目交付物，可能随系统清理失效。
-- 时效声明：Design 版本迭代快，各节按产品版本和调研日期独立标注；本文件资料覆盖至 **2026-11-15**，旧版本结论不自动代表当前版本，静态证据不自动代表运行时通过。
+- **macOS 4.0.18 安装包只读补测（v1.6 新增，2026-11-26）**：`/Applications/MiniMax Design.app/Contents/Info.plist` 与 `Resources/agent-profiles/{v2,v3}`、`Resources/bundled-connector-skills/clip-studio/`。只读取版本、配置与说明文件，不修改安装包，不复制专有实现，不触发媒体生成；证据与未知项见 §2.7。
+- 时效声明：Design 版本迭代快，各节按产品版本和调研日期独立标注；本文件资料覆盖至 **2026-11-26**，旧版本结论不自动代表当前版本，静态证据不自动代表运行时通过。4.0.18 / Build 4.0.18.174 与目录结构无变化时，后续任务直接引用 §2.7，无需重复扫描。
 
 ## 5. 版本记录（入口）
 
-- 本文件版本：v1.0（2026-10-02）→ v1.1（2026-10-09）→ v1.2（2026-10-10）→ v1.3（2026-11-10）→ v1.4（2026-11-15）→ **v1.5（2026-11-15）**。
+- 本文件版本：v1.0（2026-10-02）→ v1.1（2026-10-09）→ v1.2（2026-10-10）→ v1.3（2026-11-10）→ v1.4（2026-11-15）→ v1.5（2026-11-15）→ **v1.6（2026-11-26）**。
 - v1.1 增量：SKILL.md 格式、画布节点类型、ComfyUI 工作流侧栏、Agent 驱动工作流、提示词 5 段式、复现性规范、H3 技术规格与部署。
 - v1.2 增量：H3 Max / Max Turbo、ComfyUI v0.30.0→v0.39.1 H3 节点演进时间线、FastH3 Trim 8 GB 硬件门限与对照表版本门限行。
 - v1.3 增量：新增 §2.2 V3 画布技术栈、文档与命令协议、视口交互、Dagre、自研小地图、SQLite 落盘样本、正文资产与 Agent 关联、运行时通过项和未验证边界；原 §2.2–§2.4 顺延为 §2.3–§2.5；§3 新增画布渲染/持久化对照；同步回补 v1.2 曾只写入 HTML 的源文档漏项。变更史记入根目录《版本记录.md》（AI 可读）。
 - **v1.4 增量**：记录“全面复刻 MiniMax Design，图片 / 视频改走局域网 ComfyUI”的需求基线；新增 §2.6 Windows 4.0.10.158 安装包与界面证据、完整功能域、Gateway / MCP / OpenCode、Agent 五角色、短剧七阶段与双确认门、模型条目和未验证清单；新增 §3.1 全面复刻矩阵与 §3.2 待决策项；旧对照移入 §3.3，并修正“无流程状态机”“当前版本 ComfyUI 端口不可覆盖”及旧媒体通道等过度或过时表述。本轮只改研究文档，未改产品代码、架构真相源、共享类型或决策台账。
 - **v1.5 增量**：按 D-010 / D-021 / D-022 / D-033 收敛 §3 更新结论与 §3.2 第 3 项：文本固定火山方舟 / LM Studio 二选一，音乐仅 Music3 且经本地 / 局域网 ComfyUI，语音继续待定；不改写 v1.3 / v1.4 历史实测与来源快照。
+- **v1.6 增量**：新增 §2.7 macOS 4.0.18（Build 4.0.18.174）`agent-profiles` 只读补测，记录 v2 1 主 + 8 专用 Agent、9 个 Workflow、drama-series / Plan / Stage / Work Item 机制，v3 3 Agent 与 Composition / Resource / Version，以及 2 个 clip-studio 连接器 Skill；显著校正旧版“9 个官方 Skill”外推，列出运行时未知项和重测触发条件。D-041 的架构选型只链接根设计，不在研究文档另立规范。
 - 镜像纪律：改本文 md 必须同步 .html（人读镜像），两版标题/正文/数字逐一对齐；html 非独立事实源。

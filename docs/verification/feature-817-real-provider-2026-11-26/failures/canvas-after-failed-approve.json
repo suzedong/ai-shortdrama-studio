@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 4,
+  "projectId": "project-20261126-151313-e02r",
+  "title": "project-accept-feature-817-2026-11-26T07-13-11",
+  "activePageId": "page-47fea27d-62c0-411e-a09e-7750bc09c8d9",
+  "activeView": "stage0",
+  "pages": [
+    {
+      "id": "page-47fea27d-62c0-411e-a09e-7750bc09c8d9",
+      "title": "创作页 1",
+      "activeCanvasId": "canvas-f43149a9-0037-4f3f-882e-430b5bfb751f",
+      "canvases": [
+        {
+          "id": "canvas-f43149a9-0037-4f3f-882e-430b5bfb751f",
+          "title": "画布 1",
+          "nodes": [],
+          "edges": [],
+          "viewport": null
+        }
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "gateId": "0-final",
+      "status": "approved",
+      "question": "# 立项定案卡 · 第1版\n\n## 六要素\n- 项目性质：商业短剧，计划公开投放\n- 题材赛道：都市现实主义、轻治愈\n- 目标平台：抖音\n- 单集时长：3分钟/集\n- 集数：12集\n- 风格基调：轻治愈、克制，结尾温暖但不强行大团圆\n- 画幅：9:16竖屏\n- 目标受众：25-45岁女性及家庭观众\n\n## 故事前提\n- 人物：男主35岁，失业青年；父亲62岁，退休厨师\n- 时间：当代中国\n- 地点：江南水乡城市，核心场景为社区食堂\n- 核心事件：男主接手社区食堂，在30天内保住食堂并与父亲和解\n- 本季边界：本季聚焦接手社区食堂后的30天，以保住食堂并与父亲和解为边界；结尾温暖但不强行大团圆\n- 核心表达：普通人的尊严与代际理解\n- 旁白：第三人称克制\n- IP情况：无IP，人物关系及背景故事按已确认口径定案\n\n## 视觉风格\n- 主风格：A1 @ v1.47\n- 辅助气氛：无\n\n## 待定点\n- 无\n\n## 相对上版改动\n- 首版立项\n- 否决后修订：单集时长由2分钟/集改为3分钟/集；社区食堂、父子和解、A1主风格与9:16竖屏均保持不变",
+      "options": [
+        "发布立项 v1",
+        "再改改"
+      ],
+      "payload": {
+        "version": 1,
+        "pendingMarks": [],
+        "changesFromPrevious": [],
+        "draft": {
+          "kind": "commercial",
+          "fiveElements": {
+            "genre": "都市现实主义、轻治愈",
+            "platforms": [
+              "抖音"
+            ],
+            "episodeDuration": "3分钟/集",
+            "episodeCount": "12集",
+            "tone": "轻治愈、克制，结尾温暖但不强行大团圆",
+            "aspectRatio": "9:16竖屏"
+          },
+          "premise": {
+            "leads": "男主35岁，失业青年；父亲62岁，退休厨师",
+            "time": "当代中国",
+            "place": "江南水乡城市，核心场景为社区食堂",
+            "coreEvent": "男主接手社区食堂，在30天内保住食堂并与父亲和解",
+            "seasonBoundary": "本季聚焦接手社区食堂后的30天，以保住食堂并与父亲和解为边界；结尾温暖但不强行大团圆"
+          },
+          "style": {
+            "mainStyleId": "A1",
+            "catalogVersion": "v1.47"
+          },
+          "diagnosisSummary": "虚构商业短剧，题材为都市现实主义、轻治愈，计划在抖音公开投放；核心表达为普通人的尊严与代际理解，目标受众为25-45岁女性及家庭观众。",
+          "diagnosisDetail": "对标案例（自身推理，无检索支撑）：公开检索未获得可核实的同赛道短剧案例，不虚构剧名或数据。\n用户洞察：男主失业并接手社区食堂构成职业尊严线，退休厨师父亲与男主构成代际理解线；目标受众为25-45岁女性及家庭观众。\n钩子模式（自身推理，无检索支撑）：以30天保住社区食堂为总时限，以父子误解和食堂经营难题形成追看动力。\n合规要点：不映射真实个人或机构；涉及食品安全与经营的情节避免违法或误导性示范；公开投放前按抖音规则复核。\n结论：采用都市现实主义、轻治愈与克制的第三人称旁白，结尾温暖但不强行大团圆。\n检索来源：检索词为“都市逆袭短剧 对标案例 爆款”“都市逆袭短剧 钩子 模式”“逆袭短剧 爆款 创作”；返回结果与题材维度不相关，未引用URL；检索日期2026-11-26。"
+        },
+        "harnessValidation": {
+          "checkedAt": "2026-11-26T07:50:12.266Z",
+          "findings": [
+            {
+              "gateId": "0-final",
+              "category": "spec",
+              "checkId": "SPEC_FIELD_ENUM",
+              "severity": "blocker",
+              "message": "fiveElements.aspectRatio 取值「9:16竖屏」越界，仅允许 竖屏 9:16 / 横屏 16:9（D-023）"
+            }
+          ]
+        }
+      },
+      "requestedAt": "2026-11-26T07:46:55.931Z",
+      "decidedAt": "2026-11-26T07:50:12.251Z"
+    }
+  ],
+  "revision": 6,
+  "receipts": [
+    {
+      "commandId": "ff38107b-63a8-4048-b810-32d5f733eb12",
+      "type": "canvas.withCanvas",
+      "requestHash": "b3f14fe473ed7c8ddc994452be8a93fe2f075c19cf081642973c798e5fa97efd",
+      "revision": 1,
+      "appliedAt": "2026-11-26T07:13:13.711Z"
+    },
+    {
+      "commandId": "f6a1c600-468d-4f74-98ea-2342fa85ff65",
+      "type": "gate.upsert",
+      "requestHash": "afc23f4d45d5f93ac55829c6b1b59fb350b446736307d2820e896e38a681cfaa",
+      "revision": 2,
+      "appliedAt": "2026-11-26T07:41:57.562Z"
+    },
+    {
+      "commandId": "ef435766-e8db-47f4-a0cb-42bd188b2c5e",
+      "type": "gate.upsert",
+      "requestHash": "d211d0fb0a4c8f2bb8f06541eb7f0e652fa983a6420f2890e6375a9ae6afd5b4",
+      "revision": 3,
+      "appliedAt": "2026-11-26T07:44:38.664Z"
+    },
+    {
+      "commandId": "7abfa658-73b1-48b5-9853-c4f233552a45",
+      "type": "gate.upsert",
+      "requestHash": "5c6bd2f7a6892f3e63eca4d060f09035dc2b2225e8259dd976c4af2b24fb6ef1",
+      "revision": 4,
+      "appliedAt": "2026-11-26T07:46:55.938Z"
+    },
+    {
+      "commandId": "c2bac9d9-609c-4201-8c81-5986df7ab740",
+      "type": "gate.upsert",
+      "requestHash": "b9a9bf7a6bc3a2ed812cab09a4476afbd86e12bb98564e08f521b01a9024cf17",
+      "revision": 5,
+      "appliedAt": "2026-11-26T07:50:12.258Z"
+    },
+    {
+      "commandId": "332ba2d1-f60f-47bc-8be3-6766316ffef7",
+      "type": "gate.upsert",
+      "requestHash": "6b2d5897b32d0d7be997770e9872b607a99edf71021b57ab888d68592c53fb88",
+      "revision": 6,
+      "appliedAt": "2026-11-26T07:50:12.267Z"
+    }
+  ],
+  "updatedAt": "2026-11-26T07:50:12.267Z"
+}

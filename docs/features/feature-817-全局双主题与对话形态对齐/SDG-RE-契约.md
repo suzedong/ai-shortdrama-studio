@@ -101,3 +101,11 @@ function parseChatOptions(text: string): {
 - 809 早期“最多 48px 自动贴底”的历史正文被后续 120px 用户接管方案取代；当前以 120px、上滚 >2px 取消为准，归档原文不改。
 - 817 原有 spinner 与 809 阶段动画并存：前者可作任务摘要图标，后者必须表达 thinking / tool 阶段，二者不得互相冒充数据来源。
 - 双主题已通过不变；真实 AI runtime、OptionCard、任务详情与 Gate 现场仍未全闭环。本节为文档契约归并，不新写完成证据。
+
+## 8. 运行中断展示适配（2026-11-26）
+
+- 本包不声明新 IPC；`runtime.runs()` / `runtime.retryRun()` 的 DTO、错误码与写权属 feature-808 契约 §10。preload/global/runtime-types/dev mock 的同步是同一 K8 的镜像改动。
+- `ChatItem` 可附 renderer 私有运行展示元数据；`ChatComposer` 增加可选 `onRetryRun` 回调与 Gate/活跃禁用输入。不得修改 `ReplayMessageRecord`、`ToolView.status` 或共享消息。
+- interrupted 展示投影：仅 `pending | running → 已中断`；不更改 args/result/errorText，不重排 segments。孤儿运行使用独立 recovery item，不构造虚假用户正文。
+- retry 只能来自恢复项显式按钮事件，禁止 mount/effect 自动调用；发送/重试接受后由 StudioApp 用真实 messageID 对账乐观气泡与流式轮次。
+- 纯函数与组件测试覆盖中断投影、孤儿卡、OptionCard 零自动选择、Gate 阻断和单击一次；真实 Provider 验收另记，不以 dev-mock 或受控故障服务替代。

@@ -142,3 +142,30 @@ Design 的会话形态是**项目即会话**：左栏项目列表就是会话入
 | R37-06 | **职责边界**：本包只负责会话绑定、运行时模板解析、回放 DTO / 数据归约与失败降级；交错内容、活跃态、滚动和卡片视觉归 feature-817。808 与 817 独立，本包不吞并视觉，也不承担 001 的立项定案协议。 |
 
 **范围声明**：无新 IPC、MCP / Agent 协议、共享类型或依赖；内部模板解析函数签名与既有回放通道不变。本 Change 是文档归并，不把历史修复写成新的真机验收完成。
+
+## 7. 运行中断恢复 Change（2026-11-26，用户已批准计划与 K8）
+
+### R-IR1 持久运行事实
+
+- 每项目新增 `.agent-runs.json`，主进程唯一写者；记录 `id/sessionId/request/status/createdAt/updatedAt/endedAt?/error?/retryOfMessageId?`。`id` 严格等于提交给 opencode 的真实用户 `messageID`，不另造 runId。
+- 状态仅限 `running | stopping | completed | failed | stopped | interrupted`；终态不可倒退。正文、推理和工具日志仍由 opencode 历史保存，账本不逐 delta 写盘，不保存密钥。
+- 正常发送在 SDK 调用前落 `running`；同会话只允许一个非终态运行。同步拒绝记 `failed`，HTTP accepted 不代表完成；idle 定稿 `completed`，会话 abort 定稿 `stopped`，运行错误定稿 `failed`。
+- 非主动进程退出将活跃运行记 `interrupted`；SIGKILL 由下次首次读取该项目账本时统一对账。账本损坏不得静默重置；消息仍可回放，但修复前禁止新运行。
+
+### R-IR2 恢复与重试
+
+- 历史回放同时读取消息和 runs，以用户 messageID 关联整轮；没有运行记录的历史不猜测为 interrupted。引擎尚未留下用户消息的孤儿运行只表达“提交结果未知”，不伪造历史气泡。
+- 未提交 OptionCard 不代选，pending Gate 不代决，已落盘 Canvas/资产不回滚；无自动重试、无原 Token 流续接。
+- 只有用户显式确认后才允许重试当前项目、当前绑定会话的 interrupted 记录；同会话有活跃运行或项目存在 pending Gate 时拒绝。
+- 主进程读取原 request，重新执行资产校验和完整发送链，生成新 messageID，写 `retryOfMessageId=旧 id`；旧运行保留 interrupted。
+
+### R-IR3 新增验收
+
+| AC | 可复现预期 |
+| :-- | :-- |
+| AC16 | running/stopping/completed/failed/stopped/interrupted 迁移正确；终态不被迟到事件改写；首次对账幂等 |
+| AC17 | 同步拒绝、异步错误、正常 idle、会话 abort、runtime stop 与异常退出分别得到正确状态；SIGKILL 重启后可对账 |
+| AC18 | 重开保留真实消息、工具日志、OptionCard、pending Gate 与已落盘产物；请求数零自动增长，遗留活跃工具只在 UI 显示已中断 |
+| AC19 | 孤儿 interrupted 运行显示提交结果未知；无运行记录的旧历史不伪装中断 |
+| AC20 | 未经点击不重试；pending Gate/活跃并发/非法状态拒绝；确认后新 messageID 与 retryOfMessageId 可查，旧记录不变 |
+| AC21 | runs 查询失败不阻断消息回放，但禁止覆盖损坏账本；真实 messageID 替换乐观 ID 且不串项目/会话 |

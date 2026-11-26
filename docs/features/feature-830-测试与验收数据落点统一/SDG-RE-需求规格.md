@@ -100,3 +100,14 @@
 | CONTEXT-AC3 | 缺失某类章节时仅该类降级提示；无显式未勾选任务时明确说明“不代表验收通过”，不补写语义结论 |
 | CONTEXT-AC4 | 脚本以自身位置定位仓库根，可从任意 cwd 执行；只读、零依赖、不落盘、不写入新的上下文事实源 |
 | CONTEXT-AC5 | 合成仓库覆盖关键分支，真实 feature-829 能提取 T2—T5，真实 feature-830 可成功执行；定向测试、文档机检、全量 Vitest、typecheck 与差异检查据实记录 |
+
+## 运行中断恢复定向验收 Change（2026-11-26）
+
+仅承接 feature-808/817 已批准能力的可复跑 Electron 故障注入驱动，不承接其产品实现，不新增 IPC/依赖。驱动复用本包隔离 HOME、ASD_USER_DATA、工作区备份和 `.test-tmp` 落点原则；数据使用 `project-accept-*` 合成夹具，不接触真实项目。
+
+| 编号 | 验收条件 |
+| --- | --- |
+| RUN-AC1 | 以真实 Electron/opencode/IPC 与受控延迟响应制造运行中 SIGKILL；重启请求数零自动增长，消息/工具/Gate/产物现场保留 |
+| RUN-AC2 | 未提交 OptionCard 不代选、pending Gate 不代决；Gate 存在时显式重试被拒绝，处理后重试生成新 messageID 与 retryOfMessageId |
+| RUN-AC3 | 受控 mock 只证明故障时序；817 真实 Provider 验收独立记录，失败或不可用不宣告通过 |
+| RUN-AC4 | 命令、退出码、隔离路径和原始 JSON/日志落新的日期化 verification 目录；不修改历史证据 |

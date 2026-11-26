@@ -1,0 +1,13 @@
+{
+  "before": {
+    "gateId": "0-final",
+    "status": "pending"
+  },
+  "after": {
+    "gateId": "0-final",
+    "status": "rejected",
+    "note": "保留社区食堂、父子和解、A1 主风格和 9:16；请将单集时长由 2 分钟改为 3 分钟，重新自检后再发定案门。",
+    "decidedAt": "2026-11-26T07:44:38.658Z"
+  },
+  "messageCount": 32
+}

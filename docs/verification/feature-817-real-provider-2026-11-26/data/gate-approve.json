@@ -1,0 +1,68 @@
+{
+  "gate": {
+    "gateId": "0-final",
+    "status": "approved",
+    "decidedAt": "2026-11-26T07:57:42.452Z"
+  },
+  "history": {
+    "versions": [
+      {
+        "version": 1,
+        "path": "立项单.v1.json",
+        "publishedAt": "2026-11-26T07:57:42.467Z",
+        "kind": "commercial",
+        "approveBy": "gate",
+        "changeCount": 0
+      }
+    ],
+    "latestVersion": 1,
+    "warnings": []
+  },
+  "briefNode": {
+    "id": "step-0-brief",
+    "status": "done",
+    "ref": {
+      "path": "立项单.v1.json",
+      "format": "json"
+    }
+  },
+  "repeat": {
+    "ok": true,
+    "ignored": true
+  },
+  "messageCount": 46,
+  "brief": {
+    "schemaVersion": 2,
+    "version": 1,
+    "kind": "commercial",
+    "fiveElements": {
+      "genre": "都市现实主义、轻治愈",
+      "platforms": [
+        "抖音"
+      ],
+      "episodeDuration": "3分钟/集",
+      "episodeCount": "12集",
+      "tone": "轻治愈、克制，结尾温暖但不强行大团圆",
+      "aspectRatio": "竖屏 9:16"
+    },
+    "premise": {
+      "leads": "男主35岁，失业青年；父亲62岁，退休厨师",
+      "time": "当代中国",
+      "place": "江南水乡城市，核心场景为社区食堂",
+      "coreEvent": "男主接手社区食堂，在30天内保住食堂并与父亲和解",
+      "seasonBoundary": "本季聚焦接手社区食堂后的30天，以保住食堂并与父亲和解为边界；结尾温暖但不强行大团圆"
+    },
+    "style": {
+      "mainStyleId": "A1",
+      "catalogVersion": "v1.47"
+    },
+    "approve": {
+      "at": "2026-11-26T07:57:42.467Z",
+      "by": "gate"
+    },
+    "changesFromPrevious": [],
+    "publishedAt": "2026-11-26T07:57:42.467Z",
+    "diagnosisSummary": "虚构商业短剧，题材为都市现实主义、轻治愈，计划在抖音公开投放；核心表达为普通人的尊严与代际理解，目标受众为25-45岁女性及家庭观众。",
+    "diagnosisDetail": "对标案例（自身推理，无检索支撑）：公开检索未获得可核实的同赛道短剧案例，不虚构剧名或数据。\n用户洞察：男主失业并接手社区食堂构成职业尊严线，退休厨师父亲与男主构成代际理解线；目标受众为25-45岁女性及家庭观众。\n钩子模式（自身推理，无检索支撑）：以30天保住社区食堂为总时限，以父子误解和食堂经营难题形成追看动力。\n合规要点：不映射真实个人或机构；涉及食品安全与经营的情节避免违法或误导性示范；公开投放前按抖音规则复核。\n结论：采用都市现实主义、轻治愈与克制的第三人称旁白，结尾温暖但不强行大团圆。\n检索来源：检索词为“都市逆袭短剧 对标案例 爆款”“都市逆袭短剧 钩子 模式”“逆袭短剧 爆款 创作”；返回结果与题材维度不相关，未引用URL；检索日期2026-11-26。"
+  }
+}

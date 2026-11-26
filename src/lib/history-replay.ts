@@ -1,6 +1,6 @@
 import type { ChatItem } from '../studio/chat/ChatComposer'
 import type { ToolView, TurnSegment } from './chat-runtime'
-import type { RuntimeAssetRef } from './runtime-types'
+import type { AgentRunRecord, RuntimeAssetRef } from './runtime-types'
 
 /** IPC runtime:session:messages 的单条记录（runtime-types 镜像，主进程从 SDK {info,parts} 映射） */
 export interface ReplayMessageRecord {
@@ -55,17 +55,21 @@ function isReplayAsset(value: unknown): value is RuntimeAssetRef {
  * （推理 → 工具/结果 → 推理 → 工具/结果），不再先拆三类数组导致顺序丢失。
  * 纯函数：无副作用、不依赖时间/网络、不 mutate 入参；坏数据按无文本丢弃，不抛错。
  */
-export function replayMessages(records: ReplayMessageRecord[]): ChatItem[] {
+export function replayMessages(records: ReplayMessageRecord[], runs: AgentRunRecord[] = []): ChatItem[] {
   // H8：非数组 → []
   if (!Array.isArray(records)) return []
 
   const items: ChatItem[] = []
+  const runsById = new Map(runs.map(run => [run.id, run]))
+  const replayedRunIds = new Set<string>()
+  let currentRun: AgentRunRecord | undefined
   for (const raw of records) {
     // H8：坏记录不抛错，整体跳过
     if (!isRecord(raw) || !isRecord(raw.info)) continue
     const role = raw.info.role
     if (role !== 'user' && role !== 'assistant') continue
     const id = typeof raw.info.id === 'string' ? raw.info.id : ''
+    if (role === 'user') currentRun = runsById.get(id)
     const parts = Array.isArray(raw.parts) ? raw.parts : []
 
     // 单遍有序收集：texts 保留正文全文（气泡级选项/标签解析仍用全文），
@@ -146,7 +150,14 @@ export function replayMessages(records: ReplayMessageRecord[]): ChatItem[] {
     if (role === 'user') {
       // 空文本且无资产才丢弃；资产回放不得改写历史正文。
       if (text.length === 0 && assets.length === 0) continue
-      items.push({ id, role: 'user', text, ...(assets.length > 0 ? { assets } : {}) })
+      items.push({
+        id,
+        role: 'user',
+        text,
+        ...(assets.length > 0 ? { assets } : {}),
+        ...(currentRun ? { run: currentRun } : {}),
+      })
+      if (currentRun) replayedRunIds.add(currentRun.id)
     } else {
       const hasContent = segments.some(s => s.kind !== 'text' || s.text.trim().length > 0)
       // H4（修订）：正文、reasoning、tools 三者全空才丢弃
@@ -158,9 +169,35 @@ export function replayMessages(records: ReplayMessageRecord[]): ChatItem[] {
         ...(text ? { text } : {}),
         agent: 'showrunner',
         segments,
+        ...(currentRun ? { run: currentRun } : {}),
       })
     }
   }
-  // H1：按入参正序输出，不重排
+  // 有账本但没有可回放用户消息时，只暴露提交结果未知的人工恢复卡，不伪造气泡。
+  const orphans = [...runs]
+    .filter(run => run.status === 'interrupted' && !replayedRunIds.has(run.id))
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+  for (const run of orphans) {
+    items.push({ id: `run-recovery:${run.id}`, role: 'agent', text: '', run, orphan: true })
+  }
+  // H1：按入参正序输出，不重排；孤儿恢复卡仅追加在真实历史之后。
   return items
+}
+
+/** 流式期间保留现有气泡和 segments，仅刷新真实 messageID 对应的运行元数据。 */
+export function attachRunMetadata(items: ChatItem[], runs: AgentRunRecord[]): ChatItem[] {
+  const runsById = new Map(runs.map(run => [run.id, run]))
+  let currentRun: AgentRunRecord | undefined
+  return items.map(item => {
+    if (item.orphan) {
+      const run = runsById.get(item.run?.id ?? '')
+      return run ? { ...item, run } : item
+    }
+    if (item.role === 'user') currentRun = runsById.get(item.id)
+    if (item.run === currentRun) return item
+    const next = { ...item }
+    if (currentRun) next.run = currentRun
+    else delete next.run
+    return next
+  })
 }

@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
+  AgentRunRecord,
   RuntimeAgent,
   RuntimeEvent,
   RuntimePromptRequest,
@@ -83,6 +84,9 @@ contextBridge.exposeInMainWorld('api', {
     // feature-808：会话历史回放（文本 DTO）
     sessionMessages: (sessionId: string): Promise<RuntimeSessionMessageRecord[]> =>
       ipcRenderer.invoke('runtime:session:messages', { sessionId }),
+    runs: (): Promise<AgentRunRecord[]> => ipcRenderer.invoke('runtime:runs'),
+    retryRun: (messageId: string): Promise<{ accepted: true; messageId: string }> =>
+      ipcRenderer.invoke('runtime:run:retry', messageId),
     abortSession: (sessionId: string): Promise<{ ok: true }> =>
       ipcRenderer.invoke('runtime:session:abort', sessionId),
     deleteSession: (sessionId: string): Promise<{ ok: true }> =>

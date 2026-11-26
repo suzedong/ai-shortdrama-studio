@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import type { WebContents } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
+import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import {
   listProjects,
@@ -65,6 +66,7 @@ import type {
 import { runtimeManager } from './runtime/manager.js'
 import { resolveRuntimeProxyEnv } from './network.js'
 import { OpencodeRuntimeClient } from './runtime/client.js'
+import { AgentRunStore } from './runtime/run-store.js'
 import { subscribeEvents, type EventStreamHandle } from './runtime/projection.js'
 import type {
   RuntimeEvent,
@@ -553,6 +555,58 @@ const runtimeClient = new OpencodeRuntimeClient({
   },
 })
 
+// feature-808/817 · 项目级运行账本。已加载 store 跨项目切换保留，确保旧项目迟到事件仍能找到原运行。
+const runStores = new Map<string, AgentRunStore>()
+const runStoreBySession = new Map<string, AgentRunStore>()
+let runtimeStopInProgress = false
+
+function getRunStore(projectDir = getActiveProjectDir()): AgentRunStore {
+  const root = path.resolve(projectDir)
+  let store = runStores.get(root)
+  if (!store) {
+    store = new AgentRunStore(root)
+    runStores.set(root, store)
+  }
+  return store
+}
+
+function errorText(error: unknown, fallback = '运行失败'): string {
+  if (error instanceof Error && error.message) return error.message
+  if (isRecord(error)) {
+    if (isRecord(error.data) && typeof error.data.message === 'string') return error.data.message
+    if (typeof error.message === 'string') return error.message
+  }
+  return fallback
+}
+
+async function eachRunStore(
+  action: (store: AgentRunStore) => Promise<unknown>,
+): Promise<void> {
+  for (const store of runStores.values()) {
+    try {
+      await action(store)
+    } catch (error) {
+      console.error('[agent-run] 运行账本状态收尾失败', error)
+    }
+  }
+}
+
+async function updateRunFromEvent(event: RuntimeEvent): Promise<void> {
+  if (event.type !== 'session.idle' && event.type !== 'runtime.error') return
+  const sessionId = event.sessionId
+  if (!sessionId) return
+  const store = runStoreBySession.get(sessionId)
+  if (!store) return
+  const active = await store.active(sessionId)
+  if (!active) return
+
+  if (event.type === 'session.idle') {
+    await store.transition(active.id, active.status === 'stopping' ? 'stopped' : 'completed')
+    return
+  }
+  await store.transition(active.id, 'failed', event.error.message)
+}
+
 /** 订阅窗口：webContents.id → 窗口引用 + 可选 sessionId 过滤（契约 §3.2 规则①） */
 const runtimeSubscribers = new Map<number, { wc: WebContents; filter: string | undefined }>()
 /** 已挂 destroyed 清理的窗口 id */
@@ -702,8 +756,13 @@ async function closeRuntimeEventStream() {
   }
 }
 
-/** 按订阅窗口与可选 sessionId 过滤分发；事件保持 SSE 到达顺序（契约 §3.2 规则②） */
-function broadcastRuntimeEvent(event: RuntimeEvent) {
+/** 按订阅窗口与可选 sessionId 过滤分发；生命周期落账后再分发，事件保持 SSE 到达顺序。 */
+async function broadcastRuntimeEvent(event: RuntimeEvent): Promise<void> {
+  try {
+    await updateRunFromEvent(event)
+  } catch (error) {
+    console.error('[agent-run] 运行事件落账失败', error)
+  }
   void captureAssetSource(event).catch(error => {
     console.error('[canvas-814] asset source capture failed', error)
   })
@@ -744,7 +803,12 @@ runtimeManager.onStatusChange((status) => {
   // opencode 子进程异常退出：SSE pump 仅静默收尾、不会投影任何事件，
   // 此处补播 runtime.error 以终结 renderer 正在进行的轮（契约 §5「子进程异常 → runtime.error」）。
   if (status.state === 'error' && status.error) {
-    broadcastRuntimeEvent({ type: 'runtime.error', ts: new Date().toISOString(), error: status.error })
+    const event = { type: 'runtime.error', ts: new Date().toISOString(), error: status.error } as const
+    if (!runtimeStopInProgress) {
+      void eachRunStore(store => store.interruptActive()).then(() => broadcastRuntimeEvent(event))
+    } else {
+      void broadcastRuntimeEvent(event)
+    }
   }
   // 重启后仍有订阅窗口：自动重建事件流
   if (status.state === 'running' && runtimeSubscribers.size > 0 && !runtimeEventStream) {
@@ -755,6 +819,7 @@ runtimeManager.onStatusChange((status) => {
 // 退出清理钩子（契约 §6.3）：先关 SSE、abort 活跃会话，再由 manager 杀子进程
 runtimeManager.addBeforeStopHook(async () => {
   await closeRuntimeEventStream()
+  await eachRunStore(store => store.stopActive(undefined, 'stopping'))
   try {
     const sessions = await runtimeClient.listSessions()
     await Promise.allSettled(sessions.map((s) => runtimeClient.abortSession(s.id)))
@@ -796,6 +861,31 @@ async function resolveRuntimePromptAssets(
   return resolved
 }
 
+async function submitPromptAsync(
+  promptReq: RuntimePromptRequest,
+  retryOfMessageId?: string,
+): Promise<{ accepted: true; messageId: string }> {
+  return withRuntime(async () => {
+    if (typeof promptReq.sessionId !== 'string' || promptReq.sessionId.trim().length === 0
+      || typeof promptReq.text !== 'string' || promptReq.text.trim().length === 0) {
+      throw makeRuntimeError('INVALID_ARGUMENT', 'sessionId 与 text 必须为非空字符串')
+    }
+    const store = getRunStore()
+    const messageId = `msg_${crypto.randomUUID()}`
+    let started = false
+    try {
+      await store.start(messageId, promptReq, retryOfMessageId)
+      started = true
+      runStoreBySession.set(promptReq.sessionId, store)
+      const resolvedAssets = await resolveRuntimePromptAssets(promptReq)
+      return await runtimeClient.promptAsync(promptReq, resolvedAssets, messageId)
+    } catch (error) {
+      if (started) await store.transition(messageId, 'failed', errorText(error))
+      throw error
+    }
+  })
+}
+
 // -- 12 个 invoke handle（契约 §3.1） -----------------------------------------
 
 ipcMain.handle('runtime:start', async () => {
@@ -812,10 +902,14 @@ ipcMain.handle('runtime:start', async () => {
 
 ipcMain.handle('runtime:stop', async () => {
   runtimeStoppedExplicitly = true
+  runtimeStopInProgress = true
   try {
     await runtimeManager.stop()
+    await eachRunStore(store => store.stopActive(undefined, 'stopped'))
   } catch (e) {
     throw normalizeRuntimeError(e)
+  } finally {
+    runtimeStopInProgress = false
   }
   return runtimeManager.getStatus()
 })
@@ -857,7 +951,17 @@ ipcMain.handle('runtime:session:abort', (_e, sessionId: unknown) =>
     if (typeof sessionId !== 'string' || sessionId.trim().length === 0) {
       throw makeRuntimeError('INVALID_ARGUMENT', 'sessionId 必须为非空字符串')
     }
-    return runtimeClient.abortSession(sessionId)
+    const store = runStoreBySession.get(sessionId)
+    const active = store ? await store.active(sessionId) : undefined
+    if (store && active) await store.transition(active.id, 'stopping')
+    try {
+      const result = await runtimeClient.abortSession(sessionId)
+      if (store && active) await store.transition(active.id, 'stopped')
+      return result
+    } catch (error) {
+      if (store && active) await store.transition(active.id, 'failed', errorText(error))
+      throw error
+    }
   }),
 )
 
@@ -880,14 +984,36 @@ ipcMain.handle('runtime:prompt', (_e, req: unknown) =>
   }),
 )
 
-ipcMain.handle('runtime:prompt:async', (_e, req: unknown) =>
-  withRuntime(async () => {
-    if (!isRecord(req)) throw makeRuntimeError('INVALID_ARGUMENT', 'prompt 请求体缺失')
-    const promptReq = req as unknown as RuntimePromptRequest
-    const assets = await resolveRuntimePromptAssets(promptReq)
-    return runtimeClient.promptAsync(promptReq, assets)
-  }),
-)
+ipcMain.handle('runtime:prompt:async', (_e, req: unknown) => {
+  if (!isRecord(req)) throw makeRuntimeError('INVALID_ARGUMENT', 'prompt 请求体缺失')
+  return submitPromptAsync(req as unknown as RuntimePromptRequest)
+})
+
+ipcMain.handle('runtime:runs', () => getRunStore().list())
+
+ipcMain.handle('runtime:run:retry', async (_e, messageId: unknown) => {
+  if (typeof messageId !== 'string' || messageId.length === 0) {
+    throw makeRuntimeError('INVALID_ARGUMENT', 'messageId 必须为非空字符串')
+  }
+  const projectDir = getActiveProjectDir()
+  const store = getRunStore(projectDir)
+  const run = await store.get(messageId)
+  if (!run || run.status !== 'interrupted') {
+    throw makeRuntimeError('INVALID_ARGUMENT', '仅可重试当前项目的已中断运行')
+  }
+  const binding = await readActiveSession(projectDir)
+  if (binding.sessionId !== run.sessionId) {
+    throw makeRuntimeError('INVALID_ARGUMENT', '仅可重试当前绑定会话的已中断运行')
+  }
+  const canvas = await canvasStore.get()
+  if (canvas.gates.some(gate => gate.status === 'pending')) {
+    throw makeRuntimeError('INVALID_ARGUMENT', '请先完成未决 Gate，再重试已中断运行')
+  }
+  if (await store.active(run.sessionId)) {
+    throw makeRuntimeError('INTERNAL', '当前会话存在尚未结束的运行，不能并发重试')
+  }
+  return submitPromptAsync({ ...run.request, sessionId: run.sessionId }, run.id)
+})
 
 ipcMain.handle('runtime:event:subscribe', (e, arg?: unknown) =>
   withRuntime(async () => {
@@ -1130,12 +1256,16 @@ app.on('before-quit', (event) => {
     return
   }
   runtimeQuitting = true
+  runtimeStopInProgress = true
   event.preventDefault()
   gateBridge.clearLive()
-  void runtimeManager.stop().finally(() => {
-    runtimeQuitting = false
-    app.quit()
-  })
+  void runtimeManager.stop()
+    .then(() => eachRunStore(store => store.stopActive(undefined, 'stopped')))
+    .finally(() => {
+      runtimeStopInProgress = false
+      runtimeQuitting = false
+      app.quit()
+    })
 })
 
 app.on('activate', () => {

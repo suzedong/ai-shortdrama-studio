@@ -160,6 +160,27 @@ T1—T7 及 D-010—D-015 对应实施已按任务清单与上述决策完成：
 
 ## 三、修订记录
 
+### C-2026-11-27 · 真实 Ark AC17—AC21 定向补验（P1 收口，真实 AC17 阻断，已回流）
+
+- **触发**：D-042 后按用户批准的《P1 收口与 drama-series 改造启动计划》先收口 P1；本 Change 只处理 T10 留下的真实 Provider 补验，不重新开发既有 RunStore／Gate／恢复卡／重试。
+- **复用**：沿用 T10 的隔离 Electron CDP、克隆真实火山方舟加密配置、`ark-code-latest`、真实 opencode 与脱敏证据方式；故障矩阵复用 `verify-runtime-interruption.cjs`，但真实模型证据不得由 `mock/mock-1` 替代。
+- **安全边界**：独立 HOME／userData／workspace、`project-accept-runtime-*` 合成项目；不读取或归档真实项目正文、完整消息库、userData 或密钥。SIGKILL 只作用于本轮隔离 Electron，按 PID 树清理其子进程；不得通配终止宿主进程。
+- **判据**：任务清单 T11 已冻结 AC17—AC21 操作与预期。真实环境不能安全产生的故障保留 T9 受控证据并标真实未覆盖；合成 Gate／孤儿账本等夹具必须记名，不能声称由真实模型生成。
+- **差异纪律**：无产品缺陷时不改产品代码；若补验发现缺陷，保留最小复现、日志与账本并暂停后续扩面，另行提交最小修复 Change，不在本 Change 顺手改码。
+- **后续边界**：补验后仅登记 808／827／828／817 的 `drama-series` 与 Workflow／Plan 纯规格；不新增共享类型、IPC、preload、MCP、通用执行器或依赖，不以规格登记宣称 P1／P2／八步闭环／Parity 通过。
+- **实测结果**：第一轮真实正常／SIGKILL／恢复／人工重试链路 19/19 通过；第二轮真实 AC17 `abortSession` 在已有流式正文时发起，采到 `stopping` 后最终错误落为 `failed`（`消息已被中止`）。首个产品断言失败后即停止，AC17 `runtime.stop`／同步拒绝及 AC18—AC21 后续真实矩阵未执行。
+- **证据与隔离**：[失败证据索引](../../verification/feature-808-real-ark-ac17-2026-11-27/证据索引.md) · [结构化摘要](../../verification/feature-808-real-ark-ac17-2026-11-27/data/recheck-summary.json) · [失败账本](../../verification/feature-808-real-ark-ac17-2026-11-27/data/abort-run.json) · [取消日志](../../verification/feature-808-real-ark-ac17-2026-11-27/logs/opencode-cancel.log)。只归档脱敏资料；因 macOS 系统钥匙链保留真实 `HOME`，其余 userData／opencode 数据／workspace／合成项目均隔离，未声称独立 HOME。
+- **产品改动**：无。按预案暂停 808／827／828／817 规格扩面，另列下一条最小修复 Change，不顺手改码。
+
+### C-2026-11-27 · AC17 人工停止中止事件终态最小修复（纯缺陷修复，已实施并完成定向复验）
+
+- **分类**：实施记录／纯缺陷修复；既有 AC17 规格不变。用户已明确授权执行 T11.1，本条记录实际修复、回归与证据。
+- **缺陷**：真实 `abortSession` 取消 opencode 后，账本实际迁移为 `running → stopping → failed`；opencode 同时记录 `cancel` 与 `error=Aborted`。预期人工停止终态为 `stopped`，错误文本为 `消息已被中止`。
+- **责任点与修复**：在 [main.ts](../../../electron/main.ts) 做双点最小修复：运行事件 `runtime.error` 分支仅在活跃账本为 `stopping` 且错误码为 `PROMPT_ABORTED` 时推进 `stopped`；停止 IPC `catch` 已代表人工停止请求，仅在拒绝名为 `PROMPT_ABORTED` 时推进 `stopped`，其他错误仍写 `failed`。`AgentRunStore` 既有 first-terminal-wins 已能阻止迟到事件与停止成功回调整写终态，不修改状态机。
+- **自动回归**：新增 [runtime-stop-main.test.ts](../../../src/test/runtime/runtime-stop-main.test.ts)，三条用例覆盖 `stopping` 后取消事件、停止 IPC 以 `PROMPT_ABORTED` 拒绝、真实 `PROMPT_FAILED` 保持 `failed`；并钉住终态不覆盖与运行数不增加。聚焦测试与 `run-store.test.ts` 合计 12/12 通过；全量 106 文件通过，1361 passed / 1 skipped / 0 failed；typecheck／build 通过。
+- **真实复验**：真实 Electron + opencode + 火山方舟 `ark-code-latest` 仅执行 AC17 两条人工停止路径，14/14 通过。`abortSession` 的 `msg_132b4e32-c8a6-468d-9bd6-53aa4fe6de76` 与 `runtime.stop` 的 `msg_0b4c9ad5-c3b6-4bb9-973e-f0e7a9bb4768` 均在真实 reasoning + text 流式期间请求停止，采到 `stopping → stopped`，零自动重试，终态及时间戳保持不变。证据见 [修复前后证据索引](../../verification/feature-808-real-ark-ac17-2026-11-27/证据索引.md)、[修复后结果](../../verification/feature-808-real-ark-ac17-2026-11-27/data/t11-1-fixed-result.json) 与 [运行账本](../../verification/feature-808-real-ark-ac17-2026-11-27/data/t11-1-fixed-runs.json)。
+- **收口边界**：不改 `shared/types.ts`，不新增 IPC／preload／MCP／依赖，不改 Gate／重试／项目隔离语义。AC17 同步拒绝与真实异步 Provider 故障、AC18—AC21 和 T11 其余矩阵未执行，需另行授权；不宣告 AC17 整项、T11、P1／P2 通过，不启动 Workflow／Plan 规格扩面。真实 `runtime.stop` 通过直接 `runtime:prompt:async` IPC 隔离取消后的 Composer 状态，不覆盖取消后的 UI 续聊；一张辅助截图因 CDP 超时未取得，已记入结构化结果。
+
 - _（实施期偏离契约/需求的修订记本区；R-001 在一、节预登记，X-002 与后续 R 修订在下文保留。）_
 
 ### X-002 · B-54/B-56：流式多段推理 partId 契约 + 推理/结果交错 timeline（2026-11-01，✅）

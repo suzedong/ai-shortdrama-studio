@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "runs": [
+    {
+      "id": "msg_d29fd96a-7cce-4b97-95c3-006990616a36",
+      "sessionId": "ses_5a94c98b-bf49-40b9-8c71-fbebf58adab0",
+      "opencodeSessionId": "ses_de50e4627ffe1aF1dXFLaKIo3l",
+      "status": "failed",
+      "source": "chat",
+      "provider": "ark",
+      "model": "ark-code-latest",
+      "request": {
+        "text": "请直接逐行输出第 1 段到第 300 段，每行严格使用“第 N 段：abortSession 隔离验收。”这一格式，仅替换 N；不要解释、不要省略、不要调用工具。",
+        "parts": [
+          {
+            "type": "text",
+            "text": "请直接逐行输出第 1 段到第 300 段，每行严格使用“第 N 段：abortSession 隔离验收。”这一格式，仅替换 N；不要解释、不要省略、不要调用工具。"
+          }
+        ],
+        "provider": "ark",
+        "model": "ark-code-latest"
+      },
+      "startedAt": "2026-11-27T02:59:43.126Z",
+      "stopRequestedAt": "2026-11-27T03:00:37.247Z",
+      "endedAt": "2026-11-27T03:00:37.458Z",
+      "error": "消息已被中止",
+      "ledgerCoverage": "seeded-current-user-message"
+    }
+  ]
+}

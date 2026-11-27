@@ -6,7 +6,7 @@
 
 ## 0. 上下文加载清单（工作围栏）
 
-- 事实源：设计书 [短剧Agent平台设计.md](../../../短剧Agent平台设计.md) §7.1（L553–607；R-001 点 L564/L599）、§5（runtime/会话 IPC 表）；Design 形态事实源 [MiniMax Design功能与架构参考.md](../../research/MiniMax%20Design功能与架构参考.md) §1.2/§2.1（L21/L28/L128–142）；[需求规格](./SDG-RE-需求规格.md)、[契约](./SDG-RE-契约.md)、[设计说明](./SDG-OD-设计说明.md)。
+- 事实源：设计书 [短剧Agent平台设计.md](../../../短剧Agent平台设计.md) §7.1（L553–607；R-001 点 L564/L599）、§5（runtime/会话 IPC 表）；Design 形态事实源 [MiniMax Design功能与架构参考.md](../../design/MiniMax%20Design功能与架构参考.md) §1.2/§2.1（L21/L28/L128–142）；[需求规格](./SDG-RE-需求规格.md)、[契约](./SDG-RE-契约.md)、[设计说明](./SDG-OD-设计说明.md)。
 - 既有事实（编码前在围栏内复读，不再扩查）：
   - [shared/types.ts](../../../shared/types.ts) `ProjectSession`（L307–312 四字段；本包唯一 K1 触点）；
   - [client.ts](../../../electron/runtime/client.ts) `SdkHandle.session`（L56–66）、`abortSession`（L122–128 封装先例）、import L18；
@@ -178,3 +178,34 @@
 - [ ] AC17–AC21 的真实 Provider 逐项补验不在本轮；保留既有受控 mock / 自动化证据分级，不据此勾选真实 AC16–AC21 全项通过。
 
 **证据**：[817 / 808 定向补验证据索引](../../verification/feature-817-808-real-provider-recheck-2026-11-26/证据索引.md) · [脱敏结构化摘要](../../verification/feature-817-808-real-provider-recheck-2026-11-26/data/recheck-summary.json)。
+
+### T11 · D-042 后 P1 收口：真实 Ark 的 AC17—AC21 定向补验（2026-11-27，真实 AC17 阻断，扩面暂停）
+
+- **范围**：复用 2026-11-26 真实 AC16 驱动、Electron CDP 和 `scripts/verify-runtime-interruption.cjs` 的故障注入／清理方法；不重新实现 RunStore、Gate、恢复卡或人工重试，不改 `shared/types.ts`、IPC、preload、MCP 和依赖。
+- **环境与证据分级**：每轮使用隔离 `HOME`／`userData`／workspace 和 `project-accept-runtime-*` 合成项目；从用户 AI 服务配置克隆真实火山方舟配置，真实模型保持 `ark-code-latest`，不落 Key 或密文。归档只含脱敏 JSON、必要截图和日志摘要；真实项标记 `real-electron-real-opencode-real-ark`，mock 结论只作既有受控对照。
+- **通用判据**：失败必须保留最小复现、现场与账本，不即时修改产品代码；真实环境不能安全产生的故障保留 T9 受控结论并标为真实环境未覆盖，不以单元测试、TypeScript 路径或 `mock/mock-1` 冒充真实通过。
+
+| 验收项 | 定向操作 | 通过判据与本轮证据 |
+| --- | --- | --- |
+| AC17 · 六态与迁移 | 在真实运行时依次做正常短回答、活跃生成中 `abortSession`、活跃生成中 `runtime.stop`、遗留活跃账本冷启动；另以非法请求验证同步拒绝。异步 Provider 错误优先复用可重复的真实失败，无法安全制造则标未覆盖。 | 分别核对 `completed`、`stopping→stopped`、`stopped`、`interrupted`；同步拒绝不留下半条运行。迟到 idle/error 不覆盖终态。异步错误只有真实 `failed` 证据才记真实通过。 |
+| AC18 · 中断恢复 | 真实 Ark 生成已有正文／推理／工具轨迹且运行仍活跃时 SIGKILL Electron，清理其隔离 opencode 子进程后冷启动；读取同一 opencode 消息、运行账本和画布。OptionCard／pending Gate 若使用合成画布夹具，必须单列夹具来源，不声称由真实模型生成。 | 用户与 assistant 消息、正文／推理／工具状态、OptionCard、pending Gate 和已落盘产物按实际存在项恢复；无自动重试、代选或代决，遗留工具不显示仍在执行。普通恢复卡不错误套用孤儿文案。 |
+| AC19 · 孤儿与旧历史 | 在隔离合成项目账本中加入无对应用户消息的 `running` 记录，冷启动对账；另保留一段账本外真实 opencode 历史作对照。 | 孤儿记录转为 `interrupted`，追加“提交结果未知”人工恢复卡且不伪造用户气泡；账本外历史只按历史回放，不伪装中断。夹具与真实生成记录分别记名。 |
+| AC20 · 人工重试 | 未点击时观察请求与运行数；通过真实 IPC 验证非法状态、非当前绑定会话、pending Gate 和活跃并发拒绝。Gate 人工处理后双击恢复按钮，只提交一次真实 Ark 重试并等待完成。 | 未点击零自动重试；拒绝分支无新运行。成功重试生成不同真实用户 `messageID` 与 `retryOfMessageId`，UI 血缘可见；旧运行保持 `interrupted`，仅新运行进入终态，无双提交。 |
+| AC21 · 降级、真实 ID 与隔离 | 正常发送核对真实用户消息 ID／run ID 关联，并在两个合成项目／会话间切换；保留损坏账本副本后注入 malformed JSON 冷启动，比较损坏前后字节。 | 乐观项最终由真实 messageID 替换，历史与 run 不串项目／会话；`runs` 查询失败不阻断消息与产物回放，损坏账本不被覆盖或重置。瞬时乐观 ID 替换若无真实 DOM 证据，只保留受控结论并明确标注。 |
+
+- **完成标准**：形成独立证据索引与逐项 AC17—AC21 矩阵；各项只能是“真实通过／受控通过但真实未覆盖／失败”，不得笼统写全量通过。产品无缺陷时只回流证据和任务状态；发现缺陷则暂停扩面并另提最小修复 Change。
+- **实测回流（2026-11-27）**：第一轮真实 Ark 正常完成、生成中 SIGKILL、冷启动 `interrupted`、消息恢复、零自动重试与人工重试链路 19/19 通过；该结果不覆盖 AC17 两种显式停止路径。第二轮 AC17 `abortSession` 已在真实 `running` 且该 run 后 assistant 流式 `parts=70` 字时发起，实际采到 `stopping`，但最终为 `failed`（`消息已被中止`），不是 `stopped`，故 **AC17 真实子项失败**。
+- **未执行项**：首个真实产品断言失败后立即停止本轮矩阵；AC17 `runtime.stop`／同步拒绝及 AC18—AC21 后续真实子项均未执行，不能记为通过或失败。既有 T9 受控故障、OptionCard／工具轨迹和瞬时乐观 ID 结论不升级为真实通过。
+- **隔离偏离**：macOS `safeStorage` 需要系统 `HOME`／钥匙链解密既有密文；本轮据此保留系统 `HOME`，Electron `userData`、opencode `XDG_DATA_HOME`、workspace 与项目消息库仍隔离。该例外已写入证据，不声称独立 HOME。
+- **证据与处置**：[AC17 真实失败证据索引](../../verification/feature-808-real-ark-ac17-2026-11-27/证据索引.md) · [脱敏摘要](../../verification/feature-808-real-ark-ac17-2026-11-27/data/recheck-summary.json) · [失败运行账本](../../verification/feature-808-real-ark-ac17-2026-11-27/data/abort-run.json)。未修改产品代码，后续规格扩面暂停。
+
+### T11.1 · AC17 人工停止中止事件终态最小修复（已实施，定向复验通过）
+
+- **目标**：只让真实实现重新符合既有 AC17，不修改需求。人工 `abortSession`／`runtime.stop` 已请求停止后，可观察 `stopping`，由取消引发的 `Aborted`／“消息已被中止”及迟到事件必须收敛为 `stopped`；真实 Provider 故障仍须保持 `failed`，不得一概吞错。
+- **实施**：在 `electron/main.ts` 做双点最小修复：运行事件桥仅在账本为 `stopping` 且错误码为 `PROMPT_ABORTED` 时推进 `stopped`；停止 IPC `catch` 仅在拒绝名为 `PROMPT_ABORTED` 时推进 `stopped`，其余错误仍为 `failed`。`AgentRunStore` 沿用既有终态锁定，不修改状态机。
+- **自动回归**：新增 `src/test/runtime/runtime-stop-main.test.ts` 三条竞争用例，覆盖事件桥取消、停止 IPC 取消拒绝及真实 `PROMPT_FAILED` 对照；与 `run-store.test.ts` 合计 12/12 通过。全量 `npm run test:run` 为 106 文件通过、1361 passed / 1 skipped / 0 failed；`npm run typecheck` 与 `npm run build` 均通过，build 仅保留既有 chunk-size 警告。
+- **真实复验**：真实 Electron + opencode + 火山方舟 `ark-code-latest` 的 `--ac17-only` 复验 14/14 通过。`abortSession` 运行 `msg_132b4e32-c8a6-468d-9bd6-53aa4fe6de76` 与 `runtime.stop` 运行 `msg_0b4c9ad5-c3b6-4bb9-973e-f0e7a9bb4768` 均在真实 reasoning + text 流式期间从 `running` 请求停止，观察到 `stopping → stopped`；零自动重试，终态及时间戳不被迟到事件覆盖。
+- **证据**：[修复前后证据索引](../../verification/feature-808-real-ark-ac17-2026-11-27/证据索引.md) · [修复后结构化结果](../../verification/feature-808-real-ark-ac17-2026-11-27/data/t11-1-fixed-result.json) · [两条修复后运行账本](../../verification/feature-808-real-ark-ac17-2026-11-27/data/t11-1-fixed-runs.json)。
+- **边界**：不改 `shared/types.ts`，不新增 IPC／preload／MCP／依赖，不改 Gate／重试／项目隔离语义。本轮只关闭 T11.1 两条人工停止缺陷；AC17 同步拒绝与真实异步 Provider 故障、AC18—AC21 及 T11 其余矩阵未执行，不能宣告 AC17 整项、T11、P1 或 P2 通过。`runtime.stop` 使用直接 `runtime:prompt:async` IPC 隔离取消后的 Composer 状态，不据此宣称取消后的 UI 续聊已验证；`02-runtime-stopped.png` 辅助截图因 CDP 超时未取得，不影响功能断言。
+
+- **后续规格准备**：真实补验收口后，才在本包登记 `drama-series` Workflow Definition、Plan／Stage／Work Item、Run／Attempt、幂等／重试／Replan／恢复及 Session／Run 映射的规格基线；规格登记不授权新增执行器或 IPC。当前 T11 尚未收口，后续规格准备未启动。

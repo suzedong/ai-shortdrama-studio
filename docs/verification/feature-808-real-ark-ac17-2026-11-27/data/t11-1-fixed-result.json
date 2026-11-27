@@ -1,0 +1,253 @@
+{
+  "feature": "808",
+  "date": "2026-11-27",
+  "stamp": "2026-11-27T04-01-04-284Z",
+  "status": "passed-ac17-only",
+  "mode": "ac17-only",
+  "evidenceClass": "real-electron-real-opencode-real-ark-with-named-local-fixtures",
+  "sourceEvidence": ".test-tmp/feature-808-real-provider-recheck/2026-11-27T02-00-52-141Z",
+  "isolation": {
+    "userData": true,
+    "home": false,
+    "homeReason": "macOS 系统钥匙链沿用真实 HOME；opencode XDG_DATA_HOME 与项目消息库仍指向隔离 userData。",
+    "workspace": true,
+    "sourceCloned": true
+  },
+  "checks": [
+    {
+      "name": "源证据含正常完成与 SIGKILL 中断运行",
+      "passed": true,
+      "detail": {
+        "legacyRunId": "msg_843665cc-af7c-42f1-8ae0-311b7cb6c058",
+        "interruptedRunId": "msg_4df39bba-547f-45a8-87c1-b8710f54f34a"
+      }
+    },
+    {
+      "name": "stop-and-reject: 仅克隆真实 Ark 配置",
+      "passed": true,
+      "detail": {
+        "keyConfigured": true,
+        "credentialSource": "store",
+        "model": "ark-code-latest"
+      }
+    },
+    {
+      "name": "stop-and-reject: 真实 opencode 就绪",
+      "passed": true,
+      "detail": {
+        "state": "running",
+        "healthy": true
+      }
+    },
+    {
+      "name": "ac17-empty-session: 仅克隆真实 Ark 配置",
+      "passed": true,
+      "detail": {
+        "keyConfigured": true,
+        "credentialSource": "store",
+        "model": "ark-code-latest"
+      }
+    },
+    {
+      "name": "ac17-empty-session: 真实 opencode 就绪",
+      "passed": true,
+      "detail": {
+        "state": "running",
+        "healthy": true
+      }
+    },
+    {
+      "name": "abortSession 请求无意外错误",
+      "passed": true,
+      "detail": {
+        "ok": true,
+        "value": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "AC17 abortSession 最终 stopped",
+      "passed": true,
+      "detail": {
+        "id": "msg_132b4e32-c8a6-468d-9bd6-53aa4fe6de76",
+        "status": "stopped",
+        "timeline": [
+          "stopping",
+          "stopped"
+        ]
+      }
+    },
+    {
+      "name": "AC17 abortSession 可观察 stopping 迁移",
+      "passed": true,
+      "detail": {
+        "timeline": [
+          "stopping",
+          "stopped"
+        ]
+      }
+    },
+    {
+      "name": "abortSession 终态不被迟到事件覆盖",
+      "passed": true,
+      "detail": {
+        "status": "stopped",
+        "unchanged": true
+      }
+    },
+    {
+      "name": "abortSession 零自动重试",
+      "passed": true,
+      "detail": {
+        "newRuns": [
+          {
+            "id": "msg_132b4e32-c8a6-468d-9bd6-53aa4fe6de76"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AC17 runtime.stop 停止运行时与活跃 run",
+      "passed": true,
+      "detail": {
+        "runtime": "stopped",
+        "run": "stopped",
+        "outcome": {
+          "ok": true,
+          "value": {
+            "state": "stopped",
+            "port": null,
+            "version": null,
+            "healthy": false,
+            "startedAt": null,
+            "error": null
+          }
+        }
+      }
+    },
+    {
+      "name": "AC17 runtime.stop 可观察 stopping 迁移",
+      "passed": true,
+      "detail": {
+        "timeline": [
+          "stopping",
+          "stopped"
+        ]
+      }
+    },
+    {
+      "name": "runtime.stop 终态不被迟到事件覆盖",
+      "passed": true,
+      "detail": {
+        "status": "stopped",
+        "unchanged": true
+      }
+    },
+    {
+      "name": "runtime.stop 零自动重试",
+      "passed": true,
+      "detail": {
+        "newRuns": [
+          {
+            "id": "msg_0b4c9ad5-c3b6-4bb9-973e-f0e7a9bb4768"
+          }
+        ]
+      }
+    }
+  ],
+  "fixtures": [],
+  "coverageLimits": [
+    "真实 Ark 异步 Provider 故障未安全注入；沿用 T9 受控 failed 证据，真实项未覆盖。",
+    "OptionCard 与工具轨迹的真实模型生成不在本轮重复诱导；沿用第一轮真实文本恢复及 T9 受控证据。",
+    "乐观 messageID 的瞬时 DOM 替换未采集；本轮核对真实 ID 关联与跨项目隔离，瞬时替换保留受控结论。",
+    "macOS safeStorage 需要系统 HOME／钥匙链读取既有密文；未伪造独立 HOME，Electron userData、opencode XDG_DATA_HOME、workspace 与项目数据均隔离。"
+  ],
+  "context": {
+    "syntheticProject": true,
+    "sourceSessionPreserved": true
+  },
+  "credentialPreparation": {
+    "method": "clone-existing-safeStorage-ciphertext",
+    "plaintextLogged": false,
+    "plaintextAccessed": false,
+    "source": "first-pass-real-evidence-store"
+  },
+  "lineage": {
+    "legacyRunId": "msg_843665cc-af7c-42f1-8ae0-311b7cb6c058",
+    "interruptedRunId": "msg_4df39bba-547f-45a8-87c1-b8710f54f34a"
+  },
+  "ac17SessionId": "ses_de4d5f9feffeCblZyG7sQhVrmz",
+  "abortRunId": "msg_132b4e32-c8a6-468d-9bd6-53aa4fe6de76",
+  "streamObservations": [
+    {
+      "label": "abortSession 前已有真实流式内容",
+      "runId": "msg_132b4e32-c8a6-468d-9bd6-53aa4fe6de76",
+      "busy": true,
+      "messageStreamChars": 1754,
+      "streamChars": 1754,
+      "streamPartTypes": [
+        "reasoning",
+        "text"
+      ],
+      "peakMessageStreamChars": 1754,
+      "status": "running"
+    },
+    {
+      "label": "runtime.stop 前已有真实流式内容",
+      "runId": "msg_0b4c9ad5-c3b6-4bb9-973e-f0e7a9bb4768",
+      "accepted": {
+        "accepted": true,
+        "messageId": "msg_0b4c9ad5-c3b6-4bb9-973e-f0e7a9bb4768"
+      },
+      "busy": false,
+      "messageStreamChars": 985,
+      "streamChars": 985,
+      "streamPartTypes": [
+        "reasoning",
+        "text"
+      ],
+      "peakMessageStreamChars": 985,
+      "status": "running"
+    }
+  ],
+  "abortOutcome": {
+    "ok": true,
+    "value": {
+      "ok": true
+    }
+  },
+  "abortTimeline": [
+    "stopping",
+    "stopped"
+  ],
+  "stopSessionId": "ses_de4d59aeeffe22Fv3yDVwgnyp1",
+  "stopRunId": "msg_0b4c9ad5-c3b6-4bb9-973e-f0e7a9bb4768",
+  "runtimeStopPromptPath": "runtime:prompt:async IPC（隔离取消后的 Composer 状态）",
+  "stopOutcome": {
+    "ok": true,
+    "value": {
+      "state": "stopped",
+      "port": null,
+      "version": null,
+      "healthy": false,
+      "startedAt": null,
+      "error": null
+    }
+  },
+  "stopTimeline": [
+    "stopping",
+    "stopped"
+  ],
+  "screenshotFailures": [
+    {
+      "name": "02-runtime-stopped.png",
+      "error": "CDP Page.captureScreenshot 超时"
+    }
+  ],
+  "summary": {
+    "passedChecks": 14,
+    "failedChecks": 0,
+    "scope": "仅复验 abortSession 与 runtime.stop；未执行同步拒绝、恢复夹具或 AC18-AC21。"
+  }
+}

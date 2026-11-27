@@ -1,0 +1,82 @@
+{
+  "feature": "808",
+  "date": "2026-11-27",
+  "status": "failed-product-check",
+  "failedAcceptance": "AC17 / abortSession",
+  "evidenceClass": "real-electron-real-opencode-real-ark",
+  "provider": "ark",
+  "model": "ark-code-latest",
+  "baseUrl": "https://ark.cn-beijing.volces.com/api/plan/v3",
+  "credentialSource": "store",
+  "sourceEvidence": ".test-tmp/feature-808-real-provider-recheck/2026-11-27T02-00-52-141Z",
+  "isolation": {
+    "syntheticProject": true,
+    "sourceCloned": true,
+    "userData": true,
+    "opencodeDataHome": true,
+    "workspace": true,
+    "home": false,
+    "homeReason": "macOS safeStorage 沿用系统 HOME／钥匙链；不读取或归档真实用户项目与消息库。"
+  },
+  "reproduction": {
+    "session": "new-empty-session",
+    "runId": "msg_d29fd96a-7cce-4b97-95c3-006990616a36",
+    "prompt": "请直接逐行输出第 1 段到第 300 段，每行严格使用“第 N 段：abortSession 隔离验收。”这一格式，仅替换 N；不要解释、不要省略、不要调用工具。",
+    "beforeStop": {
+      "busy": true,
+      "status": "running",
+      "messageStreamChars": 70,
+      "domStreamChars": 0
+    },
+    "operation": "window.api.runtime.abortSession(sessionId)",
+    "expectedFinalStatus": "stopped",
+    "observedTimeline": [
+      "running",
+      "stopping",
+      "failed"
+    ],
+    "actualFinalStatus": "failed",
+    "actualError": "消息已被中止"
+  },
+  "checks": [
+    {
+      "name": "源证据含正常完成与 SIGKILL 中断运行",
+      "passed": true
+    },
+    {
+      "name": "仅克隆真实 Ark 加密配置且来源为 store",
+      "passed": true
+    },
+    {
+      "name": "真实 opencode 就绪",
+      "passed": true
+    },
+    {
+      "name": "AC17 abortSession 前已有真实流式正文",
+      "passed": true,
+      "detail": "busy=true；run=running；该 run 后真实 assistant message parts=70 字。"
+    },
+    {
+      "name": "AC17 abortSession 可观察 stopping 迁移",
+      "passed": true,
+      "detail": "实际采样 stopping。"
+    },
+    {
+      "name": "AC17 abortSession 返回且 idle 时账本为 stopped",
+      "passed": false,
+      "detail": "实际为 failed：消息已被中止。"
+    }
+  ],
+  "notExecutedAfterFailure": [
+    "AC17 runtime.stop 真实子项",
+    "AC17 同步拒绝与零半条运行",
+    "AC18 真实补验矩阵",
+    "AC19 真实补验矩阵",
+    "AC20 真实补验矩阵",
+    "AC21 真实补验矩阵"
+  ],
+  "productCodeChanged": false,
+  "expansionPaused": true,
+  "p1OrP2Passed": false,
+  "sensitiveArtifactsArchived": false
+}

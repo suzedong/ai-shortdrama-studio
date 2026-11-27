@@ -4,7 +4,7 @@
 >
 > **通道口径以[契约 §0/§5](./SDG-RE-契约.md) 为准（D-004 + D-005 收敛）**：绑定读写为**一个双态 IPC `project:active-session`**（无参读当前绑定 / `{sessionId}` 写），回放读为 `runtime:session:messages`；`project:open` 返回值携带 `activeSessionId`。本规格正文中早期写法「`project:bind-session` 只写、绑定仅来自 openProject 返回值」已被契约 D-004 取代（原因：应用启动经 canvas.get 恢复上次项目、不经 openProject，须有读绑定通道）。**D-005**：preload 中该双态方法在 `window.api` **顶层**暴露为 `activeSession(sessionId?)`（既有项目库方法均在顶层，无 project 命名空间）；IPC channel 名 `project:active-session` 不变。
 >
-> 事实源：[短剧Agent平台设计.md](../../../短剧Agent平台设计.md) §7.1（L553–607，会话数据目录；**L564 / L599 原定 `chat.messages.json` 为消息流唯一事实源，本包走 R-001 修订**）、§5（runtime/会话 IPC 表）；Design 形态事实源 [MiniMax Design功能与架构参考.md](../../research/MiniMax%20Design功能与架构参考.md) §1.2 入口 4（L28「历史项目继续编辑」）、§1.1（L21 左栏项目管理）、§2.1（L128–142，@hilo/hub = Electron + 标准 opencode）。
+> 事实源：[短剧Agent平台设计.md](../../../短剧Agent平台设计.md) §7.1（L553–607，会话数据目录；**L564 / L599 原定 `chat.messages.json` 为消息流唯一事实源，本包走 R-001 修订**）、§5（runtime/会话 IPC 表）；Design 形态事实源 [MiniMax Design功能与架构参考.md](../../design/MiniMax%20Design功能与架构参考.md) §1.2 入口 4（L28「历史项目继续编辑」）、§1.1（L21 左栏项目管理）、§2.1（L128–142，@hilo/hub = Electron + 标准 opencode）。
 >
 > 前置已闭环：runtime 单轨（`electron/runtime/*`，opencode serve + SDK 客户端、SSE 六类事件投影、12 错误码）；项目库（`electron/project/library.ts`，`.session.json` 四字段 + 写队列）；feature-003（右栏 ChatComposer 已真实化、流式定稿落文本气泡）。
 >

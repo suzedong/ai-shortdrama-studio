@@ -1,0 +1,32 @@
+[
+  {
+    "id": "msg_132b4e32-c8a6-468d-9bd6-53aa4fe6de76",
+    "sessionId": "ses_de4d5f9feffeCblZyG7sQhVrmz",
+    "request": {
+      "sessionId": "ses_de4d5f9feffeCblZyG7sQhVrmz",
+      "text": "请直接从 1 开始逐行输出连续整数，直到 1000；每行只有数字，不要解释、不要省略、不要调用工具。",
+      "agent": "showrunner",
+      "model": {
+        "providerID": "ark",
+        "modelID": "ark-code-latest"
+      }
+    },
+    "status": "stopped",
+    "createdAt": "2026-11-27T04:01:10.800Z",
+    "updatedAt": "2026-11-27T04:01:29.562Z",
+    "endedAt": "2026-11-27T04:01:29.562Z"
+  },
+  {
+    "id": "msg_0b4c9ad5-c3b6-4bb9-973e-f0e7a9bb4768",
+    "sessionId": "ses_de4d59aeeffe22Fv3yDVwgnyp1",
+    "request": {
+      "sessionId": "ses_de4d59aeeffe22Fv3yDVwgnyp1",
+      "text": "请直接从 1 开始逐行输出连续整数，直到 1000；每行只有数字，不要解释、不要省略、不要调用工具。",
+      "agent": "showrunner"
+    },
+    "status": "stopped",
+    "createdAt": "2026-11-27T04:01:32.958Z",
+    "updatedAt": "2026-11-27T04:01:45.347Z",
+    "endedAt": "2026-11-27T04:01:45.347Z"
+  }
+]

@@ -118,7 +118,8 @@ ai-shortdrama-studio/
 
 - [短剧Agent平台设计.md](./短剧Agent平台设计.md) —— 产品与架构事实源（含 §7.1 数据血缘 / §5 运行时与工具族）
 - [docs/design/短剧Agent平台设计.html](./docs/design/短剧Agent平台设计.html) —— 设计书人读镜像（信息图版）
-- [docs/design/平台全景图.html](./docs/design/平台全景图.html) —— 唯一人读入口（概览）
+- [docs/design/短剧Agent平台总览.html](./docs/design/短剧Agent平台总览.html) —— 本项目总览：要做什么、怎么做、做到哪、如何落地
+- [docs/design/MiniMax Design总览.html](./docs/design/MiniMax%20Design总览.html) —— 参考端总览：它怎么做、与本项目有什么区别
 - [docs/design/短剧Agent平台-原型.html](./docs/design/短剧Agent平台-原型.html) —— 高保真界面原型
 - [docs/设计现状与偏差清单.md](./docs/设计现状与偏差清单.md) —— 当前未闭环的设计 ↔ 实现偏差（开发导航）
 - [docs/governance/SDG-AI-决策台账.md](./docs/governance/SDG-AI-决策台账.md) —— 立项级决策（永久保留）

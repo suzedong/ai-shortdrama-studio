@@ -604,7 +604,12 @@ async function updateRunFromEvent(event: RuntimeEvent): Promise<void> {
     await store.transition(active.id, active.status === 'stopping' ? 'stopped' : 'completed')
     return
   }
-  await store.transition(active.id, 'failed', event.error.message)
+  const stoppedByPromptAbort = active.status === 'stopping' && event.error.code === 'PROMPT_ABORTED'
+  await store.transition(
+    active.id,
+    stoppedByPromptAbort ? 'stopped' : 'failed',
+    stoppedByPromptAbort ? undefined : event.error.message,
+  )
 }
 
 /** 订阅窗口：webContents.id → 窗口引用 + 可选 sessionId 过滤（契约 §3.2 规则①） */
@@ -959,7 +964,14 @@ ipcMain.handle('runtime:session:abort', (_e, sessionId: unknown) =>
       if (store && active) await store.transition(active.id, 'stopped')
       return result
     } catch (error) {
-      if (store && active) await store.transition(active.id, 'failed', errorText(error))
+      if (store && active) {
+        const stoppedByPromptAbort = error instanceof Error && error.name === 'PROMPT_ABORTED'
+        await store.transition(
+          active.id,
+          stoppedByPromptAbort ? 'stopped' : 'failed',
+          stoppedByPromptAbort ? undefined : errorText(error),
+        )
+      }
       throw error
     }
   }),

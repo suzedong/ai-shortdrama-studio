@@ -12,7 +12,7 @@
 ## 上下文加载清单
 
 - [x] AGENTS.md、docs/governance/AI-SDG-AI工具执行指令.md。
-- [x] 短剧Agent平台设计.md §4 P1 收口、docs/research/MiniMax Design全面复刻开发计划.md。
+- [x] 短剧Agent平台设计.md §4 P1 收口、docs/design/MiniMax Design全面复刻开发计划.md。
 - [x] docs/design/MiniMax Design Parity影响矩阵.md §1.2/§1.3、docs/governance/SDG-AI-决策台账-2026.md D-035/D-036。
 - [x] feature-823 五文件中的需求/契约/设计，feature-822 引用附件边界。
 - [x] shared/types.ts、electron/canvas/store.ts、src/studio/canvas/CanvasBoard.tsx、src/dev-mock-api.ts 及相关测试。

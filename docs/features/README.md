@@ -1,6 +1,6 @@
 # 任务包索引（Feature → Change）
 
-> 更新：2026-11-20（D-040 历史归档清理后的现行入口）。本索引只回答“模块由谁负责、历史来自哪里、当前状态是什么、从哪里进入代码与任务包”。
+> 更新：2026-11-27（新增 P3 前置规格入口；D-040 历史归档清理后的现行归属不变）。本索引只回答“模块由谁负责、历史来自哪里、当前状态是什么、从哪里进入代码与任务包”。
 >
 > **共 24 个目录，全部为现行负责包，不再保留历史归档目录。**D-039 已删除 21 个历史归档目录，D-040 继续删除 826；共 22 个历史目录的原始规格、FAIL、测试证据与验收结论仅从 Git 历史追溯，不改写历史记录。
 >
@@ -22,7 +22,7 @@
 | 视觉风格谱系 | [feature-802 · 视觉风格谱系接入](./feature-802-视觉风格谱系接入/) | 810 / 811 / 815 / 826 的谱系升级、真实 store、媒体元数据与 v1.47 基线 | ✅ 谱系接入已落地；历史 B-70 已闭环，不据此宣称 P1 / Parity 通过 | `electron/style/`；`resources/H3-Style/`；`src/studio/style/VisualCatalog.tsx` |
 | ComfyUI 统一媒体引擎 | [feature-803 · ComfyUI 统一媒体引擎](./feature-803-ComfyUI统一媒体引擎/) | — | ⚠️ H3 API 级链路已验；应用内第二实例、禁用拒绝、恢复、资产 UI 与并发隔离仍待应用内验收，直连 API 证据不替代 | `electron/comfy/`；`src/studio/shell/AiServicePanel.tsx` |
 | Harness 与门联动 | [feature-806 · Harness 基础校验与确认门全链路](./feature-806-Harness基础校验与确认门全链路/) | — | ✅ 批一完成；后续批次另批。与 801 独立，不合并 | `electron/harness/`；`src/studio/chat/GateCardView.tsx` |
-| 会话续聊与运行时数据 | [feature-808 · 会话续聊](./feature-808-会话续聊（项目会话绑定与历史回放）/) | 819 的 runtime 模板路径；010 的 reasoning / 历史回放数据 | ✅ 既有专项完成；与 817 的数据 / 视觉边界独立，不合并 | `electron/runtime/`；`electron/project/library.ts`；`src/studio/` |
+| 会话续聊与运行时数据 | [feature-808 · 会话续聊](./feature-808-会话续聊（项目会话绑定与历史回放）/) | 819 的 runtime 模板路径；010 的 reasoning / 历史回放数据 | ✅ 既有专项完成；与 817 的数据 / 视觉边界独立，不合并；2026-11-27 新增 [P3 通用编排前置规格](./feature-808-会话续聊（项目会话绑定与历史回放）/SDG-RE-契约.md#11-d-041--d-042-通用编排目标契约2026-11-27仅规格准备)，仅规格准备、实施未授权 | `electron/runtime/`；`electron/project/library.ts`；`src/studio/` |
 | 工作目录 | [feature-813 · 工作目录更换](./feature-813-工作目录更换/) | — | ✅ 独立负责；不承接 812 的无项目入口 | `electron/settings/workspace.ts`；`src/studio/shell/WorkspacePanel.tsx` |
 | H3 Image 生产迁移 | [feature-816 · H3 图像通道迁移](./feature-816-H3图像通道迁移/) | — | ✅ H3 Image 迁移已完成；不等于 803 的统一媒体引擎全部验收，两包不合并 | `electron/comfy/`；`resources/ComfyUI/` |
 | 主题与对话视觉 | [feature-817 · 全局双主题与对话形态对齐](./feature-817-全局双主题与对话形态对齐/) | 809 的活跃动画 / 120px 滚动 / 交错展示；010 的视觉形态 | ⚠️ 真实 AI runtime、OptionCard、任务详情与 Gate 现场尚未全闭环 | `src/studio/chat/ChatComposer.tsx`；`src/studio/shell/StudioApp.tsx`；`src/index.css` |

@@ -1,6 +1,6 @@
 # feature-803 · ComfyUI 统一媒体引擎 — 设计说明
 
-> **版本**：v1.0（2026-11-14）｜**状态**：实施中
+> **版本**：v1.1（2026-11-27）｜**状态**：实施中；现行媒体通道按 D-033 归一
 
 ## 1. 模块关系
 
@@ -40,7 +40,7 @@ renderer 不持有 ComfyUI fetch，MCP 不接触设置文件或资产索引细�
 - manifest 与 API JSON 分离：清单决定公开参数到节点的唯一映射，API JSON 是节点图。
 - 加载时深拷贝，输入校验后逐键赋值；未映射节点、class_type 和其他 input 不改。
 - 只允许清单内相对 `.json` 文件，resolve 后必须仍在工作流目录。
-- 当前生产 manifest 的 workflows 为空。测试夹具提供完整 API Format，不代表真机生产映射。
+- 当前生产 manifest 仅注册 H3 Image，公开输入与 graph 映射以 feature-816 契约为准；视频 H3 与音乐 Music3 尚未注册生产工作流。测试夹具不得冒充真机生产映射。
 
 ## 5. 作业与幂等
 

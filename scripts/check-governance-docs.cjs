@@ -447,9 +447,160 @@ function checkAgents(root, errors) {
   }
 }
 
+const RETIRED_MIRROR_PATTERN = /短剧Agent平台设计\.html|平台全景图\.html/
+const RETIRED_MIRROR_ALLOW = /已删除|删除|已废止|不再维护|不恢复|不补建|当前不存在|退场/
+const LINE_ANCHOR_PATTERN = /^L\d+(?:[-–]L?\d+)?$/
+
+function walkFiles(root, relativeDirectory, filter, output) {
+  const absolute = path.join(root, relativeDirectory)
+  if (!fs.existsSync(absolute)) return
+  for (const entry of fs.readdirSync(absolute, { withFileTypes: true })) {
+    if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue
+    const relative = `${relativeDirectory}/${entry.name}`
+    if (entry.isDirectory()) walkFiles(root, relative, filter, output)
+    else if (filter(entry.name)) output.push(relative)
+  }
+}
+
+function navigationDocuments(root) {
+  const documents = new Set([
+    'README.md',
+    'docs/README.md',
+    'AGENTS.md',
+    '短剧Agent平台设计.md',
+    'docs/features/README.md',
+  ])
+  const designRoot = path.join(root, 'docs/design')
+  if (fs.existsSync(designRoot)) {
+    for (const entry of fs.readdirSync(designRoot, { withFileTypes: true })) {
+      if (entry.isFile() && /\.(md|html)$/i.test(entry.name)) documents.add(`docs/design/${entry.name}`)
+    }
+  }
+  const diagramFiles = []
+  walkFiles(root, 'docs/design/diagrams', (name) => /\.html$/i.test(name), diagramFiles)
+  for (const file of diagramFiles) documents.add(file)
+  return [...documents].filter((relative) => fs.existsSync(path.join(root, relative))).sort()
+}
+
+function activeDocuments(root, directories) {
+  const documents = new Set(navigationDocuments(root))
+  for (const directory of directories) {
+    for (const file of ['SDG-RE-需求规格.md', 'SDG-RE-契约.md', 'SDG-OD-设计说明.md', 'SDG-RE-任务清单.md']) {
+      const relative = `docs/features/${directory}/${file}`
+      if (fs.existsSync(path.join(root, relative))) documents.add(relative)
+    }
+  }
+  return [...documents].filter((relative) => fs.existsSync(path.join(root, relative))).sort()
+}
+
+function scanLinks(text) {
+  const links = []
+  for (const match of text.matchAll(/!?\[[^\]]*\]\(([^)]+)\)/g)) links.push({ target: match[1], index: match.index })
+  for (const match of text.matchAll(/\b(?:href|src)\s*=\s*["']([^"']+)["']/gi)) links.push({ target: match[1], index: match.index })
+  return links
+}
+
+function splitLinkTarget(raw) {
+  const trimmed = raw.trim().split(/\s+["']/)[0].replace(/^<|>$/g, '')
+  const hashIndex = trimmed.indexOf('#')
+  const beforeHash = hashIndex >= 0 ? trimmed.slice(0, hashIndex) : trimmed
+  const fragment = hashIndex >= 0 ? trimmed.slice(hashIndex + 1) : ''
+  const queryIndex = beforeHash.indexOf('?')
+  return {
+    pathPart: queryIndex >= 0 ? beforeHash.slice(0, queryIndex) : beforeHash,
+    fragment,
+  }
+}
+
+function isExternalLink(value) {
+  return !value || value.startsWith('#') || /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(value)
+}
+
+function htmlAnchors(text) {
+  const anchors = new Set()
+  for (const match of text.matchAll(/\b(?:id|name)\s*=\s*["']([^"']+)["']/gi)) anchors.add(match[1])
+  return anchors
+}
+
+function checkLocalLinks(root, relative, text, rule, errors, stats) {
+  const isHtml = relative.endsWith('.html')
+  const linkText = isHtml ? text.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '') : text
+  const anchors = isHtml ? htmlAnchors(linkText) : markdownAnchors(text)
+  for (const link of scanLinks(linkText)) {
+    const raw = link.target.trim()
+    if (isExternalLink(raw)) continue
+    const { pathPart, fragment } = splitLinkTarget(raw)
+    if (!pathPart) {
+      if (fragment && !LINE_ANCHOR_PATTERN.test(fragment) && !anchors.has(fragment)) {
+        errors.push({ rule, path: relative, line: lineAt(text, link.index), message: `页内锚点无法解析：${raw}` })
+      }
+      continue
+    }
+    const absolute = path.resolve(path.dirname(path.join(root, relative)), safeDecode(pathPart))
+    stats.activeLinks += 1
+    if (!fs.existsSync(absolute)) {
+      errors.push({ rule, path: relative, line: lineAt(text, link.index), message: `链接目标不存在：${raw}` })
+    }
+  }
+}
+
+function checkHtmlDocuments(root, errors, stats) {
+  const rule = 'C-DOC8'
+  const files = []
+  walkFiles(root, 'docs/design', (name) => /\.html$/i.test(name), files)
+  let checked = 0
+  for (const relative of files.sort()) {
+    const text = readRequired(root, relative, rule, errors)
+    if (text === null) continue
+    checked += 1
+    if (!/<html[\s>]/i.test(text)) errors.push({ rule, path: relative, line: 1, message: '缺少 <html> 根元素' })
+    if (!/<\/html>/i.test(text)) errors.push({ rule, path: relative, line: 1, message: '缺少 </html> 结束标签' })
+    if (!/<meta[^>]+charset\s*=/i.test(text)) errors.push({ rule, path: relative, line: 1, message: '缺少 charset 声明' })
+    checkLocalLinks(root, relative, text, rule, errors, stats)
+  }
+  return checked
+}
+
+// C-DOC9 只覆盖导航与设计文档：Feature 包内的源码引用会随重构移动，避免把实施细节误报为文档失效。
+// C-DOC10 单独扫描 Feature 现行规格，只拦“已退场镜像”的现行引用，历史 Change 记录不在范围内。
+function checkActiveMarkdownLinks(root, errors, stats) {
+  const rule = 'C-DOC9'
+  const documents = navigationDocuments(root).filter((relative) => relative.endsWith('.md'))
+  for (const relative of documents) {
+    const text = readRequired(root, relative, rule, errors)
+    if (text !== null) checkLocalLinks(root, relative, text, rule, errors, stats)
+  }
+  return documents.length
+}
+
+function checkRetiredMirrors(root, directories, errors) {
+  const rule = 'C-DOC10'
+  let references = 0
+  for (const relative of activeDocuments(root, directories)) {
+    const text = readRequired(root, relative, rule, errors)
+    if (text === null) continue
+    text.split('\n').forEach((line, index) => {
+      if (/^\s*-\s+v\d+\.\d+/.test(line)) return
+      if (!RETIRED_MIRROR_PATTERN.test(line) || RETIRED_MIRROR_ALLOW.test(line)) return
+      references += 1
+      errors.push({ rule, path: relative, line: index + 1, message: `仍引用已退场镜像：${line.trim()}` })
+    })
+  }
+  return references
+}
+
 function runChecks(root) {
   const errors = []
-  const stats = { versions: 0, decisions: 0, features: 0, paragraphs: 0, shortChronicleEntries: 0 }
+  const stats = {
+    versions: 0,
+    decisions: 0,
+    features: 0,
+    paragraphs: 0,
+    shortChronicleEntries: 0,
+    htmlDocuments: 0,
+    activeLinks: 0,
+    retiredMirrorRefs: 0,
+  }
   stats.versions = checkVersions(root, errors)
   stats.decisions = checkDecisions(root, errors)
   const directories = checkFeatures(root, errors)
@@ -461,6 +612,9 @@ function runChecks(root) {
     stats.shortChronicleEntries = checkChronicleLength(annualText, errors)
   }
   checkAgents(root, errors)
+  stats.htmlDocuments = checkHtmlDocuments(root, errors, stats)
+  checkActiveMarkdownLinks(root, errors, stats)
+  stats.retiredMirrorRefs = checkRetiredMirrors(root, directories, errors)
   return { errors, stats }
 }
 
@@ -481,6 +635,9 @@ function main() {
   console.log(`C-DOC5 annual_paragraphs=${stats.paragraphs}`)
   console.log(`C-DOC6 short_single_feature_entries=${stats.shortChronicleEntries}`)
   console.log('C-DOC7 agents_context_boundary=ok')
+  console.log(`C-DOC8 html_documents=${stats.htmlDocuments}`)
+  console.log(`C-DOC9 active_links=${stats.activeLinks}`)
+  console.log(`C-DOC10 retired_mirror_refs=${stats.retiredMirrorRefs}`)
 }
 
 if (require.main === module) main()

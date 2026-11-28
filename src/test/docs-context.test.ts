@@ -51,6 +51,15 @@ function makeFixture() {
     '风险正文不属于排除章节。',
     '',
   ].join('\n'))
+  write(root, 'docs/features/feature-001-示例/SDG-RE-契约.md', [
+    '# feature-001 · 契约',
+    '## 1. 目标契约',
+    '契约正文不应整段进入上下文摘录。',
+    '## 11. 通用编排目标契约（仅规格准备）',
+    '- **实施授权**：未授权，不得据此开工。',
+    '- 已实施内容不进入授权闸门。',
+    '',
+  ].join('\n'))
   write(root, 'docs/features/feature-001-示例/SDG-RE-任务清单.md', [
     '# feature-001 · 任务清单',
     '> **状态**：🚧 T2 待实施',
@@ -93,6 +102,11 @@ describe('docs:context · 合成仓库', () => {
     expect(output).toContain('- Feature 索引：🚧 实施中；真机待验收')
     expect(output).toContain('SDG-RE-需求规格.md：状态：🚧 实施中')
     expect(output).toContain('SDG-RE-任务清单.md：**状态**：🚧 T2 待实施')
+    expect(output).toContain('## 契约、授权与未执行边界')
+    expect(output).toContain('契约文件：`SDG-RE-契约.md`')
+    expect(output).toContain('11. 通用编排目标契约（仅规格准备）')
+    expect(output).toContain('- **实施授权**：未授权，不得据此开工。')
+    expect(output).not.toContain('契约正文不应整段进入上下文摘录。')
     expect(output).toContain('| AC1 | 保留原始验收表 |')
     expect(output).toContain('**来源：SDG-RE-需求规格.md › 2. 验收标准**')
     expect(output.split('嵌套验收只输出一次。')).toHaveLength(2)
@@ -112,7 +126,7 @@ describe('docs:context · 合成仓库', () => {
     const packageRoot = path.join(root, 'docs/features/feature-001-示例')
     const files = [
       path.join(root, 'docs/features/README.md'),
-      ...['SDG-RE-需求规格.md', 'SDG-RE-任务清单.md', 'SDG-AI-变更记录.md'].map((file) => path.join(packageRoot, file)),
+      ...['SDG-RE-需求规格.md', 'SDG-RE-契约.md', 'SDG-RE-任务清单.md', 'SDG-AI-变更记录.md'].map((file) => path.join(packageRoot, file)),
     ]
     const before = files.map((file) => fs.readFileSync(file, 'utf8'))
     const entriesBefore = fs.readdirSync(packageRoot)

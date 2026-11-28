@@ -66,7 +66,7 @@ Design 的会话形态是**项目即会话**：左栏项目列表就是会话入
 - 主进程：SDK `session.messages({ path: { id } })` → `200: Array<{ info: Message; parts: Part[] }>`（[client.ts](../../../electron/runtime/client.ts) SdkHandle L56–66 补 `messages` 方法类型（**不补 `get`**——无调用方，契约 §5.1 明确避免死代码），OpencodeRuntimeClient 增 `getSessionMessages` 封装 + 同文件导出 `toMessageRecord` 纯映射；HTTP 404 经既有 `mapHttpError` 归一 `SESSION_NOT_FOUND`，**不新增错误码**）。原始 `{info, parts}[]` 经 `toMessageRecord` **主进程侧裁剪为正文 + 推理 + 工具状态 DTO** 后再过 IPC（工具参数/结果不跨进程；结构化 JSON 可克隆，DTO 在 runtime-types 两端镜像，见契约 §5.2）。
 - renderer 侧新纯函数 `replayMessages(records): ChatItem[]`（落点 `src/lib/history-replay.ts`，契约 §3 定形状与规则）：
   - **user 消息**：聚合该消息全部 `type:'text'` part 的文本（用户 text part 无 time，不套用流式投影的 hasPartTime 规则）→ 一个用户气泡；id 取 `info.id`。
-  - **assistant 消息**：聚合带 `time.start` 的 text part 正文及 reasoning part 推理 → 一个 agent 气泡；推理非空时写入 `reasoning`；**最终正文为空的 assistant 消息（纯工具轮/纯推理/被 abort）不产生气泡**。
+  - **assistant 消息**：聚合带 `time.start` 的 text part 正文及 reasoning part 推理 → 一个 agent 气泡；推理非空时写入 `reasoning`；**正文、推理、工具三者全空才不产生气泡**，纯推理 / 纯工具轮按 §6 R37-03 保留（与现行 H4 修订及 `history-replay.ts` 实现一致）。
   - **回放粒度 = 正文气泡 + 可折叠推理 + 工具轨迹**：与流式定稿同构，恢复工具名称、pending/running/completed/error 状态与耗时；工具参数、结果和画布副作用不随气泡回放（节点/门/产物由画布订阅承载）。
   - 按 SDK 返回顺序（时间正序）输出；忽略 file/step-*/snapshot/patch/agent/retry/compaction 等 part；ignored/synthetic part 跳过。
 - 回放期间右栏显示加载态（不闪假数据）；回放完成前禁止发送会导致竞态的时序处理由 OD 定（最简：回放与首条发送互斥，loading 中 composer 维持现状 disabled 逻辑）。
@@ -82,7 +82,7 @@ Design 的会话形态是**项目即会话**：左栏项目列表就是会话入
 
 ### 3.6 与设计书 R-001 修订的关系
 
-设计书 §7.1 L564（目录树 `chat.messages.json` 注释行）与 L599（版本归档区「replay/hydrate 时读取 chat.messages.json」）修订为：**消息历史复用 opencode 原生会话存储（本地文件，由 opencode 自管），项目 `.session.json` 仅持久化 `activeSessionId` 绑定；UI 历史经 SDK `session.messages` 回放**。「纯文件持久化、无数据库」的总述（L557 附近）保持成立——opencode 自带存储同样是本地文件。两个 HTML 人读镜像（docs/design/ 下设计书镜像与全景图）的同文案处理方式在 OD §8 定（随事实源同步修订）。
+设计书 §7.1 L564（目录树 `chat.messages.json` 注释行）与 L599（版本归档区「replay/hydrate 时读取 chat.messages.json」）修订为：**消息历史复用 opencode 原生会话存储（本地文件，由 opencode 自管），项目 `.session.json` 仅持久化 `activeSessionId` 绑定；UI 历史经 SDK `session.messages` 回放**。「纯文件持久化、无数据库」的总述（L557 附近）保持成立——opencode 自带存储同样是本地文件。根设计的全文 HTML 镜像已于 2026-11-27 删除，不再维护或补建；只需修订根设计 Markdown，两个 B 类总览仅按既有触发规则更新。
 
 ## 4. 范围
 
@@ -100,7 +100,7 @@ Design 的会话形态是**项目即会话**：左栏项目列表就是会话入
   - [ChatComposer.tsx](../../../src/studio/ChatComposer.tsx)：`onStop` 可选 Prop + sending 中停止按钮；回放加载态展示。
   - [dev-mock-api.ts](../../../src/dev-mock-api.ts)：runtime mock 增 `sessionMessages` 桩（返回 `[]`）、顶层增双态 `activeSession` 桩（无参读返 `{sessionId:null}`、传参写空成功）；openProject mock 返回值带 `activeSessionId: null`。
 - **测试**：history-replay 纯函数套件；StudioApp/ChatComposer 组件用例（回放渲染、续聊不建新会话、停止按钮、切项目隔离）；主进程 client 封装/library 绑定读写单测（沿用 electron 既有 vitest 套件模式）。
-- **治理收尾**：features/README 增 808 行；偏差清单登记并关闭「右栏每轮新开会话、重开项目无历史」偏差；版本记录留痕；设计书 R-001 修订落地（含 HTML 镜像处理）。
+- **治理收尾**：features/README 增 808 行；偏差清单登记并关闭「右栏每轮新开会话、重开项目无历史」偏差；版本记录留痕；设计书 R-001 修订落地；全文 HTML 镜像已删除，不恢复、不补建。
 
 ### 4.2 本包不做（显式排除）
 
@@ -126,7 +126,7 @@ Design 的会话形态是**项目即会话**：左栏项目列表就是会话入
 - **AC7（R7 404 降级）**：构造绑定指向已删除会话（或 mock messages 拒绝 SESSION_NOT_FOUND）：右栏空态 + 一次弱化提示（不弹阻断错误），`.session.json` 绑定被清空；再发 prompt 可重新建会话成功。
 - **AC8（R8 dev-mock）**：浏览器 mock 态应用可用：演示气泡不变、控制台无「api 不是函数」类错误；新通道均有桩。
 - **AC9（工程红线）**：`npm run typecheck` 不新增错误（基线 T1 实测冻结：当前仅 2 条 canvas-zoom.test.tsx 历史基线错误）；node/preload 双工程 tsc 退出码 0；全量 vitest passed 不减少、skipped/failed 不扩大（基线 T1 实测：40 文件 431 passed / 1 skipped，skip=T8-4 需 ARK Key）；静态契约套件（architecture 红线 renderer 禁直连 runtime 端口、mcp-pure-tools、agent-profiles 等）无感通过。
-- **AC10（卡口与修订）**：K1 改动仅 `activeSessionId?: string | null` 一处；K8 新增恰为 2 个 IPC（`runtime:session:messages`、`project:active-session` **双态**：无参读 / `{sessionId}` 写，D-004）+ openProject 返回值扩展，preload/global.d.ts/runtime-types 三处镜像齐备且形状一致；package.json/package-lock.json 与 resources/opencode 零 diff（K9）；设计书 L564/L599 完成 R-001 修订且两个 HTML 镜像按 OD 口径处理，修订记入门本包变更记录。
+- **AC10（卡口与修订）**：K1 改动仅 `activeSessionId?: string | null` 一处；K8 新增恰为 2 个 IPC（`runtime:session:messages`、`project:active-session` **双态**：无参读 / `{sessionId}` 写，D-004）+ openProject 返回值扩展，preload/global.d.ts/runtime-types 三处镜像齐备且形状一致；package.json/package-lock.json 与 resources/opencode 零 diff（K9）；设计书 L564/L599 完成 R-001 修订；全文 HTML 镜像已删除，不再要求同步或补建；修订记入本包变更记录。
 
 ## 6. D-037 现行归并约束（2026-11-19）
 
@@ -169,3 +169,61 @@ Design 的会话形态是**项目即会话**：左栏项目列表就是会话入
 | AC19 | 孤儿 interrupted 运行显示提交结果未知；无运行记录的旧历史不伪装中断 |
 | AC20 | 未经点击不重试；pending Gate/活跃并发/非法状态拒绝；确认后新 messageID 与 retryOfMessageId 可查，旧记录不变 |
 | AC21 | runs 查询失败不阻断消息回放，但禁止覆盖损坏账本；真实 messageID 替换乐观 ID 且不串项目/会话 |
+
+## 8. D-041 / D-042 通用编排前置规格（2026-11-27，仅规格准备）
+
+本节落实总体计划 §4.1-A，是 P3 业务接入前的**目标逻辑规格**，不是通用执行层已存在的声明。本次不新增 IPC、preload、MCP、共享类型、持久化文件或依赖，不授权开始 §4.1-B/C 的实施；既有运行账本及现行恢复行为保持不变。
+
+### 8.1 主负责与协同边界
+
+| 负责方 | 本目标模型中的职责 | 明确不承担 |
+|---|---|---|
+| **808（主控）** | Workflow Definition 引用、Plan / Stage / Work Item 生命周期、DAG 就绪判定、Run / Attempt 血缘、OpenCode 适配、人工重试与恢复编排 | 不另写 Manifest / Gate / 正式版本；不让 Agent 自行迁移状态；不接管项目包事务 |
+| **817** | 只读消费 808 投影，展示 `pending / doing / waiting_user / blocked / done`、Gate、Attempt `interrupted` 与人工重试入口 | 不持久化第二套状态，不在 mount / effect 自动重试，不从视觉状态推断业务完成 |
+| **827** | Proposal 的 `targetRevision`、单文件原子写、revision / CAS、写队列及崩溃故障验证 | 不决定 DAG / Gate 是否就绪，不把单文件原子写包装成跨文件事务 |
+| **828** | Plan 聚合只读投影、Resource / Version 引用查询、静态项目包导入导出；运行 Attempt 继续排除 | 不执行 Plan、不修改运行账本、不把只读快照恢复成活跃运行 |
+| **801 / 806** | 801 唯一持有 Manifest 七态六事件；806 唯一持有 Gate 决策及现有后置动作 | 808 不直接写 `manifest.json`，不复制 Gate 决策事实 |
+| **001 / 101 / 201 / 301 / 302 / 401 / 501 / 601 / 602 / 701** | 分阶段定义产物、审核、正式版本及完成判据；逐包接入，不新建“大复刻包” | 不用通用 Stage 状态替代本业务验收，不跳过各自 Gate |
+| **802 / 803 / 816 / 820 / 821 / 822** | 按风格、媒体、画布和可信资产既有职责协同；ComfyUI job 与 Agent Attempt 通过 ID 关联 | 不混同媒体 job 与 Agent Attempt 状态，不开放其他媒体模型或公网回退 |
+
+表中 001／101／201 为现行业务包，301／302／401／501／601／602／701 为规划编号，当前 Feature 索引尚未建包；实施前须另行裁决并完成建包授权，不能据本表直接开工。
+
+808 是主控规格入口，不吞并上述包的字段写权。若实施需要新增公开 DTO、IPC / preload / MCP、共享类型或依赖，必须在对应负责包重新检查 K1 / K8 / K9；本规格不构成批准。
+
+### 8.2 `drama-series` 的完整覆盖要求
+
+1. 一个已确认 Plan 必须显式覆盖 STAGE 0—7；Stage 可含多个 Work Item，Stage 1 的大纲与小传、Stage 2 的分场 / 台词 / 分镜不得合并为一个含糊完成项。
+2. 八步按 DAG 并行生产，不设置全局串行锁。只有声明的上下游产物、Gate、Resource / Version 和文件写权依赖可以限制就绪；无依赖的草案可并行，正式下游产物仍须等待上游验收。
+3. Plan / Stage / Work Item 是内部通用骨架，不替代业务产物。STAGE 0 立项与 STAGE 7 发布必须显式存在，其他 Workflow 不得取代 `drama-series` 主线。
+4. 详细字段和唯一 Manifest 映射见[契约 §11](./SDG-RE-契约.md#11-d-041--d-042-通用编排目标契约2026-11-27仅规格准备)。Manifest 仍只是阶段指针；`storyboard-done` 不表示 STAGE 3—7 或整个 Plan 完成。
+
+### 8.3 Run / Attempt 与人工恢复要求
+
+- 现有 `.agent-runs.json` 的六态记录作为 **Attempt 执行事实**；`id` 继续等于真实用户 `messageID`。逻辑 Run 按 `retryOfMessageId` 血缘聚合，不另存一份可漂移的 Run 状态。
+- 进程恢复发现的遗留活跃 Attempt 标为 `interrupted`，旧记录和消息不可改写为继续运行。人工确认后创建新 Attempt，旧 Token / SSE 流不续接；自动 mount 重试和静默切换模型均禁止。
+- 同一 Work Item、同一生产目标最多三次实质不同 Attempt（含首次）。达到上限后必须进入可解释的 `blocked` / 人工处理或 Replan，不得借新 Plan revision 重置计数。
+- Replan 必须产生新 Plan revision 并再次获得用户确认；保留原 revision、Attempt、Gate 和版本血缘。范围未变的 Work Item 保持稳定 ID，禁止一键全部重跑。
+
+### 8.4 本次规格验收与未来实施验收矩阵
+
+本次仅验收以下文档项：
+
+| 编号 | 规格验收标准 |
+|---|---|
+| P3-SPEC-01 | 808 需求、契约、设计、任务和变更记录均明确“仅规格准备”，且归包、写权与 K 卡口一致。 |
+| P3-SPEC-02 | STAGE 0—7、801 七态六事件、Gate、Resource / Version 和 Run / Attempt 有唯一映射；无第二套 Manifest / Gate 状态机。 |
+| P3-SPEC-03 | DAG 并行、Plan revision / CAS、Replan、三次 Attempt 上限、中断恢复及静态包排除均有可测试不变量。 |
+| P3-SPEC-04 | 总体计划、Parity、根设计和 Feature 索引只增加主规格入口，不改 P0 已完成、P1 未通过及 P2—P7 未验收状态。 |
+
+后续实施至少按下列矩阵逐项补自动化与真实 Electron 证据，未执行不得标通过：
+
+| 域 | 必测场景 |
+|---|---|
+| Definition / DAG | 缺少任一步、非法依赖或环均拒绝；独立 Work Item 可并行；上游未验收不能写下游正式版本。 |
+| Plan / CAS | 未确认 Plan 不可执行；旧 revision、重复提交、并发写和跨目标 `targetRevision` 冲突 fail closed，旧事实保留。 |
+| Gate / Manifest | 六事件各自由对应正式版本 + Gate / 发布动作触发一次；重复批准不重复推进；STAGE 3—7 不推断 Manifest 事件。 |
+| 中断 / 重试 | 进程中断后原 Attempt 为 `interrupted`；人工新 Attempt 血缘完整；消息与旧记录不改写；三次上限生效。 |
+| Replan / 版本 | 新 revision 再确认；稳定 Work Item 局部重试；Resource 稳定、Version 不可变，失败写入不可成为正式输出。 |
+| 投影 / 导入导出 | 817 五态和恢复项只来自真实投影；静态包保留业务与版本引用，排除 `.agent-runs.json`，导入不复活运行。 |
+
+本 Change 不把文档验收扩展成代码、全量测试、真实 Provider、媒体生成、P1 / P2 / P3 或 Parity 通过。

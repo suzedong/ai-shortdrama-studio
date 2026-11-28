@@ -102,7 +102,7 @@ export function replayMessages(records: ReplayMessageRecord[]): ChatItem[]
 - **H1 顺序**：按入参数组顺序（SDK 返回即时间正序）输出，不重排、不排序。
 - **H2 用户气泡**：`info.role==='user'`，聚合该消息全部**未忽略**文本 part（`ignored===true` / `synthetic===true` 跳过），按 parts 顺序 `join('')` → 一个 `{ id: info.id, role:'user', text }`。用户文本 part 无 `startedAt`，**不套用**流式投影的 hasPartTime 判定（projection L90–93 是流式规则，回放不认）；user 的 reasoning part 不消费。
 - **H3 Agent 气泡**：`info.role==='assistant'`，仅聚合**带 `startedAt`（number）**且未忽略的文本 part 作为正文；聚合未忽略的 reasoning part 作为推理，均按 parts 顺序 `join('')`；tool 按 callId 首次出现顺序聚合、同 callId 后快照替换为 `ToolView`（`args` 固定 `{}`，DTO `error` 映射为 `errorText`）→ `{ id: info.id, role:'agent', text, agent:'showrunner', reasoning?, tools? }`，仅推理/工具非空时携带对应字段。
-- **H4 空 agent 轮丢弃**：assistant 消息聚合后正文 `trim()` 为空（纯工具轮 / 被 abort / 仅 reasoning）→ **不产生气泡**。
+- **H4 空 agent 轮丢弃（2026-11-27 按 R37-03 修订）**：assistant 消息的正文、reasoning、工具轨迹三者全空时才**不产生气泡**；纯 reasoning / 纯工具轮即使正文为空也保留，不得因 `text.trim()` 为空丢弃。
 - **H5 用户空文本**：user 消息聚合后为空 → 不产生气泡（防御，正常 prompt 非空）。
 - **H6 形状裁剪**：输出气泡只含 `id/role/text`（agent 另含 `agent:'showrunner'` 与可选 `reasoning`/`tools`）；**绝不带** `brief`/`trace`，工具不携带参数、结果或附件。
 - **H7 纯函数**：禁止 fs / window.api / Date / Math.random / 网络；不改入参（深拷贝不要求，但不得 mutate）。
@@ -409,7 +409,7 @@ sessionMessages: (sessionId: string): Promise<RuntimeSessionMessageRecord[]> =>
 - 空数组 / 非数组 → `[]`。
 - 单 user（单/多 text part 拼接、含无 time 字段的用户 part 仍输出）→ 用户气泡。
 - user 空文本 / ignored / synthetic → 丢弃。
-- assistant：带 startedAt 的 text 聚合；无 startedAt 的 text 不进；多个 reasoning 按原序聚合为非空可选 `reasoning`；纯 reasoning/tool（无有效正文）→ 无气泡；abort 空轮 → 无气泡。
+- assistant：带 startedAt 的 text 聚合；无 startedAt 的 text 不进；多个 reasoning 按原序聚合为非空可选 `reasoning`；纯 reasoning / 纯工具轮保留（正文、reasoning、工具全空才无气泡，R37-03）；abort 且无任何内容 → 无气泡。
 - 工具：恢复 pending/running/completed/error、起止时间与 errorText；同 callId 后快照替换且保持首次顺序；参数/结果不输出；pending 起始时间缺省为 0；user 工具不上屏。
 - 混排 u/a/u/a 正序；id 取 info.id；agent 气泡带 `agent:'showrunner'`、可选 reasoning/tools 且无 brief/trace；无推理/工具时形状不增加字段；user reasoning 不进入用户气泡。
 - 坏记录（info 缺 id、parts 非数组、part.text 非字符串）与坏工具数据不抛错，按空处理或跳过。
@@ -534,3 +534,169 @@ window.api.runtime.retryRun(messageId: string): Promise<{ accepted: true; messag
 ### 10.3 回放展示适配
 
 `replayMessages(records, runs?)` 新增可选第二入参，原 `ReplayMessageRecord`/IPC 消息 DTO 不变。用户消息按真实 id 关联 run，后续 assistant 继承至下一用户消息；运行元数据只附到 renderer `ChatItem` 展示模型。孤儿 interrupted run 生成独立恢复展示项，不伪造用户/assistant 历史记录。工具原始 status 不改，interrupted 的 pending/running 仅由 817 展示为“已中断”。
+
+## 11. D-041 / D-042 通用编排目标契约（2026-11-27，仅规格准备）
+
+本节是总体计划 §4.1-A 的主规格，§10 仍是当前已实施的运行账本契约。除§10 已批准并落地的两个 IPC 外，本节**不声明任何现有接口、文件或类型已经存在**；未来公开签名和持久化形状须按实际 Change 再冻结并检查 K1 / K8 / K9。
+
+### 11.1 唯一事实源与逻辑关联
+
+| 事实 | 唯一写者 / 事实源 | 808 只保存或投影的关联 |
+|---|---|---|
+| 业务阶段 | 801 `manifest.json` 七态、`statusHistory` 六事件 | `dramaStep`、本次拟执行的 `manifest.from/event/to`；不得复制出第二个业务状态 |
+| 审核决策 | 806 Gate 记录与既有后置动作 | `gateId`、Gate revision / status 引用；不得自行批准或重写 |
+| 通用编排 | 未来 808 Plan 执行层 | `planId/revision`、`stageId/workItemId`、依赖与恢复信息 |
+| Agent 执行 | 808 §10 `.agent-runs.json` | `sessionId`、Attempt `id=messageID`、`retryOfMessageId`、Work Item / 媒体 job 关联 |
+| 正式产物 | 各业务包 + 827 写安全 + 828 Resource / Version 读模型 | `proposalId/targetRevision`、`resourceId/versionId`；不把正文复制进 Plan |
+| 展示 | 817 只读投影 | 五态、Gate、最新 Attempt 与恢复动作；不以 UI 状态反写事实 |
+
+目标逻辑模型如下，字段用于统一关联和验收，不代表现在新增共享类型：
+
+```ts
+type DramaStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
+type WorkItemState = 'pending' | 'doing' | 'waiting_user' | 'blocked' | 'done'
+type WaitingKind = 'plan_confirmation' | 'gate_approval' | 'user_input'
+type RecoveryAction = 'retry' | 'replan' | 'repair_input' | 'manual'
+
+interface WorkflowDefinitionRef {
+  workflowId: 'drama-series'
+  workflowRevision: number
+}
+
+interface PlanRevision extends WorkflowDefinitionRef {
+  planId: string
+  revision: number
+  state: 'draft' | 'awaiting_confirmation' | 'active' | 'replan_required' | 'superseded' | 'completed'
+  basedOnRevision?: number
+}
+
+interface StageProjection {
+  stageId: string
+  planId: string
+  planRevision: number
+  dramaStep: DramaStep
+  state: WorkItemState       // 由 Work Item + Gate 派生，不另建业务状态机
+}
+
+interface WorkItem {
+  workItemId: string
+  stageId: string
+  planId: string
+  planRevision: number
+  dramaStep: DramaStep
+  dependsOn: string[]
+  state: WorkItemState
+  waitingKind?: WaitingKind
+  gateId?: string
+  proposalId?: string
+  targetRevision?: number
+  activeAttemptId?: string
+  resourceIds: string[]
+  versionIds: string[]
+  blockReason?: string
+  recoveryAction?: RecoveryAction
+}
+```
+
+约束：
+
+1. `workflowId + workflowRevision` 标识不可变定义；`planId + revision` 标识一次 Plan 修订。Definition 缺 STAGE 0—7、依赖指向不存在或存在环时必须拒绝实例化。
+2. `ready` 是由 `pending + dependsOn 全部满足 + Gate / 输入就绪` 计算的条件，不另存第六态。Stage 状态由子项聚合，不能覆盖 Work Item 或 Manifest 事实。
+3. Plan 只有用户确认后才从 `awaiting_confirmation` 进入 `active`。Replan 创建 `revision + 1` 草案并保留 `basedOnRevision`；新 revision 确认后旧 revision 才标 `superseded`，旧血缘不删除。
+4. `completed` 只在 STAGE 0—7 全部达到各业务包完成判据后成立；不得由 Manifest 单值、单个 Stage 或一个 Agent 文本回复推断。
+5. `doing / waiting_user / blocked` 均不是业务产物批准事件，不得直接推进 Manifest；`done` 也只能通过 §11.3 列出的对应动作间接推进。
+
+### 11.2 Stage / Work Item 状态迁移
+
+| 当前态 | 允许迁移 | 系统条件 |
+|---|---|---|
+| `pending` | `doing` | 已确认 Plan、DAG 上游就绪、输入和写权可用；由系统创建 Attempt 或确定性执行命令 |
+| `pending` | `waiting_user` | 缺 Plan 确认、用户输入或 Gate 决策，记录 `waitingKind` |
+| `pending / doing / waiting_user` | `blocked` | 依赖失效、CAS 冲突、执行失败、Attempt 中断或不可恢复错误；记录真实原因与恢复动作 |
+| `doing` | `waiting_user` | 产物草案已形成，等待用户 / Gate；草案本身不是正式版本 |
+| `doing / waiting_user` | `done` | 正式 Version 已不可变落盘，且对应 Gate / 发布动作已批准；Stage 3—7 另按业务包完成判据 |
+| `blocked` | `doing` | 仅用户显式选择 retry / repair 后，由系统新建 Attempt 或命令；旧 Attempt 不复活 |
+| `blocked` | `waiting_user` | 需要 Replan、补充输入或人工处置；不得自动清空 `blockReason` |
+| 任意非终态 | `pending` | 仅 Replan 明确重建该 Work Item 且保留原血缘；不得批量重置未受影响项 |
+| `done` | 任意执行态 | 禁止静默回退；正式修订须新 Proposal / Plan revision 和新 Version |
+
+`failed / stopped / interrupted` 不进入 Work Item 五态：它们是 Attempt 事实。映射到 Work Item 时统一转为带原因的 `blocked`，由 `recoveryAction` 区分 retry、Replan 或人工修复；817 可同时展示原始 Attempt 终态。
+
+### 11.3 八步与 Manifest 七态六事件唯一映射
+
+下表是通用编排到 801 的唯一映射，不扩展 801 的状态或事件。除表内动作外，任何 Plan / Stage / Work Item / Attempt 状态变化都不得推进 Manifest。
+
+| STAGE | 必须显式覆盖的 Work Item / 完成条件 | 正式版本 + 批准后的唯一 Manifest 动作 |
+|---|---|---|
+| 0 立项 | 立项草案、影响分析、定稿与发布；001 发布事实成立 | `initiating --brief-published--> story-outline` |
+| 1 故事 | **大纲**与 Gate 1-a；**小传**与 Gate 1-b；两者是独立审核项 | 大纲：`story-outline --outline-approved--> story-profiles`；小传：`story-profiles --profiles-approved--> script-scenes` |
+| 2 剧本分场 | **分场**与 Gate 2-a；**台词**与 Gate 2-b；**分镜文字稿**与 2-c 定稿 | 分场：`script-scenes --scenes-approved--> script-dialogue`；台词：`script-dialogue --dialogue-approved--> script-storyboard`；分镜：`script-storyboard --storyboard-finalized--> storyboard-done` |
+| 3 资产 | 角色 / 场景 / 道具、定妆与一致性验收，正式 Resource / Version 齐全 | **无事件**；保持 `storyboard-done` |
+| 4 分镜 | 生产分镜、关键帧与逐镜输入验收 | **无事件**；保持 `storyboard-done` |
+| 5 镜头 | 逐镜视频、媒体 job / Attempt 关联与逐镜验收 | **无事件**；保持 `storyboard-done` |
+| 6 后期 | 声音、时间线、剪辑和成片验收；语音未定项不得假验收 | **无事件**；保持 `storyboard-done` |
+| 7 发布 | 发布包、发布记录与导出结果验收；无真实在线服务不得伪造发布成功 | **无事件**；保持 `storyboard-done` |
+
+执行顺序固定为：**业务正式 Version 落盘并校验 → 对应 Gate / 发布动作批准 → 808 请求既有业务入口或 801 `manifest.advance(event)` 推进一格 → 写关联投影**。808 不直接写 Manifest 文件。重复回调须利用既有幂等 / CAS 判定，不得跳过前置条件直接补写。
+
+若 Gate 已批准而 Manifest 推进失败，保留真实 Gate 与 Manifest 不一致，Work Item 标 `blocked` 并允许沿同一事件恢复；不得伪造 `done`、改写 Gate 或反向推动其他格。`storyboard-done` 只表示 STAGE 2-c 的 Manifest 指针终点，STAGE 3—7 的完成事实由对应业务产物和版本记录表达。
+
+### 11.4 Run / Attempt 血缘与重试
+
+```ts
+// 目标 Attempt 沿用 §10 AgentRunRecord；以下关联为后续实施的可选扩展，不是本次加字段。
+interface AttemptWorkLink {
+  planId: string
+  planRevision: number
+  workItemId: string
+  comfyJobId?: string
+}
+
+interface RunProjection {
+  runId: string                 // retry 链根 Attempt 的 messageID
+  rootAttemptId: string
+  attemptIds: string[]          // 按 createdAt + 血缘排序
+  latestAttemptId: string
+}
+```
+
+1. `.agent-runs.json` 每条记录就是一个 Attempt；Run 是 retry 链的只读聚合，**没有独立持久化 status**。Run 的展示状态取最新 Attempt，并保留各次历史。
+2. 首次 Attempt 的 `runId = id = messageID`；人工重试新建记录，`retryOfMessageId` 指向被重试 Attempt，根 `runId` 不变。旧 Attempt 的 request、status、endedAt 和消息不变。
+3. 现行 §10 只允许对当前会话 `interrupted` 记录重试；目标模型扩展到其他 Work Item 失败场景时必须另走对应 K8 Change，不得把目标能力冒称现已支持。
+4. 同一 Work Item + 同一生产目标最多 3 个实质 Attempt（首次 + 至多两次重试）。无实际输入、方法或参数变化的重复提交不计为有效恢复且应拒绝；达到上限只能人工修复或 Replan，不能自动开始第 4 次。
+5. Agent Attempt 与 ComfyUI job 是两种执行事实，只用 `comfyJobId` 等引用关联。不得把 Comfy job 的排队 / 完成状态复制成 Agent Run 状态，也不得在重试时切换 H3 Image / H3 / Music3 或绕开局域网 ComfyUI。
+6. 孤儿 Attempt 可按现行恢复项展示和人工处理，但在缺少明确关联时不得猜测绑定到某个 Work Item，更不得据此完成 Stage。
+
+### 11.5 Proposal、revision / CAS 与 Resource / Version
+
+- 每次产物修改以 `proposalId + targetId + targetRevision` 表达预期写目标；执行血缘同时记录 `planId/revision` 与 `workItemId`。`targetRevision` 是该目标自身的版本，不是全局 revision，也不能替代 Plan revision。
+- 827 负责原子写、写队列和 CAS；写前重新读取目标并比较 `targetRevision`。不一致返回冲突、保留旧值和旧 Version，禁止覆盖写后假装成功。现有单文件保证不扩成 Manifest、Gate、Plan、Canvas 与媒体文件的跨文件事务。
+- Resource 身份稳定，Version 不可变；只有完成校验的正式 Version 才能进入 `versionIds` 和下游输入。草案、临时文件、失败写和未批准 Proposal 不得被下游引用为正式产物。
+- 828 只提供 Plan / Resource / Version 聚合读模型和导入导出。静态项目包继续排除 `.agent-runs.json` 与临时运行数据；导入副本不得恢复活跃 Attempt 或沿用原项目写目标。
+
+### 11.6 恢复不变量
+
+1. **单一事实**：重开先读取 Manifest、Gate、正式 Resource / Version 与 Attempt 原档；Plan 投影不得反向覆盖这些事实。
+2. **中断真实**：按 §10 对账出的遗留活跃 Attempt 为 `interrupted`，绑定 Work Item 转 `blocked + recoveryAction=retry`；不得保持假 `running` 或伪造完成。
+3. **人工恢复**：只有显式重试 / 修复 / Replan 命令可创建后续动作；禁止启动时自动重试、自动批准 Gate、自动发布或自动切换模型。
+4. **精准挂脏**：CAS 冲突、缺输入、失败版本或缺失引用只阻塞受影响 Work Item 及真实下游，不重置无关节点；任何修复不得删除旧 Attempt / Gate / Version。
+5. **恢复不越格**：恢复流程重放的是同一已批准事件的幂等收尾，不得一次补多格；STAGE 3—7 没有可补的 Manifest 事件。
+6. **Replan 可追溯**：新 Plan revision 再确认，稳定 Work Item 保留 ID 和 retry 血缘；不能通过换 planId / revision 绕过三次上限。
+7. **静态副本不运行**：828 导入只恢复业务产物、版本和只读会话快照；旧 Attempt、锁、活跃 job 与恢复动作不进入副本。
+
+### 11.7 目标错误语义与实施前检查
+
+以下是未来执行层的逻辑错误语义，不是本次新增公开错误码；公开 DTO / IPC 冻结时须映射到对应负责包并检查 K8：
+
+| 逻辑错误 | 必须拒绝的行为 |
+|---|---|
+| `WORKFLOW_DEFINITION_INVALID` | 八步缺失、未知依赖、环、Gate / 产物映射不合法仍实例化 |
+| `PLAN_NOT_CONFIRMED` | draft / awaiting confirmation / superseded Plan 直接执行 |
+| `PLAN_REVISION_CONFLICT` | 基于旧 Plan revision 的 Replan 或命令覆盖新修订 |
+| `WORK_ITEM_NOT_READY` | 上游未就绪、Gate 未批准或写权不可用仍启动正式生产 |
+| `TARGET_REVISION_CONFLICT` | Proposal 预期版本与当前目标不一致仍覆盖 |
+| `RESOURCE_VERSION_NOT_COMMITTED` | 草案、临时或失败 Version 成为正式下游输入 |
+| `ATTEMPT_NOT_RECOVERABLE` | 非允许状态、非当前项目 / 会话或无权限记录被重试 |
+| `ATTEMPT_RETRY_LIMIT` | 同一生产目标开始第 4 个实质 Attempt |
+
+后续实施 Change 必须将需求 §8.4 的矩阵拆成对应包任务与真实证据；本节完成只表示规格入口已建立，不改变现行接口数量、P1 未通过状态或任何 Parity 结论。

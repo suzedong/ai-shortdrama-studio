@@ -9,3 +9,4 @@ tsconfig.tsbuildinfo
 .screenshot/
 .workbuddy/
 .test-tmp/
+.trae-html-share-packages/

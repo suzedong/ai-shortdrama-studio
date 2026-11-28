@@ -2,7 +2,7 @@
 
 > AI Agent 驱动的短剧内容生产桌面应用 —— 全面复刻 MiniMax Design、短剧生产闭环优先，并保留本地 / 局域网 ComfyUI 与完整八步生产体系。**一块画布 = 一条连续生产线；一个指令 = 一支虚拟摄制组。**
 
-当前版本：v0.1.0（原型期）｜设计基线：v1.23（2026-11-15，D-034）
+当前版本：v0.1.0（原型期）｜设计基线：v1.34（2026-11-28）
 
 ## 它是什么
 
@@ -117,7 +117,6 @@ ai-shortdrama-studio/
 文档体系较完整，**入口与阅读顺序见 [docs/README.md](./docs/README.md)**。快速索引：
 
 - [短剧Agent平台设计.md](./短剧Agent平台设计.md) —— 产品与架构事实源（含 §7.1 数据血缘 / §5 运行时与工具族）
-- [docs/design/短剧Agent平台设计.html](./docs/design/短剧Agent平台设计.html) —— 设计书人读镜像（信息图版）
 - [docs/design/短剧Agent平台总览.html](./docs/design/短剧Agent平台总览.html) —— 本项目总览：要做什么、怎么做、做到哪、如何落地
 - [docs/design/MiniMax Design总览.html](./docs/design/MiniMax%20Design总览.html) —— 参考端总览：它怎么做、与本项目有什么区别
 - [docs/design/短剧Agent平台-原型.html](./docs/design/短剧Agent平台-原型.html) —— 高保真界面原型

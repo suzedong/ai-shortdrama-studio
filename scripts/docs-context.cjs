@@ -6,9 +6,11 @@ const path = require('node:path')
 const FEATURE_INDEX = 'docs/features/README.md'
 const FEATURE_FILES = {
   requirements: 'SDG-RE-需求规格.md',
+  contract: 'SDG-RE-契约.md',
   tasks: 'SDG-RE-任务清单.md',
   changelog: 'SDG-AI-变更记录.md',
 }
+const OPTIONAL_FEATURE_FILES = new Set(['contract'])
 const USAGE = '用法：npm run docs:context -- <feature-id|feature-directory>'
 
 function readRequired(root, relative) {
@@ -17,6 +19,10 @@ function readRequired(root, relative) {
   } catch (error) {
     throw new Error(`无法读取 ${relative}：${error.message}`)
   }
+}
+
+function readOptional(root, relative) {
+  return fs.existsSync(path.join(root, relative)) ? readRequired(root, relative) : null
 }
 
 function resolveFeature(root, input) {
@@ -166,6 +172,44 @@ function extractOpenItems(scan, file) {
   return items
 }
 
+const GATE_PATTERN = /未授权|不授权|仅规格准备|不构成批准|不得据此|未执行|未实施|暂停扩面/
+
+function extractContractHeadings(scan) {
+  return scan.headings
+    .filter((heading) => heading.level === 2)
+    .map((heading) => heading.title)
+}
+
+function extractExplicitGaps(scan, file) {
+  const items = []
+  for (let index = 0; index < scan.lines.length; index += 1) {
+    if (scan.fenced[index]) continue
+    const trimmed = scan.lines[index].trim()
+    if (!trimmed || !/^(?:[-*+]|>)/.test(trimmed) || !GATE_PATTERN.test(trimmed)) continue
+    items.push({
+      file,
+      heading: headingAt(scan, index),
+      text: trimmed.replace(/^>\s?/, ''),
+    })
+  }
+  return items
+}
+
+function renderContractGate(contract, headings, gaps) {
+  if (!contract) return '未找到契约文件；如为 3 文件精简档，以需求与任务清单为准；不得据此推断已获实施授权。'
+  return [
+    `契约文件：\`${contract.file}\`（已读取；以下仅为章节与显式闸门摘录，实施前必须读契约原文）`,
+    '',
+    '**章节**',
+    '',
+    headings.length ? headings.join('\n') : '未找到二级章节标题。',
+    '',
+    '**显式闸门 / 未执行项**',
+    '',
+    renderItems(gaps, '未检测到显式授权或未执行标记，不代表已获授权。'),
+  ].join('\n')
+}
+
 function renderSections(sections, emptyMessage) {
   if (!sections.length) return emptyMessage
   return sections.map((section) => `**来源：${section.file} › ${section.heading}**\n\n${section.text}`).join('\n\n')
@@ -189,26 +233,36 @@ function buildContext(root, input) {
   const feature = resolveFeature(rootPath, input)
   const packageRoot = `docs/features/${feature.directory}`
   const indexText = readRequired(rootPath, FEATURE_INDEX)
-  const documents = Object.entries(FEATURE_FILES).map(([kind, file]) => {
-    const text = readRequired(rootPath, `${packageRoot}/${file}`)
-    return { kind, file, scan: scanMarkdown(text) }
+  const documents = Object.entries(FEATURE_FILES).flatMap(([kind, file]) => {
+    const relative = `${packageRoot}/${file}`
+    const text = OPTIONAL_FEATURE_FILES.has(kind) ? readOptional(rootPath, relative) : readRequired(rootPath, relative)
+    return text === null ? [] : [{ kind, file, scan: scanMarkdown(text) }]
   })
   const byKind = Object.fromEntries(documents.map((document) => [document.kind, document]))
   const indexed = indexEntry(indexText, feature.directory)
 
   const statuses = []
   if (indexed?.status) statuses.push(`- Feature 索引：${indexed.status}`)
-  for (const document of [byKind.requirements, byKind.tasks]) {
+  for (const document of [byKind.requirements, byKind.contract, byKind.tasks].filter(Boolean)) {
     for (const line of pageStatusLines(document.scan)) statuses.push(`- ${document.file}：${line}`)
   }
 
-  const acceptance = [byKind.requirements, byKind.tasks]
-    .flatMap((document) => extractSections(document.scan, document.file, /验收标准|验收条件/))
+  const acceptance = [
+    ...[byKind.requirements, byKind.contract]
+      .filter(Boolean)
+      .flatMap((document) => extractSections(document.scan, document.file, /验收/)),
+    ...extractSections(byKind.tasks.scan, byKind.tasks.file, /验收标准|验收条件/),
+  ]
   const unchecked = extractUnchecked(byKind.tasks.scan, byKind.tasks.file)
-  const openItems = [byKind.tasks, byKind.changelog]
+  const openItems = [byKind.tasks, byKind.contract, byKind.changelog]
+    .filter(Boolean)
     .flatMap((document) => extractOpenItems(document.scan, document.file))
   const exclusions = [byKind.requirements, byKind.tasks]
     .flatMap((document) => extractSections(document.scan, document.file, /非目标|排除|范围外/))
+  const contractHeadings = byKind.contract ? extractContractHeadings(byKind.contract.scan) : []
+  const executionGaps = documents
+    .filter((document) => ['requirements', 'contract', 'tasks'].includes(document.kind))
+    .flatMap((document) => extractExplicitGaps(document.scan, document.file))
 
   return [
     `# docs:context · ${indexed?.title || feature.directory}`,
@@ -219,6 +273,10 @@ function buildContext(root, input) {
     '## 当前状态',
     '',
     statuses.join('\n') || '未找到显式状态，不代表验收通过。',
+    '',
+    '## 契约、授权与未执行边界',
+    '',
+    renderContractGate(byKind.contract, contractHeadings, executionGaps),
     '',
     '## 验收标准',
     '',

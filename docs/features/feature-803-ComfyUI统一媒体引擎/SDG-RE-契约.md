@@ -1,6 +1,6 @@
 # feature-803 · ComfyUI 统一媒体引擎 — 契约
 
-> **版本**：v1.0（2026-11-14）｜**状态**：实施中
+> **版本**：v1.1（2026-11-27）｜**状态**：实施中；现行生产通道按 D-033 / feature-816 归一
 > 本文为本包实现唯一契约。feature-017 的 queue/status 占位语义由本文替换。
 
 ## 1. 数据与存储
@@ -139,17 +139,15 @@ interface ComfyTestResult {
 
 ## 5. 工作流清单契约
 
-> **历史快照 / 现行指引（2026-11-15 校准）**：本节 `model='qwen-image'` 及旧校验语义只描述本包当时实施，不是现行生产契约。现行 H3 Image manifest、graph、输入与拒绝语义以 feature-816 / D-033 为准；本段不回写历史，也不得再作为新任务实现依据。
-
-默认目录：`resources/comfyui/workflows/`；生产清单初始为空。文件名只能引用该目录内 `.json`。
+默认目录：`resources/comfyui/workflows/`；生产入口由该目录 `manifest.json` 显式注册，文件名只能引用同目录内 `.json`。当前唯一生产条目、H3 Image 四项公开输入、固定 graph 与历史兼容规则以 [feature-816 契约](../feature-816-H3图像通道迁移/SDG-RE-契约.md) §1—§4 为单点事实源。
 
 ```ts
 interface WorkflowManifest {
   schemaVersion: 1
   workflows: Array<{
     id: string
-    kind: 'image'
-    model: 'qwen-image'
+    kind: 'image' // 当前 loader 仅启用图像；视频/音乐须另行登记契约
+    model: 'MiniMax-H3'
     version: string
     file: string
     inputs: Record<string, {
@@ -161,14 +159,17 @@ interface WorkflowManifest {
       max?: number
       minLength?: number
       maxLength?: number
+      values?: Record<string, string> // 稳定公开值 → 受控节点值
     }>
   }>
 }
 ```
 
 - API Format 顶层必须是 `{ [nodeId]: { class_type: string, inputs: Record<string, unknown> } }`；含 UI `nodes` 数组或缺 inputs 时拒绝。
-- 深拷贝后仅写 `workflow[node].inputs[field]`；inputs 中未知键返回 `INVALID_ARGUMENT`。
-- 清单缺 id、重复 id、非 qwen-image、路径逃逸、目标节点缺失均返回 `WORKFLOW_INVALID`；无匹配 id 返回 `WORKFLOW_NOT_AVAILABLE`。
+- 深拷贝后仅写 `workflow[node].inputs[field]`；inputs 中未知键返回 `INVALID_ARGUMENT`。声明 `values` 时只接受表内稳定键，并写入其映射值。
+- 清单缺 id、重复 id、非 `MiniMax-H3`、路径逃逸、目标节点缺失均返回 `WORKFLOW_INVALID`；无匹配 id 或旧工作流新投返回 `WORKFLOW_NOT_AVAILABLE`。
+- 803 只定义通用 loader 与作业边界，不复制 816 的生产 ID、字段默认值、枚举表或节点 ID。两者不一致时先停下核对，不得自行选择一份实现。
+- 历史作业只按既有实例与 promptId 快照续查、下载和登记；不得重新加载已退出生产的工作流或静默改投。
 
 ## 6. 错误码
 
@@ -184,3 +185,8 @@ interface WorkflowManifest {
 - renderer 仅可调用设置 IPC；Agent 仅可调用受控 MCP 工具，均不得提供任意 URL fetch 或任意 API 工作流。
 - 所有配置与作业写入同目录临时文件并原子替换；旧配置/作业按现有归档机制保留。
 - 产物目标必须经项目目录 `resolveInside` 校验；禁止绝对路径、`..` 段和路径逃逸。
+
+## 8. 变更履历
+
+- **v1.1（2026-11-27）**：按 D-033 / feature-816 将生产清单模型从历史值改为 `MiniMax-H3`，补充现行受控映射 `values?` 的可选结构，生产条目和输入改为引用 816，历史作业仅续查。既有 IPC／preload／MCP 路径、函数签名和通用 Job 结构不变；破坏性通道迁移已由 D-033 / feature-816 批准，本次不新增 K1 / K7 / K8。自审 + 无第二人复核。
+- **v1.0（2026-11-14）**：建立统一 ComfyUI 设置、作业、工作流与错误边界；历史模型内容仅作追溯。

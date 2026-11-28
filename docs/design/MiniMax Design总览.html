@@ -514,13 +514,13 @@ td:first-child { color: var(--ink); font-family: var(--font-mono); font-weight: 
         <article class="card soft">
           <span class="tag a">A · 路线事实源</span>
           <h3>全面复刻开发计划</h3>
-          <p>v0.18。维护 P0—P7 交付门、当前阶段状态、改造主线与 Feature 实施顺序，不替代 Feature 授权。</p>
+          <p>v0.19。维护 P0—P7 交付门、当前阶段状态、改造主线与 Feature 实施顺序，不替代 Feature 授权。</p>
           <a class="card-link" href="./MiniMax%20Design全面复刻开发计划.md" target="_blank" rel="noopener">打开总体计划 ↗</a>
         </article>
         <article class="card soft">
           <span class="tag a">A · 对账事实源</span>
           <h3>Parity 影响矩阵</h3>
-          <p>v2.6。映射参考能力、改编差异、负责 Feature、验证记录与 Parity 结论，保留差异和反目标。</p>
+          <p>v2.7。映射参考能力、改编差异、负责 Feature、验证记录与 Parity 结论，保留差异和反目标。</p>
           <a class="card-link" href="./MiniMax%20Design%20Parity影响矩阵.md" target="_blank" rel="noopener">打开影响矩阵 ↗</a>
         </article>
         <article class="card soft">
@@ -614,33 +614,15 @@ td:first-child { color: var(--ink); font-family: var(--font-mono); font-weight: 
         <li class="stage"><span class="stage-number">06</span><h3>后期</h3><p>声音、字幕、时间线、转场与剪辑。</p></li>
         <li class="stage"><span class="stage-number">07</span><h3>发布</h3><p>成片、封面、切片、发布包、导出报告。</p><span class="gate">STAGE 7 发布门</span></li>
       </ol>
-      <div class="callout"><strong>门禁原则：</strong>上一阶段验收通过，下一阶段才可推进；下游产物可锁定，上游变化触发“锁项 → 重出 → 传导”。锁定不等于完成，解锁、重新生成、审核和导出按负责 Feature 的规格执行。</div>
+      <div class="callout"><strong>门禁原则：</strong>P0—P7 是交付门，不是八步全局串行锁。八步产物按 DAG 并行生产，仅受上游产物、文件写权和 Gate 依赖约束；下游产物可锁定，上游变化触发“锁项 → 重出 → 传导”。锁定不等于完成，解锁、重新生成、审核和导出按负责 Feature 的规格执行。</div>
     </section>
 
     <section class="section" id="roadmap">
       <div class="section-head">
         <span class="section-no">05</span>
-        <div><h2>P0—P7：当前走到哪一步</h2><p class="section-intro">P0 已收口，P1 是当前阶段，P2—P7 尚未到阶段门验收。这里呈现的是路线状态，不是全量测试或 Parity 通过声明。<sup><a href="#cite-2">[2]</a></sup></p></div>
+        <div><h2>P0—P7：当前走到哪一步</h2><p class="section-intro">阶段状态只在《全面复刻开发计划》维护；本页不再复制 P0—P7 明细。当前口径是 P0 已收口、P1 未通过、P2—P7 未到验收，本项目现状入口见《短剧 Agent 平台总览》。<sup><a href="#cite-2">[2]</a></sup></p></div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>阶段</th><th>交付重点</th><th>当前状态</th><th>正确解读</th></tr></thead>
-          <tbody>
-            <tr><td>P0</td><td>现状盘点、基线收口与缺陷分级</td><td><span class="status done">已完成</span></td><td>历史证据不代表全量全绿，也不代表 Parity 通过。</td></tr>
-            <tr><td>P1</td><td>规格补齐、逐包对账与可信工作台</td><td><span class="status current">当前 · 未通过</span></td><td>A—F 已闭环，D-035 / D-036 扩展退出门仍未通过。</td></tr>
-            <tr><td>P2</td><td>执行底座、媒体与任务管理</td><td><span class="status pending">未验收</span></td><td>本地 / 局域网 ComfyUI、多实例、GPU 队列等仍须逐包验收。</td></tr>
-            <tr><td>P3</td><td>视觉链、资产、分镜、镜头与 3D 预演</td><td><span class="status pending">未验收</span></td><td>规划存在不等于八步业务链已端到端通过。</td></tr>
-            <tr><td>P4</td><td>后期、音频与发布交付</td><td><span class="status pending">未验收</span></td><td>成片、音频、发布包和第三方导入需要真实验证。</td></tr>
-            <tr><td>P5</td><td>Skill / Agent、插件生态、扩展管理</td><td><span class="status pending">未验收</span></td><td>本地能力优先；在线服务和允许清单不得默认批准。</td></tr>
-            <tr><td>P6</td><td>专业工作台、诊断与自定义项目类型</td><td><span class="status pending">未验收</span></td><td>Code Project 等候选仍需独立裁决，不自动进入主线。</td></tr>
-            <tr><td>P7</td><td>总体验收与真实证据</td><td><span class="status pending">未验收</span></td><td>最终看跨项目、跨环境、失败重试、导出与回退证据。</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="roadmap-note">
-        <div class="closed"><strong>P1 已闭环：</strong>A 基线收口、B 通用单项目项目、C 视觉链工作台、D 八步后端、E 媒体与任务、F 扩展与专业面。</div>
-        <div class="open"><strong>P1 未通过：</strong>feature-826 的 D-035 可信工作台扩展退出门，以及 feature-827 的 D-036 恢复语义扩展退出门。</div>
-      </div>
+      <div class="callout"><strong>单一状态入口：</strong>P0 已完成、P1 当前未通过、P2—P7 未到对应阶段门验收；A—F 与 feature-829 已闭环不代表 P1 整门通过。逐阶段状态与退出门以 <a href="./MiniMax%20Design全面复刻开发计划.md" target="_blank" rel="noopener">《全面复刻开发计划》v0.19</a> 为唯一正文，本项目现状以 <a href="./短剧Agent平台总览.html">《短剧 Agent 平台总览》</a> 为人读入口。</div>
     </section>
 
     <section class="section" id="parity">
@@ -719,11 +701,11 @@ td:first-child { color: var(--ink); font-family: var(--font-mono); font-weight: 
             <a class="src-url" href="./MiniMax%20Design功能与架构参考.md" target="_blank" rel="noopener">./MiniMax Design功能与架构参考.md</a>
           </li>
           <li id="cite-2">
-            <span class="src-title">《MiniMax Design 全面复刻开发计划》v0.18，2026-11-26。P0—P7 路线、阶段状态与实施边界。</span>
+            <span class="src-title">《MiniMax Design 全面复刻开发计划》v0.19，2026-11-27。P0—P7 路线、阶段状态与实施边界。</span>
             <a class="src-url" href="./MiniMax%20Design全面复刻开发计划.md" target="_blank" rel="noopener">./MiniMax Design全面复刻开发计划.md</a>
           </li>
           <li id="cite-3">
-            <span class="src-title">《MiniMax Design Parity 影响矩阵》v2.6，2026-11-26。范围映射、Feature 归属、验证记录与 Parity 结论。</span>
+            <span class="src-title">《MiniMax Design Parity 影响矩阵》v2.7，2026-11-27。范围映射、Feature 归属、验证记录与 Parity 结论。</span>
             <a class="src-url" href="./MiniMax%20Design%20Parity影响矩阵.md" target="_blank" rel="noopener">./MiniMax Design Parity影响矩阵.md</a>
           </li>
         </ol>

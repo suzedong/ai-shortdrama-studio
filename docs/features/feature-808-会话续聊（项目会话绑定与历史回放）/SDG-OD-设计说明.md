@@ -164,11 +164,12 @@ onProjectSessionChange(pid):
 - 全量 vitest：基线 **40 文件 431 passed / 1 skipped**（skip=T8-4 需 ARK Key）；T1 开工复测回填实数；本包预计净增 4 个测试文件（纯函数 1 + node 侧 2 + 组件 1，上表 4 行，T6 收尾预期 44 文件 = 40 + 4），收尾回填新增后总数。
 - 静态契约套件（architecture renderer 禁直连、mcp-pure-tools、agent-profiles、runtime-projection 等）：本包不改投影/prompt/红线面，应全部无感通过；新 IPC 主进程收敛（renderer 只见 preload 方法）不触 architecture 红线。
 
-## 8. R-001 设计书修订与 HTML 镜像
+## 8. R-001 设计书修订（全文 HTML 镜像已废止）
 
 - 事实源 [短剧Agent平台设计.md](../../../短剧Agent平台设计.md) §7.1：L564（目录树 `chat.messages.json` 注释行）与 L599（版本归档区 replay/hydrate 描述）改为「消息历史复用 opencode 原生会话存储；`.session.json` 仅持久化 activeSessionId；UI 历史经 session.messages 回放」；L557 附近「纯文件持久化、无数据库」总述保持成立。
-- HTML 镜像 5 份（docs/design/ 下，Glob 已核）：其中**设计书镜像** `短剧Agent平台设计.html` 与**平台全景图.html** 若含 chat.messages.json 同文案则随事实源做同文案替换（人读镜像的职责是与事实源一致）；其余 3 份（进度看板/架构模块关系图/原型）仅在确有该文案时改，不做无依据扩散。每份改动记 R-001 修订清单（文件 + 位置 + 旧新文案）。
-- 修订动作排在 T7 治理收尾（代码落地、真机目验通过后），避免文档先行描述未验证行为。
+- 根设计全文 HTML 镜像 `短剧Agent平台设计.html` 已于 2026-11-27 删除，`平台全景图.html` 当前不存在；本节不再要求同步或补建任何全文镜像。R-001 只修订根设计 Markdown。
+- 两个 B 类总览（`短剧Agent平台总览.html`、`MiniMax Design总览.html`）如确需更新，按既有 B 类触发规则处理，不复制全文、不充当第二事实源。
+- 修订动作排在 T7 治理收尾（代码落地与真机验证通过后），避免文档先行描述未验证行为。
 
 ## 9. 风险与备选
 
@@ -216,3 +217,44 @@ opencode 原始 messages
 - 010 的“工具请求/结果全部回放”被 H6 收窄：仅状态、错误和白名单参数摘要可跨界，完整 input/output / 结果仍排除；本次不借归并新增 `resultSummary` 字段。
 - 819 的 `app.isPackaged` 单判据由 `app.isPackaged && !process.defaultApp` 取代，开发态旧模板不得兜底。
 - 本 Change 无新接口，仅把上述现行约束收拢到 808；历史真机结论、测试计数与未完成项均保留。
+
+## 11. 通用编排目标结构（2026-11-27，仅规格准备）
+
+本节是后续实施的结构约束，字段、状态与八步映射以[契约 §11](./SDG-RE-契约.md#11-d-041--d-042-通用编排目标契约2026-11-27仅规格准备)为唯一入口。本次没有新增下列模块或文件，§1—§10 描述的仍是现行实现。
+
+### 11.1 命令与查询分离
+
+```text
+用户确认 / Gate 决策 / 显式重试
+  → 808 命令请求（校验 Plan revision、依赖、Gate 与写权）
+  → 业务包生成正式产物草案
+  → 827 Proposal / targetRevision / CAS / 原子写
+  → 业务包确认正式 Resource / Version，806 完成 Gate 决策
+  → 801 对表内六事件推进一格（仅 STAGE 0—2）
+  → 808 更新 Work Item / Attempt 关联
+  → 828 聚合只读投影 → 817 展示
+```
+
+- Agent / showrunner 只提交 Plan 或 Proposal 草案；主进程确定性服务决定迁移。任何 Agent 文本、Work Item 状态或 UI 卡片都不能直接成为 Manifest / Gate 事实。
+- 827 的写入边界仍是**单文件原子 + 单目标 CAS**。上述链路是多个可恢复步骤，不声称跨文件原子事务；每一步保存真实结果，失败时精准挂脏并允许幂等收尾。
+- 828 不通过快照反写执行态，817 不在 effect 中补偿业务状态。无依赖 Work Item 可并行执行，但同一目标的写队列与 revision 约束不被绕过。
+
+### 11.2 Run 聚合复用现行账本
+
+不新增第二个运行数据库。后续适配层把现行 `AgentRunRecord` 视为 Attempt：
+
+1. 以 retry 链根 `messageID` 为 `runId`，从 `retryOfMessageId` 构建 RunProjection；状态取最新 Attempt，不新增 Run 状态字段。
+2. Work Item 只保存 Attempt / Comfy job 关联，不复制其执行状态。恢复扫描仍由 808 现行 RunStore 负责，绑定 Work Item 的 `interrupted` 映射为 `blocked + retry`。
+3. 人工重试创建新消息和新 Attempt，旧消息、request、终态与 Gate 不变；任何 Replan 都新 revision 再确认，稳定 Work Item 不丢失 retry 链。
+4. 828 导出继续排除 `.agent-runs.json`，因此查询模型必须容忍静态副本没有 Attempt，并显示“无运行数据”而非“全部完成”。
+
+### 11.3 状态一致性检查
+
+后续实现应在命令入口统一检查，而不是散落在 UI：
+
+- Definition 是否覆盖 STAGE 0—7 且 DAG 无环；Plan 是否已确认、revision 是否当前。
+- 上游正式 Version 和 Gate 是否满足；`targetRevision` 是否匹配；是否存在活跃 Attempt 或达到三次上限。
+- 六类 Manifest 事件是否严格匹配 801 当前 `from`；STAGE 3—7 是否错误携带 Manifest 事件。
+- 恢复是否只处理受影响节点，是否保留旧 Attempt / Gate / Version，是否误把导入快照变回活跃运行。
+
+实施前仍需把实际文件写权、DTO、错误码与公开接口拆回 808 / 817 / 827 / 828 和业务包，逐项检查 K1 / K8 / K9。本设计不授权新增执行器、状态文件、IPC、preload、MCP 或依赖。

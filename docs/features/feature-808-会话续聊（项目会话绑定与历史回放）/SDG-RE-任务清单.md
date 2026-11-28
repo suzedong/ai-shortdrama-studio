@@ -40,7 +40,7 @@
 | 17 | src/studio/studio-flow.test.tsx | 仅 openProject mock 补字段（L58 区），断言不动 |
 | 18 | src/studio/window-titlebar-integration.test.tsx | 仅 openProject mock 补字段（L45 区），断言不动 |
 
-- 治理文档（T7）：docs/features/README.md、docs/设计现状与偏差清单.md、版本记录.md、设计书 §7.1（L564/L599）+ docs/design/ 下含同文案的 HTML 镜像、本包 SDG-AI-变更记录.md。
+- 治理文档（T7）：docs/features/README.md、docs/设计现状与偏差清单.md、版本记录.md、设计书 §7.1（L564/L599）；根设计全文 HTML 镜像已于 2026-11-27 删除，不恢复、不补建；本包 SDG-AI-变更记录.md。
 - 红线（契约 §8，越界即停）：
   - `git diff shared/` 只许 ProjectSession 一处；`git diff package.json package-lock.json resources/opencode/` 必须为空；
   - `git diff electron/runtime/projection.ts`、buildPromptBody 所在文件、RUNTIME_ERROR_NAMES 必须为空（投影/prompt/错误码零改）；
@@ -73,7 +73,7 @@
 
 ### T4 · renderer（回放纯函数 + 会话生命周期）
 
-1. **T4a history-replay.ts（新，先落）**：照契约 §3 实现 `replayMessages`（import `type { ChatItem }` from '../studio/ChatComposer'）与 ReplayMessageRecord/ReplayPart 类型；H1–H8 逐条落实——正序不重排；user 聚合未忽略文本 part（不认 hasPartTime）；agent 聚合带 number startedAt 且未忽略正文、未忽略 reasoning 到可选 `reasoning`，并按 callId 首次出现顺序聚合 tool 到可选 `tools`（重复 callId 以后快照替换，`args` 固定 `{}`，DTO `error` 映射为 `errorText`），输出带 `agent:'showrunner'`；无有效正文的空轮（含纯推理/纯工具）丢弃；禁带 brief/trace；零 fs/window/Date/Math.random、不 mutate；坏数据/非数组不抛错。
+1. **T4a history-replay.ts（新，先落）**：照契约 §3 实现 `replayMessages`（import `type { ChatItem }` from '../studio/ChatComposer'）与 ReplayMessageRecord/ReplayPart 类型；H1–H8 逐条落实——正序不重排；user 聚合未忽略文本 part（不认 hasPartTime）；agent 聚合带 number startedAt 且未忽略正文、未忽略 reasoning 到可选 `reasoning`，并按 callId 首次出现顺序聚合 tool 到可选 `tools`（重复 callId 以后快照替换，`args` 固定 `{}`，DTO `error` 映射为 `errorText`），输出带 `agent:'showrunner'`；正文、推理、工具三者全空才丢弃（纯推理/纯工具轮保留，R37-03）；禁带 brief/trace；零 fs/window/Date/Math.random、不 mutate；坏数据/非数组不抛错。
 2. **T4b StudioApp.tsx（中改）**：
    - 新增 `activeSessionIdRef`、`historyLoading` state、`projectSessionSeqRef`（序号 token）、`subscribedRef`；**不**新增会话列表/多会话 state；
    - canvas effect 两处 projectId 到达点（onChange L136–144 复用既有 projectIdRef 切项目检测、canvas.get 初值 L145–151）统一汇入组件内 `onProjectSessionChange(pid)`，照 OD §3.1 十步伪码（清 items/stream/ref → 空 pid 结束 → 序号自增 → historyLoading → 顶层 `window.api.activeSession()` 读态 → 过期丢弃 → ref 赋值 → 有绑定 loadReplay / 无绑定结束）；**devMockActive 分支提前 return 且不清 demoChatItems**；
@@ -88,7 +88,7 @@
 
 ### T5 · 测试（4 新套件 + 2 处连带夹具）
 
-1. **src/lib/history-replay.test.ts（新）**：契约 §6.1 全覆盖——空/非数组；单 user 单/多 part 拼接（含无 time 用户 part）；user 空/ignored/synthetic 丢弃且 user reasoning/工具不上屏；assistant 带 startedAt 聚合正文、多 reasoning 按序聚合为可选字段、无 startedAt 文本不进、纯 reasoning/tool/abort 空轮无气泡；工具四状态、起止时间/errorText、同 callId 去重与首次顺序、参数结果裁剪、坏工具容错；u/a 混排正序、id 取 info.id、agent 字段与无 brief/trace、无推理/工具不增字段；坏记录不抛错；入参不被 mutate。
+1. **src/lib/history-replay.test.ts（新）**：契约 §6.1 全覆盖——空/非数组；单 user 单/多 part 拼接（含无 time 用户 part）；user 空/ignored/synthetic 丢弃且 user reasoning/工具不上屏；assistant 带 startedAt 聚合正文、多 reasoning 按序聚合为可选字段、无 startedAt 文本不进、纯 reasoning/tool 轮保留、abort 且无任何内容才无气泡；工具四状态、起止时间/errorText、同 callId 去重与首次顺序、参数结果裁剪、坏工具容错；u/a 混排正序、id 取 info.id、agent 字段与无 brief/trace、无推理/工具不增字段；坏记录不抛错；入参不被 mutate。
 2. **src/test/runtime-session-messages.test.ts（新）**：照 runtime-client.test.ts 的 fake SDK 句柄注入模式——toMessageRecord：透传 text/reasoning/tool、startedAt 取 time.start、tool 四状态/起止时间/error 映射且 pending 缺省为 0、参数结果附件裁剪、丢弃 file 等其他 part、role 归一、ignored/synthetic 仅文本分支透传、非字符串文本防御；getSessionMessages：成功映射、404→抛 SESSION_NOT_FOUND、空白 id 经 requireSessionId 拒绝。
 3. **src/test/project-session-binding.test.ts（新）**：照 canvas-store.test.ts 的 `vi.mock('electron')`+tmpdir 真文件模式——旧四字段文件经 openProject 写回成五字段（title/createdAt 保留、lastOpenedAt 刷新、activeSessionId:null）；已有绑定字符串 openProject 后原样保留；setActiveSession 写入/清空且不刷新 lastOpenedAt；open 后立即 set 的 enqueue 串行交叉不互覆盖；无文件/损坏 JSON 读态返 null；路径越界拒绝。
 4. **src/studio/session-continue.test.tsx（新）**：照 studio-flow.test.tsx 的 window.api 整体桩 + emitRuntime/emitCanvas/emitGate harness（api 桩须含 activeSession/sessionMessages/abortSession 等本包触达的全部方法），落契约 §6.3 八条：R1 回放正序+推理折叠块+completed/error/pending 工具名称、错误文本与耗时+loading 凭据出现/消失+无 demo；AC1 无绑定零 sessionMessages/零 runtime.start；R2 有绑定零 createSession、promptAsync 同 id、写态不被调；R3 空绑定 createSession 一次+activeSession(newId) 一次+promptAsync 用 newId；R4 chat-stop 出现/abortSession 绑定 id/事件链复位 sending，且 idle 后正文、推理、工具状态与耗时仍保留（另断言不传 onStop 时仍是发送钮）；R5 B 会话事件不更新 A、切 B 清 items 加载 B、A 慢 B 快迟到回放不覆盖、装载空窗期 A 事件不闪现；R7 reject SESSION_NOT_FOUND 后空态+info toast 一次+activeSession(null)+再发惰性建；多次发送/切项目 subscribe 总次数 1（含 StrictMode 双挂载断言）。
@@ -110,12 +110,12 @@
 
 ### T7 · 治理收尾（代码与真机验证通过后才动文档）
 
-- **R-001 落地**：设计书 §7.1 L564（目录树 `chat.messages.json` 注释行）与 L599（replay/hydrate 描述）改为「消息历史复用 opencode 原生会话存储；.session.json 仅持久化 activeSessionId；UI 历史经 session.messages 回放」（L557 附近「纯文件持久化、无数据库」总述保留）；先 grep `chat.messages.json` 确认 docs/design/ 下哪几份 HTML 含同文案——设计书镜像 `短剧Agent平台设计.html` 与 `平台全景图.html` 有则同文案替换，其余 3 份（进度看板/架构模块关系图/原型）仅有才改、不做无依据扩散；每份记「文件+位置+旧新文案」修订清单。
+- **R-001 落地（历史任务；全文镜像规则已废止）**：设计书 §7.1 L564（目录树 `chat.messages.json` 注释行）与 L599（replay/hydrate 描述）改为「消息历史复用 opencode 原生会话存储；.session.json 仅持久化 activeSessionId；UI 历史经 session.messages 回放」（L557 附近「纯文件持久化、无数据库」总述保留）。根设计全文 HTML 镜像已于 2026-11-27 删除，**不再同步、不补建**；两个 B 类总览只按既有触发规则更新，不做事后镜像复制。
 - features/README.md：增 feature-808 行（横切 8xx 段；K1+K8 触发/ K9 不触发；四层横切；产出物与 R-001 索引）。
 - 设计现状与偏差清单.md：把「每轮新建会话、重开项目无历史、设计书 chat.messages.json 与实现不符」登记为**由本包关闭**（无现成条目则在实施补记/遗留段新增一行，不重写历史结论）。
 - 版本记录.md：追加 2026-10 条目（背景=Design 对齐：项目即会话入口；范围=最小续聊闭环；改动面；K1/K8 授权与 K9 零依赖声明；验证数据；R-001 修订索引）。
 - 本包 SDG-AI-变更记录.md：回填 D-001~D-005 决策结论、K1/K8 批准范围、T1/T6 实测实数、真机目验证据、AC1–AC10 勾选、偏差与遗留。
-- 完成标准：任务包 5 文件齐备闭环；README/清单/版本记录/设计书/HTML 多处留痕一致；混合树中本包白名单外文件零改动。
+- 完成标准：任务包 5 文件齐备闭环；README/清单/版本记录/设计书留痕一致（全文 HTML 镜像已删除，不再作为同步目标）；混合树中本包白名单外文件零改动。
 
 ## 产出物清单
 
@@ -128,7 +128,7 @@
 | renderer 新 | src/lib/history-replay.ts |
 | 新测试 ×4 | src/lib/history-replay.test.ts、src/test/runtime-session-messages.test.ts、src/test/project-session-binding.test.ts、src/studio/session-continue.test.tsx |
 | 连带夹具 ×2 | src/studio/studio-flow.test.tsx、src/studio/window-titlebar-integration.test.tsx（仅 mock 返值补字段） |
-| 治理 | docs/features/README.md、docs/设计现状与偏差清单.md、版本记录.md、设计书 §7.1（L564/L599）+ 含同文案的 HTML 镜像、本包 SDG-AI-变更记录.md |
+| 治理 | docs/features/README.md、docs/设计现状与偏差清单.md、版本记录.md、设计书 §7.1（L564/L599）（全文 HTML 镜像已删除，不恢复）、本包 SDG-AI-变更记录.md |
 
 预期总 diff：**12 改 + 5 新（其中 1 新源码 + 4 新测试）+ 治理文档**；package.json/lock、resources/opencode、projection/prompt/错误码零改动。
 
@@ -208,4 +208,14 @@
 - **证据**：[修复前后证据索引](../../verification/feature-808-real-ark-ac17-2026-11-27/证据索引.md) · [修复后结构化结果](../../verification/feature-808-real-ark-ac17-2026-11-27/data/t11-1-fixed-result.json) · [两条修复后运行账本](../../verification/feature-808-real-ark-ac17-2026-11-27/data/t11-1-fixed-runs.json)。
 - **边界**：不改 `shared/types.ts`，不新增 IPC／preload／MCP／依赖，不改 Gate／重试／项目隔离语义。本轮只关闭 T11.1 两条人工停止缺陷；AC17 同步拒绝与真实异步 Provider 故障、AC18—AC21 及 T11 其余矩阵未执行，不能宣告 AC17 整项、T11、P1 或 P2 通过。`runtime.stop` 使用直接 `runtime:prompt:async` IPC 隔离取消后的 Composer 状态，不据此宣称取消后的 UI 续聊已验证；`02-runtime-stopped.png` 辅助截图因 CDP 超时未取得，不影响功能断言。
 
-- **后续规格准备**：真实补验收口后，才在本包登记 `drama-series` Workflow Definition、Plan／Stage／Work Item、Run／Attempt、幂等／重试／Replan／恢复及 Session／Run 映射的规格基线；规格登记不授权新增执行器或 IPC。当前 T11 尚未收口，后续规格准备未启动。
+### P3-A · D-041 / D-042 通用编排前置规格（2026-11-27，仅规格准备）
+
+用户已明确授权在 803 / HTML 修订后补 P3 前置规格；本条取代上一阶段“真实补验全部收口后才登记”的执行顺序限制，但**不修改 T11 尚未收口的验收事实**，也不授权 §4.1-B/C 实施。
+
+- [x] **P3-A-01 · 主规格**：需求 §8 登记归包、完整 STAGE 0—7、DAG 并行、Run / Attempt、三次上限、Replan 与规格 / 实施验收矩阵。
+- [x] **P3-A-02 · 契约**：契约 §11 冻结目标逻辑关联、Work Item 五态、801 七态六事件唯一映射、CAS / Version 边界、恢复不变量和目标错误语义。
+- [x] **P3-A-03 · 设计**：设计 §11 明确命令 / 查询分离、单文件 CAS 而非跨文件事务、现行 RunStore 复用和状态一致性检查。
+- [x] **P3-A-04 · 索引同步**：总体计划、Parity、根设计与 Feature 索引只增加 808 主规格入口；协同包沿用现行写权，不复制完整状态机。
+- [x] **P3-A-05 · 文档验证**：`npm run check:docs`、808 定向链接／锚点检查、`git diff --check` 与目标 diff 自审通过；确认未改代码、共享类型、生产 manifest、运行账本或依赖。本项不勾选产品运行时验收。
+
+**边界**：无代码、共享类型、生产 manifest、运行账本或依赖改动；不新增执行器、IPC、preload、MCP 或状态文件。T11 的 AC17 同步拒绝 / 真实异步 Provider 故障及 AC18—AC21 仍未执行；P1 未通过、P2—P7 未到对应验收门，本次不作任何产品通过声明。

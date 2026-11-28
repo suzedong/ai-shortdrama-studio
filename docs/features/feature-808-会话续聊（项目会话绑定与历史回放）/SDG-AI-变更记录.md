@@ -160,6 +160,13 @@ T1—T7 及 D-010—D-015 对应实施已按任务清单与上述决策完成：
 
 ## 三、修订记录
 
+### C-2026-11-27 · 现行口径校准：回放空轮规则与全文镜像退场（纯文档）
+
+- **触发**：整体文档复审发现同一包内旧 Change 与新规格并存：需求 §3.3、契约 H4、契约 §6.1 仍写“正文为空即丢弃纯推理 / 纯工具轮”，与需求 §6 R37-03、契约 §9.2 及现行 `history-replay.ts` 的“正文、推理、工具全空才丢弃”不一致；需求 §3.6／§4.1／AC10、任务 T7／白名单／产出物与设计 §8 仍要求同步已删除的根设计全文 HTML 镜像。
+- **处理**：统一需求 §3.3、契约 H4／§6.1、任务 T4a／T5 为 R37-03 现行口径；将全文 HTML 镜像同步要求标记为历史并废止，明确根设计只改 Markdown、两个 B 类总览按既有触发规则更新。需求 §8 同时注明 301／302／401／501／601／602／701 为规划编号，实施前另行建包授权。
+- **边界**：纯文档校准，无产品代码、共享类型、IPC、preload、MCP、依赖或运行账本改动；不改变 T11 未收口事实、P1 未通过、P2—P7 未验收状态；不恢复已删除镜像。
+- **验证**：`npm run check:docs` 与 `docs:context` 定向测试执行；复核为自审、无第二人复核。
+
 ### C-2026-11-27 · 真实 Ark AC17—AC21 定向补验（P1 收口，真实 AC17 阻断，已回流）
 
 - **触发**：D-042 后按用户批准的《P1 收口与 drama-series 改造启动计划》先收口 P1；本 Change 只处理 T10 留下的真实 Provider 补验，不重新开发既有 RunStore／Gate／恢复卡／重试。
@@ -181,7 +188,15 @@ T1—T7 及 D-010—D-015 对应实施已按任务清单与上述决策完成：
 - **真实复验**：真实 Electron + opencode + 火山方舟 `ark-code-latest` 仅执行 AC17 两条人工停止路径，14/14 通过。`abortSession` 的 `msg_132b4e32-c8a6-468d-9bd6-53aa4fe6de76` 与 `runtime.stop` 的 `msg_0b4c9ad5-c3b6-4bb9-973e-f0e7a9bb4768` 均在真实 reasoning + text 流式期间请求停止，采到 `stopping → stopped`，零自动重试，终态及时间戳保持不变。证据见 [修复前后证据索引](../../verification/feature-808-real-ark-ac17-2026-11-27/证据索引.md)、[修复后结果](../../verification/feature-808-real-ark-ac17-2026-11-27/data/t11-1-fixed-result.json) 与 [运行账本](../../verification/feature-808-real-ark-ac17-2026-11-27/data/t11-1-fixed-runs.json)。
 - **收口边界**：不改 `shared/types.ts`，不新增 IPC／preload／MCP／依赖，不改 Gate／重试／项目隔离语义。AC17 同步拒绝与真实异步 Provider 故障、AC18—AC21 和 T11 其余矩阵未执行，需另行授权；不宣告 AC17 整项、T11、P1／P2 通过，不启动 Workflow／Plan 规格扩面。真实 `runtime.stop` 通过直接 `runtime:prompt:async` IPC 隔离取消后的 Composer 状态，不覆盖取消后的 UI 续聊；一张辅助截图因 CDP 超时未取得，已记入结构化结果。
 
-- _（实施期偏离契约/需求的修订记本区；R-001 在一、节预登记，X-002 与后续 R 修订在下文保留。）_
+### C-2026-11-27 · P3 通用编排前置规格登记（纯规格，实施未授权）
+
+- **触发与授权**：用户明确指示“先修 803 历史通道和 HTML 串并行冲突，再补 P3 前置规格”。本条执行总体计划 §4.1-A；此前因真实 AC17 缺陷而暂停扩面的历史记录不改写，T11 未收口事实继续保留。
+- **主规格**：808 需求 §8、契约 §11、设计 §11 建立 `drama-series` STAGE 0—7 显式覆盖、DAG 并行、Plan / Stage / Work Item、Run / Attempt、801 七态六事件唯一映射、Plan revision / CAS、三次 Attempt 上限、Replan 和恢复不变量。Run 复用 `.agent-runs.json` 的 retry 血缘聚合，不另存 Run 状态；`storyboard-done` 不代表全 Plan 完成。
+- **归包**：808 只主控编排与运行恢复；817 只读展示，827 负责 Proposal / `targetRevision` / 单文件 CAS / 原子写，828 负责聚合、Resource / Version 查询与静态导入导出，801 / 806 和各业务包保留原有写权。协同包不复制完整状态机，本次无新增 Feature。
+- **范围**：只修改规格、索引与导航事实源，不改代码、`shared/types.ts`、生产工作流 manifest、运行账本、历史作业或依赖；不新增执行器、IPC、preload、MCP 或持久化文件，未来实施仍按实际变更检查 K1 / K8 / K9。
+- **验证口径**：P3-A-01—05 均已完成；`npm run check:docs`、808 定向链接／锚点检查、`git diff --check` 与目标 diff 自审通过。本次未运行产品运行时、真实 Provider、媒体或真机验收；复核方式为**自审 + 无第二人复核**。
+- **状态边界**：不宣告 AC17 整项、T11、P1、P2、P3、八步闭环或 Parity 通过。AC17 同步拒绝与真实异步 Provider 故障、AC18—AC21 仍是未执行项；本 Change 只关闭“P3 前置规格缺失”。
+
 
 ### X-002 · B-54/B-56：流式多段推理 partId 契约 + 推理/结果交错 timeline（2026-11-01，✅）
 
